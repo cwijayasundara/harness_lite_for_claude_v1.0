@@ -1,0 +1,56 @@
+# The only hand-edited registry in the harness (Law 3).
+# Everything else — the check catalogue, the budget test, the hook behaviour — reads from here.
+#
+# Language support is these 8 verbs. Adding Rust or Go is 8 lines, not a plugin.
+# Any verb left empty is reported "skipped", never "failed": coverage grows with the project.
+
+[project]
+name = "CHANGE-ME"
+
+[capabilities]
+fmt       = ""
+lint      = ""
+typecheck = ""
+test      = ""   # e.g. "python3 -m pytest -q --json-report --json-report-file={report}"
+coverage  = ""
+arch      = ""
+secrets   = ""          # empty = use the harness's built-in scanner
+deps      = ""
+
+# How to parse each verb's stdout into the one finding schema.
+# Known: ruff · eslint · mypy · tsc · pytest · generic
+# {files}  = the changed files (or "." when running whole-repo)
+# {report} = a path the tool may write its machine-readable output to, read back by the runner
+[formats]
+lint      = "generic"
+typecheck = "generic"
+test      = "generic"
+
+# Which verbs run when. A stage may reference another stage; one level of indirection.
+[stages]
+fast   = ["fmt", "lint", "typecheck"]
+stop   = ["fast", "test"]
+commit = ["stop", "secrets", "plan-drift", "budget"]
+drift  = ["coverage", "deps"]
+
+[graph]
+include = [".", ".claude"]      # dotdirs ARE indexed. The harness must be visible to itself.
+exclude = ["node_modules", ".venv", "dist", "build", "target", ".git", "__pycache__"]
+
+[budget]
+subagent_context_soft = 140000
+subagent_context_hard = 200000
+change_cost_ceiling   = 4.0     # USD per merged change, ratcheted against .claude/state/baseline.json
+max_findings          = 20      # per control, shown to the agent; full report on disk
+
+# Law 5. The build fails when exceeded. Raising a limit needs a why: line in the same commit.
+[limits]
+skills          = 12
+agents          = 3
+hooks           = 5
+hook_loc        = 600
+claude_md_lines = 120
+
+[guard]
+protected_paths = []            # e.g. ["db/migrations", "vendor"]
+deny_bash       = []            # extra regexes, on top of the built-in destructive-command list

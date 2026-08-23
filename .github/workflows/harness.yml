@@ -1,0 +1,35 @@
+# GitHub requires workflows at this exact path, so this is the one file that cannot live
+# under .claude/. It is infrastructure, not a generated artefact.
+name: harness
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      # Zero dependencies: no install step, and this must stay true.
+      - run: node --test .claude/test/*.test.mjs
+
+  evals:
+    # Law 9: the suite runs on any diff touching the harness's own configuration.
+    # That trigger IS the governance model — it replaces certification and autonomy tiers.
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - id: touched
+        run: |
+          git diff --name-only origin/${{ github.base_ref }}...HEAD \
+            | grep -E '^\.claude/(skills|agents|hooks|checks|lib)/|harness\.toml$' \
+            && echo "run=true" >> "$GITHUB_OUTPUT" || echo "run=false" >> "$GITHUB_OUTPUT"
+      - if: steps.touched.outputs.run == 'true'
+        run: node .claude/evals/run.mjs
+        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }

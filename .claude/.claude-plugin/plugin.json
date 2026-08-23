@@ -1,0 +1,6 @@
+{
+  "name": "lean-harness",
+  "description": "A lean, language-agnostic SDLC harness for Claude Code: guides, sensors, and an outcome ledger that authorises deletion. Plan -> Build -> Test, with every artefact under .claude/.",
+  "version": "0.1.0",
+  "author": { "name": "Chaminda Wijayasundara" }
+}

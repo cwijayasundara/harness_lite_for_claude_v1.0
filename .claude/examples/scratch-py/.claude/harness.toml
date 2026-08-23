@@ -1,0 +1,29 @@
+[project]
+name = "shortlink"
+
+[capabilities]
+fmt       = "ruff format --check {files}"
+lint      = "ruff check --output-format=json {files}"
+typecheck = ""
+test      = "python3 -m pytest -q --json-report --json-report-file={report}"
+coverage  = ""
+arch      = ""
+secrets   = ""
+deps      = ""
+
+[formats]
+lint = "ruff"
+test = "pytest"
+
+[stages]
+fast   = ["fmt", "lint"]
+stop   = ["fast", "test"]
+commit = ["stop", "secrets", "plan-drift", "budget"]
+drift  = ["coverage", "deps"]
+
+[limits]
+skills = 12
+agents = 3
+hooks = 5
+hook_loc = 600
+claude_md_lines = 120

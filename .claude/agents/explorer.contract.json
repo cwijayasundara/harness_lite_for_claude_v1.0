@@ -1,0 +1,7 @@
+{
+  "agent": "explorer",
+  "may_spawn": false,
+  "may_write": false,
+  "tools": ["Read", "Grep", "Glob"],
+  "why": "Breadth search must not be able to change what it is searching."
+}
