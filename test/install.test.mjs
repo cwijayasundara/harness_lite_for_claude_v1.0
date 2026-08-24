@@ -90,9 +90,14 @@ test('every install instruction in the README names something that exists', () =
   for (const [, url] of readme.matchAll(/github\.com[/:]([\w.\-]+\/[\w.\-]+?)(?:\.git)?[\s)]/g)) {
     assert.equal(url, repo, `README names repository "${url}", but origin is "${repo}"`);
   }
-  for (const [, id] of readme.matchAll(/claude plugin install\s+(\S+)/g)) {
+  // A plugin id is the token carrying the `@`. Flags and their values are not ids, so an
+  // example that shows only `--scope project` contributes none and asserts nothing.
+  const installed = [...readme.matchAll(/claude plugin install\s+([^\n`]+)/g)]
+    .flatMap(([, rest]) => rest.trim().split(/\s+/).filter((a) => a.includes('@')));
+  for (const id of installed) {
     assert.equal(id, `${name}@${name}`, `README installs "${id}", which no manifest declares`);
   }
+  assert.ok(installed.length, 'the README must show the install command at least once');
   for (const [, src] of readme.matchAll(/claude plugin marketplace add\s+(\S+)/g)) {
     assert.ok(!src.startsWith('~') && !src.startsWith('/'),
       `README adds the marketplace from "${src}" — a path that exists only on one machine`);

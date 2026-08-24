@@ -46,17 +46,20 @@ This creates, in **your** project:
 .claude/
   harness.toml          ← the one file you edit
   CLAUDE.md             ← instructions Claude reads every session
-  settings.json         ← generated hook wiring (never edit by hand)
-  harness-install.json  ← generated record of what was installed (never edit by hand)
-  bin/harness           ← the command Claude and CI run
-  runtime/              ← a private copy of the harness, so your project is self-contained
+  settings.json         ← generated; declares which harness this project uses
+  harness-install.json  ← generated; names the marketplace, plugin and exact commit
+  bin/harness           ← generated shim; finds the harness and runs it
   artifacts/            ← intent / spec / plan / review live here
   state/                ← local, gitignored
 ```
 
-Commit `harness-install.json` along with the rest. The budget reads it to count the skills and
-agents the plugin delivers, which are not inside your project — without it, CI on a cold clone
-would measure a different budget than your laptop does.
+Note what is **not** there: no copy of the harness. Your project declares which version it uses;
+it never carries one. That is what keeps every member of your team on the same harness, and what
+stops a project quietly editing the controls that govern it.
+
+Commit `harness-install.json` along with the rest. It does two jobs: the budget reads it to count
+the skills and agents the plugin delivers, which are not inside your project, and CI reads it to
+fetch the exact harness commit you installed.
 
 `init` is safe to re-run.
 
@@ -120,23 +123,32 @@ git add .claude && git commit -m "Install lean harness"
 Commit `.claude/` so CI and your teammates get the same controls. `.claude/state/` is already
 gitignored.
 
-### 6. Start Claude Code with the harness plugin loaded
+### 6. Install the plugin — once per machine, not once per project
 
-The plugin supplies the 12 skills and 3 subagents. `init` does **not** copy them into your
-project — they come from the plugin.
-
-```bash
-claude --plugin-dir ~/lean_harness_cs_v1/.claude
-```
-
-To install it once instead of passing the flag every time:
+The plugin supplies the 12 skills, the 3 subagents and the 5 hook bindings. `init` does **not**
+copy them into your project; it only records that your project wants them.
 
 ```bash
 claude plugin marketplace add cwijayasundara/harness_lite_for_claude_v1.0
 claude plugin install lean_harness_cs_v1@lean_harness_cs_v1
 ```
 
-Then plain `claude` works from anywhere.
+Every teammate runs these two commands once. After that, any project whose committed
+`.claude/settings.json` enables the plugin gets it automatically — nothing to configure per
+project, and everyone is on the same harness.
+
+Two things worth knowing, both measured rather than assumed:
+
+- `enabledPlugins` in a project's settings **enables** an installed plugin; it does not install
+  one. That is why the two commands above cannot be skipped.
+- Installing at user scope enables the plugin everywhere on that machine, not only in projects
+  that declare it. Use `claude plugin install --scope project` if you would rather it stayed put.
+
+To try the harness without installing anything, point Claude at a checkout for one session:
+
+```bash
+claude --plugin-dir ~/lean_harness_cs_v1/.claude
+```
 
 ---
 
@@ -222,6 +234,10 @@ no `.claude/harness.toml` and every check will fail. Do steps 2–5 above first.
 **`node .claude/bin/harness` throws `SyntaxError: Invalid or unexpected token`.**
 In an installed project that file is a bash shim, not JavaScript. Use
 `bash .claude/bin/harness ...`.
+
+**`harness: not installed on this machine`.**
+The shim could not find the harness. Run the two commands in step 6, or set `HARNESS_HOME` to a
+checkout — which is what CI does, using the commit named in `harness-install.json`.
 
 **`harness: ... ENOCONFIG` or "no harness.toml".**
 You're not in a project that ran `init`, or you're above its root. `cd` to the project root.
