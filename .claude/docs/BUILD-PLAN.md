@@ -42,7 +42,7 @@ commits a file the next stage reads, and git is the audit trail.
 | Playbook stage | This harness | Human gate |
 |---|---|---|
 | **1. Plan** — capture as `intent.md` | `intent` skill → `.claude/artifacts/intent/<slug>.md` | — |
-| **2. Design** — `spec.md` guided by skills | `spec` skill → `.claude/artifacts/spec/<slug>.md`; org policy via `org-policy` plugin | **Gate 1** — spec approved |
+| **2. Design** — `spec.md` guided by skills | `spec` skill → `.claude/artifacts/spec/<slug>.md` | **Gate 1** — spec approved |
 | **3. Build** — plan mode, CLAUDE.md, subagents | `plan` + `implement` skills, 5 hooks, 3 agents | **Gate 2** — plan approved |
 | **4. Test** — evals woven through | `harness check` stages + `evals/tasks.json` in CI; `harness status` reports pass rate | — |
 | **5. Deploy** — PR review, hooks as gates | `review` skill → `.claude/artifacts/review/<slug>.md`; CI + merge protection are the gate; `handoff` opens the next draft PR | **Gate 3** — review approved / PR merged |

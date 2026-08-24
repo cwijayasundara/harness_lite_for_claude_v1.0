@@ -4,11 +4,11 @@ name = "fixture"
 [capabilities]
 fmt       = "ruff format --check {files}"
 lint      = "ruff check --output-format=json {files}"
-test      = "python3 -m pytest -q --json-report --json-report-file={report}"
+test      = "python3 -m pytest -q"
 
 [formats]
 lint = "ruff"
-test = "pytest"
+test = "generic"
 
 [stages]
 fast   = ["fmt", "lint"]

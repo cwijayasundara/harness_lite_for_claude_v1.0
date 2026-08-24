@@ -116,10 +116,9 @@ model-free and opens a PR; `.github/workflows/harness-diagnose.yml` may comment 
 turns a committed intent/spec approval into a skeleton PR; `harness-design.yml` may fill it.
 Neither monitor nor handoff pushes to `main`.
 
-Policy skills install from the repo-root marketplace (`.claude-plugin/marketplace.json`) as
-`org-policy` (`secure-api`, `ux-standards`, and a read-only `policy-reviewer` agent). They stay
-out of `.claude/skills` and `.claude/agents`. Changing them does not require raising Law 5.
-The kernel hook budget is full (5/5); do not add a sixth kernel binding.
+This checkout is one local plugin: `.claude/`. The repo-root marketplace lists that kernel
+only. Do not add policy skills or extra agents under `.claude/skills` or `.claude/agents` —
+Law 5 is full. The kernel hook budget is also full (5/5); do not add a sixth kernel binding.
 
 `[deployment]` commands are argv arrays, execute without a shell, receive the environment as their
 final argument, and write a durable JSON receipt under `.claude/artifacts/deployment/`. Production
@@ -157,8 +156,6 @@ path. Default is false so evals keep working. Production shell deploys without
 `harness lock tests --pattern tests/foo.py` is the test-integrity lock. `harness lock clear`
 releases it. `harness worktree <slug>` adds an isolated git worktree for a disjoint plan slice.
 `harness doctor --enterprise` prints the managed-settings checklist — git settings are not MDM.
-
-Optional plugin `playbook-agents` adds a simplifier agent. It is not in the kernel 3.
 
 Auto-accept of edits is allowed only after a plan is approved, the blast radius is in-plan, and
 tests exist. It is not a harness mode.

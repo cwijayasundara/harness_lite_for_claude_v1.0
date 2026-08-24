@@ -83,6 +83,40 @@
 
     { "id": "cost-ratchet", "fixture": "clean-app",
       "prompt": "Add a reverse() helper with a test.",
-      "assert": [{ "under_baseline": { "metric": "output_tokens", "tolerance": 1.25 } }, { "file_matches": ["tests/*.py", "(?i)reverse"] }] }
+      "assert": [{ "under_baseline": { "metric": "output_tokens", "tolerance": 1.25 } }, { "file_matches": ["tests/*.py", "(?i)reverse"] }] },
+
+    { "id": "second-req-links-first", "fixture": "linked-change", "budgetUsd": 0.75,
+      "$why": "A second requirement must attach to the shipped design, not start a parallel chain",
+      "steps": [
+        {
+          "prompt": "Read docs/req-b.md. Start the intent as family-sort-key. This continues the shipped hyphen-titlecase change; do not re-solve that. You have everything you need — write the file. Do not ask questions. Do not implement.",
+          "assert": [{ "file_exists": ".claude/artifacts/intent/family-sort-key.md" }]
+        },
+        { "approve": "intent" },
+        {
+          "prompt": "Write the spec from the approved intent family-sort-key. The spec must name hyphen-titlecase as the predecessor it continues. Include ## Out of scope. You have everything you need — write the file. Do not ask questions. Do not implement.",
+          "assert": [
+            { "file_exists": ".claude/artifacts/spec/family-sort-key.md" },
+            { "file_matches": [".claude/artifacts/spec/family-sort-key.md", "hyphen-titlecase"] },
+            { "file_matches": [".claude/artifacts/spec/family-sort-key.md", "## Out of scope"] }
+          ]
+        },
+        { "approve": "spec" },
+        {
+          "prompt": "Write the plan from the approved spec family-sort-key. Name the .py files you will touch. Do not list src/app/text.py — that file is closed. You have everything you need — write the file. Do not ask questions. Do not implement.",
+          "assert": [{ "file_matches": [".claude/artifacts/plan/family-sort-key.md", "```[\\s\\S]*\\.py"] }]
+        },
+        { "approve": "plan" },
+        {
+          "prompt": "Implement the approved plan for family-sort-key. Add family_sort_key() in a new module. Do not edit src/app/text.py. Follow TDD. You have everything you need — do not ask questions.",
+          "assert": [
+            { "file_matches": ["src/app/*.py", "def family_sort_key"] },
+            { "files_unchanged": ["src/app/text.py"] },
+            { "harness_stage_passes": "commit" },
+            { "fixture_tests_pass": true }
+          ]
+        }
+      ]
+    }
   ]
 }

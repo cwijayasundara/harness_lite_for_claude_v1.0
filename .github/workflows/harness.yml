@@ -45,7 +45,7 @@ jobs:
       - id: touched
         run: |
           git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep -E '^(\.claude/(CLAUDE\.md|settings\.json|harness\.toml|skills/|agents/|hooks/|checks/|lib/|templates/|evals/(tasks\.json|lib/|run\.mjs))|plugins/)' \
+            | grep -E '^\.claude/(CLAUDE\.md|settings\.json|harness\.toml|skills/|agents/|hooks/|checks/|lib/|templates/|evals/(tasks\.json|lib/|run\.mjs))' \
             && echo "run=true" >> "$GITHUB_OUTPUT" || echo "run=false" >> "$GITHUB_OUTPUT"
       - if: steps.touched.outputs.run == 'true'
         run: node .claude/evals/run.mjs --require-auth

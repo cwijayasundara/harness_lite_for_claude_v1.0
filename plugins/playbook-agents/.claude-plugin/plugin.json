@@ -1,5 +1,0 @@
-{
-  "name": "playbook-agents",
-  "description": "Optional extra agents that must not live in the kernel budget. Simplifier only.",
-  "version": "0.1.0"
-}

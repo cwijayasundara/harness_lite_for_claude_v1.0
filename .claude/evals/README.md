@@ -1,8 +1,10 @@
 # Evals
 
-Twenty golden tasks. They are the ratchet that makes deletion safe: remove a control, run the
-suite, and if nothing regresses the control was not doing anything. Without this, every control
-is load-bearing by default and the count only ever rises — which is exactly what happened to v6.
+Twenty golden tasks are the Law 9 floor. The suite grows only when a new task measures a
+defect the floor missed. `second-req-links-first` is that: a dummy req B against a fixture
+where req A already shipped, so the chain has to attach to the existing design instead of
+starting over. A `steps` array keeps one workdir across intent → committed approval → spec →
+plan → implement; without that, `plan-drift` would still grade B's diff against A's plan.
 
 ## Running
 
@@ -12,8 +14,8 @@ node .claude/evals/run.mjs --id surgical-fix
 node .claude/evals/run.mjs --dry           # validate tasks.json without spending anything
 ```
 
-Exits 0 with a clear message when `ANTHROPIC_API_KEY` is absent, so the suite never blocks a
-contributor who only wants to run `node --test`.
+Exits 0 with a clear message when no Claude credentials are found (API key **or** a Claude
+Code login), so the suite never blocks a contributor who only wants to run `node --test`.
 
 ## Design rules
 
@@ -27,9 +29,9 @@ contributor who only wants to run `node --test`.
 ## CI trigger
 
 Any diff touching `.claude/skills/**`, `.claude/agents/**`, `.claude/hooks/**`,
-`.claude/checks/**`, `.claude/lib/**`, `harness.toml`, or `plugins/**`. That trigger replaces
+`.claude/checks/**`, `.claude/lib/**`, or `harness.toml`. That trigger replaces
 certification profiles, autonomy tiers and control-budget meta-ratchets.
 
 Product repos: `harness new eval <incident-slug>` writes `.claude/evals/pending/<id>.json`.
 Merge that stub into `evals/tasks.json` before treating the incident as closed. The kernel
-suite in this checkout stays the twenty golden tasks.
+suite in this checkout is the golden tasks in `evals/tasks.json`.

@@ -8,13 +8,16 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { evaluate, expand, KNOWN, toRegExp } from '../evals/lib/assertions.mjs';
 import { stage } from '../evals/lib/stage.mjs';
-import { loadTasks, validate, runSuite } from '../evals/run.mjs';
+import { loadTasks, validate, runSuite, promptCount } from '../evals/run.mjs';
+import { approveDrafts } from '../evals/lib/approve.mjs';
 
 const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const FIXTURES = path.join(C, 'evals', 'fixtures');
 const HARNESS = path.join(C, 'bin', 'harness');
-const has = (cmd) => spawnSync('bash', ['-lc', `command -v ${cmd}`]).status === 0;
-const TOOLS = has('ruff') && spawnSync('bash', ['-lc', 'python3 -c "import pytest"']).status === 0;
+// `bash -lc` replaces PATH with the login path and grades the laptop's shell profile, not the
+// change. Inherit this process's PATH so a present ruff/pytest actually runs.
+const has = (cmd) => spawnSync(cmd, ['--version']).status === 0;
+const TOOLS = has('ruff') && spawnSync('python3', ['-c', 'import pytest']).status === 0;
 
 test('tasks.json validates, and every fixture it names exists', () => {
   const tasks = loadTasks();
@@ -151,4 +154,89 @@ test('inline (?i) is translated, because JavaScript is the odd dialect out', () 
   const bad = [{ id: 'x', prompt: 'p', fixture: 'clean-app', timeoutMs: 1, budgetUsd: 1,
     assert: [{ transcript_matches: '(unclosed' }] }];
   assert.match(validate(bad, FIXTURES).join('\n'), /bad regex/);
+});
+
+test('validate accepts a multi-step task and rejects a step that is neither prompt nor approve', () => {
+  const ok = [{
+    id: 'chain', fixture: 'linked-change', timeoutMs: 1, budgetUsd: 1,
+    steps: [
+      { prompt: 'write intent', assert: [{ file_exists: '.claude/artifacts/intent/*.md' }] },
+      { approve: 'intent' },
+    ],
+  }];
+  assert.deepEqual(validate(ok, FIXTURES), []);
+  assert.equal(promptCount(ok[0]), 1);
+
+  const bad = [{
+    id: 'chain', fixture: 'linked-change', timeoutMs: 1, budgetUsd: 1,
+    steps: [{ assert: [{ workdir_unchanged: true }] }],
+  }];
+  const p = validate(bad, FIXTURES).join('\n');
+  assert.match(p, /must be prompt or approve/);
+});
+
+test('approveDrafts commits a new draft and leaves fixture artifacts alone', () => {
+  const s = stage(FIXTURES, 'linked-change');
+  try {
+    const dir = path.join(s.work, '.claude/artifacts/intent');
+    writeFileSync(path.join(dir, 'family-sort-key.md'), '# Intent\n\n- **Status:** draft\n');
+    const hit = approveDrafts(s.work, s.pristine, 'intent');
+    assert.equal(hit.ok, true, hit.detail);
+    assert.match(readFileSync(path.join(dir, 'family-sort-key.md'), 'utf8'), /\*\*Status:\*\* approved/);
+    assert.match(readFileSync(path.join(dir, 'hyphen-titlecase.md'), 'utf8'), /\*\*Status:\*\* approved/);
+    const miss = approveDrafts(s.work, s.pristine, 'spec');
+    assert.equal(miss.ok, false);
+    assert.match(miss.detail, /no new spec/);
+  } finally { s.cleanup(); }
+});
+
+test('a multi-step task keeps the workdir, so a later step sees the committed approval', async () => {
+  const invoke = ({ prompt, cwd }) => {
+    const intentDir = path.join(cwd, '.claude/artifacts/intent');
+    const specDir = path.join(cwd, '.claude/artifacts/spec');
+    if (prompt.includes('write intent')) {
+      mkdirSync(intentDir, { recursive: true });
+      writeFileSync(path.join(intentDir, 'family-sort-key.md'), [
+        '# Intent: family-sort-key',
+        '- **Status:** draft',
+        '',
+        'Invoice search cannot sort by family name.',
+      ].join('\n'));
+      return { transcript: 'wrote intent', usage: { usd: 0.01 } };
+    }
+    const intent = readFileSync(path.join(intentDir, 'family-sort-key.md'), 'utf8');
+    assert.match(intent, /\*\*Status:\*\* approved/, 'spec step must see the approved intent');
+    mkdirSync(specDir, { recursive: true });
+    writeFileSync(path.join(specDir, 'family-sort-key.md'), [
+      '# Spec: family-sort-key',
+      '- **Status:** draft',
+      '',
+      'Continues hyphen-titlecase.',
+      '## Out of scope',
+    ].join('\n'));
+    return { transcript: 'wrote spec', usage: { usd: 0.02 } };
+  };
+  const out = await runSuite({
+    tasks: [{
+      id: 'second-req', fixture: 'linked-change', prompt: undefined, repeats: 1, timeoutMs: 1000, budgetUsd: 1,
+      steps: [
+        { prompt: 'write intent from docs/req-b.md', assert: [{ file_exists: '.claude/artifacts/intent/family-sort-key.md' }] },
+        { approve: 'intent' },
+        { prompt: 'write spec from the approved intent', assert: [{ file_matches: ['.claude/artifacts/spec/family-sort-key.md', 'hyphen-titlecase'] }] },
+      ],
+    }],
+    invoke, fixturesDir: FIXTURES, harnessBin: HARNESS,
+  });
+  assert.equal(out.results[0].verdict, 'pass', JSON.stringify(out.results[0].runs[0].assertions));
+  assert.equal(out.summary.usd, 0.03);
+});
+
+test('fixtures are what they claim: linked-change is green with req A already shipped', { skip: TOOLS ? false : 'ruff/pytest not installed' }, () => {
+  const s = stage(FIXTURES, 'linked-change');
+  try {
+    const [r] = evaluate({ work: s.work, pristine: s.pristine, transcript: '', harness: HARNESS }, [{ fixture_tests_pass: true }]);
+    assert.equal(r.pass, true, `linked-change: expected tests to pass — ${r.detail}`);
+    assert.ok(existsSync(path.join(s.work, 'docs/req-b.md')));
+    assert.match(readFileSync(path.join(s.work, '.claude/artifacts/plan/hyphen-titlecase.md'), 'utf8'), /Status:\*\* approved/);
+  } finally { s.cleanup(); }
 });

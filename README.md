@@ -50,27 +50,23 @@ developers do not need the source checkout at the same path.
 Next, edit `.claude/harness.toml` once so its eight capability verbs call the tools used by the
 project. After that, product work does not require users to invoke the harness executable.
 
-Start Claude Code with the Lean plugin to make its skills and subagents available:
+Load it as a Claude Code **local plugin**. The plugin root is `.claude/` (it already has
+`.claude-plugin/plugin.json`). From the target repository:
 
 ```bash
 claude --plugin-dir "$LEAN_HARNESS_DIR/.claude"
 ```
 
-Organization policy skills (security, brand, UX) are a **second plugin**. They must not be copied
-into `.claude/skills` — that directory is the kernel budget (12). From this checkout:
+Or add the checkout as a local marketplace and install the one plugin:
 
 ```bash
 claude plugin marketplace add "$LEAN_HARNESS_DIR"
 claude plugin install lean-harness@lean-harness-local
-claude plugin install org-policy@lean-harness-local
-claude plugin install playbook-agents@lean-harness-local
 ```
 
-Replace `plugins/org-policy/skills/secure-api/SKILL.md` with the policy owner's source of truth
-before treating it as binding. `harness init` does not copy policy skills into a target repo.
-
-Run the plugin-dir or marketplace commands from the target repository. Commit the generated
-`.claude/` installation so CI and other developers receive the same runtime and controls; only
+Do not copy extra skills or agents into `.claude/skills` or `.claude/agents` — those
+directories are the kernel budget (12 skills, 3 agents). Commit the generated `.claude/`
+installation so CI and other developers receive the same runtime and controls; only
 `.claude/state/` is local, generated state and is ignored.
 
 ## Use the AIDLC workflow

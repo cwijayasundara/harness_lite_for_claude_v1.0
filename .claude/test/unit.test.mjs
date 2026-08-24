@@ -80,6 +80,26 @@ test('normalize: a generic tool exiting non-zero produces exactly one', () => {
   assert.equal(out[0].rule, 'exit-nonzero');
 });
 
+test('runner inherits this process PATH instead of a login shell', async () => {
+  const { spawnSync } = await import('node:child_process');
+  if (spawnSync('python3', ['-c', 'import pytest'], { env: process.env }).status !== 0) return;
+  const { check } = await import('../lib/runner.mjs');
+  const os = await import('node:os');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-path-'));
+  fs.mkdirSync(path.join(root, '.claude', 'state'), { recursive: true });
+  const cfg = {
+    capabilities: { test: 'python3 -c "import pytest"' },
+    formats: { test: 'generic' }, stages: { fast: ['test'] },
+    budget: { max_findings: 20 },
+    layout: { root, state: path.join(root, '.claude/state'), ledger: path.join(root, '.claude/state/ledger.jsonl'), lastCheck: path.join(root, '.claude/state/last-check.json'), runId: path.join(root, '.claude/state/run-id') },
+  };
+  const r = await check(cfg, { stage: 'fast' });
+  assert.equal(r.controls[0].verdict, 'pass', r.controls[0].error || r.controls[0].findings.map((f) => f.message).join(' | '));
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test('runner: a missing tool is errored, not failed', async () => {
   const { check } = await import('../lib/runner.mjs');
   const os = await import('node:os');

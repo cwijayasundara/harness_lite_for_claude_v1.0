@@ -55,7 +55,9 @@ async function runOne(cfg, verb, files) {
   try {
     mkdirSync(cfg.layout.state, { recursive: true });
     if (existsSync(reportPath)) rmSync(reportPath, { force: true });
-    const r = spawnSync('bash', ['-lc', full], { cwd: cfg.layout.root, encoding: 'utf8', timeout: 180000, maxBuffer: 32 * 1024 * 1024 });
+    // `-c` inherits PATH. `-lc` replaces it with the login profile and then grades
+    // whichever python3 that profile happens to put first, not the change.
+    const r = spawnSync('bash', ['-c', full], { cwd: cfg.layout.root, encoding: 'utf8', timeout: 180000, maxBuffer: 32 * 1024 * 1024 });
     if (r.error) return { ...base, verdict: 'errored', ms: Date.now() - started, command: full, error: r.error.message };
     const fmt = cfg.formats[verb] ?? 'generic';
     const payload = existsSync(reportPath) ? readFileSync(reportPath, 'utf8') : (r.stdout ?? '');

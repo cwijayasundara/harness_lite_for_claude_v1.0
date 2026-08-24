@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { evaluate, KNOWN, toRegExp } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
 import { stage } from './lib/stage.mjs';
+import { approveDrafts } from './lib/approve.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CLAUDE_ROOT = path.dirname(HERE);
@@ -52,6 +53,25 @@ function regexesIn(name, arg) {
   return [arg[1]];
 }
 
+export function promptCount(t) {
+  if (t.steps?.length) return t.steps.filter((s) => s.prompt).length;
+  return t.prompt ? 1 : 0;
+}
+
+function assertsOf(t) {
+  return [...(t.assert ?? []), ...(t.steps ?? []).flatMap((s) => s.assert ?? [])];
+}
+
+function visitAsserts(at, list, problems) {
+  for (const a of list) {
+    const name = Object.keys(a)[0];
+    if (!KNOWN.includes(name)) problems.push(`${at}: unknown assertion "${name}" (known: ${KNOWN.join(', ')})`);
+    for (const pat of regexesIn(name, Object.values(a)[0])) {
+      try { toRegExp(pat); } catch (e) { problems.push(`${at}: bad regex ${JSON.stringify(pat)} — ${e.message}`); }
+    }
+  }
+}
+
 export function validate(tasks, fixturesDir) {
   const problems = [];
   const ids = new Set();
@@ -60,21 +80,80 @@ export function validate(tasks, fixturesDir) {
     if (!t.id) problems.push('a task has no id');
     if (ids.has(t.id)) problems.push(`${at}: duplicate id`);
     ids.add(t.id);
-    if (!t.prompt) problems.push(`${at}: no prompt`);
+    if (t.steps) {
+      if (!t.steps.length) problems.push(`${at}: steps is empty`);
+      t.steps.forEach((s, i) => {
+        const hasPrompt = Boolean(s.prompt);
+        const hasApprove = Boolean(s.approve);
+        if (hasPrompt === hasApprove) problems.push(`${at} step ${i}: must be prompt or approve, not both or neither`);
+        if (hasApprove && !['intent', 'spec', 'plan'].includes(s.approve)) {
+          problems.push(`${at} step ${i}: approve must be intent, spec, or plan`);
+        }
+      });
+    } else if (!t.prompt) {
+      problems.push(`${at}: no prompt`);
+    }
     if (!(t.budgetUsd > 0)) problems.push(`${at}: no USD ceiling — an unbounded task is not a task`);
     if (!(t.timeoutMs > 0)) problems.push(`${at}: no timeout`);
     if (!existsSync(path.join(fixturesDir, t.fixture ?? ''))) problems.push(`${at}: no fixture "${t.fixture}"`);
-    if (!t.assert?.length) problems.push(`${at}: no assertions`);
-    for (const a of t.assert ?? []) {
-      const name = Object.keys(a)[0];
-      if (!KNOWN.includes(name)) problems.push(`${at}: unknown assertion "${name}" (known: ${KNOWN.join(', ')})`);
-      // A regex that will not compile is a task that fails for the wrong reason at $0.75 a go.
-      for (const pat of regexesIn(name, Object.values(a)[0])) {
-        try { toRegExp(pat); } catch (e) { problems.push(`${at}: bad regex ${JSON.stringify(pat)} — ${e.message}`); }
-      }
-    }
+    const asserts = assertsOf(t);
+    if (!asserts.length) problems.push(`${at}: no assertions`);
+    visitAsserts(at, asserts, problems);
   }
   return problems;
+}
+
+function invokerFatal(out) {
+  if (out?.notInstalled) return Object.assign(new Error(out.error), { fatal: true });
+  if (/invalid api key|authentication_error|please run .?claude login/i.test(out?.transcript ?? '')) {
+    return Object.assign(new Error('the `claude` CLI is not authenticated'), { fatal: true });
+  }
+  return null;
+}
+
+async function runAttempt(t, invoke, s, harnessBin, baseline) {
+  if (!t.steps) {
+    const out = await invoke({ prompt: t.prompt, cwd: s.work, timeoutMs: t.timeoutMs, budgetUsd: t.budgetUsd, task: t });
+    const fatal = invokerFatal(out);
+    if (fatal) throw fatal;
+    const ctx = { work: s.work, pristine: s.pristine, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
+    return { assertions: evaluate(ctx, t.assert), usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: out.transcript ?? '' };
+  }
+
+  const assertions = [];
+  let usage = {};
+  let timedOut = false;
+  let transcript = '';
+  for (let idx = 0; idx < t.steps.length; idx++) {
+    const step = t.steps[idx];
+    if (step.approve) {
+      const r = approveDrafts(s.work, s.pristine, step.approve);
+      assertions.push({ name: `approve_${step.approve}`, pass: r.ok, detail: r.detail ?? '' });
+      if (!r.ok) break;
+      continue;
+    }
+    const out = await invoke({
+      prompt: step.prompt, cwd: s.work, timeoutMs: t.timeoutMs, budgetUsd: t.budgetUsd, task: t, step: idx,
+    });
+    const fatal = invokerFatal(out);
+    if (fatal) throw fatal;
+    usage = {
+      usd: (usage.usd ?? 0) + (out.usage?.usd ?? 0),
+      output_tokens: (usage.output_tokens ?? 0) + (out.usage?.output_tokens ?? 0),
+    };
+    timedOut = timedOut || !!out.timedOut;
+    transcript = [transcript, out.transcript ?? ''].filter(Boolean).join('\n');
+    const ctx = { work: s.work, pristine: s.pristine, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
+    const stepAsserts = evaluate(ctx, step.assert ?? []);
+    assertions.push(...stepAsserts);
+    if (stepAsserts.some((a) => !a.pass)) break;
+  }
+  if (t.assert?.length) {
+    assertions.push(...evaluate({
+      work: s.work, pristine: s.pristine, transcript, harness: harnessBin, usage, baseline: baseline[t.id],
+    }, t.assert));
+  }
+  return { assertions, usage, timedOut, transcript };
 }
 
 export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {} }) {
@@ -83,21 +162,15 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
     const runs = [];
     for (let i = 0; i < (t.repeats ?? 1); i++) {
       const s = stage(fixturesDir, t.fixture);
-      let out;
       try {
-        out = await invoke({ prompt: t.prompt, cwd: s.work, timeoutMs: t.timeoutMs, budgetUsd: t.budgetUsd, task: t, attempt: i });
-        if (out?.notInstalled) throw Object.assign(new Error(out.error), { fatal: true });
-        if (/invalid api key|authentication_error|please run .?claude login/i.test(out?.transcript ?? '')) {
-          throw Object.assign(new Error('the `claude` CLI is not authenticated'), { fatal: true });
-        }
-        const ctx = { work: s.work, pristine: s.pristine, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
-        const assertions = evaluate(ctx, t.assert);
+        const out = await runAttempt(t, invoke, s, harnessBin, baseline);
+        const pass = out.assertions.every((a) => a.pass);
         runs.push({
-          attempt: i + 1, pass: assertions.every((a) => a.pass), assertions,
+          attempt: i + 1, pass, assertions: out.assertions,
           usage: out.usage ?? {}, timedOut: !!out.timedOut,
           // Without the transcript, a failure can only be triaged by paying for the task again.
           // Kept for failures only, and capped, so the results file stays readable.
-          transcript: assertions.every((a) => a.pass) ? undefined : String(out.transcript ?? '').slice(0, 20000),
+          transcript: pass ? undefined : String(out.transcript ?? '').slice(0, 20000),
           changed: changedFilesIn(s.work, s.pristine),
         });
       } catch (e) {
@@ -137,7 +210,11 @@ async function main() {
 
   const problems = validate(tasks, fixturesDir);
   if (problems.length) { console.error('tasks.json is invalid:\n  ' + problems.join('\n  ')); return 2; }
-  if (argv.includes('--dry')) { console.log(`${tasks.length} tasks valid; ${tasks.reduce((n, t) => n + t.budgetUsd * t.repeats, 0).toFixed(2)} USD ceiling if run`); return 0; }
+  if (argv.includes('--dry')) {
+    const ceiling = tasks.reduce((n, t) => n + t.budgetUsd * t.repeats * promptCount(t), 0);
+    console.log(`${tasks.length} tasks valid; ${ceiling.toFixed(2)} USD ceiling if run`);
+    return 0;
+  }
 
   // `claude -p` authenticates from a Claude Code login as well as from an env var, so keying
   // the gate on ANTHROPIC_API_KEY alone refuses to run on exactly the machines most likely to
