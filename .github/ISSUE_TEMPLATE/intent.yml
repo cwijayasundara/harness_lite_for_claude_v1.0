@@ -1,0 +1,30 @@
+name: Intent
+description: Capture a product idea as intent.md. Non-engineers can open this instead of using git.
+title: "intent: "
+labels: ["intent"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong today
+      description: In your own words. No solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: What better looks like
+      description: Observable from outside the system.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+  - type: input
+    id: slug
+    attributes:
+      label: Slug
+      description: lowercase-hyphen-id for the artifact filename
+    validations:
+      required: true

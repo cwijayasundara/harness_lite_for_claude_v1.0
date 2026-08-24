@@ -62,6 +62,29 @@ test('detect --file writes incident and intent once, then reports already open',
   } finally { f.cleanup(); }
 });
 
+test('1σ logs and 2σ writes incident only; 3σ still opens intent', () => {
+  const f = fixture(); try {
+    const one = path.join(f.root, 'one.json');
+    writeFileSync(one, JSON.stringify({ bands: [{ metric: 'error-rate', observed: 0.22, mean: 0.1, stdev: 0.1, source: 'sigma' }] }));
+    const t1 = detect({ layout: f.layout, monitoring: { collect: [] } }, { file: one, slug: 'one-sigma' });
+    assert.equal(t1.tier, 1);
+    assert.equal(t1.breached, false);
+    assert.equal(existsSync(path.join(f.layout.incident, 'one-sigma.md')), false);
+    const two = path.join(f.root, 'two.json');
+    writeFileSync(two, JSON.stringify({ bands: [{ metric: 'error-rate', observed: 0.32, mean: 0.1, stdev: 0.1, source: 'sigma' }] }));
+    const t2 = detect({ layout: f.layout, monitoring: { collect: [] } }, { file: two, slug: 'two-sigma', now: new Date('2026-01-01T00:00:00Z') });
+    assert.equal(t2.tier, 2);
+    assert.equal(t2.diagnose, true);
+    assert.equal(t2.files.length, 1);
+    assert.equal(existsSync(path.join(f.layout.intent, 'two-sigma.md')), false);
+    const three = path.join(f.root, 'three.json');
+    writeFileSync(three, JSON.stringify({ bands: [{ metric: 'error-rate', observed: 0.5, mean: 0.1, stdev: 0.1, source: 'sigma' }] }));
+    const t3 = detect({ layout: f.layout, monitoring: { collect: [] } }, { file: three, slug: 'three-sigma', now: new Date('2026-01-01T00:00:00Z') });
+    assert.equal(t3.tier, 3);
+    assert.equal(t3.files.length, 2);
+  } finally { f.cleanup(); }
+});
+
 test('detect runs a collect argv and parses the bands document from stdout', () => {
   const f = fixture(); try {
     const collector = path.join(f.root, 'bin', 'collect');

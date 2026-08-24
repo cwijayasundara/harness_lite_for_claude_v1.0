@@ -83,8 +83,8 @@ not another permanent harness control; the plan's file ownership must be disjoin
 | Playbook | Here | Reason |
 |---|---|---|
 | Approval-gate hooks during Build | Gates only at spec, plan, merge | An approval pause inside the build loop destroys the parallelism agents are for. The playbook says this itself; v6 ignored it and built five autonomy modes. |
-| Managed settings, OSCAL, certification | Not in v1 | These are enterprise rollout controls. They gate nothing until the harness is proven on one repo. |
-| `bands.yaml` anomaly detection → `intent.md` | Deferred | This is the stage v6 built and never ran. It is the highest-risk piece to build speculatively. |
+| Managed settings, OSCAL, certification | Template + `harness doctor --enterprise` | Enforcement is MDM/admin console, never git `settings.json`. |
+| `bands.yaml` anomaly detection → `intent.md` | `harness monitor detect` with 1σ/2σ/3σ tiers | Detection stays model-free. 2σ diagnoses; 3σ writes intent. |
 | Skills up to 500 lines / 5k words | 130-line hard stop, ~80-line target | Empirically better triggering. v6's skills averaged 268 lines and its two conductors were effectively 1,000 and 1,850. |
 | Repo-root `docs/` for artefacts | Everything under `.claude/` | One directory to gitignore, one to copy between repos, one place an agent looks. |
 

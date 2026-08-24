@@ -1,0 +1,41 @@
+# Addresses review comments. Pushes commits. Cannot approve or merge.
+name: claude-fix
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  fix:
+    if: >
+      github.event.repository.fork == false &&
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@harness-fix')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Address the review comments on PR ${{ github.event.issue.number }}.
+            Comment: ${{ github.event.comment.body }}
+            Edit the branch. Run node .claude/bin/harness check --stage stop.
+            Do not approve the pull request. Do not merge. Do not change review.md Status to approved.
+          claude_args: >-
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(node .claude/bin/harness *)"
+            --disallowedTools "NotebookEditCell"
+            --max-turns 16
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "lean-harness[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git -c commit.gpgsign=false diff --cached --quiet && exit 0
+          git -c commit.gpgsign=false commit -m "fix: address review comments via @harness-fix"
+          git push

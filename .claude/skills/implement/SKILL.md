@@ -30,8 +30,8 @@ Paste the output. If it is not green, you are not done. Do not report completion
 ## The two rules that are not negotiable
 
 - **Never edit a test to make it pass.** If a test is genuinely wrong, stop and say so — that
-  is a spec question, not an implementation one. During a bug fix the harness will block test
-  edits outright via `.claude/state/test-lock.json`.
+  is a spec question, not an implementation one. During a bug fix run
+  `bash .claude/bin/harness lock tests --pattern <test path>` so the hook blocks test edits.
 - **Never touch a file outside the plan's `## Files` block.** If you need to, update the plan
   in the same commit and say why. `harness check --stage commit` will catch it either way.
 

@@ -106,10 +106,12 @@ harness monitor ingest elevated-errors --file bands.json
 harness handoff --write
 ```
 
-`harness monitor detect` runs the `[monitoring].collect` argv when `--file` is omitted, writes
-incident + intent on a numeric breach, and no-ops when collect is empty. `.github/workflows/harness-monitor.yml`
-schedules it. `.github/workflows/harness-handoff.yml` turns a committed intent/spec approval
-into a PR that holds the next draft. Neither workflow invokes a model; neither pushes to `main`.
+`harness monitor detect` runs the `[monitoring].collect` argv when `--file` is omitted.
+1σ logs only, 2σ writes an incident, 3σ (or a min/max breach) writes incident + intent.
+Empty collect is a no-op. `.github/workflows/harness-monitor.yml` stays model-free and opens a
+PR; `.github/workflows/harness-diagnose.yml` may comment on that PR. `.github/workflows/harness-handoff.yml`
+turns a committed intent/spec approval into a skeleton PR; `harness-design.yml` may fill it.
+Neither monitor nor handoff pushes to `main`.
 
 Policy skills install from the repo-root marketplace (`.claude-plugin/marketplace.json`) as
 `org-policy` (`secure-api`, `ux-standards`, and a read-only `policy-reviewer` agent). They stay
@@ -119,7 +121,7 @@ The kernel hook budget is full (5/5); do not add a sixth kernel binding.
 `[deployment]` commands are argv arrays, execute without a shell, receive the environment as their
 final argument, and write a durable JSON receipt under `.claude/artifacts/deployment/`. Production
 operations fail closed without an approval identifier. Monitoring input is deterministic JSON;
-only a numeric min/max breach creates the same-slug incident and intent. The model belongs after
+a 3σ or min/max breach creates the same-slug incident and intent. The model belongs after
 that trigger, for diagnosis, never inside the detector.
 
 ### GitHub review adapter
@@ -137,11 +139,26 @@ stored as `HARNESS_ADMIN_READ_TOKEN`; it verifies strict required checks, at lea
 stale-review dismissal, last-push independence, and enforcement for administrators. It audits
 settings but never mutates them.
 
-The review workflow deliberately stops at validated findings. It does not grant a review agent
-write access merely to reproduce the playbook's comment-fix loop: any future fixer must be a
-separate workflow with no approval capability, scoped write permissions, and changes delivered as
-a new commit through the same required checks. Read-only review plus human approval is the safe v1
-boundary.
+Comment-fix is a **separate** workflow (`.github/workflows/claude-fix.yml`). Mention
+`@harness-fix` on a PR comment. The job may push commits. It must not approve or merge. Human
+Gate 3 still owns `review.md` Status.
+
+Non-engineer intent uses `.github/ISSUE_TEMPLATE/intent.yml` and `harness-intent.yml`. Cowork or
+claude.ai should open that issue (GitHub connector), not a second artifact home. Claude Tag
+and Slack incidents use the same issue. Design mocks go in `.claude/artifacts/design/<slug>/`.
+
+`[guard].require_plan = true` makes product-file writes need an approved plan that lists the
+path. Default is false so evals keep working. Production shell deploys without
+`HARNESS_RELEASE_APPROVAL` are denied by the existing bash hook.
+
+`harness lock tests --pattern tests/foo.py` is the test-integrity lock. `harness lock clear`
+releases it. `harness worktree <slug>` adds an isolated git worktree for a disjoint plan slice.
+`harness doctor --enterprise` prints the managed-settings checklist — git settings are not MDM.
+
+Optional plugin `playbook-agents` adds a simplifier agent. It is not in the kernel 3.
+
+Auto-accept of edits is allowed only after a plan is approved, the blast radius is in-plan, and
+tests exist. It is not a harness mode.
 
 ## When a review finding keeps recurring
 

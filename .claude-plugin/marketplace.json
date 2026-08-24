@@ -13,7 +13,12 @@
     {
       "name": "org-policy",
       "source": "./plugins/org-policy",
-      "description": "Organization policy skills (security, brand, UX). Install beside lean-harness. Replace the example text with the policy owner's source of truth before treating it as binding."
+      "description": "Organization policy skills (security, brand, UX, tracker-link). Install beside lean-harness. Replace the example text with the policy owner's source of truth before treating it as binding."
+    },
+    {
+      "name": "playbook-agents",
+      "source": "./plugins/playbook-agents",
+      "description": "Optional extra agents (simplifier). Not counted in the kernel 3-agent budget."
     }
   ]
 }

@@ -1,0 +1,27 @@
+# 2σ+ diagnosis after monitor opens a PR. Model stays out of harness-monitor.yml.
+name: harness-diagnose
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '.claude/artifacts/incident/**'
+
+jobs:
+  diagnose:
+    if: github.event.repository.fork == false && startsWith(github.event.pull_request.head.ref, 'harness/monitor-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read the incident markdown under .claude/artifacts/incident/. Write a short
+            diagnosis as a PR comment. Do not edit files. Do not deploy. Do not approve.
+          claude_args: >-
+            --allowedTools "Read,Grep,Glob"
+            --disallowedTools "Write,Edit,MultiEdit,Bash,NotebookEditCell"
+            --max-turns 8

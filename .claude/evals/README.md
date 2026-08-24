@@ -27,5 +27,9 @@ contributor who only wants to run `node --test`.
 ## CI trigger
 
 Any diff touching `.claude/skills/**`, `.claude/agents/**`, `.claude/hooks/**`,
-`.claude/checks/**`, `.claude/lib/**` or `harness.toml`. That trigger replaces certification
-profiles, autonomy tiers and control-budget meta-ratchets.
+`.claude/checks/**`, `.claude/lib/**`, `harness.toml`, or `plugins/**`. That trigger replaces
+certification profiles, autonomy tiers and control-budget meta-ratchets.
+
+Product repos: `harness new eval <incident-slug>` writes `.claude/evals/pending/<id>.json`.
+Merge that stub into `evals/tasks.json` before treating the incident as closed. The kernel
+suite in this checkout stays the twenty golden tasks.

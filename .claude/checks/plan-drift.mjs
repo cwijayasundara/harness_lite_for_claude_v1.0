@@ -6,6 +6,7 @@
 import { execSync } from 'node:child_process';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
+import { declaredFiles } from '../lib/guard.mjs';
 
 function currentPlan(cfg) {
   const dir = cfg.layout.plan;
@@ -14,18 +15,6 @@ function currentPlan(cfg) {
     .map((f) => ({ f, m: Date.parse(execSync(`git log -1 --format=%cI -- ${JSON.stringify(path.join(dir, f))}`, { cwd: cfg.layout.root, encoding: 'utf8' }).trim() || 0) || 0 }))
     .sort((a, b) => b.m - a.m);
   return files.length ? path.join(dir, files[0].f) : null;
-}
-
-// Files are declared in the first fenced block of the "## Files" section, one path per line.
-// The section may carry explanatory prose before the fence — that is deliberate, so the
-// template can tell the author what the block is for without breaking the parser.
-function declaredFiles(text) {
-  const section = text.match(/^##\s*Files[^\n]*\n([\s\S]*?)(?=^##\s|\Z)/im);
-  if (!section) return null;
-  const fence = section[1].match(/^```[^\n]*\n([\s\S]*?)^```/m);
-  if (!fence) return null;
-  const files = fence[1].split('\n').map((l) => l.trim().replace(/^[-*]\s*/, '')).filter((l) => l && !l.startsWith('#'));
-  return files.length ? files : null;
 }
 
 export async function run(cfg) {

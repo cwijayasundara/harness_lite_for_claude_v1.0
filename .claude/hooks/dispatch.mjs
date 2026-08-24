@@ -4,14 +4,15 @@
 // failure is written to the ledger as `errored` and surfaced at the next SessionStart, so a
 // guard that has quietly stopped working is visible instead of indistinguishable from a pass.
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { loadConfig } from '../lib/config.mjs';
-import { layout, findRepoRoot, PREFIX_CACHE_PATHS } from '../lib/paths.mjs';
+import { findRepoRoot, PREFIX_CACHE_PATHS } from '../lib/paths.mjs';
 import { check, render } from '../lib/runner.mjs';
 import * as ledger from '../lib/ledger.mjs';
 import { measure } from '../checks/budget.mjs';
 import { refresh, staleSince } from '../lib/refresh.mjs';
+import { writeBlocked, productionDenied, bashTouchesProtected, bashPlanBlocked } from '../lib/guard.mjs';
 
 const readStdin = () => new Promise((res) => {
   let d = ''; process.stdin.setEncoding('utf8');
@@ -36,36 +37,6 @@ const DESTRUCTIVE = [
   [/\bcurl\b[^|]*\|\s*(ba)?sh\b/, 'piping a download straight into a shell'],
 ];
 
-// A write guard that only watches Write/Edit is a guard with a shell-shaped hole in it.
-function bashTouchesProtected(cmd, protectedPaths) {
-  const writeish = /(>>?|\btee\b|\bsed\s+-i\b|\bmv\b|\bcp\b|\btruncate\b|\bdd\b)/;
-  if (!writeish.test(cmd)) return null;
-  for (const p of protectedPaths) if (cmd.includes(p)) return p;
-  return null;
-}
-
-function protectedHit(rel, cfg) {
-  const norm = rel.replace(/^\.\//, '');
-  for (const p of PREFIX_CACHE_PATHS) {
-    if (norm === p || norm.endsWith('/' + p)) {
-      return `${p} is part of the cached prompt prefix. Editing it mid-session invalidates the prompt cache for every remaining turn. Ask the human to change it between sessions.`;
-    }
-  }
-  for (const p of cfg.guard.protected_paths ?? []) {
-    if (norm === p || norm.startsWith(p.replace(/\/$/, '') + '/')) return `${p} is listed in harness.toml [guard].protected_paths.`;
-  }
-  const lock = path.join(cfg.layout.state, 'test-lock.json');
-  if (existsSync(lock)) {
-    try {
-      const { patterns = [], why = 'a bug fix is in progress' } = JSON.parse(readFileSync(lock, 'utf8'));
-      for (const pat of patterns) {
-        if (norm.includes(pat)) return `${norm} is test-locked because ${why}. Fix the code, not the test. Remove .claude/state/test-lock.json when the fix is done.`;
-      }
-    } catch { /* a malformed lock must not block work */ }
-  }
-  return null;
-}
-
 export async function dispatch(event) {
   const input = await readStdin();
   let cfg = null;
@@ -87,6 +58,8 @@ export async function dispatch(event) {
         if (noisy.length) lines.push(`review: ${noisy.map((c) => `${c.control} (${c.verdict})`).join(', ')}`);
         const stale = staleSince(cfg);
         if (stale) lines.push(`graph:  STALE since ${stale} — verify anything load-bearing against the source`);
+        if (cfg.guard?.require_plan) lines.push('plan:   product file edits need a committed approved plan that lists the path');
+        else lines.push('plan:   if no approved plan covers a product file, write or amend plan.md before editing it');
         process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: lines.join('\n') } }));
         return 0;
       }
@@ -95,7 +68,7 @@ export async function dispatch(event) {
         const file = input.tool_input?.file_path ?? input.tool_input?.path ?? '';
         if (!file) return 0;
         const rel = path.relative(cfg.layout.root, path.resolve(cfg.layout.root, file));
-        const hit = protectedHit(rel, cfg);
+        const hit = writeBlocked(rel, cfg);
         if (hit) { ledger.append({ stage: 'pre-write', control: 'write-guard', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(hit); }
         ledger.append({ stage: 'pre-write', control: 'write-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
         return 0;
@@ -106,6 +79,10 @@ export async function dispatch(event) {
         for (const [re, why] of [...DESTRUCTIVE, ...(cfg.guard.deny_bash ?? []).map((p) => [new RegExp(p), `denied by harness.toml [guard].deny_bash: ${p}`])]) {
           if (re.test(cmd)) { ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(`${why}. If this is genuinely required, ask the human to run it.`); }
         }
+        const prod = productionDenied(cmd, process.env);
+        if (prod) { ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(prod); }
+        const planned = bashPlanBlocked(cmd, cfg);
+        if (planned) { ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(planned); }
         const p = bashTouchesProtected(cmd, PREFIX_CACHE_PATHS);
         if (p) { ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(`this command writes to ${p} through the shell, which bypasses the write guard. Same rule applies: not mid-session.`); }
         ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);

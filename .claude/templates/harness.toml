@@ -60,6 +60,7 @@ claude_md_lines = 120
 [guard]
 protected_paths = []            # e.g. ["db/migrations", "vendor"]
 deny_bash       = []            # extra regexes, on top of the built-in destructive-command list
+require_plan    = false         # true: product files need an approved plan that lists them
 
 # Optional project-owned adapter commands. Each receives the environment as its final argument.
 # Commands execute without a shell; production deploy/rollback requires an approval identifier.

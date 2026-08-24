@@ -19,7 +19,9 @@ against it, so ambiguity here is paid for three times.
    prevents the change from growing.
 6. Flag policy concerns — security, data handling, compliance — and **name who resolves each**.
    You raise them; you do not resolve them.
-7. Stop at human gate 1. The spec must be approved before a plan exists.
+7. If the change is user-facing, point `## Visual design` at `.claude/artifacts/design/<slug>/`.
+   An empty directory is a flagged concern, not a mock you invent.
+8. Stop at human gate 1. The spec must be approved before a plan exists.
 
 ## Behaviours are testable or they are not behaviours
 

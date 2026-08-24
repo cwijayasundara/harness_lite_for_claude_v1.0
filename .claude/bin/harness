@@ -24,6 +24,8 @@ import { selectSlug, packet as reviewPacket, writeReview, checkProtection } from
 import { deploy, closeLoop, detect, readMonitorFile } from '../lib/operations.mjs';
 import { applyHandoff } from '../lib/handoff.mjs';
 import { playbookIndicators, renderPlaybook } from '../lib/indicators.mjs';
+import { lockTests, clearLock, enterpriseChecklist } from '../lib/guard.mjs';
+import { addWorktree } from '../lib/worktree.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const argv = process.argv.slice(2);
@@ -70,8 +72,8 @@ async function main() {
     case 'init': {
       const root = path.resolve(flag('into', process.cwd()));
       const L = layout(root);
-      for (const d of [L.claude, L.intent, L.spec, L.plan, L.review, L.incident, L.deployment, L.adr, L.state, path.join(L.claude, 'bin')]) mkdirSync(d, { recursive: true });
-      for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/CLAUDE.md', L.claudeMd], ['templates/gitignore', path.join(L.claude, '.gitignore')]]) {
+      for (const d of [L.claude, L.intent, L.spec, L.plan, L.review, L.incident, L.deployment, L.adr, L.state, path.join(L.claude, 'bin'), path.join(L.artifacts, 'design')]) mkdirSync(d, { recursive: true });
+      for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/CLAUDE.md', L.claudeMd], ['templates/gitignore', path.join(L.claude, '.gitignore')], ['templates/review-policy.md', path.join(L.claude, 'REVIEW.md')]]) {
         if (!existsSync(dst)) cpSync(path.join(HERE, src), dst);
       }
       // External installs carry a private runtime copy. A generated shim must not depend on the
@@ -110,6 +112,12 @@ async function main() {
           const plugins = JSON.parse(readFileSync(market, 'utf8')).plugins ?? [];
           console.log(`plugins   ${plugins.map((p) => p.name).join(', ') || '(none)'}`);
         } catch { /* marketplace is advisory */ }
+      }
+      if (has('enterprise')) {
+        console.log('\nenterprise checklist (git settings are not managed settings)');
+        for (const item of enterpriseChecklist(cfg)) {
+          console.log(`  ${item.ok ? 'ok  ' : 'need'}  ${item.id}  ${item.detail}`);
+        }
       }
       return 0;
     }
@@ -185,15 +193,39 @@ async function main() {
 
     case 'new': {
       const kind = argv[1]; const slug = argv[2];
-      if (!['intent', 'spec', 'plan', 'review', 'incident'].includes(kind) || !slug) { console.error('usage: harness new intent|spec|plan|review|incident <slug>'); return 2; }
+      if (!['intent', 'spec', 'plan', 'review', 'incident', 'eval'].includes(kind) || !slug) { console.error('usage: harness new intent|spec|plan|review|incident|eval <slug>'); return 2; }
       if (!validSlug(slug)) { console.error('slug must be 1–63 lowercase letters, digits, or hyphens; it cannot contain paths'); return 2; }
       const cfg = loadConfig(findRepoRoot());
+      if (kind === 'eval') {
+        const dir = path.join(cfg.layout.claude, 'evals', 'pending'); mkdirSync(dir, { recursive: true });
+        const dst = path.join(dir, `${slug}.json`);
+        if (existsSync(dst)) { console.log(dst); return 0; }
+        writeFileSync(dst, JSON.stringify({ id: slug, fixture: 'clean-app', prompt: `Regression for incident ${slug}. Reproduce, then keep the suite green without editing the failing test.`, assert: [{ fixture_tests_pass: true }, { files_unchanged: ['README.md'] }] }, null, 2) + '\n');
+        console.log(dst); return 0;
+      }
       const dir = cfg.layout[kind]; mkdirSync(dir, { recursive: true });
       const dst = path.join(dir, `${slug}.md`);
       if (existsSync(dst)) { console.log(dst); return 0; }
       const now = new Date();
       const tpl = readFileSync(path.join(HERE, 'templates', `${kind}.md`), 'utf8').replaceAll('{{slug}}', slug).replaceAll('{{date}}', now.toISOString().slice(0, 10)).replaceAll('{{timestamp}}', now.toISOString());
       writeFileSync(dst, tpl); console.log(dst); return 0;
+    }
+
+    case 'lock': {
+      const cfg = loadConfig(findRepoRoot());
+      if (argv[1] === 'clear') { console.log(clearLock(cfg)); return 0; }
+      if (argv[1] !== 'tests') { console.error('usage: harness lock tests [--pattern tests/] [--why "bug fix in progress"]\n       harness lock clear'); return 2; }
+      const pattern = typeof flag('pattern') === 'string' ? flag('pattern') : 'tests';
+      const why = typeof flag('why') === 'string' ? flag('why') : 'bug fix in progress';
+      console.log(lockTests(cfg, { patterns: [pattern], why })); return 0;
+    }
+
+    case 'worktree': {
+      const slug = argv[1];
+      if (!validSlug(slug)) { console.error('usage: harness worktree <slug>'); return 2; }
+      const cfg = loadConfig(findRepoRoot());
+      const result = addWorktree(cfg.layout.root, slug);
+      console.log(`${result.branch}\n${result.dest}`); return 0;
     }
 
     case 'status': {
@@ -269,9 +301,12 @@ async function main() {
       console.log(`harness — the lean SDLC harness
 
   harness init [--into DIR]        create .claude/ with harness.toml + CLAUDE.md
-  harness doctor                   which capability verbs resolve, and the budget
+  harness doctor [--enterprise]    capability verbs, budget, enterprise checklist
   harness check --stage <s>        run a stage   (--changed  --all  --json)
-  harness new intent|spec|plan|review|incident <slug>
+  harness new intent|spec|plan|review|incident|eval <slug>
+  harness lock tests [--pattern p] [--why text]
+  harness lock clear
+  harness worktree <slug>          git worktree for an independent plan slice
   harness handoff [--write] [--json]
   harness status [slug] [--json]  artifact progress, SLA, playbook indicators
   harness review select|packet|ingest

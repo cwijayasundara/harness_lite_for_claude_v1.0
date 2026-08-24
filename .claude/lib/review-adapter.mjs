@@ -23,13 +23,15 @@ export function packet(cfg, slug, base, head = 'HEAD') {
   const spec = path.join(cfg.layout.spec, `${slug}.md`); const plan = path.join(cfg.layout.plan, `${slug}.md`);
   if (!existsSync(spec) || !existsSync(plan)) throw new Error(`review requires spec and plan for "${slug}"`);
   const specText = readFileSync(spec, 'utf8'); const planText = readFileSync(plan, 'utf8');
+  const reviewPolicy = path.join(cfg.layout.root, '.claude/REVIEW.md');
+  const policy = existsSync(reviewPolicy) ? readFileSync(reviewPolicy, 'utf8') : '';
   const [state] = lifecycle(cfg, slug);
   if (!state.valid || !state.artifacts.spec?.approved_at || !state.artifacts.plan?.approved_at) throw new Error('review requires valid, committed approvals for spec and plan');
   const diff = git(cfg.layout.root, ['diff', '--no-ext-diff', '--unified=40', `${base}...${head}`, '--', '.', ':(exclude).claude/artifacts/review/**']);
   const max = cfg.budget.review_diff_max_bytes ?? 200000;
   const clipped = Buffer.byteLength(diff) > max;
   const body = clipped ? Buffer.from(diff).subarray(0, max).toString('utf8') : diff;
-  return [`# Review packet: ${slug}`, '', `Base: ${base}`, `Head: ${head}`, `Diff truncated: ${clipped}`, '', '## Approved spec', '', specText, '', '## Approved plan', '', planText, '', '## Diff', '', '```diff', body, '```', clipped ? '\nERROR: diff exceeded review_diff_max_bytes; treat the review as incomplete.' : ''].join('\n');
+  return [`# Review packet: ${slug}`, '', `Base: ${base}`, `Head: ${head}`, `Diff truncated: ${clipped}`, policy ? `\n## Review policy\n\n${policy}\n` : '', '## Approved spec', '', specText, '', '## Approved plan', '', planText, '', '## Diff', '', '```diff', body, '```', clipped ? '\nERROR: diff exceeded review_diff_max_bytes; treat the review as incomplete.' : ''].join('\n');
 }
 
 export function validateReview(value) {

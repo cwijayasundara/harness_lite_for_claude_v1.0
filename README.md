@@ -63,6 +63,7 @@ into `.claude/skills` — that directory is the kernel budget (12). From this ch
 claude plugin marketplace add "$LEAN_HARNESS_DIR"
 claude plugin install lean-harness@lean-harness-local
 claude plugin install org-policy@lean-harness-local
+claude plugin install playbook-agents@lean-harness-local
 ```
 
 Replace `plugins/org-policy/skills/secure-api/SKILL.md` with the policy owner's source of truth

@@ -22,6 +22,11 @@
 
 <Security, performance, data handling, compliance. Anything that must never be violated.>
 
+## Visual design
+
+<Path under `.claude/artifacts/design/<slug>/` for mocks the product owner exported.
+If the change is user-facing and this directory is empty, flag it below.>
+
 ## Policy concerns flagged
 
 <Raised, not resolved. Name the owner who resolves each.>

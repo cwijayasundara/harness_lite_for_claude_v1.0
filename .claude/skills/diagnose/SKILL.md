@@ -34,9 +34,9 @@ different one. If you cannot, you have found *a* problem, not *the* problem.
 
 ## Phase 4 — fix
 
-Write the test first, from the loop you already have. Then create
-`.claude/state/test-lock.json` with `{"patterns":["<the test path>"],"why":"bug fix in progress"}`
-so the test cannot be weakened, and fix the code. Delete the lock when the fix is green.
+Write the test first, from the loop you already have. Then
+`bash .claude/bin/harness lock tests --pattern <the test path>` so the test cannot be
+weakened, and fix the code. `bash .claude/bin/harness lock clear` when the fix is green.
 
 For a production incident or control-band breach, first create
 `.claude/artifacts/incident/<slug>.md` with `harness new incident <slug>`. Preserve the metric,

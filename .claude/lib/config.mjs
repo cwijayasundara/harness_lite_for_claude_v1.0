@@ -22,7 +22,7 @@ export function loadConfig(root) {
     graph: { include: ['.', '.claude'], exclude: ['node_modules', '.venv', 'dist', 'target', '.git'], ...(raw.graph ?? {}) },
     budget: { subagent_context_soft: 140000, subagent_context_hard: 200000, change_cost_ceiling: 4.0, max_findings: 20, review_diff_max_bytes: 200000, ...(raw.budget ?? {}) },
     limits: { skills: 12, hooks: 5, agents: 3, hook_loc: 600, claude_md_lines: 120, ...(raw.limits ?? {}) },
-    guard: { protected_paths: [], deny_bash: [], ...(raw.guard ?? {}) },
+    guard: { protected_paths: [], deny_bash: [], require_plan: false, ...(raw.guard ?? {}) },
     deployment: { production_requires_approval: true, ...(raw.deployment ?? {}) },
     monitoring: { collect: [], ...(raw.monitoring ?? {}) },
     sla: { intent_hours: 8, design_hours: 24, planning_hours: 8, build_hours: 72, review_hours: 24, incident_to_intent_minutes: 60, ...(raw.sla ?? {}) },

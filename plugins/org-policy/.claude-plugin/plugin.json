@@ -1,6 +1,5 @@
 {
   "name": "org-policy",
-  "description": "Organization policy: secure-api and ux-standards skills plus a read-only policy-reviewer agent. Not part of the lean kernel budget.",
-  "version": "0.1.0",
-  "author": { "name": "Chaminda Wijayasundara" }
+  "description": "Organization policy skills. Replace examples with the policy owner's source of truth.",
+  "version": "0.1.0"
 }

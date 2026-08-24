@@ -1,0 +1,32 @@
+# Weekly staging rollback rehearsal. Skips when [deployment].rollback is empty.
+name: harness-rehearse
+on:
+  schedule:
+    - cron: '13 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  rollback-staging:
+    if: github.event.repository.fork == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - id: configured
+        run: |
+          if grep -q '^rollback = \[' .claude/harness.toml && ! grep -q '^rollback = \[\]' .claude/harness.toml; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.configured.outputs.run == 'true'
+        run: node .claude/bin/harness deploy rollback staging
+      - if: steps.configured.outputs.run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: rollback-receipt
+          path: .claude/artifacts/deployment/
+          if-no-files-found: warn

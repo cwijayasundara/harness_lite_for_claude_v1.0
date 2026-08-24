@@ -42,6 +42,7 @@ claude_md_lines = 120
 
 [guard]
 protected_paths = [".claude/evals/fixtures"]
+require_plan    = false
 
 [monitoring]
 collect = []

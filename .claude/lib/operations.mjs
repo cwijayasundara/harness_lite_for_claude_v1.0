@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
+import { classifyBands } from './guard.mjs';
 
 const safe = (value) => typeof value === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,62})$/.test(value);
 
@@ -26,11 +27,7 @@ export function deploy(cfg, operation, environment, { approval = null, now = new
 }
 
 export function breachedBands(document) {
-  if (!Array.isArray(document?.bands)) throw new Error('monitor document requires a bands array');
-  return document.bands.filter((b) => {
-    if (!b.metric || !Number.isFinite(b.observed)) throw new Error('each band requires metric and numeric observed');
-    return (Number.isFinite(b.min) && b.observed < b.min) || (Number.isFinite(b.max) && b.observed > b.max);
-  });
+  return classifyBands(document).propose;
 }
 
 function toSlug(metric) {
@@ -44,7 +41,7 @@ export function detect(cfg, { file = null, slug = null, now = new Date() } = {})
   } else {
     const command = cfg.monitoring?.collect;
     if (!Array.isArray(command) || !command.length || command.some((v) => typeof v !== 'string')) {
-      return { configured: false, breached: false, already_open: false, files: [] };
+      return { configured: false, breached: false, already_open: false, files: [], tier: 0, diagnose: false };
     }
     const result = spawnSync(command[0], command.slice(1), {
       cwd: cfg.layout.root, encoding: 'utf8', timeout: Number(cfg.monitoring.timeout_ms ?? 300000),
@@ -52,27 +49,34 @@ export function detect(cfg, { file = null, slug = null, now = new Date() } = {})
     if (result.status !== 0) throw new Error(`monitoring.collect exited ${result.status ?? 'null'}`);
     document = JSON.parse(String(result.stdout ?? ''));
   }
-  const breaches = breachedBands(document);
-  if (!breaches.length) return { configured: true, breached: false, already_open: false, files: [], breaches };
-  const id = slug || toSlug(breaches[0].metric);
+  const classified = classifyBands(document);
+  const tier = classified.bands.reduce((m, b) => Math.max(m, b.tier), 0);
+  if (tier < 2) return { configured: true, breached: false, already_open: false, files: [], breaches: classified.log, tier, diagnose: false };
+  const lead = classified.propose[0] || classified.diagnose[0];
+  const id = slug || toSlug(lead.metric);
   if (!safe(id)) throw new Error('slug must be a canonical slug');
   const incident = path.join(cfg.layout.incident, `${id}.md`);
   const intent = path.join(cfg.layout.intent, `${id}.md`);
-  if (existsSync(incident) || existsSync(intent)) return { configured: true, breached: true, already_open: true, files: [], breaches };
-  return { ...closeLoop(cfg, id, document, { now }), configured: true, already_open: false };
+  if (existsSync(incident) || existsSync(intent)) return { configured: true, breached: true, already_open: true, files: [], breaches: classified.propose, tier, diagnose: true };
+  return { ...closeLoop(cfg, id, document, { now, writeIntent: tier >= 3 }), configured: true, already_open: false, tier, diagnose: true };
 }
 
-export function closeLoop(cfg, slug, document, { now = new Date() } = {}) {
+export function closeLoop(cfg, slug, document, { now = new Date(), writeIntent = true } = {}) {
   if (!safe(slug)) throw new Error('slug must be a canonical slug');
-  const breaches = breachedBands(document);
-  if (!breaches.length) return { breached: false, files: [] };
+  const classified = classifyBands(document);
+  const breaches = writeIntent ? classified.propose : classified.diagnose;
+  if (!breaches.length) return { breached: false, files: [], tier: 0 };
   mkdirSync(cfg.layout.incident, { recursive: true }); mkdirSync(cfg.layout.intent, { recursive: true });
-  const evidence = breaches.map((b) => `- ${b.metric}: observed ${b.observed}; allowed ${Number.isFinite(b.min) ? `min ${b.min}` : ''}${Number.isFinite(b.min) && Number.isFinite(b.max) ? ', ' : ''}${Number.isFinite(b.max) ? `max ${b.max}` : ''}; source ${b.source ?? 'unspecified'}`).join('\n');
+  const evidence = breaches.map((b) => `- ${b.metric}: observed ${b.observed} tier ${b.tier}; allowed ${Number.isFinite(b.min) ? `min ${b.min}` : ''}${Number.isFinite(b.min) && Number.isFinite(b.max) ? ', ' : ''}${Number.isFinite(b.max) ? `max ${b.max}` : ''}${Number.isFinite(b.mean) ? ` mean ${b.mean} stdev ${b.stdev}` : ''}; source ${b.source ?? 'unspecified'}`).join('\n');
   const incident = path.join(cfg.layout.incident, `${slug}.md`); const intent = path.join(cfg.layout.intent, `${slug}.md`);
   if (existsSync(incident) || existsSync(intent)) throw new Error(`artifact already exists for ${slug}`);
-  writeFileSync(incident, `# Incident: ${slug}\n\n- **Date:** ${now.toISOString().slice(0, 10)}\n- **Detected at:** ${now.toISOString()}\n- **Severity:** ${document.severity ?? 'untriaged'}\n- **Service owner:** ${document.owner ?? 'unassigned'}\n- **Status:** open\n- **Resulting intent:** [intent/${slug}](../intent/${slug}.md)\n\n## Control-band evidence\n\n${evidence}\n\n## Impact\n\nPending human triage.\n`);
-  writeFileSync(intent, `# Intent: ${slug}\n\n- **Opened at:** ${now.toISOString()}\n- **Author:** monitoring-adapter\n- **Status:** draft\n- **Source incident:** [incident/${slug}](../incident/${slug}.md)\n\n## Problem\n\nA deterministic production control band was breached.\n\n## Proposed outcome\n\nDiagnose and restore the affected metric to its accepted band.\n\n## Constraints\n\nHuman approval remains required at specification, plan, review, and production release gates.\n\n## Evidence\n\n${evidence}\n`);
-  return { breached: true, breaches, files: [incident, intent] };
+  const files = [incident];
+  writeFileSync(incident, `# Incident: ${slug}\n\n- **Date:** ${now.toISOString().slice(0, 10)}\n- **Detected at:** ${now.toISOString()}\n- **Severity:** ${document.severity ?? 'untriaged'}\n- **Service owner:** ${document.owner ?? 'unassigned'}\n- **Status:** open\n- **Resulting intent:** ${writeIntent ? `[intent/${slug}](../intent/${slug}.md)` : 'pending 3σ propose'}\n\n## Control-band evidence\n\n${evidence}\n\n## Impact\n\nPending human triage.\n`);
+  if (writeIntent) {
+    writeFileSync(intent, `# Intent: ${slug}\n\n- **Opened at:** ${now.toISOString()}\n- **Author:** monitoring-adapter\n- **Status:** draft\n- **Source incident:** [incident/${slug}](../incident/${slug}.md)\n\n## Problem\n\nA deterministic production control band was breached.\n\n## Proposed outcome\n\nDiagnose and restore the affected metric to its accepted band.\n\n## Constraints\n\nHuman approval remains required at specification, plan, review, and production release gates.\n\n## Evidence\n\n${evidence}\n`);
+    files.push(intent);
+  }
+  return { breached: true, breaches, files };
 }
 
 export function readMonitorFile(file) { return JSON.parse(readFileSync(file, 'utf8')); }
