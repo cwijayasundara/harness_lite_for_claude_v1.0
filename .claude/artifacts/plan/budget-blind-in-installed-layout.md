@@ -46,6 +46,14 @@ test/budget.test.mjs
 README.md
 ```
 
+**Amended during implementation — `README.md` is edited but deliberately left uncommitted.**
+The file already carried an uncommitted ~320-line rewrite belonging to another chain when this
+work started (visible in `git status` before the first edit of this change). Both README edits
+required by step 8 are made and present in the working tree, but staging the file would fold
+that other chain's rewrite into this commit and make the diff unreviewable. Committing it is the
+owner's call once the other chain lands; the two edits are the tree block above and the
+"inherits that budget spent, not empty" paragraph.
+
 Deliberately **not** touched, though each was considered:
 
 - `.claude/lib/config.mjs` — no limit changes, and `cfg.limits` already carries them.
@@ -91,11 +99,11 @@ Which test demonstrates each spec behaviour. "Tests pass" is not proof; name the
 |---|---|
 | 1. Installed project reports the harness's own counts | `test/budget.test.mjs` — *"an installed project measures the harness it was given"*: init into mkdtemp, assert `skills=12 agents=3 hooks=5` and `hook_loc > 0` |
 | 2. One ceiling over harness-supplied + project-added | `test/budget.test.mjs` — *"a project inherits a spent budget, not an empty one"*: add one skill dir to the installed project, assert `skills === 13` and `run()` verdict `fail` |
-| 3. Self-install unchanged | `test/budget.test.mjs` — the existing *"the harness stays inside its own budget"*, unmodified, plus an added exact-value assertion `skills=12 agents=3 hooks=5 hook_loc=127` |
+| 3. Self-install unchanged | `test/budget.test.mjs` — the existing *"the harness stays inside its own budget"*, unmodified, plus *"the self-install measures the harness itself, not a record"* asserting `skills=12 agents=3 hooks=5`. **Amended during implementation:** `hook_loc` is asserted `> 0` rather than pinned at 127. Pinning it would turn any unrelated edit to a hook file red against a limit of 600, which grades the wrong thing — the limit's job is to catch growth, and `test/budget.test.mjs`'s original assertion already enforces the ceiling. |
 | 4. Unaccountable surface fails, not errors | `test/budget.test.mjs` — *"a budget that cannot account for a surface is red, not green"*: remove the record, assert `verdict === 'fail'` and the finding names the surface |
 | 5. Record survives a clone | Same test as 4, plus an assertion that the record's path is not matched by the installed `.claude/.gitignore` |
 | 6. Re-running the installer refreshes it | `test/budget.test.mjs` — *"re-running init refreshes the recorded inventory"*: hand-edit the record to an under-count, re-run `init`, assert the count is restored |
-| 7. Derived, never hand-maintained | `test/contracts.test.mjs` already asserts `harness.toml` is the only hand-edited registry; the record is written only by `init` (proven by behaviour 6's test) and no skill or doc instructs editing it |
+| 7. Derived, never hand-maintained | **Amended during implementation:** the original row claimed `test/contracts.test.mjs` asserts `harness.toml` is the only hand-edited registry. It does not — that claim was wrong and is withdrawn. Proven instead by `test/budget.test.mjs` — *"re-running init refreshes the recorded inventory"*: a hand-edited record is believed until `init` runs and then overwritten, so hand-editing cannot survive. The generated file also carries its own `note` saying so. |
 | 8. Never reads outside the repository | `test/budget.test.mjs` — *"the budget reads nothing outside the project"*: run `measure()` against the temp project with `HOME` pointed at an empty directory and assert the counts are unchanged |
 | 9. Proven outside this repository | Every test above except the behaviour-3 one runs against an mkdtemp project, not against `ROOT` |
 | 10. Nothing previously proven is unproven | `test/contracts.test.mjs` and `test/lifecycle-cli.test.mjs` run unmodified: `settings.json` still generated, marketplace still kernel-only, shim still independent of the installing checkout |
