@@ -3,9 +3,12 @@
 - **Date:** 2026-08-24
 - **Spec:** [../spec/init-delivers-skills-and-agents.md](../spec/init-delivers-skills-and-agents.md)
 - **Plan:** [../plan/init-delivers-skills-and-agents.md](../plan/init-delivers-skills-and-agents.md)
-- **Commits:** 5116767, 71381f0, 8281758, plus the fixes recorded below
+- **Status:** changes-requested <!-- draft | approved | changes-requested  (HUMAN GATE 3) -->
 - **Reviewer:** Claude Opus 5 — **the author of the change**. See "Independence" below.
-- **Recommendation:** approve with conditions
+- **Commit:** bc82def (5116767, 71381f0, 8281758 precede it)
+
+`changes-requested`, not `approved`: gate 3 is a human gate, and the three conditions at the foot
+of this file are unmet. Two of them cannot be met by an agent at all.
 
 ## Independence
 
