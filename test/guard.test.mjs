@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { C } from './_paths.mjs';
-import { writeBlocked, productionDenied, lockTests, clearLock, bandTier, classifyBands } from '../.claude/lib/guard.mjs';
+import { writeBlocked, productionDenied, lockTests, clearLock, bandTier, classifyBands, bashTouchesProtected } from '../.claude/lib/guard.mjs';
 
 const BIN = path.join(C, 'bin', 'harness');
 
@@ -21,6 +21,42 @@ function tmp(prefix) {
   mkdirSync(layout.state, { recursive: true });
   return { root, layout, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
+
+// Spec behaviour 14. The old check asked whether the command contained `>` *anywhere* and then
+// whether a protected path appeared *anywhere*. `2>&1` supplies the first and any mention of the
+// file supplies the second, so reading a protected file was denied. It fired six times against
+// read-only commands while this change was being written — including on the attempt to write the
+// intent describing it, because the prose named a protected path. A guard that blocks reading is
+// one people learn to route around, and a routed-around guard protects nothing.
+test('a command that only reads a protected path is allowed', () => {
+  const paths = ['.claude/settings.json', '.claude/harness.toml', 'CLAUDE.md'];
+  for (const cmd of [
+    'head -n 30 .claude/settings.json',
+    'cat .claude/harness.toml 2>&1',
+    'grep -n foo .claude/harness.toml 2>/dev/null',
+    'cat .claude/templates/CLAUDE.md 2>&1 | head -5',
+    'cp ~/.claude/settings.json /tmp/backup.json',
+    'node -e "1" > /tmp/out.txt',
+  ]) {
+    assert.equal(bashTouchesProtected(cmd, paths), null, `denied a read-only command: ${cmd}`);
+  }
+});
+
+// Spec behaviour 15. Narrowing the guard must not open it. These are the writes it exists for.
+test('a command that writes to a protected path is still denied', () => {
+  const paths = ['.claude/settings.json', '.claude/harness.toml', 'CLAUDE.md'];
+  for (const cmd of [
+    'echo x > .claude/settings.json',
+    'echo x >> .claude/harness.toml',
+    "sed -i '' s/a/b/ .claude/harness.toml",
+    'cat x | tee CLAUDE.md',
+    'cp /tmp/other.json .claude/settings.json',
+    'mv .claude/settings.json /tmp/',
+    'truncate -s 0 .claude/harness.toml',
+  ]) {
+    assert.ok(bashTouchesProtected(cmd, paths), `allowed a write to a protected path: ${cmd}`);
+  }
+});
 
 test('require_plan is off by default so product edits are not blocked', () => {
   const f = tmp('guard-off-'); try {

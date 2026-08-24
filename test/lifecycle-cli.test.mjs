@@ -43,7 +43,7 @@ test('status fails when approval text has not entered git history', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('init is idempotent and installs a checkout-independent runtime', () => {
+test('init is idempotent and installs a checkout-independent shim', () => {
   const root = repo();
   try {
     const config = path.join(root, '.claude/harness.toml');
@@ -54,8 +54,12 @@ test('init is idempotent and installs a checkout-independent runtime', () => {
     chmodSync(shim, 0o755);
     const text = readFileSync(shim, 'utf8');
     assert.doesNotMatch(text, new RegExp(C.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
-    assert.ok(existsSync(path.join(root, '.claude/runtime/lib/config.mjs')));
-    const doctor = spawnSync(shim, ['doctor'], { cwd: root, encoding: 'utf8' });
+    // The harness is declared, never copied: a project that carries its own runtime can drift
+    // from the version the pod agreed on. The record is what names the version instead.
+    assert.equal(existsSync(path.join(root, '.claude/runtime')), false);
+    assert.ok(existsSync(path.join(root, '.claude/harness-install.json')));
+    // HARNESS_HOME is how CI points the shim at the checkout it made from the recorded commit.
+    const doctor = spawnSync(shim, ['doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: C } });
     assert.equal(doctor.status, 0);
     assert.match(doctor.stdout, /preserved-name/);
     assert.match(doctor.stdout, /secrets\s+\[built-in\]/);

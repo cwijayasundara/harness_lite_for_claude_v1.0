@@ -21,9 +21,11 @@ function installed() {
   return root;
 }
 
+// Through the generated shim, with HARNESS_HOME set — which is exactly how a project's CI runs
+// the sensors on a cold clone, having fetched the harness at the commit in its install record.
 function budgetOf(root, env = {}) {
-  const bin = path.join(root, '.claude', 'runtime', 'bin', 'harness');
-  const r = spawnSync(process.execPath, [bin, 'check', '--stage', 'commit'], { cwd: root, encoding: 'utf8', env: { ...process.env, ...env } });
+  const shim = path.join(root, '.claude', 'bin', 'harness');
+  const r = spawnSync('bash', [shim, 'check', '--stage', 'commit'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: C, ...env } });
   const report = JSON.parse(readFileSync(path.join(root, '.claude', 'state', 'last-check.json'), 'utf8'));
   return { ...report.controls.find((c) => c.control === 'budget'), status: r.status };
 }
@@ -49,9 +51,9 @@ test('an installed project measures the harness it was given', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-// Skills and agents are the one surface that does not travel with the runtime — the plugin
-// delivers them, so nothing under the project can be counted. The installer is the only moment
-// that knows how many there were, so it is the moment that writes them down.
+// Nothing travels into the project any more — the plugin delivers every guide and every sensor,
+// so there is nothing under `.claude/` to count. The installer is the only moment that holds the
+// harness in its hands, so it is the moment that writes down what it saw.
 test('init records what it shipped, and a self-install records nothing', () => {
   const root = installed();
   try {
@@ -86,8 +88,8 @@ test('a budget that cannot account for a surface is red, not green', () => {
     assert.equal(b.verdict, 'fail');
     assert.notEqual(b.status, 0, 'the stage must go red');
     assert.match(JSON.stringify(b.findings), /skills/, 'the finding names the surface');
-    const bin = path.join(root, '.claude', 'runtime', 'bin', 'harness');
-    const doctor = spawnSync(process.execPath, [bin, 'doctor'], { cwd: root, encoding: 'utf8' });
+    const shim = path.join(root, '.claude', 'bin', 'harness');
+    const doctor = spawnSync('bash', [shim, 'doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: C } });
     assert.match(doctor.stdout, /skills=\?\/12/, 'doctor must not print a confident zero either');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

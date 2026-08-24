@@ -1,0 +1,13 @@
+{
+  "enabledPlugins": {
+    "lean_harness_cs_v1@lean_harness_cs_v1": true
+  },
+  "permissions": {
+    "allow": [
+      "Edit(.claude/artifacts/**)",
+      "Bash(bash .claude/bin/harness:*)",
+      "Bash(node .claude/bin/harness:*)",
+      "Write(.claude/artifacts/**)"
+    ]
+  }
+}

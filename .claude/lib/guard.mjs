@@ -85,10 +85,37 @@ export function productionDenied(cmd, env = process.env) {
   return 'Production deploys need a release authorization. Set HARNESS_RELEASE_APPROVAL or pass --approval to harness deploy.';
 }
 
+// Write *destinations*, not the presence of a `>` somewhere in the string.
+//
+// The previous version asked two questions of the whole command — does it contain `>`, and does
+// a protected path appear anywhere — and denied when both were true. `2>&1` answers the first
+// and merely naming the file answers the second, so reading a protected file was denied. It
+// fired six times against read-only commands in the session that fixed it, once refusing to let
+// the intent describing the defect be written, because the prose named a protected path.
+//
+// Deliberately regex-level: shell is not parseable without a parser, and the tree-sitter
+// decision in docs/BUILD-PLAN.md Phase 3 applies here too. The trade is the one the spec states
+// — a write may slip through, a read is never blocked. It is a guard, not a permission system.
 export function bashTouchesProtected(cmd, protectedPaths) {
-  const writeish = /(>>?|\btee\b|\bsed\s+-i\b|\bmv\b|\bcp\b|\btruncate\b|\bdd\b)/;
-  if (!writeish.test(cmd)) return null;
-  for (const p of protectedPaths) if (cmd.includes(p)) return p;
+  const text = String(cmd ?? '');
+  const targets = [];
+
+  // A redirection writes to what follows it, and to nothing else. `2>&1` names a descriptor
+  // rather than a file, and the character class below declines to match it.
+  for (const [, target] of text.matchAll(/\d*>>?\s*([^\s;|&]+)/g)) targets.push(target);
+
+  // Commands whose arguments are destinations. `cp` reads its sources, so only the last argument
+  // is a write; `mv` unlinks its source, so every argument is.
+  for (const [, verb, rest] of text.matchAll(/\b(tee|sed|mv|cp|truncate|dd)\b([^;|&]*)/g)) {
+    const args = rest.trim().split(/\s+/).filter((a) => a && !a.startsWith('-'));
+    if (!args.length) continue;
+    if (verb === 'tee' || verb === 'mv') targets.push(...args);
+    else if (verb === 'sed') { if (/\bsed\s+-i\b/.test(text)) targets.push(...args); }
+    else if (verb === 'dd' || verb === 'truncate') targets.push(...args.map((a) => a.replace(/^of=/, '')));
+    else targets.push(args[args.length - 1]);
+  }
+
+  for (const p of protectedPaths) if (targets.some((t) => t.includes(p))) return p;
   return null;
 }
 

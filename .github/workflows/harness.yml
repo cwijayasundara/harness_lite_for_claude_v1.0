@@ -29,8 +29,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
-      - run: node .claude/bin/harness baseline check
+      # The example is a real installed project: it declares the harness and does not contain
+      # one, exactly like a pod member's repository. HARNESS_HOME is how CI points the generated
+      # shim at a checkout — here the repository itself, in a downstream project a clone made
+      # from the commit in its install record. Before this, the job ran `node .claude/bin/harness`
+      # in a directory that had no bin/ at all and died on `Cannot find module`.
+      - run: bash .claude/bin/harness baseline check
         working-directory: examples/scratch-py
+        env:
+          HARNESS_HOME: ${{ github.workspace }}/.claude
 
   evals:
     # Law 9: the suite runs on any diff touching the harness's own configuration.

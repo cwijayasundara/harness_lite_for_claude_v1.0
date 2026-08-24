@@ -48,15 +48,35 @@ list — if they disagree, update this block in the same commit or revert the ch
 test/install.test.mjs
 test/budget.test.mjs
 test/guard.test.mjs
+test/contracts.test.mjs
+test/lifecycle-cli.test.mjs
 .github/workflows/harness.yml
-examples/scratch-py/.claude/settings.json
-examples/scratch-py/.claude/harness-install.json
-examples/scratch-ts/.claude/settings.json
-examples/scratch-ts/.claude/harness-install.json
+examples/scratch-py/.claude/
+examples/scratch-ts/.claude/
 README.md
 docs/OPERATING.md
 docs/BUILD-PLAN.md
 ```
+
+### Amendment, during implementation
+
+Two test files were added to the list above after the `init` rewrite made them fail:
+
+- `test/contracts.test.mjs` hardcoded the string `lean-harness` as the marketplace's only plugin.
+  The rename in step 2 makes that assertion false. Repointed to read the name from
+  `plugin.json` so the next rename cannot break it in this way again.
+- `test/lifecycle-cli.test.mjs` asserted `.claude/runtime/lib/config.mjs` exists after `init` —
+  the copied runtime that spec behaviour 1 removes.
+
+Neither is a test weakened to make code pass: both encode the delivery model the approved spec
+replaces, and both keep asserting everything about `init` that did not change. Recorded here
+rather than in a commit message because `plan-drift` compares the diff against the file list, and
+a plan quietly outgrown is the failure mode the check exists to prevent.
+
+The two example entries were widened from two named files each to the whole
+`examples/scratch-*/.claude/` directory. Making them real installs means running the installer,
+and the installer also writes `bin/harness` and `REVIEW.md` there. Naming the directory is
+honest about that; naming two files and then writing four is what drift exists to catch.
 
 ## Order of work
 

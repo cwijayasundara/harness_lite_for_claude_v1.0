@@ -86,7 +86,10 @@ test('CI model evals cover every steering surface and require authentication', (
 
 test('marketplace ships the kernel plugin only; extra policy skills stay out of the budget', () => {
   const market = JSON.parse(readFileSync(path.join(ROOT, '.claude-plugin', 'marketplace.json'), 'utf8'));
-  assert.deepEqual(market.plugins.map((p) => p.name), ['lean-harness']);
+  // Read the name rather than hardcode it: this assertion is about there being exactly one
+  // plugin, not about what it is called. test/install.test.mjs owns the naming contract.
+  const declared = JSON.parse(readFileSync(path.join(C, '.claude-plugin', 'plugin.json'), 'utf8')).name;
+  assert.deepEqual(market.plugins.map((p) => p.name), [declared]);
   assert.equal(market.plugins[0].source, './.claude');
   assert.equal(existsSync(path.join(ROOT, 'plugins')), false);
   assert.equal(existsSync(path.join(C, 'skills', 'secure-api')), false);
