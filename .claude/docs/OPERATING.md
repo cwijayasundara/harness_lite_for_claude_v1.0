@@ -108,8 +108,11 @@ harness handoff --write
 
 `harness monitor detect` runs the `[monitoring].collect` argv when `--file` is omitted.
 1σ logs only, 2σ writes an incident, 3σ (or a min/max breach) writes incident + intent.
-Empty collect is a no-op. `.github/workflows/harness-monitor.yml` stays model-free and opens a
-PR; `.github/workflows/harness-diagnose.yml` may comment on that PR. `.github/workflows/harness-handoff.yml`
+The first 3σ also runs `[deployment].rollback` against **staging** when that argv is set;
+a repeat detect for the same slug does not. Production is never the rollback target.
+Empty collect is a no-op. This repo wires the example CI-failure collector, which prints
+empty bands when GitHub is unavailable. `.github/workflows/harness-monitor.yml` stays
+model-free and opens a PR; `.github/workflows/harness-diagnose.yml` may comment on that PR. `.github/workflows/harness-handoff.yml`
 turns a committed intent/spec approval into a skeleton PR; `harness-design.yml` may fill it.
 Neither monitor nor handoff pushes to `main`.
 

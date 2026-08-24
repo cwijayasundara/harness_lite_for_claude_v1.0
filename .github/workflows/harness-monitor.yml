@@ -1,5 +1,6 @@
 # Deterministic control-band detection. No model is invoked. A breach writes
-# incident.md + draft intent.md and opens a PR for triage.
+# incident.md + draft intent.md and opens a PR for triage. A first 3σ detect
+# also runs staging rollback when [deployment].rollback is configured.
 name: harness-monitor
 on:
   schedule:
@@ -13,6 +14,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -38,4 +40,4 @@ jobs:
           git add .claude/artifacts
           git -c commit.gpgsign=false commit -m "monitor: control-band breach → incident and intent"
           git push origin "$branch"
-          gh pr create --title "Maintain: control-band breach" --body "Opened by \`harness monitor detect\`. Detection is deterministic. Triage the intent; do not treat this PR as production approval."
+          gh pr create --title "Maintain: control-band breach" --body "Opened by \`harness monitor detect\`. Detection is deterministic. A first 3σ may include a staging rollback receipt. Triage the intent; do not treat this PR as production approval."

@@ -112,6 +112,8 @@ test('handoff and monitor workflows write through a PR and never call a model', 
   assert.match(monitor, /schedule:/);
   assert.match(monitor, /harness monitor detect/);
   assert.match(monitor, /gh pr create/);
+  assert.match(monitor, /actions:\s*read/);
   assert.doesNotMatch(monitor, /claude -p/);
   assert.doesNotMatch(monitor, /ANTHROPIC_API_KEY/);
+  assert.doesNotMatch(monitor, /deploy rollback production/);
 });

@@ -3,7 +3,7 @@
 - **Date:** 2026-08-24
 - **Opened at:** 2026-08-24T12:28:16.020Z
 - **Author:** Chaminda Wijayasundara
-- **Status:** draft <!-- draft | approved | closed -->
+- **Status:** approved
 - **Source:** conversation — playbook 10/10 program, first slice (P0) after the fidelity review of https://claude.com/blog/the-ai-native-sdlc-playbook
 
 ## Problem
@@ -31,5 +31,5 @@ Claude Code sessions, `PreToolUse` write and bash hooks, `bin/harness`, `harness
 
 ## Open questions
 
-- **Opt-in default (owner: Chaminda).** Should `[guard].require_plan` default to `false` in templates (evals and this repo keep working until a product `init` turns it on), or `true` here as dogfood? Spec cannot choose the default without this.
-- **Confirm scope is P0 only (owner: Chaminda).** Treat the reply `a` as “Lean AIDLC for P0 only,” not “implement the whole 10/10 program.” If that is wrong, close this intent and say which slice to open instead.
+- **Opt-in default — answered.** `[guard].require_plan` defaults to `false` in templates and in this kernel repo so evals keep working. Product repos turn it on.
+- **Scope — answered.** P0 guards shipped; remaining Maintain items live in `playbook-close-maintain`.

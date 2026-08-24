@@ -150,7 +150,7 @@ export function enterpriseChecklist(cfg) {
     { id: 'production-approval', ok: cfg.deployment?.production_requires_approval !== false, detail: '[deployment].production_requires_approval must stay true.' },
     { id: 'require-plan', ok: true, detail: `[guard].require_plan is ${cfg.guard?.require_plan ? 'on' : 'off (default)'}. Turn it on in a product repo so product files need an approved plan.` },
     { id: 'review-policy', ok: existsSync(path.join(cfg.layout.claude, 'REVIEW.md')), detail: '.claude/REVIEW.md is the review policy the packet prepends.' },
-    { id: 'monitoring', ok: Array.isArray(cfg.monitoring?.collect) && cfg.monitoring.collect.length > 0, detail: '[monitoring].collect is empty — detect no-ops until a collector is configured.' },
+    { id: 'monitoring', ok: Array.isArray(cfg.monitoring?.collect) && cfg.monitoring.collect.length > 0, detail: Array.isArray(cfg.monitoring?.collect) && cfg.monitoring.collect.length ? `[monitoring].collect is ${cfg.monitoring.collect.join(' ')}` : '[monitoring].collect is empty — detect no-ops until a collector is configured.' },
   ];
   return items;
 }

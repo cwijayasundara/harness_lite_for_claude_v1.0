@@ -122,8 +122,9 @@ the user does not.
 `harness status` prints the playbook indicators (intent survival, time to committed intent,
 spec rework after plan, first-pass review, eval pass rate) from git history. A scheduled
 `harness-monitor.yml` job runs `harness monitor detect` with no model: a numeric band breach
-writes incident + draft intent and opens a triage PR. Configure `[monitoring].collect` in
-`harness.toml` when the project has a real metric source.
+writes incident + draft intent and opens a triage PR. A first 3σ also runs staging rollback
+when `[deployment].rollback` is set. This checkout collects GitHub Actions failure rate when
+`GITHUB_REPOSITORY` and a token are present; locally the collector prints empty bands.
 
 ## What happens during ordinary “vibe coding”
 

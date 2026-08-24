@@ -82,6 +82,55 @@ test('1σ logs and 2σ writes incident only; 3σ still opens intent', () => {
     const t3 = detect({ layout: f.layout, monitoring: { collect: [] } }, { file: three, slug: 'three-sigma', now: new Date('2026-01-01T00:00:00Z') });
     assert.equal(t3.tier, 3);
     assert.equal(t3.files.length, 2);
+    assert.equal(t3.rolled_back, false);
+  } finally { f.cleanup(); }
+});
+
+test('3σ with rollback configured runs staging once and never production', () => {
+  const f = fixture(); try {
+    const log = path.join(f.root, 'rollback.log');
+    writeFileSync(f.adapter, `#!/bin/sh\nprintf '%s %s\\n' "$1" "$HARNESS_ENVIRONMENT" >> '${log}'\nprintf "environment=%s\\n" "$1"\n`);
+    chmodSync(f.adapter, 0o755);
+    const cfg = {
+      layout: f.layout,
+      monitoring: { collect: [] },
+      deployment: { rollback: [f.adapter], production_requires_approval: true },
+    };
+    const bands = path.join(f.root, 'three.json');
+    writeFileSync(bands, JSON.stringify({ bands: [{ metric: 'error-rate', observed: 0.5, mean: 0.1, stdev: 0.1, source: 'sigma' }] }));
+    const first = detect(cfg, { file: bands, slug: 'three-sigma', now: new Date('2026-01-01T00:00:00Z') });
+    assert.equal(first.tier, 3);
+    assert.equal(first.rolled_back, true);
+    assert.equal(first.already_open, false);
+    assert.match(first.rollback.receipt.stdout, /environment=staging/);
+    assert.equal(existsSync(first.rollback.file), true);
+    const lines = readFileSync(log, 'utf8').trim().split('\n');
+    assert.equal(lines.length, 1);
+    assert.match(lines[0], /^staging /);
+    assert.doesNotMatch(readFileSync(log, 'utf8'), /production/);
+    const second = detect(cfg, { file: bands, slug: 'three-sigma' });
+    assert.equal(second.already_open, true);
+    assert.equal(second.rolled_back, false);
+    assert.equal(readFileSync(log, 'utf8').trim().split('\n').length, 1);
+  } finally { f.cleanup(); }
+});
+
+test('a failed staging rollback keeps the incident and intent', () => {
+  const f = fixture(); try {
+    writeFileSync(f.adapter, '#!/bin/sh\nexit 1\n');
+    chmodSync(f.adapter, 0o755);
+    const cfg = {
+      layout: f.layout,
+      monitoring: { collect: [] },
+      deployment: { rollback: [f.adapter], production_requires_approval: true },
+    };
+    const bands = path.join(f.root, 'three.json');
+    writeFileSync(bands, JSON.stringify({ bands: [{ metric: 'error-rate', observed: 0.5, mean: 0.1, stdev: 0.1 }] }));
+    const result = detect(cfg, { file: bands, slug: 'three-sigma', now: new Date('2026-01-01T00:00:00Z') });
+    assert.equal(result.rolled_back, false);
+    assert.equal(result.files.length, 2);
+    assert.equal(existsSync(path.join(f.layout.incident, 'three-sigma.md')), true);
+    assert.equal(existsSync(path.join(f.layout.intent, 'three-sigma.md')), true);
   } finally { f.cleanup(); }
 });
 

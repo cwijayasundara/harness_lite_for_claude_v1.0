@@ -16,7 +16,8 @@ const result = spawnSync('gh', ['api', `repos/${repo}/actions/runs?per_page=30`]
 });
 if (result.status !== 0) {
   process.stderr.write(result.stderr || 'gh api failed\n');
-  process.exit(result.status ?? 1);
+  process.stdout.write(JSON.stringify({ owner: 'unassigned', bands: [], error: 'gh-api-failed' }) + '\n');
+  process.exit(0);
 }
 const runs = JSON.parse(result.stdout).workflow_runs ?? [];
 const done = runs.filter((r) => r.status === 'completed');

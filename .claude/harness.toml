@@ -45,5 +45,5 @@ protected_paths = [".claude/evals/fixtures"]
 require_plan    = false
 
 [monitoring]
-collect = []
+collect = ["node", ".claude/examples/collect-ci-failure-rate.mjs"]
 timeout_ms = 300000

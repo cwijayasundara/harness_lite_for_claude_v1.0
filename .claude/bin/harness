@@ -290,7 +290,10 @@ async function main() {
       if (has('json')) console.log(JSON.stringify(result, null, 2));
       else if (!result.configured) console.log('monitor  not configured');
       else if (result.already_open) console.log('OPEN  incident already recorded');
-      else if (result.breached) console.log(`BREACH  ${result.breaches.length} control band(s)\n${result.files.join('\n')}`);
+      else if (result.breached) {
+        const rb = result.rolled_back ? `\nrollback  staging  ${result.rollback?.file ?? 'ok'}` : (result.tier >= 3 ? '\nrollback  skipped' : '');
+        console.log(`BREACH  ${result.breaches.length} control band(s)\n${result.files.join('\n')}${rb}`);
+      }
       else console.log('PASS  all control bands within range');
       return 0;
     }

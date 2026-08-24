@@ -41,7 +41,7 @@ export function detect(cfg, { file = null, slug = null, now = new Date() } = {})
   } else {
     const command = cfg.monitoring?.collect;
     if (!Array.isArray(command) || !command.length || command.some((v) => typeof v !== 'string')) {
-      return { configured: false, breached: false, already_open: false, files: [], tier: 0, diagnose: false };
+      return { configured: false, breached: false, already_open: false, files: [], tier: 0, diagnose: false, rolled_back: false };
     }
     const result = spawnSync(command[0], command.slice(1), {
       cwd: cfg.layout.root, encoding: 'utf8', timeout: Number(cfg.monitoring.timeout_ms ?? 300000),
@@ -51,14 +51,32 @@ export function detect(cfg, { file = null, slug = null, now = new Date() } = {})
   }
   const classified = classifyBands(document);
   const tier = classified.bands.reduce((m, b) => Math.max(m, b.tier), 0);
-  if (tier < 2) return { configured: true, breached: false, already_open: false, files: [], breaches: classified.log, tier, diagnose: false };
+  if (tier < 2) return { configured: true, breached: false, already_open: false, files: [], breaches: classified.log, tier, diagnose: false, rolled_back: false };
   const lead = classified.propose[0] || classified.diagnose[0];
   const id = slug || toSlug(lead.metric);
   if (!safe(id)) throw new Error('slug must be a canonical slug');
   const incident = path.join(cfg.layout.incident, `${id}.md`);
   const intent = path.join(cfg.layout.intent, `${id}.md`);
-  if (existsSync(incident) || existsSync(intent)) return { configured: true, breached: true, already_open: true, files: [], breaches: classified.propose, tier, diagnose: true };
-  return { ...closeLoop(cfg, id, document, { now, writeIntent: tier >= 3 }), configured: true, already_open: false, tier, diagnose: true };
+  if (existsSync(incident) || existsSync(intent)) {
+    return { configured: true, breached: true, already_open: true, files: [], breaches: classified.propose, tier, diagnose: true, rolled_back: false };
+  }
+  const closed = closeLoop(cfg, id, document, { now, writeIntent: tier >= 3 });
+  const rollback = stagingRollback(cfg, tier);
+  return { ...closed, configured: true, already_open: false, tier, diagnose: true, ...rollback };
+}
+
+function stagingRollback(cfg, tier) {
+  if (tier < 3) return { rolled_back: false };
+  const command = cfg.deployment?.rollback;
+  if (!Array.isArray(command) || !command.length || command.some((v) => typeof v !== 'string')) {
+    return { rolled_back: false };
+  }
+  try {
+    const result = deploy(cfg, 'rollback', 'staging');
+    return { rolled_back: result.ok, rollback: result };
+  } catch (e) {
+    return { rolled_back: false, rollback_error: e.message };
+  }
 }
 
 export function closeLoop(cfg, slug, document, { now = new Date(), writeIntent = true } = {}) {

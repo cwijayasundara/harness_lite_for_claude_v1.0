@@ -17,7 +17,7 @@ the workflow through the CLI.
 node .claude/bin/harness check --stage stop     # secrets + the full unit suite
 node .claude/bin/harness check --stage commit   # + plan-drift + budget
 node .claude/bin/harness handoff --write        # next-stage draft from a committed approval
-node .claude/bin/harness monitor detect         # control-band breach → incident + intent
+node .claude/bin/harness monitor detect         # band breach → incident + intent; 3σ may rollback staging
 node .claude/bin/harness lock tests             # pin tests during a fix; lock clear to release
 node .claude/bin/harness worktree <slug>        # isolated checkout for a disjoint plan slice
 node .claude/bin/harness doctor --enterprise    # managed-settings checklist (git is not MDM)

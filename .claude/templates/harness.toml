@@ -73,6 +73,7 @@ timeout_ms = 300000
 
 # Optional. argv that prints {"bands":[{"metric","observed",min?,max?,"source"}]}.
 # Empty means `harness monitor detect` is a no-op. Detection stays model-free.
+# A 3σ detect runs [deployment].rollback against staging when that argv is set.
 [monitoring]
 collect = []
 timeout_ms = 300000
