@@ -38,6 +38,11 @@ Write the test first, from the loop you already have. Then create
 `.claude/state/test-lock.json` with `{"patterns":["<the test path>"],"why":"bug fix in progress"}`
 so the test cannot be weakened, and fix the code. Delete the lock when the fix is green.
 
+For a production incident or control-band breach, first create
+`.claude/artifacts/incident/<slug>.md` with `harness new incident <slug>`. Preserve the metric,
+baseline, breached band, timeline, and mitigation. Then create the linked intent with the same
+slug. When the fix ships, add one permanent eval reproducing the incident class.
+
 ## Anti-patterns
 
 - Fixing the symptom at the call site instead of the cause.

@@ -1,0 +1,16 @@
+[project]
+name = "fixture"
+
+[capabilities]
+fmt       = "ruff format --check {files}"
+lint      = "ruff check --output-format=json {files}"
+test      = "python3 -m pytest -q --json-report --json-report-file={report}"
+
+[formats]
+lint = "ruff"
+test = "pytest"
+
+[stages]
+fast   = ["fmt", "lint"]
+stop   = ["fast", "test"]
+commit = ["stop", "secrets", "plan-drift", "budget"]

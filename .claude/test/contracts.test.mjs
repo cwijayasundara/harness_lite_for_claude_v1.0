@@ -66,3 +66,52 @@ test('no skill sequences phases (Law 2)', () => {
     assert.ok(longest <= 8, `${s}: a ${longest}-step numbered sequence belongs in bin/harness, not a skill`);
   }
 });
+
+test('Claude PR review is read-only and cannot declare the human gate approved', () => {
+  const workflow = readFileSync(path.join(C, '..', '.github/workflows/claude-review.yml'), 'utf8');
+  assert.match(workflow, /contents: read/);
+  assert.doesNotMatch(workflow, /contents: write/);
+  assert.match(workflow, /--disallowedTools [^\n]*Write,Edit/);
+  const adapter = readFileSync(path.join(C, 'lib/review-adapter.mjs'), 'utf8');
+  assert.match(adapter, /Status:\*\* draft/);
+  assert.match(adapter, /human reviewer owns Gate 3/);
+});
+
+test('CI model evals cover every steering surface and require authentication', () => {
+  const workflow = readFileSync(path.join(C, '..', '.github', 'workflows', 'harness.yml'), 'utf8');
+  for (const surface of [String.raw`CLAUDE\.md`, String.raw`settings\.json`, String.raw`harness\.toml`, 'skills/', 'agents/', 'hooks/', 'templates/', 'evals/']) {
+    assert.ok(workflow.includes(surface), surface);
+  }
+  assert.match(workflow, /run\.mjs --require-auth/);
+});
+
+test('marketplace lists the kernel and org-policy; policy skills are outside the budget', () => {
+  const market = JSON.parse(readFileSync(path.join(C, '..', '.claude-plugin', 'marketplace.json'), 'utf8'));
+  const names = market.plugins.map((p) => p.name);
+  assert.ok(names.includes('lean-harness'));
+  assert.ok(names.includes('org-policy'));
+  const policy = market.plugins.find((p) => p.name === 'org-policy');
+  assert.equal(policy.source, './plugins/org-policy');
+  const skillDir = path.join(C, '..', 'plugins/org-policy/skills/secure-api/SKILL.md');
+  assert.ok(existsSync(skillDir));
+  assert.ok(existsSync(path.join(C, '..', 'plugins/org-policy/skills/ux-standards/SKILL.md')));
+  assert.ok(existsSync(path.join(C, '..', 'plugins/org-policy/agents/policy-reviewer.md')));
+  assert.equal(existsSync(path.join(C, 'skills', 'secure-api')), false);
+  assert.equal(existsSync(path.join(C, 'skills', 'ux-standards')), false);
+  assert.equal(existsSync(path.join(C, 'agents', 'policy-reviewer.md')), false);
+  assert.equal(existsSync(path.join(C, 'skills', 'org-policy')), false);
+});
+
+test('handoff and monitor workflows write through a PR and never call a model', () => {
+  const handoff = readFileSync(path.join(C, '..', '.github/workflows/harness-handoff.yml'), 'utf8');
+  assert.match(handoff, /harness handoff --write/);
+  assert.match(handoff, /gh pr create/);
+  assert.doesNotMatch(handoff, /git push origin main/);
+  assert.doesNotMatch(handoff, /claude -p/);
+  const monitor = readFileSync(path.join(C, '..', '.github/workflows/harness-monitor.yml'), 'utf8');
+  assert.match(monitor, /schedule:/);
+  assert.match(monitor, /harness monitor detect/);
+  assert.match(monitor, /gh pr create/);
+  assert.doesNotMatch(monitor, /claude -p/);
+  assert.doesNotMatch(monitor, /ANTHROPIC_API_KEY/);
+});

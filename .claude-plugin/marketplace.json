@@ -1,0 +1,19 @@
+{
+  "name": "lean-harness-local",
+  "description": "Local marketplace for the lean AIDLC kernel and a separate org-policy plugin. Policy skills do not count against the kernel's 12-skill budget.",
+  "owner": {
+    "name": "Chaminda Wijayasundara"
+  },
+  "plugins": [
+    {
+      "name": "lean-harness",
+      "source": "./.claude",
+      "description": "Lean AIDLC kernel: intent → spec → plan → review, ledger, and five hook bindings."
+    },
+    {
+      "name": "org-policy",
+      "source": "./plugins/org-policy",
+      "description": "Organization policy skills (security, brand, UX). Install beside lean-harness. Replace the example text with the policy owner's source of truth before treating it as binding."
+    }
+  ]
+}

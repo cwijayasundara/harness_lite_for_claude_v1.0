@@ -7,6 +7,9 @@ description: Reviews a diff against its spec and plan, ranking findings by sever
 
 The reviewer's job is not to re-check what CI already checked. Run
 `bash .claude/bin/harness check --stage commit` first and say nothing about anything it caught.
+Create `.claude/artifacts/review/<slug>.md` with `harness new review <slug>` and record the
+evidence, findings, decision, reviewer, and commit there. The committed review is the Deploy
+handoff; a chat transcript is not an audit artifact.
 
 ## Passes, in order
 

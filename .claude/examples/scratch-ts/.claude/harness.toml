@@ -1,0 +1,29 @@
+[project]
+name = "scratch-ts"
+
+# Law 6 in practice: this file is the ONLY difference between running the harness on a Python
+# repo and a TypeScript one. Eight commands, no plugin, no pack, no adapter.
+[capabilities]
+fmt       = ""
+lint      = "npx eslint . --format json"
+typecheck = "npx tsc --noEmit --pretty false"
+test      = "npx tsc --outDir dist && node --test --test-reporter=tap dist/test/*.test.js"
+coverage  = ""
+arch      = ""
+secrets   = ""
+deps      = "npm outdated --json || true"
+
+[formats]
+lint      = "eslint"
+typecheck = "tsc"
+test      = "tap"
+
+[stages]
+fast   = ["lint", "typecheck"]
+stop   = ["fast", "test"]
+commit = ["stop", "secrets", "plan-drift", "budget"]
+drift  = ["deps"]
+
+[graph]
+include = [".", ".claude"]
+exclude = ["node_modules", "dist", ".git"]

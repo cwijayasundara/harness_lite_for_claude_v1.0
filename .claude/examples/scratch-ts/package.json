@@ -1,0 +1,18 @@
+{
+  "name": "scratch-ts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit --pretty false",
+    "lint": "eslint . --format json",
+    "test": "node --test --test-reporter=tap dist/test/*.test.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.12.0",
+    "@types/node": "^26.2.0",
+    "eslint": "^9.12.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.8.0",
+    "@types/node": "^22.0.0"
+  }
+}

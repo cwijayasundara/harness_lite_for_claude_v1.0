@@ -32,7 +32,9 @@ async function runOne(cfg, verb, files) {
   const started = Date.now();
   const base = { control: verb, verdict: 'skipped', ms: 0, findings: [], command: '' };
 
-  if (LOCAL_CHECKS[verb]) {
+  // `secrets` has a zero-config built-in fallback, but an explicitly configured scanner wins.
+  // Meta-checks such as plan-drift and budget are always local.
+  if (LOCAL_CHECKS[verb] && (verb !== 'secrets' || !cfg.capabilities[verb]?.trim())) {
     try {
       const mod = await LOCAL_CHECKS[verb]();
       const res = await mod.run(cfg, files);
@@ -57,6 +59,13 @@ async function runOne(cfg, verb, files) {
     if (r.error) return { ...base, verdict: 'errored', ms: Date.now() - started, command: full, error: r.error.message };
     const fmt = cfg.formats[verb] ?? 'generic';
     const payload = existsSync(reportPath) ? readFileSync(reportPath, 'utf8') : (r.stdout ?? '');
+    // 127 is "command not found". A sensor whose tool is not installed is BROKEN, not
+    // failing — recording it as `fail` would make a dead control look like one that is
+    // earning its place, which is exactly the signal the ledger exists to protect.
+    if (r.status === 127) {
+      return { ...base, verdict: 'errored', ms: Date.now() - started, command: full,
+        error: `tool not installed: ${(r.stderr || '').trim().split('\n')[0] || full}` };
+    }
     const findings = normalize(fmt, payload, r.stderr || r.stdout || '', r.status ?? 0);
     const verdict = (r.status === 0 && findings.length === 0) ? 'pass' : 'fail';
     return { ...base, verdict, ms: Date.now() - started, command: full, findings };
@@ -65,10 +74,26 @@ async function runOne(cfg, verb, files) {
   }
 }
 
-export async function check(cfg, { stage = 'fast', files = [], write = true } = {}) {
+export async function check(cfg, { stage = 'fast', files = [], write = true, all = false } = {}) {
   const verbs = resolveStage(cfg, stage);
+  const failFast = (cfg.check?.fail_fast ?? true) && !all;
   const results = [];
-  for (const verb of verbs) results.push(await runOne(cfg, verb, files));
+  // Verbs are ordered cheapest-first, and a single defect usually fails every verb after the
+  // one that found it — a type error fails lint, typecheck AND the build step of the test
+  // command. Reporting it three times costs tokens and buries the actionable line. Stop at the
+  // first failure by default; `--all` when you genuinely want the full picture.
+  let stopped = null;
+  for (const verb of verbs) {
+    if (stopped) {
+      // Recorded as skipped, never silently absent: a verb that did not run must not quietly
+      // improve its own fire rate in the ledger.
+      results.push({ control: verb, verdict: 'skipped', ms: 0, findings: [], note: `not run — ${stopped} failed first (use --all to run everything)` });
+      continue;
+    }
+    const r = await runOne(cfg, verb, files);
+    results.push(r);
+    if (failFast && r.verdict === 'fail') stopped = verb;
+  }
 
   const cap = cfg.budget.max_findings;
   const report = {

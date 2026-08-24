@@ -1,0 +1,14 @@
+{
+  "captured_at": "2026-08-24T03:22:51.842Z",
+  "tolerance": 1.1,
+  "claude_md_tokens": 672,
+  "session_context_tokens": 52,
+  "check_stop_tokens": 12,
+  "wiki_index_tokens": 290,
+  "pack_tokens_p50": 476,
+  "pack_samples": 10,
+  "graph_modules": 32,
+  "graph_symbols": 113,
+  "errored_controls": [],
+  "model": null
+}

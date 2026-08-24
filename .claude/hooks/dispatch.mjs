@@ -11,6 +11,7 @@ import { layout, findRepoRoot, PREFIX_CACHE_PATHS } from '../lib/paths.mjs';
 import { check, render } from '../lib/runner.mjs';
 import * as ledger from '../lib/ledger.mjs';
 import { measure } from '../checks/budget.mjs';
+import { refresh, staleSince } from '../lib/refresh.mjs';
 
 const readStdin = () => new Promise((res) => {
   let d = ''; process.stdin.setEncoding('utf8');
@@ -84,6 +85,8 @@ export async function dispatch(event) {
           `ledger: ${led.rows} rows over ${led.runs} runs (30d)`,
         ];
         if (noisy.length) lines.push(`review: ${noisy.map((c) => `${c.control} (${c.verdict})`).join(', ')}`);
+        const stale = staleSince(cfg);
+        if (stale) lines.push(`graph:  STALE since ${stale} — verify anything load-bearing against the source`);
         process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: lines.join('\n') } }));
         return 0;
       }
@@ -124,12 +127,16 @@ export async function dispatch(event) {
       }
 
       case 'stop': {
-        // SubagentStop fires once per teammate; draining and re-checking on each is the dominant
-        // per-turn cost and is pure waste. The top-level Stop coalesces every edit into one pass.
+        // SubagentStop fires once per teammate; re-indexing on each is the dominant per-turn
+        // cost and is pure waste. The top-level Stop coalesces every edit into one pass.
         if (input.hook_event_name === 'SubagentStop') return 0;
         if (!existsSync(cfg.layout.graphDirty)) return 0;
+        const r = refresh(cfg);
         const report = await check(cfg, { stage: 'stop', files: [] });
-        if (!report.ok) process.stdout.write(`harness: stage "stop" has findings — run: bash .claude/bin/harness check --stage stop\n`);
+        const notes = [];
+        if (!report.ok) notes.push('stage "stop" has findings — run: bash .claude/bin/harness check --stage stop');
+        if (r.error) notes.push(`graph refresh failed (${r.error}) — the wiki is stamped STALE`);
+        if (notes.length) process.stdout.write(`harness: ${notes.join('; ')}\n`);
         return 0;
       }
 

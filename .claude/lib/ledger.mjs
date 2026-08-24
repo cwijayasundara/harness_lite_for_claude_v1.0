@@ -36,6 +36,13 @@ export function read(L = layout()) {
   return readFileSync(L.ledger, 'utf8').split('\n').filter(Boolean).map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
 }
 
+// Law 10's kill criteria, as thresholds in one place rather than judgement in many.
+export const KILL = {
+  min_sessions: 50,     // below this, no verdict is honest
+  min_fire_rate: 0.05,  // fired on fewer than 1 in 20 invocations
+  max_error_rate: 0.10, // errors more than a tenth of the time: unreliable, not useful
+};
+
 // The subtractive half of the loop. This is the query that authorises deleting a control.
 export function report(L = layout(), { days = 30 } = {}) {
   const since = Date.now() - days * 864e5;
@@ -58,9 +65,33 @@ export function report(L = layout(), { days = 30 } = {}) {
     fire_rate: c.invocations ? c.fired / c.invocations : 0,
     avg_ms: c.invocations ? Math.round(c.ms / c.invocations) : 0,
     // Law 10 kill criterion, computed rather than argued about.
-    verdict: c.invocations < 50 ? 'insufficient-data'
-      : c.errored / c.invocations > 0.1 ? 'unreliable'
-      : c.fired === 0 ? 'candidate-for-deletion' : 'earning-its-place',
+    verdict: c.invocations < KILL.min_sessions ? 'insufficient-data'
+      : c.errored / c.invocations > KILL.max_error_rate ? 'unreliable'
+      : c.fired === 0 ? 'candidate-for-deletion'
+      : c.fired / c.invocations < KILL.min_fire_rate ? 'rarely-fires'
+      : 'earning-its-place',
   })).sort((a, b) => b.invocations - a.invocations);
   return { days, runs, rows: rows.length, controls };
+}
+
+// The monthly audit. Turns the ledger into a list of decisions a person can act on in minutes,
+// which is the only reason any of this instrumentation exists.
+export function audit(L = layout(), { days = 30 } = {}) {
+  const r = report(L, { days });
+  const action = {
+    'earning-its-place': 'keep',
+    'rarely-fires': 'review — does it catch anything the eval suite would miss?',
+    'candidate-for-deletion': 'DELETE — never fired; remove it and run the eval suite',
+    unreliable: 'FIX OR DELETE — errors too often to be trusted',
+    'insufficient-data': `wait — ${KILL.min_sessions} invocations needed`,
+  };
+  const controls = r.controls.map((c) => ({ ...c, action: action[c.verdict] }));
+  return {
+    ...r,
+    thresholds: KILL,
+    controls,
+    // The one number the audit exists to produce.
+    deletions: controls.filter((c) => c.verdict === 'candidate-for-deletion' || c.verdict === 'unreliable').map((c) => c.control),
+    ready: r.controls.every((c) => c.verdict !== 'insufficient-data'),
+  };
 }

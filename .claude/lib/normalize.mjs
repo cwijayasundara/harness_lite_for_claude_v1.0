@@ -54,6 +54,29 @@ const FORMATS = {
     }));
   },
 
+  // node --test --test-reporter=tap, and anything else that speaks TAP 13. Worth a parser
+  // rather than a one-off: TAP is the lowest common denominator across a lot of runners, so
+  // this covers node:test, tap, and prove-style suites in one format name.
+  tap(stdout) {
+    const lines = (stdout || '').split('\n');
+    const out = [];
+    for (let i = 0; i < lines.length; i++) {
+      const m = lines[i].match(/^\s*not ok \d+ - (.*)$/);
+      if (!m) continue;
+      let file = '', line = 0, message = m[1].trim();
+      // The YAML-ish block that follows carries the location and the reason.
+      for (let j = i + 1; j < Math.min(i + 25, lines.length); j++) {
+        if (/^\s*not ok |^\s*ok \d+/.test(lines[j])) break;
+        const loc = lines[j].match(/^\s*location:\s*'?([^':]+):(\d+)/);
+        if (loc) { file = loc[1]; line = Number(loc[2]); }
+        const err = lines[j].match(/^\s*error:\s*'?(.+?)'?$/);
+        if (err && err[1] !== '|-') message = `${m[1].trim()} — ${err[1]}`;
+      }
+      out.push(asFinding({ file, line, rule: 'test-failed', message, fix: 'fix the code, never the test' }));
+    }
+    return out;
+  },
+
   // node --test / vitest / jest --json  -> just surface the tail on failure
   generic() { return []; },
 };

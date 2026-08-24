@@ -1,8 +1,10 @@
 # Intent: {{slug}}
 
 - **Date:** {{date}}
+- **Opened at:** {{timestamp}}
 - **Author:**
-- **Status:** draft <!-- draft | approved -->
+- **Status:** draft <!-- draft | approved | closed -->
+- **Source:** <conversation, ticket URL, or ../incident/{{slug}}.md>
 
 ## Problem
 

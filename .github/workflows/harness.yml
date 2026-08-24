@@ -13,7 +13,24 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
       # Zero dependencies: no install step, and this must stay true.
+      # Includes lifecycle-cli.test.mjs, which creates a real git repository and proves
+      # committed approvals, failure exit codes, install idempotency, and incident SLA closure.
+      # Do not replace it with `harness status` on this root: no artifacts would pass vacuously.
       - run: node --test .claude/test/*.test.mjs
+      # Phase 3's exit criterion, re-checked on every push. If the graph stops earning its
+      # place, that is a finding, not a nuisance.
+      - run: node .claude/evals/bench/pack-bench.mjs
+
+  cost:
+    # Law 4's sibling: a token regression fails the build exactly like a failing test.
+    # This half needs no API key — it measures the token surface the harness itself controls.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: node .claude/bin/harness baseline check
+        working-directory: .claude/examples/scratch-py
 
   evals:
     # Law 9: the suite runs on any diff touching the harness's own configuration.
@@ -28,8 +45,8 @@ jobs:
       - id: touched
         run: |
           git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep -E '^\.claude/(skills|agents|hooks|checks|lib)/|harness\.toml$' \
+            | grep -E '^\.claude/(CLAUDE\.md|settings\.json|harness\.toml|skills/|agents/|hooks/|checks/|lib/|templates/|evals/(tasks\.json|lib/|run\.mjs))' \
             && echo "run=true" >> "$GITHUB_OUTPUT" || echo "run=false" >> "$GITHUB_OUTPUT"
       - if: steps.touched.outputs.run == 'true'
-        run: node .claude/evals/run.mjs
+        run: node .claude/evals/run.mjs --require-auth
         env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }

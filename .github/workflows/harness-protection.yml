@@ -1,0 +1,23 @@
+name: harness-protection
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to audit
+        required: true
+        default: main
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - name: Read branch protection with a scoped administration-read token
+        env:
+          GH_TOKEN: ${{ secrets.HARNESS_ADMIN_READ_TOKEN }}
+          BRANCH: ${{ inputs.branch }}
+        run: gh api "repos/${GITHUB_REPOSITORY}/branches/${BRANCH}/protection" > "$RUNNER_TEMP/protection.json"
+      - run: node .claude/bin/harness github protection-check --file "$RUNNER_TEMP/protection.json" --required-check harness

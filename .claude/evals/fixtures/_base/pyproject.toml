@@ -1,0 +1,11 @@
+[project]
+name = "fixture"
+version = "0.1.0"
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

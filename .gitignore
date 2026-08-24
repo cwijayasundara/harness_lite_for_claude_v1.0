@@ -1,6 +1,10 @@
 .claude/state/
 .claude/examples/*/.claude/state/
+.claude/examples/*/node_modules/
+.claude/examples/*/dist/
+.claude/evals/results/
 __pycache__/
 *.pyc
 .pytest_cache/
+.ruff_cache/
 node_modules/
