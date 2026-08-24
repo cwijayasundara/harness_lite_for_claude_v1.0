@@ -1,7 +1,7 @@
 # Intent: plan-drift-grades-one-plan
 
 - **Date:** 2026-08-24
-- **Opened at:** 2026-08-24T00:00:00Z
+- **Opened at:** 2026-08-24T21:52:19+01:00
 - **Author:** cwijayasundara
 - **Status:** draft <!-- draft | approved | closed -->
 - **Source:** review/init-delivers-skills-and-agents.md, open finding 1 — observed on this repository with four changes in flight

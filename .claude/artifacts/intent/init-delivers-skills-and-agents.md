@@ -1,7 +1,7 @@
 # Intent: init-delivers-skills-and-agents
 
 - **Date:** 2026-08-24
-- **Opened at:** 2026-08-24T00:00:00Z
+- **Opened at:** 2026-08-24T19:48:06+01:00
 - **Author:** cwijayasundara
 - **Status:** approved <!-- draft | approved | closed -->
 - **Source:** conversation — a real install into ../claude_harness_lean_v1_test produced a project with hooks, a CLI, and no guides
