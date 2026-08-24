@@ -86,7 +86,7 @@ not another permanent harness control; the plan's file ownership must be disjoin
 | Managed settings, OSCAL, certification | Template + `harness doctor --enterprise` | Enforcement is MDM/admin console, never git `settings.json`. |
 | `bands.yaml` anomaly detection → `intent.md` | `harness monitor detect` with 1σ/2σ/3σ tiers | Detection stays model-free. 2σ diagnoses; 3σ writes intent and may rollback staging. |
 | Skills up to 500 lines / 5k words | 130-line hard stop, ~80-line target | Empirically better triggering. v6's skills averaged 268 lines and its two conductors were effectively 1,000 and 1,850. |
-| Repo-root `docs/` for artefacts | Everything under `.claude/` | One directory to gitignore, one to copy between repos, one place an agent looks. |
+| Repo-root `docs/` for artefacts | Artefacts under `.claude/artifacts/`; prose about the harness in repo-root `docs/` | One directory to gitignore, one to copy between repos, one place an agent looks. `init` never copies `docs/`, so it is not part of the installable surface and does not belong under the plugin root. |
 
 ---
 
@@ -95,7 +95,8 @@ not another permanent harness control; the plan's file ownership must be disjoin
 ```
 claude_harness_lean_v1/
 ├─ README.md
-└─ .claude/                          ← the plugin root; everything lives here
+├─ docs/                             CONSTITUTION.md · BUILD-PLAN.md · handbook.html · analysis.html
+└─ .claude/                          ← the plugin root; the whole installable surface
    ├─ .claude-plugin/plugin.json
    ├─ bin/harness                    single entrypoint: init doctor check new ledger hook
    ├─ lib/                           toml · config · paths · normalize · ledger · runner
@@ -106,7 +107,6 @@ claude_harness_lean_v1/
    ├─ templates/                     harness.toml · CLAUDE.md · intent/spec/plan
    ├─ evals/                         tasks.json (20) + fixtures
    ├─ test/                          node:test, zero deps, runs on a cold clone
-   ├─ docs/                          CONSTITUTION.md · BUILD-PLAN.md · analysis.html
    └─ examples/scratch-py/           the proving ground
 ```
 

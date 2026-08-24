@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Lean Harness Handbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=JetBrains+Mono:wght@400;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+:root{
+  --bg:#EDECE6;
+  --surface:#FAF9F5;
+  --sunk:#E2E0D6;
+  --ink:#211F1A;
+  --muted:#6B665A;
+  --rule:#D1CEC2;
+  --guide:#15665A;
+  --sensor:#8F5F06;
+  --stop:#A33927;
+  --shadow:rgba(33,31,26,.10);
+  --tint-guide:rgba(21,102,90,.08);
+  --tint-sensor:rgba(143,95,6,.09);
+  --tint-stop:rgba(163,57,39,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#18170F;
+    --surface:#211F17;
+    --sunk:#2B291F;
+    --ink:#EFEDE3;
+    --muted:#A49E8D;
+    --rule:#3A3628;
+    --guide:#5CC7B0;
+    --sensor:#E0A745;
+    --stop:#F08B76;
+    --shadow:rgba(0,0,0,.45);
+    --tint-guide:rgba(92,199,176,.10);
+    --tint-sensor:rgba(224,167,69,.10);
+    --tint-stop:rgba(240,139,118,.10);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#18170F;
+  --surface:#211F17;
+  --sunk:#2B291F;
+  --ink:#EFEDE3;
+  --muted:#A49E8D;
+  --rule:#3A3628;
+  --guide:#5CC7B0;
+  --sensor:#E0A745;
+  --stop:#F08B76;
+  --shadow:rgba(0,0,0,.45);
+  --tint-guide:rgba(92,199,176,.10);
+  --tint-sensor:rgba(224,167,69,.10);
+  --tint-stop:rgba(240,139,118,.10);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Source Serif 4",Georgia,"Times New Roman",serif;
+  font-size:18px;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:Archivo,"Helvetica Neue",Arial,sans-serif;font-weight:800;letter-spacing:-.02em;text-wrap:balance;margin:0}
+p{margin:0;max-width:60ch}
+
+.band{padding:76px 24px;border-top:1px solid var(--rule)}
+.band:first-of-type{border-top:0}
+.band.alt{background:var(--surface)}
+.wrap{max-width:940px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+
+.eyebrow{
+  font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--muted);margin:0;
+}
+h2{font-size:clamp(30px,4.6vw,44px);line-height:1.05}
+h3{font-size:19px;letter-spacing:-.01em}
+.lede{font-size:21px;line-height:1.5}
+.muted{color:var(--muted)}
+
+/* hero */
+.hero{padding:88px 24px 64px}
+.hero h1{font-size:clamp(44px,8vw,86px);line-height:.94}
+.hero .lede{font-size:clamp(20px,2.6vw,26px);max-width:26ch}
+.rule-tag{
+  display:inline-block;font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:700;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--sensor);
+  border:1px solid var(--sensor);border-radius:2px;padding:5px 10px;
+}
+
+/* figures */
+figure{margin:0;display:flex;flex-direction:column;gap:12px}
+.figbox{
+  background:var(--surface);border:1px solid var(--rule);border-radius:6px;
+  padding:22px 18px;overflow-x:auto;box-shadow:0 1px 0 var(--shadow);
+}
+.band.alt .figbox{background:var(--sunk)}
+figure svg{display:block;width:100%;min-width:660px;height:auto;color:var(--ink)}
+figcaption{font-size:14.5px;color:var(--muted);max-width:64ch}
+
+/* card grid */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.card{
+  background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--rule);
+  border-radius:4px;padding:18px 20px;display:flex;flex-direction:column;gap:7px;
+}
+.band.alt .card{background:var(--sunk)}
+.card p{font-size:15.5px;line-height:1.5;color:var(--muted);max-width:none}
+.card.guide{border-left-color:var(--guide);background:var(--tint-guide)}
+.card.sensor{border-left-color:var(--sensor);background:var(--tint-sensor)}
+.card.ledger{border-left-color:var(--ink)}
+
+/* steps */
+.steps{display:flex;flex-direction:column;gap:2px;counter-reset:s}
+.step{
+  display:grid;grid-template-columns:44px 1fr;gap:18px;align-items:start;
+  padding:18px 0;border-top:1px solid var(--rule);
+}
+.step:last-child{border-bottom:1px solid var(--rule)}
+.step .n{
+  font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;color:var(--sensor);
+  padding-top:3px;font-variant-numeric:tabular-nums;
+}
+.step p{font-size:16px;color:var(--muted);margin-top:4px}
+
+/* code */
+pre{
+  margin:0;background:var(--sunk);border:1px solid var(--rule);border-radius:4px;
+  padding:16px 18px;overflow-x:auto;
+  font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:13.5px;line-height:1.75;
+}
+.band.alt pre{background:var(--bg)}
+code{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:.86em}
+.say{
+  border-left:3px solid var(--guide);padding:4px 0 4px 20px;
+  font-size:20px;line-height:1.45;max-width:52ch;
+}
+
+/* verdict rows */
+.verdicts{display:flex;flex-direction:column;gap:0}
+.v{display:grid;grid-template-columns:210px 1fr;gap:20px;padding:14px 0;border-top:1px solid var(--rule);align-items:baseline}
+.v:last-child{border-bottom:1px solid var(--rule)}
+.v .tag{
+  font-family:"JetBrains Mono",monospace;font-size:12px;font-weight:700;letter-spacing:.02em;
+}
+.v .tag.keep{color:var(--guide)}
+.v .tag.kill{color:var(--stop)}
+.v .tag.wait{color:var(--muted)}
+.v p{font-size:16px;color:var(--muted);max-width:none}
+
+.foot{padding:44px 24px 72px;border-top:1px solid var(--rule)}
+.foot p{font-size:15px;color:var(--muted)}
+
+@media (max-width:640px){
+  body{font-size:17px}
+  .band{padding:56px 18px}
+  .v{grid-template-columns:1fr;gap:4px}
+  .step{grid-template-columns:30px 1fr;gap:12px}
+}
+
+/* parts */
+.partmark{display:flex;flex-wrap:wrap;align-items:baseline;gap:16px;border-top:3px solid var(--ink);padding-top:12px}
+.partmark .pn{font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--sensor)}
+.partmark .pt{font-family:Archivo,sans-serif;font-weight:800;font-size:17px;letter-spacing:-.01em}
+
+/* prose */
+.prose{display:flex;flex-direction:column;gap:14px;max-width:64ch}
+.prose p{max-width:none}
+.pull{
+  font-family:Archivo,sans-serif;font-weight:600;font-size:clamp(20px,2.6vw,26px);line-height:1.3;
+  letter-spacing:-.01em;border-left:3px solid var(--sensor);padding:6px 0 6px 22px;max-width:46ch;
+}
+.pull .who{display:block;font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:12px}
+
+/* table */
+.tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+.band.alt .tablewrap{background:var(--sunk)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:15.5px}
+th{font-family:Archivo,sans-serif;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);text-align:left;padding:14px 18px;border-bottom:1px solid var(--rule)}
+td{padding:14px 18px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.45}
+tr:last-child td{border-bottom:0}
+td.stage{font-family:Archivo,sans-serif;font-weight:700;white-space:nowrap}
+td.stage span{display:block;font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:400;
+  letter-spacing:.06em;color:var(--muted);margin-top:3px;text-transform:uppercase}
+.gate{font-family:"JetBrains Mono",monospace;font-size:11.5px;font-weight:700;color:var(--sensor)}
+.gate.none{color:var(--muted);font-weight:400}
+
+/* simple two-column rows */
+.rows{display:flex;flex-direction:column}
+.r{display:grid;grid-template-columns:260px 1fr;gap:22px;padding:16px 0;border-top:1px solid var(--rule)}
+.r:last-child{border-bottom:1px solid var(--rule)}
+.r h3{font-size:16px;font-weight:600;font-family:Archivo,sans-serif}
+.r p{font-size:15.5px;color:var(--muted);max-width:none}
+@media (max-width:640px){ .r{grid-template-columns:1fr;gap:6px} }
+
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">lean-harness · plain english</p>
+    <h1>The Lean<br>Harness</h1>
+    <p class="lede">Claude writes the code. This thing makes sure the code is safe to keep.</p>
+    <p class="muted" style="max-width:52ch">One repository's implementation of Anthropic's
+    <em>AI-native SDLC playbook</em> &mdash; the chain taken literally, the ceremony left out.</p>
+    <p><span class="rule-tag">The playbook &middot; this implementation &middot; the daily loop</span></p>
+  </div>
+</header>
+
+<section class="band">
+  <div class="wrap">
+    <div class="partmark"><span class="pn">Part one</span><span class="pt">The AI-native SDLC</span></div>
+    <p class="eyebrow">Page one &middot; the shift</p>
+    <h2>Code stopped being the bottleneck</h2>
+    <div class="prose">
+      <p>For thirty years the software lifecycle was shaped around one assumption: writing the
+      code is the slow part. Workshops, handoffs, and review queues were cheap next to it, so the
+      process spent them freely.</p>
+      <p>Agents broke the assumption. A change that took four days takes forty minutes &mdash; and
+      nothing around it speeds up to match. The planning meeting, the spec that lives in someone's
+      head, the review queue: they stay at human speed, and become the delay.</p>
+      <p>Anthropic's <em>AI-native SDLC playbook</em> starts exactly there. When the build phase
+      runs faster than the lifecycle was designed for, the bottleneck moves to the steps on either
+      side of it: deciding what to build, and deciding whether to trust what came back.</p>
+    </div>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 900 250" role="img" aria-label="Two timelines compared: traditionally the build phase dominates; in an AI-native lifecycle build shrinks and planning and review become the widest phases.">
+          <text x="20" y="46" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700" letter-spacing="1.6" fill="currentColor" opacity=".6">TRADITIONAL &mdash; BUILD IS THE LONG POLE</text>
+
+          <rect x="20" y="58" width="100" height="48" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"></rect>
+          <rect x="120" y="58" width="100" height="48" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"></rect>
+          <rect x="220" y="58" width="425" height="48" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="1.6"></rect>
+          <rect x="645" y="58" width="123" height="48" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"></rect>
+          <rect x="768" y="58" width="102" height="48" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"></rect>
+          <text x="70" y="87" text-anchor="middle" font-size="11" fill="currentColor" opacity=".75">Plan</text>
+          <text x="170" y="87" text-anchor="middle" font-size="11" fill="currentColor" opacity=".75">Design</text>
+          <text x="432" y="87" text-anchor="middle" font-size="13" font-weight="600" fill="currentColor">Build</text>
+          <text x="706" y="87" text-anchor="middle" font-size="11" fill="currentColor" opacity=".75">Test</text>
+          <text x="819" y="87" text-anchor="middle" font-size="11" fill="currentColor" opacity=".75">Review</text>
+
+          <text x="20" y="140" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700" letter-spacing="1.6" fill="var(--sensor)">AI-NATIVE &mdash; THE SAME WORK, REDISTRIBUTED</text>
+
+          <rect x="20" y="152" width="190" height="48" fill="var(--sensor)" fill-opacity=".16" stroke="var(--sensor)" stroke-width="1.6"></rect>
+          <rect x="210" y="152" width="168" height="48" fill="var(--sensor)" fill-opacity=".16" stroke="var(--sensor)" stroke-width="1.6"></rect>
+          <rect x="378" y="152" width="89" height="48" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="1.6"></rect>
+          <rect x="467" y="152" width="157" height="48" fill="none" stroke="currentColor" stroke-width="1.4" opacity=".55"></rect>
+          <rect x="624" y="152" width="246" height="48" fill="var(--sensor)" fill-opacity=".16" stroke="var(--sensor)" stroke-width="1.6"></rect>
+          <text x="115" y="181" text-anchor="middle" font-size="13" font-weight="600" fill="var(--sensor)">Plan</text>
+          <text x="294" y="181" text-anchor="middle" font-size="13" font-weight="600" fill="var(--sensor)">Design</text>
+          <text x="422" y="181" text-anchor="middle" font-size="11" fill="currentColor">Build</text>
+          <text x="545" y="181" text-anchor="middle" font-size="11" fill="currentColor" opacity=".75">Test</text>
+          <text x="747" y="181" text-anchor="middle" font-size="13" font-weight="600" fill="var(--sensor)">Review &amp; ship</text>
+
+          <text x="20" y="230" font-size="11.5" fill="currentColor" opacity=".6">Highlighted: where the time actually goes once an agent is doing the typing.</text>
+        </svg>
+      </div>
+      <figcaption>The lifecycle did not get shorter. It changed shape &mdash; and the parts that grew are the parts nobody automated.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap">
+    <p class="eyebrow">Page two &middot; the six stages</p>
+    <h2>Every stage ends by committing a file</h2>
+    <div class="prose">
+      <p>The playbook keeps six stages &mdash; Plan, Design, Build, Test, Deploy, Maintain &mdash;
+      but changes what a stage <em>is</em>. A stage is no longer a meeting or a phase on a chart.
+      It is a version-controlled artifact that the next stage reads as its input.</p>
+      <p>That is what makes the lifecycle machine-actionable. An agent cannot attend a workshop,
+      but it can read <code>spec.md</code> and be held to it.</p>
+    </div>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 900 250" role="img" aria-label="The six stages in order, each committing an artifact, with the last stage looping back to the first.">
+          <defs>
+            <marker id="b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+
+          <rect x="15" y="70" width="124" height="62" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="77" y="98" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14" font-weight="700" fill="currentColor">Plan</text>
+          <text x="77" y="116" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">what &amp; why</text>
+          <text x="77" y="152" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--sensor)">intent.md</text>
+
+          <rect x="165" y="70" width="124" height="62" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="227" y="98" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14" font-weight="700" fill="currentColor">Design</text>
+          <text x="227" y="116" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">how it behaves</text>
+          <text x="227" y="152" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--sensor)">spec.md</text>
+
+          <rect x="315" y="70" width="124" height="62" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="377" y="98" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14" font-weight="700" fill="currentColor">Build</text>
+          <text x="377" y="116" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">the change</text>
+          <text x="377" y="152" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--sensor)">plan.md &rarr; diff</text>
+
+          <rect x="465" y="70" width="124" height="62" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="527" y="98" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14" font-weight="700" fill="currentColor">Test</text>
+          <text x="527" y="116" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">proof, not vibes</text>
+          <text x="527" y="152" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--sensor)">eval results</text>
+
+          <rect x="615" y="70" width="124" height="62" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="677" y="98" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14" font-weight="700" fill="currentColor">Deploy</text>
+          <text x="677" y="116" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">ship &amp; review</text>
+          <text x="677" y="152" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--sensor)">PR + findings</text>
+
+          <rect x="765" y="70" width="124" height="62" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="827" y="98" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14" font-weight="700" fill="currentColor">Maintain</text>
+          <text x="827" y="116" text-anchor="middle" font-size="10" fill="currentColor" opacity=".6">watch it live</text>
+          <text x="827" y="152" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="var(--sensor)">incident.md</text>
+
+          <line x1="141" y1="101" x2="161" y2="101" stroke="currentColor" stroke-width="1.5" marker-end="url(#b1)"></line>
+          <line x1="291" y1="101" x2="311" y2="101" stroke="currentColor" stroke-width="1.5" marker-end="url(#b1)"></line>
+          <line x1="441" y1="101" x2="461" y2="101" stroke="currentColor" stroke-width="1.5" marker-end="url(#b1)"></line>
+          <line x1="591" y1="101" x2="611" y2="101" stroke="currentColor" stroke-width="1.5" marker-end="url(#b1)"></line>
+          <line x1="741" y1="101" x2="761" y2="101" stroke="currentColor" stroke-width="1.5" marker-end="url(#b1)"></line>
+
+          <path d="M827,168 L827,206 L77,206" fill="none" stroke="var(--sensor)" stroke-width="1.5" stroke-dasharray="5 4"></path>
+          <line x1="77" y1="204" x2="77" y2="166" stroke="var(--sensor)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#b1)"></line>
+          <text x="452" y="228" text-anchor="middle" font-size="11.5" fill="var(--sensor)">a live finding is written back as the next intent.md</text>
+        </svg>
+      </div>
+      <figcaption>Six stages, six commits. The last arrow is the one that makes it a lifecycle instead of a line.</figcaption>
+    </figure>
+
+    <p class="pull">&ldquo;Every stage commits an artifact the next stage can read. Together, the
+    intent, the spec, the plan, the diff and the review findings are the audit trail.&rdquo;
+    <span class="who">The AI-native SDLC playbook</span></p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <p class="eyebrow">Page three &middot; what steers the agent</p>
+    <h2>Advice it can ignore. Guards it cannot.</h2>
+    <div class="prose">
+      <p>An agent is steered by whatever is in front of it, so the playbook makes institutional
+      knowledge a checked-in asset instead of tribal memory. Most of these are advisory. One of
+      them is not, and the difference matters.</p>
+    </div>
+
+    <div class="cards">
+      <div class="card guide">
+        <h3>CLAUDE.md</h3>
+        <p>Under one page, read at the start of every session: conventions, commands, architecture,
+        and the mistakes this project actually makes.</p>
+      </div>
+      <div class="card guide">
+        <h3>Skills</h3>
+        <p>Version-controlled policy &mdash; security, compliance, brand, UX &mdash; that triggers
+        when the work touches it. Advisory, and narrow on purpose.</p>
+      </div>
+      <div class="card sensor">
+        <h3>Hooks</h3>
+        <p>Deterministic. They allow, ask, or block an action as it happens. This is the only
+        layer that can actually stop the agent.</p>
+      </div>
+      <div class="card guide">
+        <h3>Evals</h3>
+        <p>A regression suite for the agent's own configuration &mdash; re-run whenever a skill, a
+        hook, or CLAUDE.md changes.</p>
+      </div>
+      <div class="card guide">
+        <h3>Feedback loops</h3>
+        <p>Claude checks its own work before handing it over: tests, builds, screenshots. Cheap
+        proof beats a confident summary.</p>
+      </div>
+      <div class="card guide">
+        <h3>Subagents &amp; worktrees</h3>
+        <p>Scoped helpers for repeated jobs, and parallel sessions so one engineer can steer
+        several changes at once.</p>
+      </div>
+    </div>
+
+    <div class="prose">
+      <p>Review changes shape too. Line-by-line human reading does not survive contact with agent
+      throughput, so review becomes layered: automated checks first, agentic review next, and human
+      attention spent on intent and risk rather than syntax.</p>
+    </div>
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap">
+    <p class="eyebrow">Page four &middot; the loop closes</p>
+    <h2>Three levels of automation, one level of judgement</h2>
+    <div class="prose">
+      <p>The playbook does not ask you to arrive fully autonomous. It describes a progression, and
+      the honest position is knowing which rung you are standing on.</p>
+    </div>
+
+    <div class="rows">
+      <div class="r">
+        <div><h3>1 &middot; Manual triggering</h3></div>
+        <p>An engineer runs each stage by hand and commits the artifact. The chain exists; a person
+        moves it along.</p>
+      </div>
+      <div class="r">
+        <div><h3>2 &middot; Automated handover</h3></div>
+        <p>An accepted artifact triggers the next stage through CI. Approval, not attention, is
+        what moves the work forward.</p>
+      </div>
+      <div class="r">
+        <div><h3>3 &middot; Autonomous loop</h3></div>
+        <p>Monitoring breaches a control band, Claude diagnoses it and writes a new
+        <code>intent.md</code>, and the finding re-enters the pipeline without a human starting
+        it.</p>
+      </div>
+    </div>
+
+    <div class="prose">
+      <p>Autonomy is bounded by environment rather than by trust: an agent acts freely in
+      development, uses pre-approved runbooks in staging, and needs release-manager authorization
+      for the live system &mdash; enforced by a hook, not by a policy document.</p>
+      <p>And it is measured at the handoffs, not by lines of code. Leading indicators: time from
+      first conversation to a committed intent, share of changes merged on the first implementation
+      pass, time to first review, time from a control-band breach to an intent in the triage queue.
+      Lagging indicators: rework cycles, change failure rate, escaped defects, repeat incidents.</p>
+    </div>
+
+    <p class="pull">&ldquo;The loop keeps running. Human judgement stays above it.&rdquo;
+    <span class="who">The AI-native SDLC playbook</span></p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="partmark"><span class="pn">Part two</span><span class="pt">How lean v1 implements it</span></div>
+    <p class="eyebrow">Page five &middot; the mapping</p>
+    <h2>The chain adopted verbatim. The ceremony, not.</h2>
+    <div class="prose">
+      <p>This harness takes the artifact chain literally &mdash; every stage commits a file the
+      next stage reads, and git is the audit trail &mdash; and refuses almost everything built
+      around it. No conductor command per phase, no autonomy modes, no ungated loop. Twelve
+      skills, three subagents, five hook bindings, one CLI.</p>
+      <p>Here is the whole mapping, stage by stage.</p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th scope="col">Playbook stage</th><th scope="col">In lean v1</th><th scope="col">Human gate</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="stage">1 &middot; Plan<span>intent.md</span></td>
+            <td>The <code>intent</code> skill writes <code>.claude/artifacts/intent/&lt;slug&gt;.md</code> &mdash; problem, outcome, constraints, and the questions that block progress.</td>
+            <td class="gate none">&mdash;</td>
+          </tr>
+          <tr>
+            <td class="stage">2 &middot; Design<span>spec.md</span></td>
+            <td>The <code>spec</code> skill turns an approved intent into numbered testable behaviours, explicit out-of-scope, domain vocabulary, and flagged policy concerns.</td>
+            <td class="gate">GATE 1 &middot; spec approved</td>
+          </tr>
+          <tr>
+            <td class="stage">3 &middot; Build<span>plan.md &rarr; diff</span></td>
+            <td><code>plan</code> names the exact files and the proof for each behaviour; <code>implement</code> works in red-green slices. Five hooks and three agents run underneath.</td>
+            <td class="gate">GATE 2 &middot; plan approved</td>
+          </tr>
+          <tr>
+            <td class="stage">4 &middot; Test<span>evidence</span></td>
+            <td><code>harness check</code> stages (fast / stop / commit) plus <code>evals/tasks.json</code> in CI. <code>harness status</code> reports the latest eval pass rate.</td>
+            <td class="gate none">&mdash;</td>
+          </tr>
+          <tr>
+            <td class="stage">5 &middot; Deploy<span>PR + findings</span></td>
+            <td>The <code>review</code> skill writes a severity-ranked review artifact; CI and branch protection are the gate; <code>harness handoff</code> opens the next-stage draft PR.</td>
+            <td class="gate">GATE 3 &middot; review approved / merged</td>
+          </tr>
+          <tr>
+            <td class="stage">6 &middot; Maintain<span>incident.md</span></td>
+            <td>A scheduled <code>harness monitor detect</code> compares metrics to numeric bands and writes an incident plus a new intent. The metric collector is yours to supply.</td>
+            <td class="gate">service owner triage</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap">
+    <p class="eyebrow">Page six &middot; the honest boundary</p>
+    <h2>Core implementation, or adapter contract &mdash; say which</h2>
+    <div class="prose">
+      <p>Stages one to four run inside this repository today, on a cold clone, with nothing to
+      install. Stages five and six have schemas, validation, and gates &mdash; but they only become
+      operational once a project supplies its own source control, release path, rollback, and
+      metric sources.</p>
+      <p>The rule the harness holds itself to: do not describe a template as automation, and do not
+      describe an uncommitted approval as a passed gate.</p>
+    </div>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 900 214" role="img" aria-label="Stages one to four run inside the repository; stages five and six are adapter contracts awaiting project-supplied wiring, with three human gates beneath Design, Build and Deploy.">
+          <line x1="15" y1="52" x2="589" y2="52" stroke="var(--guide)" stroke-width="1.5"></line>
+          <line x1="15" y1="46" x2="15" y2="58" stroke="var(--guide)" stroke-width="1.5"></line>
+          <line x1="589" y1="46" x2="589" y2="58" stroke="var(--guide)" stroke-width="1.5"></line>
+          <text x="302" y="36" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="700" letter-spacing="1.4" fill="var(--guide)">RUNS IN THIS REPO TODAY</text>
+
+          <line x1="615" y1="52" x2="889" y2="52" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity=".6"></line>
+          <line x1="615" y1="46" x2="615" y2="58" stroke="currentColor" stroke-width="1.5" opacity=".6"></line>
+          <line x1="889" y1="46" x2="889" y2="58" stroke="currentColor" stroke-width="1.5" opacity=".6"></line>
+          <text x="752" y="36" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="700" letter-spacing="1.4" fill="currentColor" opacity=".6">CONTRACT &mdash; YOU SUPPLY THE WIRING</text>
+
+          <rect x="15" y="72" width="124" height="58" rx="4" fill="none" stroke="var(--guide)" stroke-width="1.8"></rect>
+          <text x="77" y="97" text-anchor="middle" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="var(--guide)">Plan</text>
+          <text x="77" y="115" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="var(--guide)" opacity=".85">intent skill</text>
+
+          <rect x="165" y="72" width="124" height="58" rx="4" fill="none" stroke="var(--guide)" stroke-width="1.8"></rect>
+          <text x="227" y="97" text-anchor="middle" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="var(--guide)">Design</text>
+          <text x="227" y="115" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="var(--guide)" opacity=".85">spec skill</text>
+
+          <rect x="315" y="72" width="124" height="58" rx="4" fill="none" stroke="var(--guide)" stroke-width="1.8"></rect>
+          <text x="377" y="97" text-anchor="middle" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="var(--guide)">Build</text>
+          <text x="377" y="115" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="var(--guide)" opacity=".85">plan &middot; implement</text>
+
+          <rect x="465" y="72" width="124" height="58" rx="4" fill="none" stroke="var(--guide)" stroke-width="1.8"></rect>
+          <text x="527" y="97" text-anchor="middle" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="var(--guide)">Test</text>
+          <text x="527" y="115" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="var(--guide)" opacity=".85">check &middot; evals</text>
+
+          <rect x="615" y="72" width="124" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity=".65"></rect>
+          <text x="677" y="97" text-anchor="middle" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="currentColor" opacity=".8">Deploy</text>
+          <text x="677" y="115" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="currentColor" opacity=".6">review &middot; handoff</text>
+
+          <rect x="765" y="72" width="124" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity=".65"></rect>
+          <text x="827" y="97" text-anchor="middle" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="currentColor" opacity=".8">Maintain</text>
+          <text x="827" y="115" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="currentColor" opacity=".6">monitor detect</text>
+
+          <line x1="227" y1="132" x2="227" y2="146" stroke="var(--sensor)" stroke-width="1.5"></line>
+          <circle cx="227" cy="150" r="4.5" fill="var(--sensor)"></circle>
+          <text x="227" y="172" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700" fill="var(--sensor)">GATE 1</text>
+          <text x="227" y="188" text-anchor="middle" font-size="10.5" fill="var(--sensor)" opacity=".85">spec approved</text>
+
+          <line x1="377" y1="132" x2="377" y2="146" stroke="var(--sensor)" stroke-width="1.5"></line>
+          <circle cx="377" cy="150" r="4.5" fill="var(--sensor)"></circle>
+          <text x="377" y="172" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700" fill="var(--sensor)">GATE 2</text>
+          <text x="377" y="188" text-anchor="middle" font-size="10.5" fill="var(--sensor)" opacity=".85">plan approved</text>
+
+          <line x1="677" y1="132" x2="677" y2="146" stroke="var(--sensor)" stroke-width="1.5"></line>
+          <circle cx="677" cy="150" r="4.5" fill="var(--sensor)"></circle>
+          <text x="677" y="172" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" font-weight="700" fill="var(--sensor)">GATE 3</text>
+          <text x="677" y="188" text-anchor="middle" font-size="10.5" fill="var(--sensor)" opacity=".85">review approved &middot; merged</text>
+        </svg>
+      </div>
+      <figcaption>Solid boxes are implemented. Dashed boxes are contracts with tests but no wiring &mdash; a difference a README should never blur.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <p class="eyebrow">Page seven &middot; fidelity</p>
+    <h2>Followed exactly, diverged deliberately</h2>
+
+    <div class="cards">
+      <div class="card guide">
+        <h3>The chain, as written</h3>
+        <p><code>intent.md &rarr; spec.md &rarr; plan.md &rarr; diff</code> as version-controlled
+        handoffs, under one stable change slug.</p>
+      </div>
+      <div class="card guide">
+        <h3>CLAUDE.md under a page</h3>
+        <p>Commands, conventions, and <em>things this project gets wrong</em> &mdash; a line added
+        the second time a mistake happens, never the first.</p>
+      </div>
+      <div class="card guide">
+        <h3>Verification before &ldquo;done&rdquo;</h3>
+        <p>No completion claim without the pasted output of
+        <code>harness check --stage stop</code>.</p>
+      </div>
+      <div class="card guide">
+        <h3>Separation of duties</h3>
+        <p>The verifier agent has Bash so it can run the checks, and no Write so it cannot make
+        them pass. Enforced by contract, not by prose.</p>
+      </div>
+    </div>
+
+    <p class="eyebrow" style="margin-top:12px">Where we diverge, and why</p>
+    <div class="rows">
+      <div class="r">
+        <div><h3>Approval hooks inside Build</h3></div>
+        <p>Gates only at spec, plan, and merge. An approval pause inside the build loop destroys
+        the parallelism agents are for &mdash; the playbook says so itself.</p>
+      </div>
+      <div class="r">
+        <div><h3>Managed settings and certification</h3></div>
+        <p>A template plus <code>harness doctor --enterprise</code>. Real enforcement is MDM or an
+        admin console; a git-tracked <code>settings.json</code> is not policy.</p>
+      </div>
+      <div class="r">
+        <div><h3>Anomaly detection by model</h3></div>
+        <p><code>harness monitor detect</code> uses numeric 1&sigma; / 2&sigma; / 3&sigma; bands.
+        Detection stays model-free; 2&sigma; diagnoses, 3&sigma; writes an intent and may roll
+        staging back.</p>
+      </div>
+      <div class="r">
+        <div><h3>Skills up to 500 lines</h3></div>
+        <p>A 130-line hard stop, around 80 in practice. Short skills trigger better, and control
+        flow belongs in the CLI rather than in a numbered list inside a skill.</p>
+      </div>
+      <div class="r">
+        <div><h3>Artifacts in repo-root <code>docs/</code></h3></div>
+        <p>Artifacts live under <code>.claude/artifacts/</code>: one directory to copy between
+        repos, one place an agent looks. Prose about the harness &mdash; including this page
+        &mdash; sits in the repo's own <code>docs/</code>, since <code>init</code> never installs
+        it into your project.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap">
+    <p class="eyebrow">Page eight &middot; what it measures</p>
+    <h2>Indicators out of git, not out of a dashboard</h2>
+    <div class="prose">
+      <p><code>harness status</code> computes the playbook's leading indicators from commit
+      history: intent survival (accepted versus closed), mean hours to a committed intent, spec
+      commits after the first plan commit, first-pass review share, and the latest eval pass rate.
+      A missing clock prints <code>unmeasured</code> &mdash; never a fabricated zero.</p>
+      <p>Underneath sits the one control the playbook does not describe, and that this harness
+      treats as control number one: the ledger. Every sensor invocation is recorded, and
+      <code>harness ledger audit</code> decides monthly which controls have earned their place. It
+      has no off switch &mdash; including for the harness's own development.</p>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="partmark"><span class="pn">Part three</span><span class="pt">What it feels like to use</span></div>
+    <p class="eyebrow">The whole idea</p>
+    <h2>A robot builder, and a site inspector</h2>
+    <p class="lede">You ask for something in normal words. Claude builds it. The harness inspects
+    every change and hands it back until it passes. Then a human says yes.</p>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 900 250" role="img" aria-label="A loop: you ask, Claude edits, the harness checks, and failed checks go straight back to Claude before a human approves.">
+          <defs>
+            <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+            </marker>
+            <marker id="a1s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--stop)"></path>
+            </marker>
+          </defs>
+
+          <rect x="20" y="88" width="160" height="64" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="100" y="114" text-anchor="middle" font-family="Archivo, sans-serif" font-size="15" font-weight="700" fill="currentColor">You ask</text>
+          <text x="100" y="133" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">in normal words</text>
+
+          <rect x="250" y="88" width="160" height="64" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="330" y="114" text-anchor="middle" font-family="Archivo, sans-serif" font-size="15" font-weight="700" fill="currentColor">Claude edits</text>
+          <text x="330" y="133" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">writes real files</text>
+
+          <rect x="480" y="88" width="160" height="64" rx="4" fill="none" stroke="var(--sensor)" stroke-width="2"></rect>
+          <text x="560" y="114" text-anchor="middle" font-family="Archivo, sans-serif" font-size="15" font-weight="700" fill="var(--sensor)">Harness checks</text>
+          <text x="560" y="133" text-anchor="middle" font-size="11" fill="var(--sensor)" opacity=".8">tests, secrets, rules</text>
+
+          <rect x="710" y="88" width="170" height="64" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="795" y="114" text-anchor="middle" font-family="Archivo, sans-serif" font-size="15" font-weight="700" fill="currentColor">You approve</text>
+          <text x="795" y="133" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">a human, always</text>
+
+          <line x1="182" y1="120" x2="246" y2="120" stroke="currentColor" stroke-width="1.5" marker-end="url(#a1)"></line>
+          <line x1="412" y1="120" x2="476" y2="120" stroke="currentColor" stroke-width="1.5" marker-end="url(#a1)"></line>
+          <line x1="642" y1="120" x2="706" y2="120" stroke="currentColor" stroke-width="1.5" marker-end="url(#a1)"></line>
+
+          <text x="214" y="106" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".55">a task</text>
+          <text x="444" y="106" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".55">every save</text>
+          <text x="674" y="106" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".55">only if green</text>
+
+          <path d="M560,154 L560,206 L330,206" fill="none" stroke="var(--stop)" stroke-width="1.5" stroke-dasharray="5 4"></path>
+          <line x1="330" y1="204" x2="330" y2="158" stroke="var(--stop)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#a1s)"></line>
+          <text x="452" y="228" text-anchor="middle" font-size="11.5" fill="var(--stop)">not green? Claude fixes it and runs again</text>
+        </svg>
+      </div>
+      <figcaption>Nothing reaches you until the checks pass. Failures never leave the loop.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap">
+    <p class="eyebrow">Three moving parts</p>
+    <h2>Help before. Alarms after. A logbook that judges both.</h2>
+
+    <div class="cards">
+      <div class="card guide">
+        <h3>Guides</h3>
+        <p>Notes handed to Claude <em>before</em> it types: house rules, how-to cards, a map of your code.</p>
+      </div>
+      <div class="card sensor">
+        <h3>Sensors</h3>
+        <p>Automatic checks run <em>after</em> it types: tests, secret scanner, a second Claude that reviews the diff.</p>
+      </div>
+      <div class="card ledger">
+        <h3>The logbook</h3>
+        <p>Every check writes down what it did. Checks that never catch anything get deleted.</p>
+      </div>
+    </div>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 900 312" role="img" aria-label="Guides feed into a single edit before it happens; sensors read the edit afterwards and send findings back into the next edit.">
+          <defs>
+            <marker id="a2g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--guide)"></path>
+            </marker>
+            <marker id="a2s" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--sensor)"></path>
+            </marker>
+            <marker id="a2n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+
+          <text x="30" y="24" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700" letter-spacing="1.6" fill="var(--guide)">BEFORE — GUIDES</text>
+          <text x="870" y="24" text-anchor="end" font-family="JetBrains Mono, monospace" font-size="11" font-weight="700" letter-spacing="1.6" fill="var(--sensor)">AFTER — SENSORS</text>
+
+          <rect x="30" y="46" width="250" height="46" rx="4" fill="none" stroke="var(--guide)" stroke-width="1.5"></rect>
+          <text x="46" y="68" font-size="13.5" font-weight="600" fill="var(--guide)">House rules</text>
+          <text x="46" y="84" font-size="10.5" fill="var(--guide)" opacity=".8">how this repo does things</text>
+
+          <rect x="30" y="116" width="250" height="46" rx="4" fill="none" stroke="var(--guide)" stroke-width="1.5"></rect>
+          <text x="46" y="138" font-size="13.5" font-weight="600" fill="var(--guide)">Skills</text>
+          <text x="46" y="154" font-size="10.5" fill="var(--guide)" opacity=".8">short how-to cards, 12 of them</text>
+
+          <rect x="30" y="186" width="250" height="46" rx="4" fill="none" stroke="var(--guide)" stroke-width="1.5"></rect>
+          <text x="46" y="208" font-size="13.5" font-weight="600" fill="var(--guide)">A map of the code</text>
+          <text x="46" y="224" font-size="10.5" fill="var(--guide)" opacity=".8">who calls what</text>
+
+          <rect x="370" y="118" width="160" height="72" rx="4" fill="none" stroke="currentColor" stroke-width="2"></rect>
+          <text x="450" y="150" text-anchor="middle" font-family="Archivo, sans-serif" font-size="16" font-weight="800" fill="currentColor">one edit</text>
+          <text x="450" y="170" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">a file just changed</text>
+
+          <path d="M284,69 C332,69 330,154 364,154" fill="none" stroke="var(--guide)" stroke-width="1.5" marker-end="url(#a2g)"></path>
+          <path d="M284,139 C330,139 330,154 364,154" fill="none" stroke="var(--guide)" stroke-width="1.5" marker-end="url(#a2g)"></path>
+          <path d="M284,209 C332,209 330,154 364,154" fill="none" stroke="var(--guide)" stroke-width="1.5" marker-end="url(#a2g)"></path>
+
+          <path d="M534,154 C570,154 570,69 616,69" fill="none" stroke="var(--sensor)" stroke-width="1.5" marker-end="url(#a2s)"></path>
+          <path d="M534,154 C570,154 570,139 616,139" fill="none" stroke="var(--sensor)" stroke-width="1.5" marker-end="url(#a2s)"></path>
+          <path d="M534,154 C570,154 570,209 616,209" fill="none" stroke="var(--sensor)" stroke-width="1.5" marker-end="url(#a2s)"></path>
+
+          <rect x="620" y="46" width="250" height="46" rx="4" fill="none" stroke="var(--sensor)" stroke-width="1.5"></rect>
+          <text x="636" y="68" font-size="13.5" font-weight="600" fill="var(--sensor)">Secret scanner</text>
+          <text x="636" y="84" font-size="10.5" fill="var(--sensor)" opacity=".85">no passwords in the code</text>
+
+          <rect x="620" y="116" width="250" height="46" rx="4" fill="none" stroke="var(--sensor)" stroke-width="1.5"></rect>
+          <text x="636" y="138" font-size="13.5" font-weight="600" fill="var(--sensor)">Your test suite</text>
+          <text x="636" y="154" font-size="10.5" fill="var(--sensor)" opacity=".85">must be green before stopping</text>
+
+          <rect x="620" y="186" width="250" height="46" rx="4" fill="none" stroke="var(--sensor)" stroke-width="1.5"></rect>
+          <text x="636" y="208" font-size="13.5" font-weight="600" fill="var(--sensor)">A reviewer</text>
+          <text x="636" y="224" font-size="10.5" fill="var(--sensor)" opacity=".85">a second Claude, fresh eyes</text>
+
+          <path d="M745,234 L745,272 L155,272" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity=".55"></path>
+          <line x1="155" y1="270" x2="155" y2="238" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" opacity=".55" marker-end="url(#a2n)"></line>
+          <text x="452" y="294" text-anchor="middle" font-size="11.5" fill="currentColor" opacity=".6">what they find becomes the next instruction</text>
+        </svg>
+      </div>
+      <figcaption>Guides and sensors are the same loop seen twice: advice going in, evidence coming out.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <p class="eyebrow">The paper trail</p>
+    <h2>Nobody writes code first</h2>
+    <p class="lede">Every change walks the same five steps, and each step is a small file saved in
+    your repo. You can read them. You can reject them.</p>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 920 200" role="img" aria-label="Five steps in order — intent, spec, plan, code, review — with three human approval gates: after the spec, after the plan, and at merge.">
+          <defs>
+            <marker id="a3n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+          <rect x="20" y="76" width="132" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="32" y="94" font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor" opacity=".5">1</text>
+          <text x="86" y="106" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="700" fill="currentColor">intent</text>
+          <text x="86" y="124" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">the problem</text>
+
+          <rect x="192" y="76" width="132" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="204" y="94" font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor" opacity=".5">2</text>
+          <text x="258" y="106" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="700" fill="currentColor">spec</text>
+          <text x="258" y="124" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">what it must do</text>
+
+          <rect x="364" y="76" width="132" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="376" y="94" font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor" opacity=".5">3</text>
+          <text x="430" y="106" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="700" fill="currentColor">plan</text>
+          <text x="430" y="124" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">which files change</text>
+
+          <rect x="536" y="76" width="132" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="548" y="94" font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor" opacity=".5">4</text>
+          <text x="602" y="106" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="700" fill="currentColor">code</text>
+          <text x="602" y="124" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">the actual change</text>
+
+          <rect x="708" y="76" width="132" height="58" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <text x="720" y="94" font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor" opacity=".5">5</text>
+          <text x="774" y="106" text-anchor="middle" font-family="Archivo, sans-serif" font-size="14.5" font-weight="700" fill="currentColor">review</text>
+          <text x="774" y="124" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">a second opinion</text>
+
+          <line x1="154" y1="105" x2="188" y2="105" stroke="currentColor" stroke-width="1.5" marker-end="url(#a3n)"></line>
+          <line x1="326" y1="105" x2="360" y2="105" stroke="currentColor" stroke-width="1.5" marker-end="url(#a3n)"></line>
+          <line x1="498" y1="105" x2="532" y2="105" stroke="currentColor" stroke-width="1.5" marker-end="url(#a3n)"></line>
+          <line x1="670" y1="105" x2="704" y2="105" stroke="currentColor" stroke-width="1.5" marker-end="url(#a3n)"></line>
+          <line x1="842" y1="105" x2="864" y2="105" stroke="currentColor" stroke-width="1.5" marker-end="url(#a3n)"></line>
+
+          <line x1="344" y1="38" x2="344" y2="156" stroke="var(--sensor)" stroke-width="2" stroke-dasharray="4 4"></line>
+          <circle cx="344" cy="38" r="4.5" fill="var(--sensor)"></circle>
+          <text x="344" y="24" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="700" fill="var(--sensor)">YOU APPROVE</text>
+
+          <line x1="516" y1="38" x2="516" y2="156" stroke="var(--sensor)" stroke-width="2" stroke-dasharray="4 4"></line>
+          <circle cx="516" cy="38" r="4.5" fill="var(--sensor)"></circle>
+          <text x="516" y="24" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="700" fill="var(--sensor)">YOU APPROVE</text>
+
+          <line x1="878" y1="38" x2="878" y2="156" stroke="var(--sensor)" stroke-width="2" stroke-dasharray="4 4"></line>
+          <circle cx="878" cy="38" r="4.5" fill="var(--sensor)"></circle>
+          <text x="878" y="24" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="700" fill="var(--sensor)">YOU MERGE</text>
+        </svg>
+      </div>
+      <figcaption>Three dashed lines, three humans. Claude stops at each one and waits.</figcaption>
+    </figure>
+
+    <div class="steps">
+      <div class="step"><span class="n">01</span><div><h3>intent</h3><p>What hurts, and what "better" would look like. No solutions yet.</p></div></div>
+      <div class="step"><span class="n">02</span><div><h3>spec</h3><p>A numbered list of things it must do — each one testable. Plus what it will <em>not</em> do.</p></div></div>
+      <div class="step"><span class="n">03</span><div><h3>plan</h3><p>The exact list of files that will change. If the code touches a file the plan never named, the build stops.</p></div></div>
+      <div class="step"><span class="n">04</span><div><h3>code</h3><p>Small slices. Failing test first, then the fix. Never weaken a test to make it pass.</p></div></div>
+      <div class="step"><span class="n">05</span><div><h3>review</h3><p>A separate Claude reads the change against the spec and the plan, and ranks what it finds.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap">
+    <p class="eyebrow">The tripwires</p>
+    <h2>Five moments where something watches</h2>
+    <p class="lede">You never trigger these. They fire on their own, five times, in five places.</p>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 900 220" role="img" aria-label="A timeline of five automatic checkpoints: session start, before an edit, before a shell command, after an edit, and when Claude tries to stop.">
+          <line x1="40" y1="112" x2="866" y2="112" stroke="currentColor" stroke-width="2" opacity=".25"></line>
+
+          <circle cx="105" cy="112" r="6" fill="var(--sensor)"></circle>
+          <line x1="105" y1="106" x2="105" y2="94" stroke="currentColor" stroke-width="1" opacity=".4"></line>
+          <rect x="30" y="40" width="150" height="54" rx="4" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"></rect>
+          <text x="105" y="62" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">Session starts</text>
+          <text x="105" y="80" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">shows what's off track</text>
+
+          <circle cx="285" cy="112" r="6" fill="var(--sensor)"></circle>
+          <line x1="285" y1="118" x2="285" y2="132" stroke="currentColor" stroke-width="1" opacity=".4"></line>
+          <rect x="210" y="132" width="150" height="54" rx="4" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"></rect>
+          <text x="285" y="154" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">Before an edit</text>
+          <text x="285" y="172" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">protects locked files</text>
+
+          <circle cx="450" cy="112" r="6" fill="var(--stop)"></circle>
+          <line x1="450" y1="106" x2="450" y2="94" stroke="currentColor" stroke-width="1" opacity=".4"></line>
+          <rect x="365" y="40" width="170" height="54" rx="4" fill="none" stroke="var(--stop)" stroke-width="1.4"></rect>
+          <text x="450" y="62" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--stop)">Before a command</text>
+          <text x="450" y="80" text-anchor="middle" font-size="10.5" fill="var(--stop)" opacity=".85">blocks rm -rf /, force push</text>
+
+          <circle cx="620" cy="112" r="6" fill="var(--sensor)"></circle>
+          <line x1="620" y1="118" x2="620" y2="132" stroke="currentColor" stroke-width="1" opacity=".4"></line>
+          <rect x="545" y="132" width="150" height="54" rx="4" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"></rect>
+          <text x="620" y="154" text-anchor="middle" font-size="12.5" font-weight="600" fill="currentColor">After an edit</text>
+          <text x="620" y="172" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".6">quick secret scan</text>
+
+          <circle cx="810" cy="112" r="6" fill="var(--guide)"></circle>
+          <line x1="810" y1="106" x2="810" y2="94" stroke="currentColor" stroke-width="1" opacity=".4"></line>
+          <rect x="725" y="40" width="160" height="54" rx="4" fill="none" stroke="var(--guide)" stroke-width="1.4"></rect>
+          <text x="805" y="62" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--guide)">Claude tries to stop</text>
+          <text x="805" y="80" text-anchor="middle" font-size="10.5" fill="var(--guide)" opacity=".85">runs the full test suite</text>
+
+          <text x="40" y="208" font-size="11" fill="currentColor" opacity=".5">time →</text>
+        </svg>
+      </div>
+      <figcaption>The last one matters most: Claude cannot call a job finished while the tests are red.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <p class="eyebrow">The unusual part</p>
+    <h2>Rules that never catch anything get fired</h2>
+    <p class="lede">Most safety systems only grow. This one keeps a logbook of every check it ever
+    ran, and once a month it deletes the ones that have never found a single problem.</p>
+
+    <figure>
+      <div class="figbox">
+        <svg viewBox="0 0 900 230" role="img" aria-label="Every check writes a row in a logbook; once a month each check is asked whether it ever caught anything, and the ones that never did are deleted.">
+          <defs>
+            <marker id="a3k" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--guide)"></path>
+            </marker>
+            <marker id="a3d" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="var(--stop)"></path>
+            </marker>
+            <marker id="a5n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+            </marker>
+          </defs>
+
+          <rect x="30" y="48" width="210" height="134" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"></rect>
+          <line x1="52" y1="80" x2="218" y2="80" stroke="currentColor" stroke-width="1.5" opacity=".35"></line>
+          <line x1="52" y1="104" x2="218" y2="104" stroke="currentColor" stroke-width="1.5" opacity=".35"></line>
+          <line x1="52" y1="128" x2="190" y2="128" stroke="currentColor" stroke-width="1.5" opacity=".35"></line>
+          <line x1="52" y1="152" x2="218" y2="152" stroke="currentColor" stroke-width="1.5" opacity=".35"></line>
+          <text x="135" y="36" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10.5" font-weight="700" letter-spacing="1.4" fill="currentColor" opacity=".6">THE LOGBOOK</text>
+          <text x="135" y="204" text-anchor="middle" font-size="11" fill="currentColor" opacity=".6">one row per check, forever</text>
+
+          <line x1="248" y1="115" x2="322" y2="115" stroke="currentColor" stroke-width="1.5" marker-end="url(#a5n)"></line>
+          <text x="285" y="102" text-anchor="middle" font-size="10.5" fill="currentColor" opacity=".55">monthly</text>
+
+          <polygon points="440,58 530,115 440,172 350,115" fill="none" stroke="currentColor" stroke-width="1.5"></polygon>
+          <text x="440" y="110" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">did it ever</text>
+          <text x="440" y="128" text-anchor="middle" font-size="12" font-weight="600" fill="currentColor">catch anything?</text>
+
+          <path d="M530,100 C570,80 570,74 606,74" fill="none" stroke="var(--guide)" stroke-width="1.5" marker-end="url(#a3k)"></path>
+          <path d="M530,130 C570,150 570,166 606,166" fill="none" stroke="var(--stop)" stroke-width="1.5" marker-end="url(#a3d)"></path>
+
+          <rect x="610" y="48" width="260" height="52" rx="4" fill="none" stroke="var(--guide)" stroke-width="1.6"></rect>
+          <text x="740" y="70" text-anchor="middle" font-size="14" font-weight="600" fill="var(--guide)">Yes → keep it</text>
+          <text x="740" y="88" text-anchor="middle" font-size="10.5" fill="var(--guide)" opacity=".85">it is earning its place</text>
+
+          <rect x="610" y="140" width="260" height="52" rx="4" fill="none" stroke="var(--stop)" stroke-width="1.6"></rect>
+          <text x="740" y="162" text-anchor="middle" font-size="14" font-weight="600" fill="var(--stop)">No, 50+ times → delete it</text>
+          <text x="740" y="180" text-anchor="middle" font-size="10.5" fill="var(--stop)" opacity=".85">it was only slowing you down</text>
+        </svg>
+      </div>
+      <figcaption>A check that has run fifty times and never once objected is not protecting you.</figcaption>
+    </figure>
+
+    <div class="verdicts">
+      <div class="v"><span class="tag keep">earning-its-place</span><p>Objects often enough to be worth the wait. Keep.</p></div>
+      <div class="v"><span class="tag wait">rarely-fires</span><p>Objects, but hardly ever. Ask if a test already covers it.</p></div>
+      <div class="v"><span class="tag kill">candidate-for-deletion</span><p>Fifty runs, zero objections. Delete it.</p></div>
+      <div class="v"><span class="tag kill">unreliable</span><p>Crashes too often. A broken check is a lie — fix or delete.</p></div>
+      <div class="v"><span class="tag wait">insufficient-data</span><p>Too new to judge. Wait.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="band alt">
+  <div class="wrap">
+    <p class="eyebrow">User guide</p>
+    <h2>What you actually do</h2>
+    <p class="lede">Three things: install it once, talk normally, and say yes twice.</p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="n">01</span>
+        <div>
+          <h3>Install it, once</h3>
+          <p>Nothing to download and nothing to build — it is plain Node with zero dependencies.</p>
+        </div>
+      </div>
+    </div>
+    <pre>git clone https://github.com/cwijayasundara/claude_harness_lean_v1.git
+cd /path/to/your/project
+node /path/to/claude_harness_lean_v1/.claude/bin/harness init --into .</pre>
+    <p class="muted" style="font-size:15.5px">Then open one file, <code>.claude/harness.toml</code>, and tell it how <em>your</em>
+    project formats, lints, and tests. That is the only setup.</p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="n">02</span>
+        <div>
+          <h3>Ask for what you want</h3>
+          <p>No slash commands. No shell. Just say it.</p>
+        </div>
+      </div>
+    </div>
+    <p class="say">“Add pagination to the orders endpoint using the Lean AIDLC workflow.”</p>
+    <p class="say">“Take docs/search-prd.md through the workflow. Pause only when you need me.”</p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="n">03</span>
+        <div>
+          <h3>Read, approve, continue</h3>
+          <p>Claude stops and waits. Open the file it wrote in <code>.claude/artifacts/</code>, change
+          its status to <code>approved</code>, commit that, and say so.</p>
+        </div>
+      </div>
+    </div>
+    <p class="say">“Approved. Continue the workflow.”</p>
+    <p class="muted" style="font-size:15.5px">Claude figures out where it left off by reading the repo, not by remembering the chat.
+    Close the laptop mid-change and it picks up exactly where it stopped.</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <p class="eyebrow">House rules</p>
+    <h2>Small on purpose</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Zero dependencies</h3>
+        <p>No install step. It runs on a fresh clone of your repo with nothing but Node.</p>
+      </div>
+      <div class="card">
+        <h3>The budget is full</h3>
+        <p>12 skills, 3 helper agents, 5 tripwires. Adding one means deleting one — the build enforces it.</p>
+      </div>
+      <div class="card">
+        <h3>Every rule names a bug</h3>
+        <p>A check must say which real defect it prevents. No reason, no rule.</p>
+      </div>
+      <div class="card">
+        <h3>No self-exemption</h3>
+        <p>The harness is developed under its own rules. If a gate is wrong here, it is wrong.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <p>In one line: <strong>Claude builds fast, the harness makes it prove the work, and a human
+    still signs.</strong> Want to go deeper on any part?</p>
+  </div>
+</footer>
+</body>
+</html>

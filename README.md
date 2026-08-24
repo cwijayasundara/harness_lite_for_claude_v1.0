@@ -164,9 +164,9 @@ Plan, Design, Build, and Test run locally. Deploy and Maintain expose provider-n
 contracts, but a project must supply its own SCM, deployment, rollback, credentials, and metric
 sources. The harness does not claim that an empty template deployed a service.
 
-See [Operating the harness](.claude/docs/OPERATING.md) for review, deployment, monitoring,
-weekly operation, and deletion audits. See the [build plan](.claude/docs/BUILD-PLAN.md) for the
-v6 comparison and design evidence, and the [constitution](.claude/docs/CONSTITUTION.md) for the
+See [Operating the harness](docs/OPERATING.md) for review, deployment, monitoring,
+weekly operation, and deletion audits. See the [build plan](docs/BUILD-PLAN.md) for the
+v6 comparison and design evidence, and the [constitution](docs/CONSTITUTION.md) for the
 rules enforced by the harness itself.
 
 ## Develop and verify the harness
