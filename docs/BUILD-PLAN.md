@@ -105,24 +105,33 @@ claude_harness_lean_v1/
    ├─ lib/                           toml · config · paths · normalize · ledger · runner
    ├─ checks/                        secrets · plan-drift · budget      (built-in sensors)
    ├─ hooks/                         dispatch.mjs + hooks.json          (5 bindings)
-   ├─ skills/                        11 skills, median 33 lines
+   ├─ skills/                        12 skills, median 33 lines
    ├─ agents/                        3 agents + 3 .contract.json
    ├─ templates/                     harness.toml · CLAUDE.md · intent/spec/plan
    ├─ artifacts/                     intent · spec · plan · review · incident
    └─ state/                         ledger · graph · baseline (harness-written)
 
 `.claude/` is the harness. `test/`, `evals/`, and `examples/` exercise the harness and are
-not part of it, so they sit beside it. That is a stronger rule than "`init` does not copy
-it" — `init` copies neither `skills/` nor `agents/`, but Claude Code must find those under
-`.claude/`, so they stay.
+not part of it, so they sit beside it. `init` copies none of it into a target repository —
+the plugin delivers the whole surface, and this directory is the plugin root.
 ```
 
-In a **target** repository the harness creates only this:
+In a **target** repository the harness creates only this. Note what is absent: there is no
+copy of the harness anywhere under it. A project *declares* which harness it uses, so a pod
+shares one version and a project cannot quietly edit the controls that govern it.
 
 ```
 <repo>/.claude/
    ├─ harness.toml                   the only hand-edited registry
    ├─ CLAUDE.md                      ≤120 lines
+   ├─ REVIEW.md                      the review policy this project reviews against
+   ├─ settings.json                  generated: enables the plugin. No hook wiring — the
+   │                                 plugin carries the five bindings, and declaring them
+   │                                 here as well fires every one of them twice
+   ├─ harness-install.json           generated: marketplace · plugin · version · commit.
+   │                                 The budget counts guides that are deliberately absent
+   │                                 from it, and CI fetches the harness at that commit
+   ├─ bin/harness                     generated shim: $HARNESS_HOME, then the plugin cache
    ├─ artifacts/{intent,spec,plan,adr}/
    └─ state/                         gitignored: ledger.jsonl · last-check.json · graph.json
 ```

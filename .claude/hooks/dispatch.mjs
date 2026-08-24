@@ -6,6 +6,7 @@
 
 import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../lib/config.mjs';
 import { findRepoRoot, PREFIX_CACHE_PATHS } from '../lib/paths.mjs';
 import { check, render } from '../lib/runner.mjs';
@@ -13,6 +14,15 @@ import * as ledger from '../lib/ledger.mjs';
 import { measure } from '../checks/budget.mjs';
 import { refresh, staleSince } from '../lib/refresh.mjs';
 import { writeBlocked, productionDenied, bashTouchesProtected, bashPlanBlocked } from '../lib/guard.mjs';
+
+// In an installed project `.claude/bin/harness` is a bash shim; in this repository it is the
+// executable itself, and `bash` on it dies with a shell syntax error. The banner printed the
+// same line in both, so the harness's own first instruction did not run in its own repository.
+const HARNESS = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const invocation = (cfg) =>
+  path.resolve(cfg.layout.claude) === path.resolve(HARNESS)
+    ? 'node .claude/bin/harness'
+    : 'bash .claude/bin/harness';
 
 const readStdin = () => new Promise((res) => {
   let d = ''; process.stdin.setEncoding('utf8');
@@ -51,7 +61,7 @@ export async function dispatch(event) {
         const noisy = led.controls.filter((c) => c.verdict === 'unreliable' || c.verdict === 'candidate-for-deletion').slice(0, 3);
         const lines = [
           `harness · ${cfg.project.name ?? path.basename(cfg.layout.root)}`,
-          `check:  bash .claude/bin/harness check --stage fast --changed`,
+          `check:  ${invocation(cfg)} check --stage fast --changed`,
           `budget: ${Object.entries(m).map(([k, v]) => `${k} ${v}/${cfg.limits[k] ?? '-'}`).join(' · ')}`,
           `ledger: ${led.rows} rows over ${led.runs} runs (30d)`,
         ];

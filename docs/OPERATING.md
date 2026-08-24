@@ -186,6 +186,34 @@ Write them here rather than building them. Each needs the ledger to justify it.
   the ledger shows the token surface growing despite the pack existing.
 - Coverage as a ratcheted metric. Needs a project where coverage is actually measured first.
 
+## Running the sensors in a project's CI
+
+A project declares the harness; it does not contain one. CI has no Claude Code and no plugin
+cache, so it fetches the harness itself — at the exact commit the project recorded, never at a
+moving branch, or CI and the laptop stop agreeing about what was checked.
+
+```yaml
+- uses: actions/checkout@v4
+- uses: actions/setup-node@v4
+  with: { node-version: '22' }
+- name: Fetch the harness this project declared
+  run: |
+    commit=$(node -p "require('./.claude/harness-install.json').commit")
+    repo=$(node -p "require('./.claude/harness-install.json').repository")
+    git clone -q "https://github.com/$repo" "$RUNNER_TEMP/harness"
+    git -C "$RUNNER_TEMP/harness" checkout -q "$commit"
+    echo "HARNESS_HOME=$RUNNER_TEMP/harness/.claude" >> "$GITHUB_ENV"
+- run: bash .claude/bin/harness check --stage commit
+```
+
+`HARNESS_HOME` is the shim's first resolution step, ahead of the plugin cache, precisely so CI
+can point it at a checkout. If the record says `"commit": "unknown"` — which happens when the
+harness was installed from an archive rather than a clone — pin a tag in its place and say so in
+the workflow, rather than tracking a branch and hoping.
+
+Upgrading is `harness init --into .` against a newer harness, which rewrites the record. The
+diff shows the commit moving, so a harness upgrade is reviewed like any other change.
+
 ## Known limitation of running this on the harness repo
 
 The harness currently governs its own development, which is a real test — v6's `.claude` was

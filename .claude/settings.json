@@ -1,11 +1,14 @@
 {
+  "enabledPlugins": {
+    "lean_harness_cs_v1@lean_harness_cs_v1": false
+  },
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "node \"/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.claude/bin/harness\" hook session-start",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/bin/harness\" hook session-start",
             "timeout": 10
           }
         ]
@@ -17,7 +20,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.claude/bin/harness\" hook pre-write",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/bin/harness\" hook pre-write",
             "timeout": 10
           }
         ]
@@ -27,7 +30,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.claude/bin/harness\" hook pre-bash",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/bin/harness\" hook pre-bash",
             "timeout": 10
           }
         ]
@@ -39,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.claude/bin/harness\" hook post-write",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/bin/harness\" hook post-write",
             "timeout": 120
           }
         ]
@@ -50,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.claude/bin/harness\" hook stop",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/bin/harness\" hook stop",
             "timeout": 180
           }
         ]

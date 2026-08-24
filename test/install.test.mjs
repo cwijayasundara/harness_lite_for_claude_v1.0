@@ -145,6 +145,41 @@ test('nothing init writes is specific to the machine that ran it', (t) => {
   }
 });
 
+// Spec behaviour 10. This repository is the harness *and* a project governed by it, and its
+// .claude/ is also the plugin root — so a maintainer who has the plugin installed would load
+// every guide twice and fire every binding twice. Observed live while measuring the install
+// mechanism during the intent. It keeps its own wiring, so an edit to a sensor takes effect on
+// the next turn rather than after a plugin reinstall, and disables the published plugin here.
+test('this repository consumes its own harness exactly once', () => {
+  const settings = readJson(path.join(C, 'settings.json'));
+  const name = readJson(PLUGIN).name;
+
+  assert.equal(settings.enabledPlugins?.[`${name}@${name}`], false,
+    'the published plugin must be disabled here, or the harness loads twice in its own repository');
+  assert.ok(settings.hooks, 'this repository wires its own hooks: it is the harness');
+  const wiring = JSON.stringify(settings.hooks);
+  assert.equal(/\/(Users|home)\//.test(wiring), false,
+    'the hook commands name one machine, so they are inert in every other clone and in CI');
+  assert.match(wiring, /\$\{CLAUDE_PROJECT_DIR\}/,
+    'hook commands resolve through ${CLAUDE_PROJECT_DIR} so any clone runs them');
+});
+
+// Spec behaviour 13. The banner is the first instruction the harness gives itself every
+// session, and here it printed `bash .claude/bin/harness`, which in this repository is a shell
+// syntax error — the file is JavaScript, not a shim. A control that tells you to run something
+// that cannot run is worse than no control: it teaches people to ignore the banner.
+test('the command the banner prints is the command that runs here', () => {
+  const r = spawnSync(process.execPath, [BIN, 'hook', 'session-start'],
+    { cwd: ROOT, encoding: 'utf8', input: JSON.stringify({ cwd: ROOT }) });
+  assert.equal(r.status, 0, r.stderr);
+  const banner = JSON.parse(r.stdout).hookSpecificOutput.additionalContext;
+  const [, printed] = banner.match(/^check:\s+(.+)$/m) ?? [];
+  assert.ok(printed, `the banner has no check line:\n${banner}`);
+
+  const ran = spawnSync('bash', ['-c', `${printed} --json`], { cwd: ROOT, encoding: 'utf8' });
+  assert.notEqual(ran.status, 2, `the banner prints a command that cannot run here: ${printed}\n${ran.stderr}`);
+});
+
 // Spec behaviour 4. The record is what lets CI fetch the same harness the laptop installed, and
 // what lets the budget count guides that are deliberately not in the project. `unknown` rather
 // than a missing field: a value the record could not fill must not read as an empty one.
