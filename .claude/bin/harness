@@ -4,7 +4,7 @@
 // Law 2: anything that decides what happens next is a script with an exit code. If you find
 // yourself writing sequencing instructions into a SKILL.md, the logic belongs in here instead.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, chmodSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, chmodSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -87,14 +87,20 @@ here="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
 root="$(HARNESS_PROJECT_CLAUDE="$here" node -e '
 const fs = require("node:fs"), path = require("node:path"), os = require("node:os");
 const claude = process.env.HARNESS_PROJECT_CLAUDE;
-if (process.env.HARNESS_HOME) { process.stdout.write(process.env.HARNESS_HOME); process.exit(0); }
+// A candidate is only a harness if it actually holds one. Accepting HARNESS_HOME unchecked
+// turned a mistyped CI variable into a node module stack trace instead of the two commands
+// that fix it, which is the silent-ish failure this shim exists to prevent.
+const ok = (d) => Boolean(d) && fs.existsSync(path.join(d, "bin", "harness"));
 let rec = {};
 try { rec = JSON.parse(fs.readFileSync(path.join(claude, "harness-install.json"), "utf8")); } catch {}
+const home = process.env.HARNESS_HOME;
+if (ok(home)) { process.stdout.write(home); process.exit(0); }
 const base = path.join(os.homedir(), ".claude", "plugins", "cache", rec.marketplace ?? "", rec.plugin ?? "");
 for (const v of [rec.version, ...(fs.existsSync(base) ? fs.readdirSync(base).sort().reverse() : [])]) {
-  if (v && fs.existsSync(path.join(base, v, "bin", "harness"))) { process.stdout.write(path.join(base, v)); process.exit(0); }
+  if (v && ok(path.join(base, v))) { process.stdout.write(path.join(base, v)); process.exit(0); }
 }
-process.stderr.write("harness: not installed on this machine. Two one-time commands:\\n" +
+process.stderr.write((home ? "harness: HARNESS_HOME=" + home + " holds no bin/harness.\\n" : "") +
+  "harness: not installed on this machine. Two one-time commands:\\n" +
   "  claude plugin marketplace add " + (rec.repository ?? "<repository>") + "\\n" +
   "  claude plugin install " + (rec.plugin ?? "<plugin>") + "@" + (rec.marketplace ?? "<marketplace>") + "\\n" +
   "Or set HARNESS_HOME to a checkout, which is what CI does.\\n");
@@ -148,6 +154,11 @@ async function main() {
         JSON.stringify(self ? selfSettings(identity.id) : projectSettings(identity.id), null, 2) + '\n');
 
       if (!self) {
+        // An install made by an older harness carries .claude/runtime/ — the copy of the harness
+        // this change exists to remove. Upgrading by re-running `init` must not leave it sitting
+        // there: a stale copy is exactly the drift the pod is meant to be protected from, and it
+        // is the more dangerous kind, because it looks installed.
+        rmSync(path.join(L.claude, 'runtime'), { recursive: true, force: true });
         // The guides live in the plugin, so the project cannot count them and CI cannot fetch
         // them without being told where from. One committed record answers both, and pins the
         // exact commit so CI never drifts from the laptop that installed it.

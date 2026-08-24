@@ -8,7 +8,7 @@
 // Everything here runs offline, needs no API key, and needs no Claude Code.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, existsSync, mkdtempSync, rmSync, statSync, cpSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, statSync, cpSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -243,4 +243,28 @@ test('the shim fails loudly when the harness is nowhere', (t) => {
   assert.notEqual(r.status, 0, 'a shim that cannot find the harness must not exit 0');
   assert.match(r.stderr, /claude plugin marketplace add/, 'the failure names the first setup command');
   assert.match(r.stderr, /claude plugin install/, 'the failure names the second setup command');
+
+  // A HARNESS_HOME that points nowhere is a mistyped CI variable, not a reason to hand the
+  // operator a module-loader stack trace. Behaviour 12 asks for the two commands every time.
+  const wrong = spawnSync('bash', [path.join(root, '.claude', 'bin', 'harness'), 'doctor'],
+    { cwd: root, encoding: 'utf8', env: { ...process.env, HOME: home, HARNESS_HOME: path.join(home, 'nope') } });
+  assert.notEqual(wrong.status, 0);
+  assert.match(wrong.stderr, /HARNESS_HOME=.*holds no bin\/harness/, 'the failure says which variable is wrong');
+  assert.match(wrong.stderr, /claude plugin marketplace add/, 'and still names the way out');
+});
+
+// Spec behaviour 1, on the upgrade path rather than a fresh install. The one project installed
+// by the previous harness carries .claude/runtime/ — the copy this change removes. Re-running
+// `init` is how the README says to upgrade, so it is where the copy has to go; a stale runtime
+// is the most dangerous kind of drift, because the project still looks correctly installed.
+test('upgrading removes a runtime left by an older harness', (t) => {
+  const root = installed(t);
+  const stale = path.join(root, '.claude', 'runtime', 'lib');
+  mkdirSync(stale, { recursive: true });
+  writeFileSync(path.join(stale, 'config.mjs'), '// left by an older install\n');
+
+  const again = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
+  assert.equal(again.status, 0, again.stderr);
+  assert.equal(existsSync(path.join(root, '.claude', 'runtime')), false,
+    'init left a copy of an older harness in the project');
 });
