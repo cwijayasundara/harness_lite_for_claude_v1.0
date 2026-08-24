@@ -4,7 +4,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { selectSlug, packet, validateReview, writeReview, checkProtection } from '../lib/review-adapter.mjs';
+import { selectSlug, packet, validateReview, writeReview, checkProtection } from '../.claude/lib/review-adapter.mjs';
 
 function fixture() {
   const root = mkdtempSync(path.join(tmpdir(), 'review-adapter-'));

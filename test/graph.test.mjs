@@ -8,12 +8,11 @@ import assert from 'node:assert/strict';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { build, query } from '../lib/graph.mjs';
+import { C, ROOT } from './_paths.mjs';
+import { build, query } from '../.claude/lib/graph.mjs';
 import { stage } from '../evals/lib/stage.mjs';
 
-const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const FIXTURES = path.join(C, 'evals', 'fixtures');
+const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
 const CFG = { graph: { include: ['.', '.claude'], exclude: ['node_modules', '.venv', 'dist', '.git', '__pycache__'] } };
 
 function graphOf(work) {
@@ -99,7 +98,7 @@ test('a missing graph is a miss, not a crash — the agent falls back and says s
 });
 
 test('pack: a budget is a budget, and what does not fit is named', async () => {
-  const { pack } = await import('../lib/pack.mjs');
+  const { pack } = await import('../.claude/lib/pack.mjs');
   const s = stage(FIXTURES, 'graph-app');
   try {
     const cfg = { ...CFG, layout: { root: s.work } };
@@ -118,7 +117,7 @@ test('pack: a budget is a budget, and what does not fit is named', async () => {
 });
 
 test('pack: a miss tells the caller to grep instead of implying absence', async () => {
-  const { pack, renderPack } = await import('../lib/pack.mjs');
+  const { pack, renderPack } = await import('../.claude/lib/pack.mjs');
   const s = stage(FIXTURES, 'graph-app');
   try {
     const cfg = { ...CFG, layout: { root: s.work } };
@@ -129,7 +128,7 @@ test('pack: a miss tells the caller to grep instead of implying absence', async 
 });
 
 test('wiki: deterministic, and stale is stamped where a reader will see it', async () => {
-  const { renderWiki } = await import('../lib/wiki.mjs');
+  const { renderWiki } = await import('../.claude/lib/wiki.mjs');
   const { readFileSync: rf, mkdirSync: mk } = await import('node:fs');
   const s = stage(FIXTURES, 'graph-app');
   try {
@@ -149,7 +148,7 @@ test('wiki: deterministic, and stale is stamped where a reader will see it', asy
 });
 
 test('refresh: builds on a cold clone rather than returning quietly', async () => {
-  const { refresh } = await import('../lib/refresh.mjs');
+  const { refresh } = await import('../.claude/lib/refresh.mjs');
   const { existsSync: ex, mkdirSync: mk, appendFileSync: af } = await import('node:fs');
   const s = stage(FIXTURES, 'graph-app');
   try {
@@ -180,7 +179,7 @@ test('the pack benchmark meets Phase 3 exit criterion', async () => {
 });
 
 test('the refresh lock releases by truncation, because unlink is not always available', async () => {
-  const { refresh } = await import('../lib/refresh.mjs');
+  const { refresh } = await import('../.claude/lib/refresh.mjs');
   const { mkdirSync: mk, writeFileSync: wf, statSync: st } = await import('node:fs');
   const s = stage(FIXTURES, 'graph-app');
   try {

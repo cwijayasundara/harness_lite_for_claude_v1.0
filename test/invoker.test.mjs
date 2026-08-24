@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, chmodSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { C, ROOT } from './_paths.mjs';
 import { spawnSync } from 'node:child_process';
 import { claudeInvoker } from '../evals/lib/invoker.mjs';
 
@@ -89,12 +90,10 @@ test('invoker: a missing CLI is a broken harness, not twenty failed tasks', asyn
 
     // And the suite stops on it rather than grinding through every task with empty transcripts.
     const { runSuite } = await import('../evals/run.mjs');
-    const { fileURLToPath } = await import('node:url');
-    const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
     await assert.rejects(
       () => runSuite({
         tasks: [{ id: 'a', fixture: 'clean-app', prompt: 'p', repeats: 1, timeoutMs: 5000, budgetUsd: 1, assert: [{ workdir_unchanged: true }] }],
-        invoke: claudeInvoker({}), fixturesDir: path.join(C, 'evals', 'fixtures'), harnessBin: path.join(C, 'bin', 'harness'),
+        invoke: claudeInvoker({}), fixturesDir: path.join(ROOT, 'evals', 'fixtures'), harnessBin: path.join(C, 'bin', 'harness'),
       }),
       /not on PATH/,
     );

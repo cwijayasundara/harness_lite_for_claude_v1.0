@@ -5,14 +5,13 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { C, ROOT } from './_paths.mjs';
 import { evaluate, expand, KNOWN, toRegExp } from '../evals/lib/assertions.mjs';
 import { stage } from '../evals/lib/stage.mjs';
 import { loadTasks, validate, runSuite, promptCount } from '../evals/run.mjs';
 import { approveDrafts } from '../evals/lib/approve.mjs';
 
-const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const FIXTURES = path.join(C, 'evals', 'fixtures');
+const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
 const HARNESS = path.join(C, 'bin', 'harness');
 // `bash -lc` replaces PATH with the login path and grades the laptop's shell profile, not the
 // change. Inherit this process's PATH so a present ruff/pytest actually runs.
@@ -140,7 +139,7 @@ test('fixtures are what they claim: clean-app green, buggy-calc and broken-suite
 });
 
 test('at-skill-limit sits exactly at the Law 5 ceiling', async () => {
-  const skills = readFileSync(path.join(C, 'evals', 'tasks.json'), 'utf8');
+  const skills = readFileSync(path.join(ROOT, 'evals', 'tasks.json'), 'utf8');
   assert.match(skills, /budget-forces-deletion/);
   const dir = path.join(FIXTURES, 'at-skill-limit', '.claude', 'skills');
   const { readdirSync } = await import('node:fs');

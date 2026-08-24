@@ -4,9 +4,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { C, ROOT } from './_paths.mjs';
 
-const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 function frontmatter(file) {
   const m = readFileSync(file, 'utf8').match(/^---\n([\s\S]*?)\n---/);
@@ -68,7 +67,7 @@ test('no skill sequences phases (Law 2)', () => {
 });
 
 test('Claude PR review is read-only and cannot declare the human gate approved', () => {
-  const workflow = readFileSync(path.join(C, '..', '.github/workflows/claude-review.yml'), 'utf8');
+  const workflow = readFileSync(path.join(ROOT, '.github/workflows/claude-review.yml'), 'utf8');
   assert.match(workflow, /contents: read/);
   assert.doesNotMatch(workflow, /contents: write/);
   assert.match(workflow, /--disallowedTools [^\n]*Write,Edit/);
@@ -78,7 +77,7 @@ test('Claude PR review is read-only and cannot declare the human gate approved',
 });
 
 test('CI model evals cover every steering surface and require authentication', () => {
-  const workflow = readFileSync(path.join(C, '..', '.github', 'workflows', 'harness.yml'), 'utf8');
+  const workflow = readFileSync(path.join(ROOT, '.github', 'workflows', 'harness.yml'), 'utf8');
   for (const surface of [String.raw`CLAUDE\.md`, String.raw`settings\.json`, String.raw`harness\.toml`, 'skills/', 'agents/', 'hooks/', 'templates/', 'evals/']) {
     assert.ok(workflow.includes(surface), surface);
   }
@@ -86,10 +85,10 @@ test('CI model evals cover every steering surface and require authentication', (
 });
 
 test('marketplace ships the kernel plugin only; extra policy skills stay out of the budget', () => {
-  const market = JSON.parse(readFileSync(path.join(C, '..', '.claude-plugin', 'marketplace.json'), 'utf8'));
+  const market = JSON.parse(readFileSync(path.join(ROOT, '.claude-plugin', 'marketplace.json'), 'utf8'));
   assert.deepEqual(market.plugins.map((p) => p.name), ['lean-harness']);
   assert.equal(market.plugins[0].source, './.claude');
-  assert.equal(existsSync(path.join(C, '..', 'plugins')), false);
+  assert.equal(existsSync(path.join(ROOT, 'plugins')), false);
   assert.equal(existsSync(path.join(C, 'skills', 'secure-api')), false);
   assert.equal(existsSync(path.join(C, 'skills', 'ux-standards')), false);
   assert.equal(existsSync(path.join(C, 'agents', 'policy-reviewer.md')), false);
@@ -97,12 +96,12 @@ test('marketplace ships the kernel plugin only; extra policy skills stay out of 
 });
 
 test('handoff and monitor workflows write through a PR and never call a model', () => {
-  const handoff = readFileSync(path.join(C, '..', '.github/workflows/harness-handoff.yml'), 'utf8');
+  const handoff = readFileSync(path.join(ROOT, '.github/workflows/harness-handoff.yml'), 'utf8');
   assert.match(handoff, /harness handoff --write/);
   assert.match(handoff, /gh pr create/);
   assert.doesNotMatch(handoff, /git push origin main/);
   assert.doesNotMatch(handoff, /claude -p/);
-  const monitor = readFileSync(path.join(C, '..', '.github/workflows/harness-monitor.yml'), 'utf8');
+  const monitor = readFileSync(path.join(ROOT, '.github/workflows/harness-monitor.yml'), 'utf8');
   assert.match(monitor, /schedule:/);
   assert.match(monitor, /harness monitor detect/);
   assert.match(monitor, /gh pr create/);

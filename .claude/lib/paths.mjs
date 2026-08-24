@@ -1,4 +1,6 @@
-// Every path the harness writes lives under .claude/. Nothing is scattered across the repo root.
+// Every path in layout() lives under .claude/: artefacts, state, and the one hand-edited
+// registry. The suite, the evals, and the examples sit at the repo root instead — they
+// exercise the harness rather than being part of it, so eval output lands in evals/results/.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 

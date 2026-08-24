@@ -2,10 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { measure } from '../checks/budget.mjs';
+import { C } from './_paths.mjs';
+import { measure } from '../.claude/checks/budget.mjs';
 
-const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const LIMITS = { skills: 12, agents: 3, hooks: 5, hook_loc: 600, claude_md_lines: 120 };
 
 test('the harness stays inside its own budget', () => {

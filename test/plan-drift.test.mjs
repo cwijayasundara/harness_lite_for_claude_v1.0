@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { run } from '../checks/plan-drift.mjs';
+import { run } from '../.claude/checks/plan-drift.mjs';
 
 function repo() {
   const root = mkdtempSync(path.join(tmpdir(), 'plan-drift-'));

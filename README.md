@@ -172,10 +172,10 @@ rules enforced by the harness itself.
 ## Develop and verify the harness
 
 ```bash
-node --test .claude/test/*.test.mjs
-node .claude/evals/run.mjs --dry
+node --test test/*.test.mjs
+node evals/run.mjs --dry
 ```
 
 The unit suite has zero dependencies and runs on a cold clone. Worked Python and TypeScript
-examples live in [`.claude/examples/scratch-py`](.claude/examples/scratch-py) and
-[`.claude/examples/scratch-ts`](.claude/examples/scratch-ts).
+examples live in [`examples/scratch-py`](examples/scratch-py) and
+[`examples/scratch-ts`](examples/scratch-ts).

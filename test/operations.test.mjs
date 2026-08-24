@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { deploy, closeLoop, breachedBands, detect } from '../lib/operations.mjs';
+import { deploy, closeLoop, breachedBands, detect } from '../.claude/lib/operations.mjs';
 
 function fixture() {
   const root = mkdtempSync(path.join(tmpdir(), 'operations-'));

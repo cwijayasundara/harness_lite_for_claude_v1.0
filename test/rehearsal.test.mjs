@@ -12,11 +12,10 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, chmodSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { C, ROOT } from './_paths.mjs';
 import { loadTasks, runSuite } from '../evals/run.mjs';
 import { claudeInvoker } from '../evals/lib/invoker.mjs';
 
-const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 
 test('no eval task is satisfied by a model that does nothing', async (t) => {
   const dir = mkdtempSync(path.join(tmpdir(), 'donothing-'));
@@ -30,7 +29,7 @@ test('no eval task is satisfied by a model that does nothing', async (t) => {
     const tasks = loadTasks().map((x) => ({ ...x, repeats: 1, timeoutMs: 20000 }));
     const out = await runSuite({
       tasks, invoke: claudeInvoker({ pluginDir: C }),
-      fixturesDir: path.join(C, 'evals', 'fixtures'), harnessBin: path.join(C, 'bin', 'harness'),
+      fixturesDir: path.join(ROOT, 'evals', 'fixtures'), harnessBin: path.join(C, 'bin', 'harness'),
     });
 
     const broken = [];

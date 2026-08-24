@@ -243,7 +243,10 @@ async function main() {
     log: (m) => console.log(m),
   });
 
-  const dir = path.join(HERE, 'results');
+  // Results are harness output about a repo, not part of the eval suite, so they stay under
+  // .claude/ where indicators.mjs reads them and where a target repo keeps its own. The
+  // suite moved to the repo root; its results did not.
+  const dir = path.join(path.dirname(HERE), '.claude', 'evals', 'results');
   mkdirSync(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   writeFileSync(path.join(dir, `${stamp}.json`), JSON.stringify(out, null, 2));

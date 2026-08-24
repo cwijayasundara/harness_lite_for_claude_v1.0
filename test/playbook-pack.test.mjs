@@ -4,13 +4,11 @@ import { existsSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync
 import { tmpdir } from 'node:os';
 import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { packet } from '../lib/review-adapter.mjs';
-import { addWorktree } from '../lib/worktree.mjs';
+import { C, ROOT } from './_paths.mjs';
+import { packet } from '../.claude/lib/review-adapter.mjs';
+import { addWorktree } from '../.claude/lib/worktree.mjs';
 
-const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const BIN = path.join(C, 'bin', 'harness');
-const ROOT = path.dirname(C);
 
 test('claude-fix.yml can push but must not approve or merge', () => {
   const yml = readFileSync(path.join(ROOT, '.github/workflows/claude-fix.yml'), 'utf8');

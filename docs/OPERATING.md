@@ -29,7 +29,7 @@ node .claude/bin/harness status              # artifact progress, SLA, playbook 
 
 `status` now includes the playbook leading indicators: intent survival (accepted vs closed),
 mean hours to a committed intent, spec commits after the first plan commit, first-pass review
-share, and the latest eval pass rate when `.claude/evals/results/` exists. Missing clocks are
+share, and the latest eval pass rate when `evals/results/` exists. Missing clocks are
 `unmeasured`, never a fabricated zero. Close an intent that will not enter Design by setting
 `Status: closed` and committing it.
 
@@ -57,7 +57,7 @@ It applies the kill criteria and prints a decision per control:
 | `unreliable` | errors on >10% of invocations | fix it or delete it — an erroring control is a lie |
 | `insufficient-data` | under 50 invocations | wait. A verdict without evidence is not a verdict |
 
-**Deleting is the point.** Remove the control, run `node .claude/evals/run.mjs`, and if nothing
+**Deleting is the point.** Remove the control, run `node evals/run.mjs`, and if nothing
 regresses it was not doing anything. That is the whole argument for having built the eval suite
 first, and it is the mechanism v6 never had — which is why v6 could only grow.
 

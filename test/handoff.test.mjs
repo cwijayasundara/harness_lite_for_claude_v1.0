@@ -4,9 +4,8 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { C } from './_paths.mjs';
 
-const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const BIN = path.join(C, 'bin', 'harness');
 const run = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
 

@@ -8,23 +8,25 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { build } from '../../lib/graph.mjs';
-import { pack, estimateTokens } from '../../lib/pack.mjs';
-import { discover } from '../../lib/graph.mjs';
+import { build } from '../../.claude/lib/graph.mjs';
+import { pack, estimateTokens } from '../../.claude/lib/pack.mjs';
+import { discover } from '../../.claude/lib/graph.mjs';
 
-const C = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
+// Three levels up from evals/bench/ is the repo root: the harness under .claude/ and the
+// artefacts that exercise it are both below this point, so golden answers are repo-relative.
+const ROOT = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 
 export const GOLDEN = [
-  { root: path.join(C, 'evals', 'fixtures', 'graph-app'), term: 'place_order', answer: 'src/app/service.py' },
-  { root: path.join(C, 'evals', 'fixtures', 'graph-app'), term: 'find_user', answer: 'src/app/repo.py' },
-  { root: path.join(C, 'evals', 'fixtures', 'graph-app'), term: 'slugify', answer: 'web/util.js' },
-  { root: path.join(C, 'evals', 'fixtures', 'graph-app'), term: 'handle', answer: 'src/app/api.py' },
-  { root: C, term: 'normalize', answer: 'lib/normalize.mjs' },
-  { root: C, term: 'refresh', answer: 'lib/refresh.mjs' },
-  { root: C, term: 'toRegExp', answer: 'evals/lib/assertions.mjs' },
-  { root: C, term: 'measure', answer: 'checks/budget.mjs' },
-  { root: C, term: 'resolveStage', answer: 'lib/config.mjs' },
-  { root: C, term: 'renderWiki', answer: 'lib/wiki.mjs' },
+  { root: path.join(ROOT, 'evals', 'fixtures', 'graph-app'), term: 'place_order', answer: 'src/app/service.py' },
+  { root: path.join(ROOT, 'evals', 'fixtures', 'graph-app'), term: 'find_user', answer: 'src/app/repo.py' },
+  { root: path.join(ROOT, 'evals', 'fixtures', 'graph-app'), term: 'slugify', answer: 'web/util.js' },
+  { root: path.join(ROOT, 'evals', 'fixtures', 'graph-app'), term: 'handle', answer: 'src/app/api.py' },
+  { root: ROOT, term: 'normalize', answer: '.claude/lib/normalize.mjs' },
+  { root: ROOT, term: 'refresh', answer: '.claude/lib/refresh.mjs' },
+  { root: ROOT, term: 'toRegExp', answer: 'evals/lib/assertions.mjs' },
+  { root: ROOT, term: 'measure', answer: '.claude/checks/budget.mjs' },
+  { root: ROOT, term: 'resolveStage', answer: '.claude/lib/config.mjs' },
+  { root: ROOT, term: 'renderWiki', answer: '.claude/lib/wiki.mjs' },
 ];
 
 const cfgFor = (root) => ({

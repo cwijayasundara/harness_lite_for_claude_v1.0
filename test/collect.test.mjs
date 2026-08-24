@@ -1,10 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { ROOT } from './_paths.mjs';
 import path from 'node:path';
 
-const COLLECT = path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), 'examples', 'collect-ci-failure-rate.mjs');
+const COLLECT = path.join(ROOT, 'examples', 'collect-ci-failure-rate.mjs');
 
 test('collector prints empty bands and exits 0 when GitHub context is missing', () => {
   const env = { ...process.env };

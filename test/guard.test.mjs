@@ -4,10 +4,9 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { writeBlocked, productionDenied, lockTests, clearLock, bandTier, classifyBands } from '../lib/guard.mjs';
+import { C } from './_paths.mjs';
+import { writeBlocked, productionDenied, lockTests, clearLock, bandTier, classifyBands } from '../.claude/lib/guard.mjs';
 
-const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const BIN = path.join(C, 'bin', 'harness');
 
 function tmp(prefix) {

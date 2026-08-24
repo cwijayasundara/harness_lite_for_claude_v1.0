@@ -1,9 +1,10 @@
-// Zero dependencies, runs on a cold clone: node --test .claude/test
+// Zero dependencies, runs on a cold clone: node --test test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseToml } from '../lib/toml.mjs';
-import { resolveStage, DEFAULT_STAGES } from '../lib/config.mjs';
-import { normalize } from '../lib/normalize.mjs';
+import { ROOT } from './_paths.mjs';
+import { parseToml } from '../.claude/lib/toml.mjs';
+import { resolveStage, DEFAULT_STAGES } from '../.claude/lib/config.mjs';
+import { normalize } from '../.claude/lib/normalize.mjs';
 
 test('toml: tables, types, arrays, comments', () => {
   const t = parseToml(`
@@ -83,7 +84,7 @@ test('normalize: a generic tool exiting non-zero produces exactly one', () => {
 test('runner inherits this process PATH instead of a login shell', async () => {
   const { spawnSync } = await import('node:child_process');
   if (spawnSync('python3', ['-c', 'import pytest'], { env: process.env }).status !== 0) return;
-  const { check } = await import('../lib/runner.mjs');
+  const { check } = await import('../.claude/lib/runner.mjs');
   const os = await import('node:os');
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -101,7 +102,7 @@ test('runner inherits this process PATH instead of a login shell', async () => {
 });
 
 test('runner: a missing tool is errored, not failed', async () => {
-  const { check } = await import('../lib/runner.mjs');
+  const { check } = await import('../.claude/lib/runner.mjs');
   const os = await import('node:os');
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -124,7 +125,7 @@ test('runner: a missing tool is errored, not failed', async () => {
 });
 
 test('runner: an explicit secrets command overrides the built-in fallback', async () => {
-  const { check } = await import('../lib/runner.mjs');
+  const { check } = await import('../.claude/lib/runner.mjs');
   const fs = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-secrets-'));
   const state = path.join(root, '.claude/state'); fs.mkdirSync(state, { recursive: true });
@@ -136,7 +137,7 @@ test('runner: an explicit secrets command overrides the built-in fallback', asyn
 });
 
 test('normalize: TAP failures carry file, line and reason', async () => {
-  const { normalize } = await import('../lib/normalize.mjs');
+  const { normalize } = await import('../.claude/lib/normalize.mjs');
   const tap = [
     'TAP version 13',
     '# Subtest: slugify lowercases',
@@ -158,7 +159,7 @@ test('normalize: TAP failures carry file, line and reason', async () => {
 });
 
 test('check: fail-fast stops at the first failure and records what it skipped', async () => {
-  const { check } = await import('../lib/runner.mjs');
+  const { check } = await import('../.claude/lib/runner.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -184,7 +185,7 @@ test('check: fail-fast stops at the first failure and records what it skipped', 
 });
 
 test('baseline: ratchets a rise, tolerates noise, records what has no history', async () => {
-  const { compare, RATCHETED } = await import('../lib/baseline.mjs');
+  const { compare, RATCHETED } = await import('../.claude/lib/baseline.mjs');
   const base = { tolerance: 1.10, claude_md_tokens: 100, session_context_tokens: 50, check_stop_tokens: 20, wiki_index_tokens: 80, pack_tokens_p50: 0 };
   const same = compare(base, { ...base });
   assert.equal(same.ok, true);
@@ -203,13 +204,11 @@ test('baseline: ratchets a rise, tolerates noise, records what has no history', 
 });
 
 test('baseline: every ratcheted metric is actually captured', async () => {
-  const { capture, RATCHETED } = await import('../lib/baseline.mjs');
+  const { capture, RATCHETED } = await import('../.claude/lib/baseline.mjs');
   const { stage } = await import('../evals/lib/stage.mjs');
   const fs = await import('node:fs');
   const path = await import('node:path');
-  const { fileURLToPath } = await import('node:url');
-  const C = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-  const s = stage(path.join(C, 'evals', 'fixtures'), 'graph-app');
+  const s = stage(path.join(ROOT, 'evals', 'fixtures'), 'graph-app');
   try {
     const state = path.join(s.work, '.claude/state');
     fs.mkdirSync(state, { recursive: true });
@@ -230,7 +229,7 @@ test('baseline: every ratcheted metric is actually captured', async () => {
 });
 
 test('baseline: an incomparable toolchain is not a regression', async () => {
-  const { compare } = await import('../lib/baseline.mjs');
+  const { compare } = await import('../.claude/lib/baseline.mjs');
   const base = { tolerance: 1.10, claude_md_tokens: 100, session_context_tokens: 50, check_stop_tokens: 18, wiki_index_tokens: 80, pack_tokens_p50: 100, errored_controls: [] };
   // Same change, measured on a machine with no ruff: the stage output balloons with
   // "tool not installed" text. That is a fact about the laptop, not about the change.
@@ -245,7 +244,7 @@ test('baseline: an incomparable toolchain is not a regression', async () => {
 });
 
 test('ledger audit turns rows into decisions, and refuses a verdict without evidence', async () => {
-  const { audit, KILL } = await import('../lib/ledger.mjs');
+  const { audit, KILL } = await import('../.claude/lib/ledger.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -275,7 +274,7 @@ test('ledger audit turns rows into decisions, and refuses a verdict without evid
 });
 
 test('lifecycle does not treat an uncommitted approval as an auditable gate', async () => {
-  const { lifecycle, renderLifecycle } = await import('../lib/lifecycle.mjs');
+  const { lifecycle, renderLifecycle } = await import('../.claude/lib/lifecycle.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -297,7 +296,7 @@ test('lifecycle does not treat an uncommitted approval as an auditable gate', as
 });
 
 test('lifecycle rejects downstream artifacts that bypass human approval', async () => {
-  const { lifecycle } = await import('../lib/lifecycle.mjs');
+  const { lifecycle } = await import('../.claude/lib/lifecycle.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -317,7 +316,7 @@ test('lifecycle rejects downstream artifacts that bypass human approval', async 
 });
 
 test('incident loop requires a timestamp and the same-slug intent', async () => {
-  const { incidents } = await import('../lib/lifecycle.mjs');
+  const { incidents } = await import('../.claude/lib/lifecycle.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -333,7 +332,7 @@ test('incident loop requires a timestamp and the same-slug intent', async () => 
 });
 
 test('lifecycle measures a committed, approved chain from source timestamps and git history', async () => {
-  const { lifecycle } = await import('../lib/lifecycle.mjs');
+  const { lifecycle } = await import('../.claude/lib/lifecycle.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');

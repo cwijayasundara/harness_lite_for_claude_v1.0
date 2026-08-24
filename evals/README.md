@@ -9,9 +9,9 @@ plan → implement; without that, `plan-drift` would still grade B's diff agains
 ## Running
 
 ```
-node .claude/evals/run.mjs                 # all tasks
-node .claude/evals/run.mjs --id surgical-fix
-node .claude/evals/run.mjs --dry           # validate tasks.json without spending anything
+node evals/run.mjs                 # all tasks
+node evals/run.mjs --id surgical-fix
+node evals/run.mjs --dry           # validate tasks.json without spending anything
 ```
 
 Exits 0 with a clear message when no Claude credentials are found (API key **or** a Claude
