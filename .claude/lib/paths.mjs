@@ -1,6 +1,8 @@
 // Every path in layout() lives under .claude/: artefacts, state, and the one hand-edited
 // registry. The suite, the evals, and the examples sit at the repo root instead — they
-// exercise the harness rather than being part of it, so eval output lands in evals/results/.
+// exercise the harness rather than being part of it. Eval *output* is the exception and stays
+// under .claude/evals/results/: it is harness output about a repo, not part of the suite, and
+// a target repo keeps its own. See the comment at evals/run.mjs where it is written.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 

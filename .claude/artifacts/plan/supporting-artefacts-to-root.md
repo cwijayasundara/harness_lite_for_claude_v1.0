@@ -5,7 +5,7 @@
   behaviour, no runtime path, and no control changes meaning. The chain starts at plan for the
   same reason `docs-to-repo-root` did.
 - **Risk tier:** standard <!-- low | standard | critical -->
-- **Status:** draft <!-- draft | approved  (HUMAN GATE 2) -->
+- **Status:** approved
 
 Standard, not low, for one reason: `[guard].protected_paths` names the eval fixtures. If that
 line is not repointed in the same commit, the fixtures silently become writable, and a
@@ -39,6 +39,7 @@ examples/
 .claude/examples/
 .claude/harness.toml
 .claude/lib/paths.mjs
+.gitignore
 .github/workflows/harness.yml
 README.md
 docs/OPERATING.md

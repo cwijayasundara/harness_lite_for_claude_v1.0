@@ -8,7 +8,7 @@ name = "lean-harness"
 fmt       = ""
 lint      = ""      # zero-dependency by constitution: no linter to install
 typecheck = ""
-test      = "node --test --test-reporter=tap .claude/test/*.test.mjs"
+test      = "node --test --test-reporter=tap test/*.test.mjs"
 coverage  = ""
 arch      = ""      # candidate: import cycles from the graph — deliberately NOT added during Phase 5
 secrets   = ""      # built-in scanner
@@ -41,9 +41,9 @@ hook_loc        = 600
 claude_md_lines = 120
 
 [guard]
-protected_paths = [".claude/evals/fixtures"]
+protected_paths = ["evals/fixtures"]
 require_plan    = false
 
 [monitoring]
-collect = ["node", ".claude/examples/collect-ci-failure-rate.mjs"]
+collect = ["node", "examples/collect-ci-failure-rate.mjs"]
 timeout_ms = 300000
