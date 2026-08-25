@@ -1,7 +1,7 @@
 .claude/state/
-.claude/examples/*/.claude/state/
-.claude/examples/*/node_modules/
-.claude/examples/*/dist/
+examples/*/.claude/state/
+examples/*/node_modules/
+examples/*/dist/
 .claude/evals/results/
 __pycache__/
 *.pyc

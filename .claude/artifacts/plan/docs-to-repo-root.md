@@ -4,7 +4,7 @@
 - **Spec:** none — documentation relocation, no behaviour change. The chain starts at plan
   because there is nothing to specify: no product code, no test, no runtime path is touched.
 - **Risk tier:** low
-- **Status:** draft <!-- draft | approved  (HUMAN GATE 2) -->
+- **Status:** approved
 
 ## Files
 
