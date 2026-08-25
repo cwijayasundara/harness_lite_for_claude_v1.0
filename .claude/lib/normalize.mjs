@@ -60,6 +60,18 @@ const FORMATS = {
   tap(stdout) {
     const lines = (stdout || '').split('\n');
     const out = [];
+    // why: a test check that runs zero tests reports PASS. bash passes an unmatched glob
+    // through literally, `node --test <nonexistent>` emits a well-formed empty report and
+    // exits 0, and runner.mjs reads exit 0 + no findings as success. A stale glob in
+    // [checks].test once left `--stage stop` printing PASS in 31ms against a ~10s suite.
+    // Anchored to column 0: nested subtests indent their own plan lines.
+    if (/^1\.\.0\s*$/m.test(stdout || '') || /^# tests 0\s*$/m.test(stdout || '')) {
+      return [asFinding({
+        rule: 'harness/empty-suite',
+        message: 'the test command ran no tests — a suite that executed nothing has not demonstrated anything',
+        fix: 'check the [checks] command in harness.toml: an unmatched glob is passed through literally by bash and exits 0',
+      })];
+    }
     for (let i = 0; i < lines.length; i++) {
       const m = lines[i].match(/^\s*not ok \d+ - (.*)$/);
       if (!m) continue;

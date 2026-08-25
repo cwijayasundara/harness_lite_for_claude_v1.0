@@ -158,6 +158,33 @@ test('normalize: TAP failures carry file, line and reason', async () => {
   assert.equal(out[0].rule, 'test-failed');
 });
 
+// A control that cannot fail is not a control. A stale glob in [checks].test left the suite
+// reporting PASS in 31ms while running nothing at all — bash passes an unmatched glob through
+// literally, node --test emits a well-formed empty report, and exit 0 reads as success.
+test('normalize: a TAP run that executed nothing is a failure, not a pass', async () => {
+  const { normalize } = await import('../.claude/lib/normalize.mjs');
+  const empty = ['TAP version 13', '1..0', '# tests 0', '# pass 0', '# fail 0'].join('\n');
+  const out = normalize('tap', empty, '', 0);
+  assert.equal(out.length, 1, 'an empty suite must produce exactly one finding');
+  assert.equal(out[0].rule, 'harness/empty-suite');
+  assert.match(out[0].message, /no tests/i);
+  assert.match(out[0].fix, /harness\.toml|\[checks\]/, 'the fix must name where to look');
+});
+
+test('normalize: a healthy TAP run is not flagged as empty', async () => {
+  const { normalize } = await import('../.claude/lib/normalize.mjs');
+  const healthy = ['TAP version 13', 'ok 1 - slugify lowercases', '1..1', '# tests 1', '# pass 1', '# fail 0'].join('\n');
+  assert.deepEqual(normalize('tap', healthy, '', 0), [], 'a green suite has no findings');
+});
+
+test('normalize: a suite that ran and failed is a test failure, not an empty suite', async () => {
+  const { normalize } = await import('../.claude/lib/normalize.mjs');
+  const failed = ['TAP version 13', 'not ok 1 - adds', '1..1', '# tests 1', '# pass 0', '# fail 1'].join('\n');
+  const out = normalize('tap', failed, '', 1);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].rule, 'test-failed', 'a real failure must not be relabelled');
+});
+
 test('check: fail-fast stops at the first failure and records what it skipped', async () => {
   const { check } = await import('../.claude/lib/runner.mjs');
   const fs = await import('node:fs');
