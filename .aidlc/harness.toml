@@ -1,0 +1,62 @@
+[project]
+name = "lean-harness"
+
+# The harness governs its own development. Note what is NOT here: no self-exemption. v6's
+# strongest control was bypassed in the only repo it ever ran in (`isHarnessRepo()`), which is
+# how a gate becomes decoration. If a gate here is wrong for this repo, it is wrong.
+[capabilities]
+fmt       = ""
+lint      = ""      # zero-dependency by constitution: no linter to install
+typecheck = ""
+test      = "node --test --test-reporter=tap test/*.test.mjs"
+test_quality = "node .aidlc/sensors/test-quality.mjs"
+coverage  = ""
+arch      = "node .aidlc/sensors/architecture.mjs"
+secrets   = ""      # built-in scanner
+deps      = ""      # no dependencies to go stale
+
+[formats]
+test = "tap"
+
+[check]
+fail_fast = true
+
+[stages]
+fast   = ["secrets"]
+stop   = ["fast", "test"]
+commit = ["stop", "scope-drift", "budget"]
+drift  = []
+
+[sensors]
+behaviour = ["test"]
+architecture = ["arch"]
+hardening = ["secrets"]
+qa = ["test_quality"]
+required_profiles = ["behaviour", "architecture", "hardening", "qa"]
+latency_budget_ms = 120000
+
+[graph]
+include = [".", ".claude"]
+exclude = ["node_modules", ".venv", "dist", ".git", "__pycache__", "fixtures"]
+
+[budget]
+max_findings = 20
+
+[limits]
+skills          = 10
+agents          = 3
+hooks           = 5
+hook_loc        = 600
+claude_md_lines = 120
+
+[guard]
+protected_paths = ["evals/fixtures"]
+require_contract = true
+
+[work_items]
+provider = "" # Jira remains disabled in the harness repo; pilot pods set jira and connection fields.
+authority = "external"
+
+[monitoring]
+collect = ["node", "examples/collect-ci-failure-rate.mjs"]
+timeout_ms = 300000

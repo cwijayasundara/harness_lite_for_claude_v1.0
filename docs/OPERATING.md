@@ -15,16 +15,16 @@ Write candidates down instead. There is a list at the bottom of this file.
 ## Daily — nothing
 
 The hooks run themselves. `PostToolUse` checks each edit, `Stop` coalesces the graph refresh and
-the stage run, and every verdict lands in `.claude/state/ledger.jsonl`. If you find yourself
+the stage run, and every verdict lands in `.aidlc/state/ledger.jsonl`. If you find yourself
 running `harness check` by hand a lot, that is a finding: the hook is not firing, or it is not
 firing where the work happens.
 
 ## Weekly — five minutes
 
 ```
-node .claude/bin/harness ledger              # what fired, how often, how slow
-node .claude/bin/harness baseline check      # did the token surface grow
-node .claude/bin/harness status              # artifact progress, SLA, playbook indicators
+.aidlc/bin/harness ledger              # what fired, how often, how slow
+.aidlc/bin/harness baseline check      # did the token surface grow
+.aidlc/bin/harness status              # artifact progress, SLA, playbook indicators
 ```
 
 `status` now includes the playbook leading indicators: intent survival (accepted vs closed),
@@ -44,7 +44,7 @@ Two questions:
 ## Monthly — twenty minutes
 
 ```
-node .claude/bin/harness ledger audit
+.aidlc/bin/harness ledger audit
 ```
 
 It applies the kill criteria and prints a decision per control:
@@ -85,25 +85,27 @@ The core must not pretend to deploy or monitor a product. A production installat
 
 - **SCM review:** read-only diff access, a bot identity, branch protection, and a way to publish
   the committed review finding set. Agent writes still arrive only through a PR.
-- **Deployment:** allowlisted `deploy`, `status`, and `rollback` operations; short-lived identity;
+- **Deployment:** allowlisted `preflight`, `deploy`, `status`, `verify`, `promote`, and `rollback` operations; short-lived identity;
   environment-specific approval; and a durable deployment receipt.
 - **Monitoring:** a deterministic, unit-tested band detector that emits metric, baseline, band,
   observed value, timestamp, and source. The model diagnoses only after this trigger fires.
 
-An adapter is complete only when staging proves deploy, status, and rollback; a denied production
+An adapter is complete only when staging proves deploy, status, verify, and rollback; a denied production
 action is tested; and a synthetic band breach produces an incident and linked intent inside its
 SLA. Until then Deploy and Maintain are contracts, not automated stages.
 
 The core now exposes those seams without embedding provider credentials:
 
 ```
-harness deploy deploy staging
+harness deploy preflight staging --artifact sha256:<digest>
+harness deploy deploy staging --artifact sha256:<digest>
 harness deploy status staging
+harness deploy verify staging --artifact sha256:<digest>
 harness deploy rollback staging
-harness deploy deploy production --approval CAB-1234
+harness deploy promote production --from staging --artifact sha256:<digest> --approval CAB-1234
 harness monitor detect --file bands.json
 harness monitor ingest elevated-errors --file bands.json
-harness handoff --write
+harness contract status <slug>
 ```
 
 `harness monitor detect` runs the `[monitoring].collect` argv when `--file` is omitted.
@@ -112,24 +114,25 @@ The first 3σ also runs `[deployment].rollback` against **staging** when that ar
 a repeat detect for the same slug does not. Production is never the rollback target.
 Empty collect is a no-op. This repo wires the example CI-failure collector, which prints
 empty bands when GitHub is unavailable. `.github/workflows/harness-monitor.yml` stays
-model-free and opens a PR; `.github/workflows/harness-diagnose.yml` may comment on that PR. `.github/workflows/harness-handoff.yml`
-turns a committed intent/spec approval into a skeleton PR; `harness-design.yml` may fill it.
-Neither monitor nor handoff pushes to `main`.
+model-free and opens a PR; `.github/workflows/harness-diagnose.yml` may comment on that PR.
+No lifecycle workflow creates or approves contracts. Monitor never pushes to `main`.
 
-This checkout is one local plugin: `.claude/`. The repo-root marketplace lists that kernel
-only. Do not add policy skills or extra agents under `.claude/skills` or `.claude/agents` —
+This checkout is one local plugin whose portable kernel lives under `.aidlc/`. The repo-root marketplace lists that kernel
+only. Do not add policy skills or extra agents under `.aidlc/skills` or `.aidlc/roles` —
 Law 5 is full. The kernel hook budget is also full (5/5); do not add a sixth kernel binding.
 
 `[deployment]` commands are argv arrays, execute without a shell, receive the environment as their
-final argument, and write a durable JSON receipt under `.claude/artifacts/deployment/`. Production
-operations fail closed without an approval identifier. Monitoring input is deterministic JSON;
+final argument, and write a durable JSON receipt under `.aidlc/artifacts/deployment/`. Mutating
+operations receive an immutable digest in `HARNESS_ARTIFACT_DIGEST`; promotion requires the same
+verified digest. Production operations fail closed under the configured risk/approval policy.
+See `DEPLOYMENT.md`. Monitoring input is deterministic JSON;
 a 3σ or min/max breach creates the same-slug incident and intent. The model belongs after
 that trigger, for diagnosis, never inside the detector.
 
 ### GitHub review adapter
 
 `.github/workflows/claude-review.yml` runs on same-repository pull requests. It resolves exactly
-one changed plan, requires committed spec and plan approvals, caps the diff, and gives Claude only
+one changed contract, requires committed contract approvals and behaviour evidence, caps the diff, and gives Claude only
 read/search tools. Claude returns JSON under a schema; the harness validates paths, severities,
 line numbers, recommendation consistency, duplicates, and the five-nit cap before rendering and
 posting `review.md`. The result remains `draft`: only a human changes Gate 3 to `approved`.
@@ -147,17 +150,17 @@ Gate 3 still owns `review.md` Status.
 
 Non-engineer intent uses `.github/ISSUE_TEMPLATE/intent.yml` and `harness-intent.yml`. Cowork or
 claude.ai should open that issue (GitHub connector), not a second artifact home. Claude Tag
-and Slack incidents use the same issue. Design mocks go in `.claude/artifacts/design/<slug>/`.
+and Slack incidents use the same issue. Design mocks go in `.aidlc/artifacts/design/<slug>/`.
 
-`[guard].require_plan = true` makes product-file writes need an approved plan that lists the
-path. Default is false so evals keep working. Production shell deploys without
+`[guard].require_contract = true` makes product-file writes need a committed approved contract
+that owns the path. This is the default. Production shell deploys without
 `HARNESS_RELEASE_APPROVAL` are denied by the existing bash hook.
 
 `harness lock tests --pattern tests/foo.py` is the test-integrity lock. `harness lock clear`
-releases it. `harness worktree <slug>` adds an isolated git worktree for a disjoint plan slice.
+releases it. `harness worktree <slug>` adds an isolated git worktree for a disjoint contract slice.
 `harness doctor --enterprise` prints the managed-settings checklist — git settings are not MDM.
 
-Auto-accept of edits is allowed only after a plan is approved, the blast radius is in-plan, and
+Auto-accept of edits is allowed only after a contract is fully approved, the blast radius is owned, and
 tests exist. It is not a harness mode.
 
 ## When a review finding keeps recurring
@@ -198,12 +201,12 @@ moving branch, or CI and the laptop stop agreeing about what was checked.
   with: { node-version: '22' }
 - name: Fetch the harness this project declared
   run: |
-    commit=$(node -p "require('./.claude/harness-install.json').commit")
-    repo=$(node -p "require('./.claude/harness-install.json').repository")
+    commit=$(node -p "require('./.aidlc/harness-install.json').commit")
+    repo=$(node -p "require('./.aidlc/harness-install.json').repository")
     git clone -q "https://github.com/$repo" "$RUNNER_TEMP/harness"
     git -C "$RUNNER_TEMP/harness" checkout -q "$commit"
-    echo "HARNESS_HOME=$RUNNER_TEMP/harness/.claude" >> "$GITHUB_ENV"
-- run: bash .claude/bin/harness check --stage commit
+    echo "HARNESS_HOME=$RUNNER_TEMP/harness/.aidlc" >> "$GITHUB_ENV"
+- run: bash .aidlc/bin/harness check --stage commit
 ```
 
 `HARNESS_HOME` is the shim's first resolution step, ahead of the plugin cache, precisely so CI

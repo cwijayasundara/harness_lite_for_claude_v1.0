@@ -1,0 +1,28 @@
+{
+  "schema": "aidlc.agent-manifest/v1",
+  "enabled": ["claude", "codex", "cursor", "copilot", "grok"],
+  "roles": {
+    "specify": {
+      "access": "write",
+      "isolation": "fresh-context",
+      "model_policy": "generation"
+    },
+    "generate": {
+      "access": "write",
+      "isolation": "working-context",
+      "model_policy": "generation"
+    },
+    "evaluate": {
+      "access": "read-only",
+      "isolation": "fresh-context",
+      "model_policy": "high-assurance-evaluation"
+    },
+    "diagnose": {
+      "access": "read-only",
+      "isolation": "fresh-context",
+      "model_policy": "high-assurance-evaluation"
+    }
+  },
+  "required_capabilities": ["instructions", "skills", "cli"],
+  "optional_capabilities": ["subagents", "hooks", "mcp", "model-pinning"]
+}

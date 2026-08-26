@@ -1,3 +1,4 @@
+<!-- Generated from .aidlc/instructions.md; edit the canonical file and run harness init. -->
 # scratch-ts
 
 Under 120 lines, enforced by `harness check --stage commit`. Stale content here costs tokens

@@ -1,14 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { C, ROOT } from './_paths.mjs';
-import { packet } from '../.claude/lib/review-adapter.mjs';
-import { addWorktree } from '../.claude/lib/worktree.mjs';
+import { BIN, C, ROOT } from './_paths.mjs';
+import { packet } from '../.aidlc/lib/review-adapter.mjs';
+import { behaviourIds, contractDigest, writeEvidence } from '../.aidlc/lib/contract.mjs';
+import { addWorktree } from '../.aidlc/lib/worktree.mjs';
 
-const BIN = path.join(C, 'bin', 'harness');
 
 test('claude-fix.yml can push but must not approve or merge', () => {
   const yml = readFileSync(path.join(ROOT, '.github/workflows/claude-fix.yml'), 'utf8');
@@ -20,26 +20,27 @@ test('claude-fix.yml can push but must not approve or merge', () => {
 test('review packet prepends REVIEW.md when present', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'review-policy-'));
   try {
-    const artifacts = path.join(root, '.claude/artifacts');
-    const layout = { root };
-    for (const kind of ['intent', 'spec', 'plan', 'review']) {
-      layout[kind] = path.join(artifacts, kind); mkdirSync(layout[kind], { recursive: true });
-    }
+    const artifacts = path.join(root, '.aidlc/artifacts');
+    const layout = { root, contracts: path.join(artifacts, 'contracts'), intentRefs: path.join(artifacts, 'intent-refs'), evidence: path.join(artifacts, 'evidence'), review: path.join(artifacts, 'review'), reviewPolicy: path.join(root, '.aidlc/policies/review.md') };
+    for (const dir of [layout.contracts, layout.intentRefs, layout.evidence, layout.review]) mkdirSync(dir, { recursive: true });
     execFileSync('git', ['init', '-q'], { cwd: root });
     execFileSync('git', ['config', 'user.email', 'test@example.invalid'], { cwd: root });
     execFileSync('git', ['config', 'user.name', 'test'], { cwd: root });
-    writeFileSync(path.join(layout.intent, 'safe-change.md'), '- **Opened at:** 2026-01-01T00:00:00Z\n- **Status:** approved\n');
-    writeFileSync(path.join(layout.spec, 'safe-change.md'), '- **Status:** approved\n\n1. safe behaviour\n');
-    writeFileSync(path.join(layout.plan, 'safe-change.md'), '- **Status:** approved\n\n## Files\n```\nsrc/a.js\n```\n');
-    mkdirSync(path.join(root, '.claude'), { recursive: true });
-    writeFileSync(path.join(root, '.claude/REVIEW.md'), '# Review instructions\nCap the nits.\n');
+    mkdirSync(path.dirname(layout.reviewPolicy), { recursive: true });
+    writeFileSync(layout.reviewPolicy, '# Review instructions\nCap the nits.\n');
+    writeFileSync(path.join(root, 'README.md'), 'base\n');
     execFileSync('git', ['add', '.'], { cwd: root });
-    execFileSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'approved'], { cwd: root });
+    execFileSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'base'], { cwd: root });
     const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+    const source = path.join(ROOT, 'evals/fixtures/contract-planned/.aidlc/artifacts');
+    cpSync(path.join(source, 'contracts/hyphen-titlecase.md'), path.join(layout.contracts, 'hyphen-titlecase.md'));
+    cpSync(path.join(source, 'intent-refs/hyphen-titlecase.json'), path.join(layout.intentRefs, 'hyphen-titlecase.json'));
+    const contract = readFileSync(path.join(layout.contracts, 'hyphen-titlecase.md'), 'utf8');
+    writeEvidence(path.join(layout.evidence, 'hyphen-titlecase.json'), 'hyphen-titlecase', contractDigest(contract, 'plan'), behaviourIds(contract));
     mkdirSync(path.join(root, 'src')); writeFileSync(path.join(root, 'src/a.js'), 'export const a = 1;\n');
     execFileSync('git', ['add', '.'], { cwd: root });
     execFileSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'impl'], { cwd: root });
-    const text = packet({ layout, budget: { review_diff_max_bytes: 200000 }, sla: {} }, 'safe-change', base);
+    const text = packet({ layout, budget: { review_diff_max_bytes: 200000 }, sla: {} }, 'hyphen-titlecase', base);
     assert.match(text, /Review policy/);
     assert.match(text, /Cap the nits/);
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -56,13 +57,13 @@ test('harness new eval writes a pending stub, doctor --enterprise prints the che
     const doctor = spawnSync(process.execPath, [BIN, 'doctor', '--enterprise'], { cwd: root, encoding: 'utf8' });
     assert.equal(doctor.status, 0, doctor.stderr);
     assert.match(doctor.stdout, /managed-settings/);
-    assert.match(doctor.stdout, /REVIEW.md/);
+    assert.match(doctor.stdout, /review\.md/);
     const review = spawnSync(process.execPath, [BIN, 'new', 'review', 'safe-change'], { cwd: root, encoding: 'utf8' });
     assert.equal(review.status, 0, review.stderr);
     const artifact = readFileSync(review.stdout.trim(), 'utf8');
     assert.match(artifact, /HUMAN GATE 3/);
     assert.doesNotMatch(artifact, /Cap the nits/);
-    const policy = readFileSync(path.join(root, '.claude/REVIEW.md'), 'utf8');
+    const policy = readFileSync(path.join(root, '.aidlc/policies/review.md'), 'utf8');
     assert.match(policy, /Cap the nits/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

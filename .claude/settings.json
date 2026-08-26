@@ -1,6 +1,6 @@
 {
   "enabledPlugins": {
-    "lean_harness_cs_v1@lean_harness_cs_v1": false
+    "lean-harness-cs-v1@lean-harness-cs-v1": false
   },
   "hooks": {
     "SessionStart": [
@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/bin/harness\" hook session-start",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.aidlc/bin/harness\" hook session-start",
             "timeout": 10
           }
         ]
@@ -16,36 +16,36 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/bin/harness\" hook pre-write",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.aidlc/bin/harness\" hook pre-write",
             "timeout": 10
           }
-        ]
+        ],
+        "matcher": "Write|Edit|MultiEdit"
       },
       {
-        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/bin/harness\" hook pre-bash",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.aidlc/bin/harness\" hook pre-bash",
             "timeout": 10
           }
-        ]
+        ],
+        "matcher": "Bash"
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/bin/harness\" hook post-write",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.aidlc/bin/harness\" hook post-write",
             "timeout": 120
           }
-        ]
+        ],
+        "matcher": "Write|Edit|MultiEdit"
       }
     ],
     "Stop": [
@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/bin/harness\" hook stop",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.aidlc/bin/harness\" hook stop",
             "timeout": 180
           }
         ]
@@ -62,10 +62,10 @@
   },
   "permissions": {
     "allow": [
-      "Edit(.claude/artifacts/**)",
-      "Bash(bash .claude/bin/harness:*)",
-      "Bash(node .claude/bin/harness:*)",
-      "Write(.claude/artifacts/**)"
+      "Edit(.aidlc/artifacts/**)",
+      "Bash(.aidlc/bin/harness:*)",
+      "Bash(node .aidlc/bin/harness:*)",
+      "Write(.aidlc/artifacts/**)"
     ]
   }
 }

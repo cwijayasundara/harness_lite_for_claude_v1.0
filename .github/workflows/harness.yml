@@ -1,5 +1,5 @@
 # GitHub requires workflows at this exact path, so this is the one file that cannot live
-# under .claude/. It is infrastructure, not a generated artefact.
+# under .aidlc/. It is infrastructure, not a generated artefact.
 name: harness
 on:
   push: { branches: [main] }
@@ -32,12 +32,12 @@ jobs:
       # The example is a real installed project: it declares the harness and does not contain
       # one, exactly like a pod member's repository. HARNESS_HOME is how CI points the generated
       # shim at a checkout — here the repository itself, in a downstream project a clone made
-      # from the commit in its install record. Before this, the job ran `node .claude/bin/harness`
+      # from the commit in its install record.
       # in a directory that had no bin/ at all and died on `Cannot find module`.
-      - run: bash .claude/bin/harness baseline check
+      - run: .aidlc/bin/harness baseline check
         working-directory: examples/scratch-py
         env:
-          HARNESS_HOME: ${{ github.workspace }}/.claude
+          HARNESS_HOME: ${{ github.workspace }}/.aidlc
 
   evals:
     # Law 9: the suite runs on any diff touching the harness's own configuration.
@@ -52,7 +52,7 @@ jobs:
       - id: touched
         run: |
           git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep -E '^(\.claude/(CLAUDE\.md|settings\.json|harness\.toml|skills/|agents/|hooks/|checks/|lib/|templates/)|evals/(tasks\.json|lib/|run\.mjs))' \
+            | grep -E '^(\.aidlc/(harness\.toml|agents\.json|skills/|roles/|checks/|lib/|hooks/|templates/)|\.claude/(CLAUDE\.md|settings\.json)|evals/(tasks\.json|lib/|run\.mjs))' \
             && echo "run=true" >> "$GITHUB_OUTPUT" || echo "run=false" >> "$GITHUB_OUTPUT"
       - if: steps.touched.outputs.run == 'true'
         run: node evals/run.mjs --require-auth

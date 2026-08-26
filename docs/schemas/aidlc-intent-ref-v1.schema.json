@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aidlc.intent-ref/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "source", "decision", "snapshot_digest"],
+  "properties": {
+    "schema": { "const": "aidlc.intent-ref/v1" },
+    "id": { "type": "string", "minLength": 1 },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provider", "locator", "revision", "authority"],
+      "properties": {
+        "provider": { "type": "string", "minLength": 1 },
+        "locator": { "type": "string", "minLength": 1 },
+        "revision": { "type": "string", "minLength": 1 },
+        "authority": { "enum": ["external", "git"] }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status"],
+      "properties": {
+        "status": { "enum": ["draft", "accepted", "closed"] },
+        "decided_by": { "type": ["string", "null"] },
+        "decided_at": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+    "snapshot_digest": { "type": "string", "pattern": "^(pending|sha256:[a-f0-9]{64})$" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "source": { "properties": { "authority": { "const": "git" } } } } },
+      "then": { "properties": { "source": { "properties": { "provider": { "const": "git" } } } } }
+    },
+    {
+      "if": { "properties": { "decision": { "properties": { "status": { "enum": ["accepted", "closed"] } } } } },
+      "then": {
+        "properties": {
+          "decision": { "required": ["status", "decided_by", "decided_at"], "properties": { "decided_by": { "type": "string", "minLength": 1 }, "decided_at": { "type": "string", "format": "date-time" } } },
+          "snapshot_digest": { "pattern": "^sha256:[a-f0-9]{64}$" }
+        }
+      }
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { C, ROOT } from './_paths.mjs';
+import { A, C, ROOT } from './_paths.mjs';
 
 
 function frontmatter(file) {
@@ -19,7 +19,7 @@ function frontmatter(file) {
 }
 
 test('every agent has a contract, and its tools match its frontmatter', () => {
-  const dir = path.join(C, 'agents');
+  const dir = path.join(A, 'roles');
   for (const f of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
     const name = f.replace(/\.md$/, '');
     const contractPath = path.join(dir, `${name}.contract.json`);
@@ -37,7 +37,7 @@ test('every agent has a contract, and its tools match its frontmatter', () => {
 });
 
 test('every skill has a name and a pushy third-person description', () => {
-  const dir = path.join(C, 'skills');
+  const dir = path.join(A, 'skills');
   for (const s of readdirSync(dir)) {
     const fm = frontmatter(path.join(dir, s, 'SKILL.md'));
     assert.equal(fm.name, s, `${s}: frontmatter name must equal the directory name`);
@@ -49,7 +49,7 @@ test('every skill has a name and a pushy third-person description', () => {
 });
 
 test('skills stay short: 130 lines hard stop', () => {
-  const dir = path.join(C, 'skills');
+  const dir = path.join(A, 'skills');
   for (const s of readdirSync(dir)) {
     const n = readFileSync(path.join(dir, s, 'SKILL.md'), 'utf8').split('\n').length;
     assert.ok(n <= 130, `${s}/SKILL.md is ${n} lines. Split it into references/ or cut it.`);
@@ -58,7 +58,7 @@ test('skills stay short: 130 lines hard stop', () => {
 
 test('no skill sequences phases (Law 2)', () => {
   // A numbered list longer than eight steps inside a skill is a program written in English.
-  const dir = path.join(C, 'skills');
+  const dir = path.join(A, 'skills');
   for (const s of readdirSync(dir)) {
     const text = readFileSync(path.join(dir, s, 'SKILL.md'), 'utf8');
     const longest = Math.max(0, ...text.split(/\n\s*\n/).map((b) => b.split('\n').filter((l) => /^\s*\d+\.\s/.test(l)).length));
@@ -71,14 +71,14 @@ test('Claude PR review is read-only and cannot declare the human gate approved',
   assert.match(workflow, /contents: read/);
   assert.doesNotMatch(workflow, /contents: write/);
   assert.match(workflow, /--disallowedTools [^\n]*Write,Edit/);
-  const adapter = readFileSync(path.join(C, 'lib/review-adapter.mjs'), 'utf8');
+  const adapter = readFileSync(path.join(A, 'lib/review-adapter.mjs'), 'utf8');
   assert.match(adapter, /Status:\*\* draft/);
   assert.match(adapter, /human reviewer owns Gate 3/);
 });
 
 test('CI model evals cover every steering surface and require authentication', () => {
   const workflow = readFileSync(path.join(ROOT, '.github', 'workflows', 'harness.yml'), 'utf8');
-  for (const surface of [String.raw`CLAUDE\.md`, String.raw`settings\.json`, String.raw`harness\.toml`, 'skills/', 'agents/', 'hooks/', 'templates/', 'evals/']) {
+  for (const surface of [String.raw`CLAUDE\.md`, String.raw`settings\.json`, String.raw`harness\.toml`, 'skills/', 'roles/', 'hooks/', 'templates/', 'evals/']) {
     assert.ok(workflow.includes(surface), surface);
   }
   assert.match(workflow, /run\.mjs --require-auth/);
@@ -88,22 +88,22 @@ test('marketplace ships the kernel plugin only; extra policy skills stay out of 
   const market = JSON.parse(readFileSync(path.join(ROOT, '.claude-plugin', 'marketplace.json'), 'utf8'));
   // Read the name rather than hardcode it: this assertion is about there being exactly one
   // plugin, not about what it is called. test/install.test.mjs owns the naming contract.
-  const declared = JSON.parse(readFileSync(path.join(C, '.claude-plugin', 'plugin.json'), 'utf8')).name;
+  const declared = JSON.parse(readFileSync(path.join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8')).name;
   assert.deepEqual(market.plugins.map((p) => p.name), [declared]);
-  assert.equal(market.plugins[0].source, './.claude');
+  assert.equal(market.plugins[0].source, './.');
   assert.equal(existsSync(path.join(ROOT, 'plugins')), false);
-  assert.equal(existsSync(path.join(C, 'skills', 'secure-api')), false);
-  assert.equal(existsSync(path.join(C, 'skills', 'ux-standards')), false);
-  assert.equal(existsSync(path.join(C, 'agents', 'policy-reviewer.md')), false);
-  assert.equal(existsSync(path.join(C, 'agents', 'simplifier.md')), false);
+  assert.equal(existsSync(path.join(A, 'skills', 'secure-api')), false);
+  assert.equal(existsSync(path.join(A, 'skills', 'ux-standards')), false);
+  assert.equal(existsSync(path.join(A, 'roles', 'policy-reviewer.md')), false);
+  assert.equal(existsSync(path.join(A, 'roles', 'simplifier.md')), false);
 });
 
-test('handoff and monitor workflows write through a PR and never call a model', () => {
-  const handoff = readFileSync(path.join(ROOT, '.github/workflows/harness-handoff.yml'), 'utf8');
-  assert.match(handoff, /harness handoff --write/);
-  assert.match(handoff, /gh pr create/);
-  assert.doesNotMatch(handoff, /git push origin main/);
-  assert.doesNotMatch(handoff, /claude -p/);
+test('legacy handoff automation is absent and monitor writes through a PR without a model', () => {
+  assert.equal(existsSync(path.join(ROOT, '.github/workflows/harness-handoff.yml')), false);
+  assert.equal(existsSync(path.join(ROOT, '.github/workflows/harness-design.yml')), false);
+  assert.equal(existsSync(path.join(A, 'lib/handoff.mjs')), false);
+  assert.equal(existsSync(path.join(A, 'templates/spec.md')), false);
+  assert.equal(existsSync(path.join(A, 'templates/plan.md')), false);
   const monitor = readFileSync(path.join(ROOT, '.github/workflows/harness-monitor.yml'), 'utf8');
   assert.match(monitor, /schedule:/);
   assert.match(monitor, /harness monitor detect/);

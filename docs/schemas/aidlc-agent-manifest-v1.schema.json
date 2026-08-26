@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "aidlc.agent-manifest/v1",
+  "type": "object",
+  "required": ["schema", "enabled", "roles", "required_capabilities", "optional_capabilities"],
+  "properties": {
+    "schema": { "const": "aidlc.agent-manifest/v1" },
+    "enabled": { "type": "array", "uniqueItems": true, "items": { "enum": ["claude", "codex", "cursor", "copilot", "grok"] } },
+    "roles": {
+      "type": "object",
+      "required": ["specify", "generate", "evaluate", "diagnose"],
+      "additionalProperties": {
+        "type": "object",
+        "required": ["access", "isolation", "model_policy"],
+        "properties": {
+          "access": { "enum": ["read-only", "write"] },
+          "isolation": { "enum": ["working-context", "fresh-context", "worktree"] },
+          "model_policy": { "type": "string", "minLength": 1 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "required_capabilities": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+    "optional_capabilities": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

@@ -28,20 +28,20 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Read .claude/skills/intent/SKILL.md and .claude/templates/intent.md.
-            Create a draft intent at .claude/artifacts/intent/${{ steps.slug.outputs.slug }}.md
+            Read .aidlc/skills/intent/SKILL.md and .aidlc/templates/intent.md.
+            Create a draft intent at .aidlc/artifacts/intent/${{ steps.slug.outputs.slug }}.md
             from this GitHub issue. Do not set Status to approved. Do not solution.
             Author: ${{ github.event.issue.user.login }}
             Title: ${{ github.event.issue.title }}
             Body:
             ${{ github.event.issue.body }}
           claude_args: >-
-            --allowedTools "Read,Grep,Glob,Write(.claude/artifacts/intent/**),Edit(.claude/artifacts/intent/**)"
+            --allowedTools "Read,Grep,Glob,Write(.aidlc/artifacts/intent/**),Edit(.aidlc/artifacts/intent/**)"
             --disallowedTools "Bash,NotebookEditCell"
             --max-turns 8
       - name: Fallback skeleton when no model key
         if: ${{ secrets.ANTHROPIC_API_KEY == '' }}
-        run: node .claude/bin/harness new intent "${{ steps.slug.outputs.slug }}"
+        run: node .aidlc/bin/harness new intent "${{ steps.slug.outputs.slug }}"
       - name: Open a PR for the draft intent
         env:
           GH_TOKEN: ${{ github.token }}
@@ -50,7 +50,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           branch="harness/intent-${{ steps.slug.outputs.slug }}"
           git checkout -b "$branch"
-          git add .claude/artifacts/intent
+          git add .aidlc/artifacts/intent
           git -c commit.gpgsign=false commit -m "intent: draft from issue #${{ github.event.issue.number }}" || exit 0
           git push origin "$branch"
           gh pr create --title "Intent: ${{ steps.slug.outputs.slug }}" --body "Draft from issue #${{ github.event.issue.number }}. Product owner reviews and commits Status: approved. This PR does not skip Gate 1."

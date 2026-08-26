@@ -1,4 +1,0 @@
-# Sample. Copy to .github/CODEOWNERS in a product repo. Product owners watch intent.
-.claude/artifacts/intent/ @CHANGE-ME
-.claude/artifacts/spec/ @CHANGE-ME
-.claude/REVIEW.md @CHANGE-ME

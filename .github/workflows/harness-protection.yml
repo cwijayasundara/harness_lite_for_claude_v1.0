@@ -20,4 +20,4 @@ jobs:
           GH_TOKEN: ${{ secrets.HARNESS_ADMIN_READ_TOKEN }}
           BRANCH: ${{ inputs.branch }}
         run: gh api "repos/${GITHUB_REPOSITORY}/branches/${BRANCH}/protection" > "$RUNNER_TEMP/protection.json"
-      - run: node .claude/bin/harness github protection-check --file "$RUNNER_TEMP/protection.json" --required-check harness
+      - run: node .aidlc/bin/harness github protection-check --file "$RUNNER_TEMP/protection.json" --required-check harness

@@ -1,0 +1,9 @@
+# Sample. Copy to .github/CODEOWNERS in a product repo. Product owners watch intent.
+.aidlc/artifacts/intent/ @CHANGE-ME
+.aidlc/artifacts/contracts/ @CHANGE-ME
+.aidlc/artifacts/intent-refs/ @CHANGE-ME
+.aidlc/model-policy.json @CHANGE-ME
+.aidlc/artifacts/handoffs/ @CHANGE-ME
+.aidlc/artifacts/evaluations/ @CHANGE-ME
+.aidlc/artifacts/model-runs/ @CHANGE-ME
+.aidlc/policies/review.md @CHANGE-ME

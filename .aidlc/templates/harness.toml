@@ -1,0 +1,120 @@
+# The only hand-edited registry in the harness (Law 3).
+# Everything else — the check catalogue, the budget test, the hook behaviour — reads from here.
+#
+# Language support is these capability verbs. Adding Rust or Go is commands, not a plugin.
+# Any verb left empty is reported "skipped", never "failed": coverage grows with the project.
+
+[project]
+name = "CHANGE-ME"
+
+[capabilities]
+fmt       = ""
+lint      = ""
+typecheck = ""
+test      = ""   # e.g. "python3 -m pytest -q --json-report --json-report-file={report}"
+test_quality = "" # mutation, test-diff, or project policy that catches weakened tests
+coverage  = ""
+arch      = ""
+secrets   = ""          # empty = use the harness's built-in scanner
+deps      = ""
+
+# How to parse each verb's stdout into the one finding schema.
+# Known: ruff · eslint · mypy · tsc · pytest · generic
+# {files}  = the changed files (or "." when running whole-repo)
+# {report} = a path the tool may write its machine-readable output to, read back by the runner
+[formats]
+lint      = "generic"
+typecheck = "generic"
+test      = "generic"
+
+# Which verbs run when. A stage may reference another stage; one level of indirection.
+[stages]
+fast   = ["fmt", "lint", "typecheck"]
+stop   = ["fast", "test"]
+commit = ["stop", "secrets", "scope-drift", "budget"]
+drift  = ["coverage", "deps"]
+
+# Release-grade sensor ownership. Profiles select the project commands that are actually live;
+# a required profile with no live command fails closed. Keep the kernel language-neutral.
+[sensors]
+behaviour = ["test", "coverage"]
+architecture = ["arch"]
+hardening = ["secrets", "deps"]
+qa = ["test_quality", "fmt", "lint", "typecheck"]
+required_profiles = ["behaviour", "architecture", "hardening", "qa"]
+latency_budget_ms = 120000
+
+[check]
+# Stop at the first failing verb. Verbs are ordered cheapest-first, and one defect usually
+# fails every verb after the one that found it. Set false, or pass --all, for the full picture.
+fail_fast = true
+
+[graph]
+include = [".", ".aidlc"]       # dotdirs ARE indexed. The harness must be visible to itself.
+exclude = ["node_modules", ".venv", "dist", "build", "target", ".git", "__pycache__"]
+
+[budget]
+subagent_context_soft = 140000
+subagent_context_hard = 200000
+change_cost_ceiling   = 4.0     # USD per merged change, ratcheted against .aidlc/state/baseline.json
+max_findings          = 20      # per control, shown to the agent; full report on disk
+review_diff_max_bytes = 200000  # refuse to imply a complete AI review beyond this diff size
+
+# Law 5. The build fails when exceeded. Raising a limit needs a why: line in the same commit.
+[limits]
+skills          = 10
+agents          = 3
+hooks           = 5
+hook_loc        = 600
+claude_md_lines = 120
+
+[guard]
+protected_paths = []            # e.g. ["db/migrations", "vendor"]
+deny_bash       = []            # extra regexes, on top of the built-in destructive-command list
+require_contract = true         # product files need a committed approved contract that owns them
+
+# First production work-item adapter. Credentials stay in JIRA_EMAIL and JIRA_API_TOKEN.
+# authority is singular: use "external" for Jira, or leave provider empty for Git intents.
+[work_items]
+provider = ""                   # "jira" for the pilot pod
+authority = "external"
+base_url = ""                   # e.g. https://company.atlassian.net
+project_key = ""
+issue_type = "Story"
+accepted_status = "Accepted"
+closed_status = "Done"
+approvers = []                   # verified HARNESS_ACTOR identities allowed to accept/close
+timeout_ms = 30000
+
+# Optional project-owned adapter commands. Each receives the environment as its final argument.
+# Commands execute without a shell; production deploy/rollback requires an approval identifier.
+[deployment]
+platform = ""                 # "docker-compose" uses the packaged staging adapter
+preflight = []
+deploy = []
+status = []
+verify = []
+promote = []
+rollback = []
+production_requires_approval = true
+production_allowed_risks = ["low", "standard", "critical"]
+critical_approvals = 2
+require_preflight = true
+timeout_ms = 300000
+# Docker Compose platform fields: compose_file, service, image_repository, project_slug,
+# verify_url_staging, verify_url_production. Compose references image: ${AIDLC_IMAGE}.
+
+# Optional. argv that prints {"bands":[{"metric","observed",min?,max?,"source"}]}.
+# Empty means `harness monitor detect` is a no-op. Detection stays model-free.
+# A 3σ detect runs [deployment].rollback against staging when that argv is set.
+[monitoring]
+collect = []
+timeout_ms = 300000
+
+[sla]
+intent_hours = 8
+design_hours = 24
+planning_hours = 8
+build_hours = 72
+review_hours = 24
+incident_to_intent_minutes = 60

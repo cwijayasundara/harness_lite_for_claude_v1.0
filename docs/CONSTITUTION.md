@@ -20,7 +20,7 @@ and the hook behaviour all read from it. If two files can disagree about the sam
 one. Never write a test asserting that two prose files agree.
 
 ### Law 4 — The ledger is control #1
-`.claude/state/ledger.jsonl` exists before the second control does. Every check invocation
+`.aidlc/state/ledger.jsonl` exists before the second control does. Every check invocation
 appends a row — no sampling, no opt-in telemetry stack, no configuration. A control that
 errors is recorded as `errored`, never silently as a pass.
 
@@ -38,10 +38,11 @@ It answers five named questions, proven by a test that asks them, and it indexes
 dotdirs included, so the harness is visible to itself. When it is stale or absent the agent
 falls back to grep and says so. Never a required input.
 
-### Law 8 — Three human gates, no more
-Spec approved · plan approved · PR merged. Everything else is advisory. Approval pauses inside
-the build loop destroy the parallelism that makes agents worth running; gates belong at the
-edges, not in the middle.
+### Law 8 — One intake decision, then three delivery gates
+Intent accepted · spec approved · plan approved · PR merged. Intent acceptance authorizes entry
+into delivery; the remaining three are delivery gates. Everything else is advisory. Approval
+pauses inside the build loop destroy the parallelism that makes agents worth running; gates
+belong at the edges, not in the middle.
 
 ### Law 9 — Evals before controls *(enforced: CI)*
 Twenty golden tasks with deterministic assertions and per-task budgets exist before skill #13

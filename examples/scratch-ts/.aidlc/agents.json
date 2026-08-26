@@ -1,0 +1,10 @@
+{
+  "schema": "aidlc.agent-manifest/v1",
+  "enabled": ["claude", "codex", "cursor", "copilot", "grok"],
+  "roles": {
+    "implementer": { "access": "write", "isolation": "working-context", "model_policy": "generation" },
+    "evaluator": { "access": "read-only", "isolation": "fresh-context", "model_policy": "high-assurance-evaluation" }
+  },
+  "required_capabilities": ["instructions", "skills", "cli"],
+  "optional_capabilities": ["subagents", "hooks", "mcp", "model-pinning"]
+}

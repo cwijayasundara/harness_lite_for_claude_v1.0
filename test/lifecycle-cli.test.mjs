@@ -4,9 +4,8 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, wr
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { C } from './_paths.mjs';
+import { A, C, BIN } from './_paths.mjs';
 
-const BIN = path.join(C, 'bin', 'harness');
 const run = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
 
 function repo() {
@@ -31,35 +30,35 @@ test('new rejects path traversal and non-canonical artifact slugs', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('status fails when approval text has not entered git history', () => {
+test('status fails when intent acceptance has not entered git history', () => {
   const root = repo();
   try {
     assert.equal(run(root, 'new', 'intent', 'uncommitted-gate').status, 0);
-    const file = path.join(root, '.claude/artifacts/intent/uncommitted-gate.md');
-    writeFileSync(file, readFileSync(file, 'utf8').replace('Status:** draft', 'Status:** approved'));
+    const file = path.join(root, '.aidlc/artifacts/intent/uncommitted-gate.md');
+    writeFileSync(file, readFileSync(file, 'utf8').replace('Status:** draft', 'Status:** accepted'));
     const result = run(root, 'status', 'uncommitted-gate');
     assert.equal(result.status, 1);
-    assert.match(result.stdout, /approval is not committed/);
+    assert.match(result.stdout, /acceptance is not committed/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
 test('init is idempotent and installs a checkout-independent shim', () => {
   const root = repo();
   try {
-    const config = path.join(root, '.claude/harness.toml');
+    const config = path.join(root, '.aidlc/harness.toml');
     writeFileSync(config, readFileSync(config, 'utf8').replace('CHANGE-ME', 'preserved-name'));
     assert.equal(run(root, 'init', '--into', root).status, 0);
     assert.match(readFileSync(config, 'utf8'), /preserved-name/);
-    const shim = path.join(root, '.claude/bin/harness');
+    const shim = path.join(root, '.aidlc/bin/harness');
     chmodSync(shim, 0o755);
     const text = readFileSync(shim, 'utf8');
     assert.doesNotMatch(text, new RegExp(C.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     // The harness is declared, never copied: a project that carries its own runtime can drift
     // from the version the pod agreed on. The record is what names the version instead.
     assert.equal(existsSync(path.join(root, '.claude/runtime')), false);
-    assert.ok(existsSync(path.join(root, '.claude/harness-install.json')));
+    assert.ok(existsSync(path.join(root, '.aidlc/harness-install.json')));
     // HARNESS_HOME is how CI points the shim at the checkout it made from the recorded commit.
-    const doctor = spawnSync(shim, ['doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: C } });
+    const doctor = spawnSync(shim, ['doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A } });
     assert.equal(doctor.status, 0);
     assert.match(doctor.stdout, /preserved-name/);
     assert.match(doctor.stdout, /secrets\s+\[built-in\]/);
@@ -72,9 +71,9 @@ test('a committed incident reaches its same-slug intent within SLA', () => {
     const now = new Date(); const detected = new Date(now.getTime() - 30 * 60000);
     assert.equal(run(root, 'new', 'incident', 'service-outage').status, 0);
     assert.equal(run(root, 'new', 'intent', 'service-outage').status, 0);
-    const incident = path.join(root, '.claude/artifacts/incident/service-outage.md');
+    const incident = path.join(root, '.aidlc/artifacts/incident/service-outage.md');
     writeFileSync(incident, readFileSync(incident, 'utf8').replace(/Detected at:\*\* .+/, `Detected at:** ${detected.toISOString()}`));
-    const intent = path.join(root, '.claude/artifacts/intent/service-outage.md');
+    const intent = path.join(root, '.aidlc/artifacts/intent/service-outage.md');
     writeFileSync(intent, readFileSync(intent, 'utf8').replace('Status:** draft', 'Status:** approved'));
     spawnSync('git', ['add', '.'], { cwd: root });
     const committed = spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'incident to intent'], { cwd: root, env: { ...process.env, GIT_AUTHOR_DATE: now.toISOString(), GIT_COMMITTER_DATE: now.toISOString() } });
@@ -93,16 +92,16 @@ test('status reports playbook indicators from git history and eval results', () 
   try {
     assert.equal(run(root, 'new', 'intent', 'kept-change').status, 0);
     assert.equal(run(root, 'new', 'intent', 'dropped-change').status, 0);
-    const kept = path.join(root, '.claude/artifacts/intent/kept-change.md');
-    const dropped = path.join(root, '.claude/artifacts/intent/dropped-change.md');
+    const kept = path.join(root, '.aidlc/artifacts/intent/kept-change.md');
+    const dropped = path.join(root, '.aidlc/artifacts/intent/dropped-change.md');
     writeFileSync(kept, readFileSync(kept, 'utf8').replace('Status:** draft', 'Status:** approved'));
     writeFileSync(dropped, readFileSync(dropped, 'utf8').replace('Status:** draft', 'Status:** closed'));
     spawnSync('git', ['add', '.'], { cwd: root });
     spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'decide intents'], { cwd: root });
 
-    mkdirSync(path.join(root, '.claude/evals/results'), { recursive: true });
-    writeFileSync(path.join(root, '.claude/evals/results/2026-08-24T04-01-22-046Z.json'), JSON.stringify({ summary: { total: 20, pass: 14 } }));
-    writeFileSync(path.join(root, '.claude/evals/results/2026-08-24T04-41-43-578Z.json'), JSON.stringify({ summary: { total: 1, pass: 1 } }));
+    mkdirSync(path.join(root, '.aidlc/evals/results'), { recursive: true });
+    writeFileSync(path.join(root, '.aidlc/evals/results/2026-08-24T04-01-22-046Z.json'), JSON.stringify({ summary: { total: 20, pass: 14 } }));
+    writeFileSync(path.join(root, '.aidlc/evals/results/2026-08-24T04-41-43-578Z.json'), JSON.stringify({ summary: { total: 1, pass: 1 } }));
 
     const result = run(root, 'status', '--json');
     assert.equal(result.status, 0, result.stdout + result.stderr);

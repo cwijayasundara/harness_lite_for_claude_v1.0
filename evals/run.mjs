@@ -6,15 +6,15 @@
 // reason the numbers this prints can be trusted.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { evaluate, KNOWN, toRegExp } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
 import { stage } from './lib/stage.mjs';
-import { approveDrafts } from './lib/approve.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const CLAUDE_ROOT = path.dirname(HERE);
+const PLUGIN_ROOT = path.dirname(HERE);
 
 // What the model actually touched. A failure that reports only "the file is missing" cannot
 // distinguish "did nothing" from "wrote it somewhere else", and those need opposite fixes.
@@ -58,6 +58,14 @@ export function promptCount(t) {
   return t.prompt ? 1 : 0;
 }
 
+export function claudeAuthenticated(env = process.env, run = spawnSync) {
+  if (env.ANTHROPIC_API_KEY || env.CLAUDE_CODE_OAUTH_TOKEN || env.ANTHROPIC_AUTH_TOKEN) return true;
+  const result = run('claude', ['auth', 'status'], { encoding: 'utf8', env });
+  if (result.error?.code === 'ENOENT') return false;
+  try { return JSON.parse(result.stdout ?? '').loggedIn === true; }
+  catch { return result.status === 0 && /logged.?in\s*[:=]?\s*true/i.test(`${result.stdout ?? ''}${result.stderr ?? ''}`); }
+}
+
 function assertsOf(t) {
   return [...(t.assert ?? []), ...(t.steps ?? []).flatMap((s) => s.assert ?? [])];
 }
@@ -83,12 +91,7 @@ export function validate(tasks, fixturesDir) {
     if (t.steps) {
       if (!t.steps.length) problems.push(`${at}: steps is empty`);
       t.steps.forEach((s, i) => {
-        const hasPrompt = Boolean(s.prompt);
-        const hasApprove = Boolean(s.approve);
-        if (hasPrompt === hasApprove) problems.push(`${at} step ${i}: must be prompt or approve, not both or neither`);
-        if (hasApprove && !['intent', 'spec', 'plan'].includes(s.approve)) {
-          problems.push(`${at} step ${i}: approve must be intent, spec, or plan`);
-        }
+        if (!s.prompt) problems.push(`${at} step ${i}: must contain a prompt`);
       });
     } else if (!t.prompt) {
       problems.push(`${at}: no prompt`);
@@ -105,7 +108,7 @@ export function validate(tasks, fixturesDir) {
 
 function invokerFatal(out) {
   if (out?.notInstalled) return Object.assign(new Error(out.error), { fatal: true });
-  if (/invalid api key|authentication_error|please run .?claude login/i.test(out?.transcript ?? '')) {
+  if (/invalid api key|authentication_error|not logged in|please run (?:\/?login|.?claude login)/i.test(out?.transcript ?? '')) {
     return Object.assign(new Error('the `claude` CLI is not authenticated'), { fatal: true });
   }
   return null;
@@ -126,12 +129,6 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
   let transcript = '';
   for (let idx = 0; idx < t.steps.length; idx++) {
     const step = t.steps[idx];
-    if (step.approve) {
-      const r = approveDrafts(s.work, s.pristine, step.approve);
-      assertions.push({ name: `approve_${step.approve}`, pass: r.ok, detail: r.detail ?? '' });
-      if (!r.ok) break;
-      continue;
-    }
     const out = await invoke({
       prompt: step.prompt, cwd: s.work, timeoutMs: t.timeoutMs, budgetUsd: t.budgetUsd, task: t, step: idx,
     });
@@ -216,12 +213,9 @@ async function main() {
     return 0;
   }
 
-  // `claude -p` authenticates from a Claude Code login as well as from an env var, so keying
-  // the gate on ANTHROPIC_API_KEY alone refuses to run on exactly the machines most likely to
-  // be able to. Check what actually indicates auth, and let --force cover the rest.
-  const credentialsFile = path.join(process.env.HOME ?? '', '.claude', '.credentials.json');
-  const authed = process.env.ANTHROPIC_API_KEY || process.env.CLAUDE_CODE_OAUTH_TOKEN
-    || process.env.ANTHROPIC_AUTH_TOKEN || existsSync(credentialsFile);
+  // Claude may store OAuth credentials in an OS keychain rather than a repository-visible file.
+  // Ask the CLI that will perform the run; environment tokens remain the non-interactive CI path.
+  const authed = claudeAuthenticated();
   if (!authed && !argv.includes('--force')) {
     if (argv.includes('--require-auth')) {
       console.error('Claude credentials are required for this eval run, but none were found.');
@@ -229,7 +223,7 @@ async function main() {
     }
     // Never block a contributor who only wanted `node --test`.
     console.log('No Claude credentials found — skipping the model half of the suite. Tasks validated.');
-    console.log('If your `claude` CLI is already logged in, re-run with --force.');
+    console.log('Run `claude auth login`, then confirm `claude auth status` reports "loggedIn": true.');
     return 0;
   }
 
@@ -238,15 +232,15 @@ async function main() {
   const baseline = existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, 'utf8')) : {};
   const out = await runSuite({
     tasks, fixturesDir, baseline,
-    harnessBin: path.join(CLAUDE_ROOT, 'bin', 'harness'),
-    invoke: claudeInvoker({ pluginDir: CLAUDE_ROOT }),
+    harnessBin: path.join(PLUGIN_ROOT, '.aidlc', 'bin', 'harness'),
+    invoke: claudeInvoker({ pluginDir: PLUGIN_ROOT }),
     log: (m) => console.log(m),
   });
 
   // Results are harness output about a repo, not part of the eval suite, so they stay under
-  // .claude/ where indicators.mjs reads them and where a target repo keeps its own. The
+  // .aidlc/ where indicators.mjs reads them and where a target repo keeps its own. The
   // suite moved to the repo root; its results did not.
-  const dir = path.join(path.dirname(HERE), '.claude', 'evals', 'results');
+  const dir = path.join(path.dirname(HERE), '.aidlc', 'evals', 'results');
   mkdirSync(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   writeFileSync(path.join(dir, `${stamp}.json`), JSON.stringify(out, null, 2));

@@ -8,7 +8,7 @@ export function claudeInvoker({ pluginDir }) {
       '-p', prompt,
       // Evals run against a disposable copy in mkdtemp, so permission prompts measure the CLI
       // rather than the guides. MEASURED: under `acceptEdits` the model's own skills told it to
-      // run `.claude/bin/harness` and to write `.claude/artifacts/...`, and both were denied —
+      // run `.aidlc/bin/harness` and to write `.aidlc/artifacts/...`, and both were denied —
       // six tasks failed while every guide behaved correctly. Real repositories get the scoped
       // grant that `harness init` writes into settings.json instead of this.
       // MEASURED: --dangerously-skip-permissions alone is inert — the CLI needs its enabling
@@ -19,7 +19,8 @@ export function claudeInvoker({ pluginDir }) {
       ...(pluginDir ? ['--plugin-dir', pluginDir] : []),
       ...(budgetUsd ? ['--max-budget-usd', String(budgetUsd)] : []),
     ];
-    const r = spawnSync('claude', args, { cwd, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
+    const env = pluginDir ? { ...process.env, HARNESS_HOME: pluginDir } : process.env;
+    const r = spawnSync('claude', args, { cwd, env, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
     // A missing CLI is not a failed task — it is a broken harness, and twenty tasks failing
     // with empty transcripts is the least useful way to say so. Same lesson as exit 127 in the
     // check runner: never let an absent tool masquerade as a verdict.

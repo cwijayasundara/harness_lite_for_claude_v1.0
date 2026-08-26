@@ -1,0 +1,25 @@
+{
+  "schema": "aidlc.model-policy/v1",
+  "revision": "company-v1-2026-08-26",
+  "roles": {
+    "specify": "generation",
+    "generate": "generation",
+    "evaluate": "high-assurance-evaluation",
+    "diagnose": "high-assurance-evaluation"
+  },
+  "policies": {
+    "generation": {
+      "primary": { "provider": "anthropic", "model": "claude-sonnet-5", "effort": "high" },
+      "fallback": null,
+      "timeout_ms": 600000,
+      "max_cost_usd": 4
+    },
+    "high-assurance-evaluation": {
+      "primary": { "provider": "anthropic", "model": "claude-opus-5", "effort": "high" },
+      "fallback": null,
+      "timeout_ms": 600000,
+      "max_cost_usd": 6
+    }
+  },
+  "max_repair_loops": 2
+}

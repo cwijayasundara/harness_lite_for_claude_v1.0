@@ -5,14 +5,13 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { C, ROOT } from './_paths.mjs';
+import { A, ROOT } from './_paths.mjs';
 import { evaluate, expand, KNOWN, toRegExp } from '../evals/lib/assertions.mjs';
 import { stage } from '../evals/lib/stage.mjs';
-import { loadTasks, validate, runSuite, promptCount } from '../evals/run.mjs';
-import { approveDrafts } from '../evals/lib/approve.mjs';
+import { claudeAuthenticated, loadTasks, validate, runSuite, promptCount } from '../evals/run.mjs';
 
 const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
-const HARNESS = path.join(C, 'bin', 'harness');
+const HARNESS = path.join(A, 'bin', 'harness');
 // `bash -lc` replaces PATH with the login path and grades the laptop's shell profile, not the
 // change. Inherit this process's PATH so a present ruff/pytest actually runs.
 const has = (cmd) => spawnSync(cmd, ['--version']).status === 0;
@@ -22,6 +21,14 @@ test('tasks.json validates, and every fixture it names exists', () => {
   const tasks = loadTasks();
   assert.ok(tasks.length >= 20, `Law 9 wants 20 golden tasks, found ${tasks.length}`);
   assert.deepEqual(validate(tasks, FIXTURES), []);
+});
+
+test('authentication follows Claude CLI status, including keychain-backed logins', () => {
+  const loggedIn = () => ({ status: 0, stdout: '{"loggedIn":true}', stderr: '' });
+  const loggedOut = () => ({ status: 1, stdout: '{"loggedIn":false}', stderr: '' });
+  assert.equal(claudeAuthenticated({}, loggedIn), true);
+  assert.equal(claudeAuthenticated({}, loggedOut), false);
+  assert.equal(claudeAuthenticated({ ANTHROPIC_API_KEY: 'ci-token' }, loggedOut), true);
 });
 
 test('validate rejects the four ways a task wastes money', () => {
@@ -40,9 +47,9 @@ test('validate rejects the four ways a task wastes money', () => {
 });
 
 test('glob expands one segment at a time', () => {
-  const s = stage(FIXTURES, 'planned-change');
+  const s = stage(FIXTURES, 'contract-planned');
   try {
-    assert.deepEqual(expand(s.work, '.claude/artifacts/plan/*.md'), ['.claude/artifacts/plan/hyphen-titlecase.md']);
+    assert.deepEqual(expand(s.work, '.aidlc/artifacts/contracts/*.md'), ['.aidlc/artifacts/contracts/hyphen-titlecase.md']);
     assert.deepEqual(expand(s.work, 'tests/*.py'), ['tests/test_app.py']);
     assert.deepEqual(expand(s.work, 'nothing/*.md'), []);
   } finally { s.cleanup(); }
@@ -52,7 +59,7 @@ test('staging yields a git repo plus an untouched pristine copy', () => {
   const s = stage(FIXTURES, 'clean-app');
   try {
     assert.ok(existsSync(path.join(s.work, '.git')));
-    assert.ok(existsSync(path.join(s.work, '.claude/harness.toml')), 'base was overlaid');
+    assert.ok(existsSync(path.join(s.work, '.aidlc/harness.toml')), 'base was overlaid');
     assert.ok(existsSync(path.join(s.work, 'src/app/handlers.py')), 'fixture was overlaid');
     const ctx = { work: s.work, pristine: s.pristine, transcript: '' };
     assert.deepEqual(evaluate(ctx, [{ workdir_unchanged: true }]), [{ name: 'workdir_unchanged', pass: true, detail: '' }]);
@@ -63,10 +70,10 @@ test('file assertions catch a collateral edit, and ignore harness state', () => 
   const s = stage(FIXTURES, 'buggy-calc');
   try {
     writeFileSync(path.join(s.work, 'src/app/add.py'), '# vandalised\n');
-    mkdirSync(path.join(s.work, '.claude/state'), { recursive: true });
-    appendFileSync(path.join(s.work, '.claude/state/ledger.jsonl'), '{}\n');
+    mkdirSync(path.join(s.work, '.aidlc/state'), { recursive: true });
+    appendFileSync(path.join(s.work, '.aidlc/state/ledger.jsonl'), '{}\n');
     const ctx = { work: s.work, pristine: s.pristine, transcript: '' };
-    const [collateral, dirty] = evaluate(ctx, [{ files_unchanged: ['src/app/add.py'] }, { files_unchanged: ['.claude/state'] }]);
+    const [collateral, dirty] = evaluate(ctx, [{ files_unchanged: ['src/app/add.py'] }, { files_unchanged: ['.aidlc/state'] }]);
     assert.equal(collateral.pass, false);
     assert.match(collateral.detail, /src\/app\/add\.py/);
     assert.equal(dirty.pass, true, 'ledger writes are not a collateral edit');
@@ -127,6 +134,14 @@ test('an invoker that throws is a failed task, not a crashed suite', async () =>
   assert.match(out.results[0].runs[0].assertions[0].detail, /model unreachable/);
 });
 
+test('an unauthenticated model response aborts the suite instead of earning accidental passes', async () => {
+  await assert.rejects(runSuite({
+    tasks: [{ id: 'auth', fixture: 'clean-app', prompt: 'x', repeats: 1, timeoutMs: 1000, budgetUsd: 1, assert: [{ workdir_unchanged: true }] }],
+    invoke: () => ({ transcript: 'Not logged in · Please run /login', usage: { usd: 0 } }),
+    fixturesDir: FIXTURES, harnessBin: HARNESS,
+  }), /not authenticated/);
+});
+
 // A fixture that is not actually broken silently passes every task written against it.
 test('fixtures are what they claim: clean-app green, buggy-calc and broken-suite red', { skip: TOOLS ? false : 'ruff/pytest not installed' }, () => {
   for (const [name, shouldPass] of [['clean-app', true], ['buggy-calc', false], ['broken-suite', false]]) {
@@ -155,87 +170,21 @@ test('inline (?i) is translated, because JavaScript is the odd dialect out', () 
   assert.match(validate(bad, FIXTURES).join('\n'), /bad regex/);
 });
 
-test('validate accepts a multi-step task and rejects a step that is neither prompt nor approve', () => {
+test('validate accepts a multi-step task and rejects a step without a prompt', () => {
   const ok = [{
-    id: 'chain', fixture: 'linked-change', timeoutMs: 1, budgetUsd: 1,
+    id: 'chain', fixture: 'clean-app', timeoutMs: 1, budgetUsd: 1,
     steps: [
-      { prompt: 'write intent', assert: [{ file_exists: '.claude/artifacts/intent/*.md' }] },
-      { approve: 'intent' },
+      { prompt: 'write intent', assert: [{ file_exists: '.aidlc/artifacts/intent/*.md' }] },
+      { prompt: 'write contract', assert: [{ file_exists: '.aidlc/artifacts/contracts/*.md' }] },
     ],
   }];
   assert.deepEqual(validate(ok, FIXTURES), []);
-  assert.equal(promptCount(ok[0]), 1);
+  assert.equal(promptCount(ok[0]), 2);
 
   const bad = [{
     id: 'chain', fixture: 'linked-change', timeoutMs: 1, budgetUsd: 1,
     steps: [{ assert: [{ workdir_unchanged: true }] }],
   }];
   const p = validate(bad, FIXTURES).join('\n');
-  assert.match(p, /must be prompt or approve/);
-});
-
-test('approveDrafts commits a new draft and leaves fixture artifacts alone', () => {
-  const s = stage(FIXTURES, 'linked-change');
-  try {
-    const dir = path.join(s.work, '.claude/artifacts/intent');
-    writeFileSync(path.join(dir, 'family-sort-key.md'), '# Intent\n\n- **Status:** draft\n');
-    const hit = approveDrafts(s.work, s.pristine, 'intent');
-    assert.equal(hit.ok, true, hit.detail);
-    assert.match(readFileSync(path.join(dir, 'family-sort-key.md'), 'utf8'), /\*\*Status:\*\* approved/);
-    assert.match(readFileSync(path.join(dir, 'hyphen-titlecase.md'), 'utf8'), /\*\*Status:\*\* approved/);
-    const miss = approveDrafts(s.work, s.pristine, 'spec');
-    assert.equal(miss.ok, false);
-    assert.match(miss.detail, /no new spec/);
-  } finally { s.cleanup(); }
-});
-
-test('a multi-step task keeps the workdir, so a later step sees the committed approval', async () => {
-  const invoke = ({ prompt, cwd }) => {
-    const intentDir = path.join(cwd, '.claude/artifacts/intent');
-    const specDir = path.join(cwd, '.claude/artifacts/spec');
-    if (prompt.includes('write intent')) {
-      mkdirSync(intentDir, { recursive: true });
-      writeFileSync(path.join(intentDir, 'family-sort-key.md'), [
-        '# Intent: family-sort-key',
-        '- **Status:** draft',
-        '',
-        'Invoice search cannot sort by family name.',
-      ].join('\n'));
-      return { transcript: 'wrote intent', usage: { usd: 0.01 } };
-    }
-    const intent = readFileSync(path.join(intentDir, 'family-sort-key.md'), 'utf8');
-    assert.match(intent, /\*\*Status:\*\* approved/, 'spec step must see the approved intent');
-    mkdirSync(specDir, { recursive: true });
-    writeFileSync(path.join(specDir, 'family-sort-key.md'), [
-      '# Spec: family-sort-key',
-      '- **Status:** draft',
-      '',
-      'Continues hyphen-titlecase.',
-      '## Out of scope',
-    ].join('\n'));
-    return { transcript: 'wrote spec', usage: { usd: 0.02 } };
-  };
-  const out = await runSuite({
-    tasks: [{
-      id: 'second-req', fixture: 'linked-change', prompt: undefined, repeats: 1, timeoutMs: 1000, budgetUsd: 1,
-      steps: [
-        { prompt: 'write intent from docs/req-b.md', assert: [{ file_exists: '.claude/artifacts/intent/family-sort-key.md' }] },
-        { approve: 'intent' },
-        { prompt: 'write spec from the approved intent', assert: [{ file_matches: ['.claude/artifacts/spec/family-sort-key.md', 'hyphen-titlecase'] }] },
-      ],
-    }],
-    invoke, fixturesDir: FIXTURES, harnessBin: HARNESS,
-  });
-  assert.equal(out.results[0].verdict, 'pass', JSON.stringify(out.results[0].runs[0].assertions));
-  assert.equal(out.summary.usd, 0.03);
-});
-
-test('fixtures are what they claim: linked-change is green with req A already shipped', { skip: TOOLS ? false : 'ruff/pytest not installed' }, () => {
-  const s = stage(FIXTURES, 'linked-change');
-  try {
-    const [r] = evaluate({ work: s.work, pristine: s.pristine, transcript: '', harness: HARNESS }, [{ fixture_tests_pass: true }]);
-    assert.equal(r.pass, true, `linked-change: expected tests to pass — ${r.detail}`);
-    assert.ok(existsSync(path.join(s.work, 'docs/req-b.md')));
-    assert.match(readFileSync(path.join(s.work, '.claude/artifacts/plan/hyphen-titlecase.md'), 'utf8'), /Status:\*\* approved/);
-  } finally { s.cleanup(); }
+  assert.match(p, /must contain a prompt/);
 });

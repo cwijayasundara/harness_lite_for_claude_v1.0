@@ -12,7 +12,7 @@ import { readFileSync, readdirSync, existsSync, mkdtempSync, mkdirSync, writeFil
 import { execFileSync, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { C, ROOT, BIN } from './_paths.mjs';
+import { A, C, ROOT, BIN } from './_paths.mjs';
 
 const readJson = (p) => JSON.parse(readFileSync(p, 'utf8'));
 
@@ -45,7 +45,7 @@ function committedFiles(root) {
 }
 
 const MARKETPLACE = path.join(ROOT, '.claude-plugin', 'marketplace.json');
-const PLUGIN = path.join(C, '.claude-plugin', 'plugin.json');
+const PLUGIN = path.join(ROOT, '.claude-plugin', 'plugin.json');
 
 // Spec behaviour 6. The identifier a project commits is `<plugin>@<marketplace>`, assembled
 // from two files that are edited at different times by different people. A rename that touches
@@ -122,7 +122,7 @@ test('init leaves no copy of the harness in the project', (t) => {
 test('init writes a declaration, and declares no hooks of its own', (t) => {
   const root = installed(t);
   const settings = readJson(path.join(root, '.claude', 'settings.json'));
-  const name = readJson(path.join(C, '.claude-plugin', 'plugin.json')).name;
+  const name = readJson(path.join(ROOT, '.claude-plugin', 'plugin.json')).name;
 
   assert.equal('hooks' in settings, false,
     'the project declares hooks as well as the plugin, so every binding fires twice');
@@ -165,7 +165,7 @@ test('this repository consumes its own harness exactly once', () => {
 });
 
 // Spec behaviour 13. The banner is the first instruction the harness gives itself every
-// session, and here it printed `bash .claude/bin/harness`, which in this repository is a shell
+// session, and here it printed `bash .aidlc/bin/harness`, which in this repository is a shell
 // syntax error — the file is JavaScript, not a shim. A control that tells you to run something
 // that cannot run is worse than no control: it teaches people to ignore the banner.
 test('the command the banner prints is the command that runs here', () => {
@@ -185,7 +185,7 @@ test('the command the banner prints is the command that runs here', () => {
 // than a missing field: a value the record could not fill must not read as an empty one.
 test('the install record names the marketplace, the plugin and the commit', (t) => {
   const root = installed(t);
-  const rec = readJson(path.join(root, '.claude', 'harness-install.json'));
+  const rec = readJson(path.join(root, '.aidlc', 'harness-install.json'));
   const name = readJson(PLUGIN).name;
 
   assert.equal(rec.marketplace, name);
@@ -199,7 +199,7 @@ test('the install record names the marketplace, the plugin and the commit', (t) 
 // to be exactly that. Re-running must not silently discard the one file the user hand-edits.
 test('re-running init leaves the hand-edited files untouched', (t) => {
   const root = installed(t);
-  const hand = [path.join(root, '.claude', 'harness.toml'), path.join(root, '.claude', 'CLAUDE.md')];
+  const hand = [path.join(root, '.aidlc', 'harness.toml'), path.join(root, '.aidlc', 'instructions.md')];
   const before = hand.map((f) => readFileSync(f, 'utf8'));
 
   const again = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
@@ -216,17 +216,17 @@ test('re-running init leaves the hand-edited files untouched', (t) => {
 // that drove the design. Recorded here so the distinction is not lost.
 test('the shim resolves the harness from HARNESS_HOME and from the plugin cache', (t) => {
   const root = installed(t);
-  const shim = path.join(root, '.claude', 'bin', 'harness');
-  const rec = readJson(path.join(root, '.claude', 'harness-install.json'));
+  const shim = path.join(root, '.aidlc', 'bin', 'harness');
+  const rec = readJson(path.join(root, '.aidlc', 'harness-install.json'));
   const home = mkdtempSync(path.join(tmpdir(), 'harness-home-'));
   t.after(() => rmSync(home, { recursive: true, force: true }));
 
   const viaEnv = spawnSync('bash', [shim, 'doctor'],
-    { cwd: root, encoding: 'utf8', env: { ...process.env, HOME: home, HARNESS_HOME: C } });
+    { cwd: root, encoding: 'utf8', env: { ...process.env, HOME: home, HARNESS_HOME: A } });
   assert.equal(viaEnv.status, 0, `HARNESS_HOME did not resolve: ${viaEnv.stderr}`);
 
   // A plugin cache is <marketplace>/<plugin>/<version>, holding the harness at its root.
-  cpSync(C, path.join(home, '.claude', 'plugins', 'cache', rec.marketplace, rec.plugin, rec.version), { recursive: true });
+  cpSync(ROOT, path.join(home, '.claude', 'plugins', 'cache', rec.marketplace, rec.plugin, rec.version), { recursive: true });
   const viaCache = spawnSync('bash', [shim, 'doctor'],
     { cwd: root, encoding: 'utf8', env: { ...process.env, HOME: home, HARNESS_HOME: '' } });
   assert.equal(viaCache.status, 0, `the plugin cache did not resolve: ${viaCache.stderr}`);
@@ -237,7 +237,7 @@ test('the shim fails loudly when the harness is nowhere', (t) => {
   const home = mkdtempSync(path.join(tmpdir(), 'harness-nohome-'));
   t.after(() => rmSync(home, { recursive: true, force: true }));
 
-  const r = spawnSync('bash', [path.join(root, '.claude', 'bin', 'harness'), 'doctor'],
+  const r = spawnSync('bash', [path.join(root, '.aidlc', 'bin', 'harness'), 'doctor'],
     { cwd: root, encoding: 'utf8', env: { ...process.env, HOME: home, HARNESS_HOME: '' } });
 
   assert.notEqual(r.status, 0, 'a shim that cannot find the harness must not exit 0');
@@ -246,10 +246,10 @@ test('the shim fails loudly when the harness is nowhere', (t) => {
 
   // A HARNESS_HOME that points nowhere is a mistyped CI variable, not a reason to hand the
   // operator a module-loader stack trace. Behaviour 12 asks for the two commands every time.
-  const wrong = spawnSync('bash', [path.join(root, '.claude', 'bin', 'harness'), 'doctor'],
+  const wrong = spawnSync('bash', [path.join(root, '.aidlc', 'bin', 'harness'), 'doctor'],
     { cwd: root, encoding: 'utf8', env: { ...process.env, HOME: home, HARNESS_HOME: path.join(home, 'nope') } });
   assert.notEqual(wrong.status, 0);
-  assert.match(wrong.stderr, /HARNESS_HOME=.*holds no bin\/harness/, 'the failure says which variable is wrong');
+  assert.match(wrong.stderr, /HARNESS_HOME=.*holds no \.aidlc\/bin\/harness/, 'the failure says which variable is wrong');
   assert.match(wrong.stderr, /claude plugin marketplace add/, 'and still names the way out');
 });
 

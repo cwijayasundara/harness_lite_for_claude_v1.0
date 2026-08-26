@@ -1,8 +1,0 @@
-{
-  "agent": "verifier",
-  "may_spawn": false,
-  "may_write": false,
-  "tools": ["Read", "Grep", "Glob", "Bash"],
-  "artifact_roots": [".claude/state/"],
-  "why": "The agent that grades the work may not also produce it. Bash is granted so it can run the checks; Write is withheld so it cannot make them pass."
-}

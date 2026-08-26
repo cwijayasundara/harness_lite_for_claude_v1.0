@@ -24,10 +24,10 @@ jobs:
           prompt: |
             Address the review comments on PR ${{ github.event.issue.number }}.
             Comment: ${{ github.event.comment.body }}
-            Edit the branch. Run node .claude/bin/harness check --stage stop.
+            Edit the branch. Run node .aidlc/bin/harness check --stage stop.
             Do not approve the pull request. Do not merge. Do not change review.md Status to approved.
           claude_args: >-
-            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(node .claude/bin/harness *)"
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash(node .aidlc/bin/harness *)"
             --disallowedTools "NotebookEditCell"
             --max-turns 16
       - env:

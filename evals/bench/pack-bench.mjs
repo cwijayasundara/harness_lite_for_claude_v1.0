@@ -8,11 +8,11 @@
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { build } from '../../.claude/lib/graph.mjs';
-import { pack, estimateTokens } from '../../.claude/lib/pack.mjs';
-import { discover } from '../../.claude/lib/graph.mjs';
+import { build } from '../../.aidlc/lib/graph.mjs';
+import { pack, estimateTokens } from '../../.aidlc/lib/pack.mjs';
+import { discover } from '../../.aidlc/lib/graph.mjs';
 
-// Three levels up from evals/bench/ is the repo root: the harness under .claude/ and the
+// Three levels up from evals/bench/ is the repo root: the harness under .aidlc/ and the
 // artefacts that exercise it are both below this point, so golden answers are repo-relative.
 const ROOT = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 
@@ -21,17 +21,17 @@ export const GOLDEN = [
   { root: path.join(ROOT, 'evals', 'fixtures', 'graph-app'), term: 'find_user', answer: 'src/app/repo.py' },
   { root: path.join(ROOT, 'evals', 'fixtures', 'graph-app'), term: 'slugify', answer: 'web/util.js' },
   { root: path.join(ROOT, 'evals', 'fixtures', 'graph-app'), term: 'handle', answer: 'src/app/api.py' },
-  { root: ROOT, term: 'normalize', answer: '.claude/lib/normalize.mjs' },
-  { root: ROOT, term: 'refresh', answer: '.claude/lib/refresh.mjs' },
+  { root: ROOT, term: 'normalize', answer: '.aidlc/lib/normalize.mjs' },
+  { root: ROOT, term: 'refresh', answer: '.aidlc/lib/refresh.mjs' },
   { root: ROOT, term: 'toRegExp', answer: 'evals/lib/assertions.mjs' },
-  { root: ROOT, term: 'measure', answer: '.claude/checks/budget.mjs' },
-  { root: ROOT, term: 'resolveStage', answer: '.claude/lib/config.mjs' },
-  { root: ROOT, term: 'renderWiki', answer: '.claude/lib/wiki.mjs' },
+  { root: ROOT, term: 'measure', answer: '.aidlc/checks/budget.mjs' },
+  { root: ROOT, term: 'resolveStage', answer: '.aidlc/lib/config.mjs' },
+  { root: ROOT, term: 'renderWiki', answer: '.aidlc/lib/wiki.mjs' },
 ];
 
 const cfgFor = (root) => ({
-  layout: { root, graph: path.join(root, '.claude', 'state', 'graph.json'), state: path.join(root, '.claude', 'state') },
-  graph: { include: ['.', '.claude'], exclude: ['node_modules', '.venv', 'dist', '.git', '__pycache__', 'fixtures'] },
+  layout: { root, graph: path.join(root, '.aidlc', 'state', 'graph.json'), state: path.join(root, '.aidlc', 'state') },
+  graph: { include: ['.', '.aidlc'], exclude: ['node_modules', '.venv', 'dist', '.git', '__pycache__', 'fixtures'] },
 });
 
 // The baseline an agent without a graph actually pays: every file mentioning the term, whole.

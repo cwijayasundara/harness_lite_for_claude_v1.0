@@ -1,0 +1,734 @@
+#!/usr/bin/env node
+// The one entrypoint. Hooks call it, the agent calls it, CI calls it — same code, same schema.
+//
+// Law 2: anything that decides what happens next is a script with an exit code. If you find
+// yourself writing sequencing instructions into a SKILL.md, the logic belongs in here instead.
+
+import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, chmodSync, readdirSync, rmSync } from 'node:fs';
+import { execSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { loadConfig, VERBS } from '../lib/config.mjs';
+import { layout, findRepoRoot } from '../lib/paths.mjs';
+import { check, render } from '../lib/runner.mjs';
+import * as ledger from '../lib/ledger.mjs';
+import * as graph from '../lib/graph.mjs';
+import * as baseline from '../lib/baseline.mjs';
+import { pack, renderPack } from '../lib/pack.mjs';
+import { refresh } from '../lib/refresh.mjs';
+import { renderWiki } from '../lib/wiki.mjs';
+import { measure, shipped, RECORD } from '../checks/budget.mjs';
+import { dispatch } from '../hooks/dispatch.mjs';
+import { lifecycle, incidents, renderLifecycle } from '../lib/lifecycle.mjs';
+import { selectSlug, packet as reviewPacket, writeReview, checkProtection } from '../lib/review-adapter.mjs';
+import { deploy, closeLoop, detect, readMonitorFile } from '../lib/operations.mjs';
+import { playbookIndicators, renderPlaybook } from '../lib/indicators.mjs';
+import { lockTests, clearLock, enterpriseChecklist } from '../lib/guard.mjs';
+import { addWorktree } from '../lib/worktree.mjs';
+import { behaviourIds, contractState, decideIntentRef, isCommitted, renderLegacyContract, sealContract, snapshotDigest, validateContract, writeEvidence, writeIntentRef, writePromptManifest } from '../lib/contract.mjs';
+import { adapterNames, adapterInfo, diagnoseAgents, loadAgentManifest, renderAgentAdapter, renderClaudeHooks, renderClaudeInstructions, verifyAgentAdapter } from '../lib/agent-adapters.mjs';
+import { createHandoff, ingestEvaluation, loadModelPolicy, resolveModel, validateModelPolicy, writeHandoff, writeRunReceipt } from '../lib/model-policy.mjs';
+import { evaluationPrompt, invokeClaudeCode } from '../providers/claude-code.mjs';
+import { diagnose as diagnoseGauntlet, qualifyExperiment, renderGauntlet, runGauntlet } from '../lib/gauntlet.mjs';
+import { WorkItemPort, requireCurrentExternalIntent, workItemAdapter } from '../lib/work-items.mjs';
+
+const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const PLUGIN_ROOT = path.dirname(HERE);
+const argv = process.argv.slice(2);
+const cmd = argv[0];
+const flag = (n, d = null) => { const i = argv.indexOf(`--${n}`); return i === -1 ? d : (argv[i + 1]?.startsWith('--') ? true : argv[i + 1] ?? true); };
+const has = (n) => argv.includes(`--${n}`);
+
+function changedFiles(root) {
+  try {
+    const tracked = execSync('git diff --name-only HEAD', { cwd: root, encoding: 'utf8' }).split('\n');
+    const untracked = execSync('git ls-files --others --exclude-standard', { cwd: root, encoding: 'utf8' }).split('\n');
+    return [...new Set([...tracked, ...untracked])].filter(Boolean).filter((f) => existsSync(path.join(root, f)));
+  } catch { return []; }
+}
+
+const PERMISSIONS = { allow: [
+  'Edit(.aidlc/artifacts/**)',
+  'Bash(.aidlc/bin/harness:*)',
+  'Bash(node .aidlc/bin/harness:*)',
+  'Write(.aidlc/artifacts/**)',
+] };
+
+// The plugin identity, read from the two manifests rather than hardcoded. A rename that edits
+// one manifest and not the other must fail the suite, not silently emit an id nobody publishes.
+function pluginIdentity() {
+  const plugin = JSON.parse(readFileSync(path.join(PLUGIN_ROOT, '.claude-plugin', 'plugin.json'), 'utf8'));
+  return { name: plugin.name, version: plugin.version ?? '0.0.0', id: `${plugin.name}@${plugin.name}` };
+}
+
+// What a project commits. It declares which harness it uses and wires nothing: the five hook
+// bindings arrive with the plugin, and declaring them here as well is what made each one fire
+// twice for anyone who followed the README to the end.
+function projectSettings(id) {
+  return { enabledPlugins: { [id]: true }, permissions: PERMISSIONS };
+}
+
+// This repository is the harness *and* a project governed by it. It keeps its own wiring — an
+// edit to a sensor must take effect on the next turn, not after a plugin reinstall — and
+// explicitly disables the published plugin, or a maintainer who has it installed loads every
+// guide twice and fires every binding twice. ${CLAUDE_PROJECT_DIR} keeps the commands portable:
+// the absolute paths this used to emit were inert in every clone but the author's.
+function selfSettings(id) {
+  const policy = JSON.parse(readFileSync(path.join(HERE, 'hooks', 'policy.json'), 'utf8'));
+  const hooks = renderClaudeHooks(policy, '${CLAUDE_PROJECT_DIR}').hooks;
+  return { enabledPlugins: { [id]: false }, hooks, permissions: PERMISSIONS };
+}
+
+// The generated shim. It cannot import from the harness — locating the harness is its job — so
+// the resolver is inline. Order matters: HARNESS_HOME first so CI can point at the clone it
+// made from the recorded commit, then the plugin cache a laptop already has. Failure is loud
+// and non-zero; a shim that silently resolved half a harness would reproduce the entire defect
+// this change exists to end.
+function shimSource() {
+  return `#!/usr/bin/env bash
+# generated by 'harness init' — do not edit by hand; re-run init to refresh.
+# Resolves the harness this project declared, in the order: $HARNESS_HOME, then the plugin cache.
+set -euo pipefail
+here="$(cd "$(dirname "\${BASH_SOURCE[0]}")/.." && pwd)"
+runtime="$(HARNESS_PROJECT_AIDLC="$here" node -e '
+const fs = require("node:fs"), path = require("node:path"), os = require("node:os");
+const aidlc = process.env.HARNESS_PROJECT_AIDLC;
+// A candidate is only a harness if it actually holds one. Accepting HARNESS_HOME unchecked
+// turned a mistyped CI variable into a node module stack trace instead of the two commands
+// that fix it, which is the silent-ish failure this shim exists to prevent.
+const runtime = (d) => !d ? null : fs.existsSync(path.join(d, "bin", "harness")) ? d : fs.existsSync(path.join(d, ".aidlc", "bin", "harness")) ? path.join(d, ".aidlc") : null;
+let rec = {};
+try { rec = JSON.parse(fs.readFileSync(path.join(aidlc, "harness-install.json"), "utf8")); } catch {}
+const home = process.env.HARNESS_HOME;
+if (runtime(home)) { process.stdout.write(runtime(home)); process.exit(0); }
+const base = path.join(os.homedir(), ".claude", "plugins", "cache", rec.marketplace ?? "", rec.plugin ?? "");
+for (const v of [rec.version, ...(fs.existsSync(base) ? fs.readdirSync(base).sort().reverse() : [])]) {
+  const found = v && runtime(path.join(base, v));
+  if (found) { process.stdout.write(found); process.exit(0); }
+}
+process.stderr.write((home ? "harness: HARNESS_HOME=" + home + " holds no .aidlc/bin/harness.\\n" : "") +
+  "harness: not installed on this machine. Two one-time commands:\\n" +
+  "  claude plugin marketplace add " + (rec.repository ?? "<repository>") + "\\n" +
+  "  claude plugin install " + (rec.plugin ?? "<plugin>") + "@" + (rec.marketplace ?? "<marketplace>") + "\\n" +
+  "Or set HARNESS_HOME to a checkout, which is what CI does.\\n");
+process.exit(1);
+')"
+exec node "$runtime/bin/harness" "$@"
+`;
+}
+
+// What the project installed, so CI can fetch exactly that and a human can say what they have.
+// `unknown` rather than absent: a field the record could not fill must not read as an empty one,
+// the same rule the budget applies to a surface it could not measure.
+function harnessCommit() {
+  try { return execSync('git rev-parse HEAD', { cwd: PLUGIN_ROOT, encoding: 'utf8' }).trim(); } catch { return 'unknown'; }
+}
+
+function harnessRepository() {
+  try {
+    return execSync('git remote get-url origin', { cwd: PLUGIN_ROOT, encoding: 'utf8' }).trim()
+      .replace(/^.*github\.com[/:]/, '').replace(/\.git$/, '');
+  } catch { return null; }
+}
+
+function validSlug(slug) {
+  return typeof slug === 'string' && /^[a-z0-9](?:[a-z0-9-]{0,62})$/.test(slug);
+}
+
+function renderGraphAnswer(question, arg, answer) {
+  if (!answer.length) {
+    if (question === 'cycles' || question === 'hubs' || question === 'changed-since') return `none — graph query ${question} returned no entries`;
+    return `no match for "${arg}". The graph is a cache, not an authority — fall back to: grep -rn "${arg}" .`;
+  }
+  return JSON.stringify(answer, null, 2);
+}
+
+async function main() {
+  switch (cmd) {
+    case 'init': {
+      const root = path.resolve(flag('into', process.cwd()));
+      const L = layout(root);
+      for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.intent, L.contracts, L.intentRefs, L.evidence, L.handoffs, L.evaluations, L.modelRuns, L.workItems, L.workItemReceipts, L.review, L.incident, L.deployment, L.adr, L.state, path.join(L.artifacts, 'design')]) mkdirSync(d, { recursive: true });
+      for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/model-policy.json', L.modelPolicy], ['templates/gitignore', path.join(L.aidlc, '.gitignore')]]) {
+        if (!existsSync(dst)) cpSync(path.join(HERE, src), dst);
+      }
+      if (!existsSync(L.instructions)) {
+        if (existsSync(L.claudeMd)) writeFileSync(L.instructions, readFileSync(L.claudeMd, 'utf8'));
+        else cpSync(path.join(HERE, 'templates', 'project-instructions.md'), L.instructions);
+      }
+      if (!existsSync(L.reviewPolicy)) cpSync(path.join(HERE, 'policies', 'review.md'), L.reviewPolicy);
+      writeFileSync(L.claudeMd, renderClaudeInstructions(readFileSync(L.instructions, 'utf8')));
+      if (!existsSync(path.join(L.aidlc, 'agents.json'))) cpSync(path.join(HERE, 'templates', 'agents.json'), path.join(L.aidlc, 'agents.json'));
+      // A project declares the harness; it never contains one. Copying the sensors in and
+      // leaving the guides to a second, invisible install step is what produced projects that
+      // ran every check with no guide loaded and no way to notice.
+      const self = path.resolve(L.aidlc) === path.resolve(HERE);
+      const identity = pluginIdentity();
+      writeFileSync(path.join(L.claude, 'settings.json'),
+        JSON.stringify(self ? selfSettings(identity.id) : projectSettings(identity.id), null, 2) + '\n');
+
+      if (!self) {
+        // An install made by an older harness carries .claude/runtime/ — the copy of the harness
+        // this change exists to remove. Upgrading by re-running `init` must not leave it sitting
+        // there: a stale copy is exactly the drift the pod is meant to be protected from, and it
+        // is the more dangerous kind, because it looks installed.
+        rmSync(path.join(L.claude, 'runtime'), { recursive: true, force: true });
+        // The guides live in the plugin, so the project cannot count them and CI cannot fetch
+        // them without being told where from. One committed record answers both, and pins the
+        // exact commit so CI never drifts from the laptop that installed it.
+        writeFileSync(path.join(L.aidlc, RECORD), JSON.stringify({
+          note: `generated by 'harness init' — do not edit by hand; re-run init to refresh`,
+          marketplace: identity.name,
+          plugin: identity.name,
+          version: identity.version,
+          commit: harnessCommit(),
+          repository: harnessRepository(),
+          shipped: shipped(PLUGIN_ROOT),
+        }, null, 2) + '\n');
+        const shim = path.join(L.aidlc, 'bin', 'harness');
+        writeFileSync(shim, shimSource());
+        chmodSync(shim, 0o755);
+      }
+      const how = self ? 'node .aidlc/bin/harness' : '.aidlc/bin/harness';
+      console.log(`initialised .aidlc/ in ${root}\n  1. edit .aidlc/harness.toml — capability verbs, one command each\n  2. ${how} doctor\n  3. ${how} baseline capture\n  provider guides come from adapters such as the ${identity.id} plugin`);
+      return 0;
+    }
+
+    case 'doctor': {
+      const cfg = loadConfig(findRepoRoot());
+      console.log(`project   ${cfg.project.name ?? '(unnamed)'}\nroot      ${cfg.layout.root}\n`);
+      for (const v of VERBS) {
+        const c = cfg.capabilities[v];
+        const fmt = cfg.formats[v] ?? 'generic';
+        const builtin = v === 'secrets' && !c;
+        console.log(`  ${c || builtin ? 'set ' : '--  '} ${v.padEnd(10)} ${c ? `[${fmt}] ${c}` : builtin ? '[built-in] secret scanner' : '(skipped — no command)'}`);
+      }
+      const m = measure(cfg);
+      // `?`, never `0`: a surface the budget could not account for must not read as an empty one.
+      console.log(`\nbudget    ${Object.entries(m).map(([k, v]) => `${k}=${v ?? '?'}/${cfg.limits[k] ?? '-'}`).join('  ')}`);
+      const market = path.join(cfg.layout.root, '.claude-plugin/marketplace.json');
+      if (existsSync(market)) {
+        try {
+          const plugins = JSON.parse(readFileSync(market, 'utf8')).plugins ?? [];
+          console.log(`plugins   ${plugins.map((p) => p.name).join(', ') || '(none)'}`);
+        } catch { /* marketplace is advisory */ }
+      }
+      if (has('enterprise')) {
+        console.log('\nenterprise checklist (git settings are not managed settings)');
+        for (const item of enterpriseChecklist(cfg)) {
+          console.log(`  ${item.ok ? 'ok  ' : 'need'}  ${item.id}  ${item.detail}`);
+        }
+      }
+      return 0;
+    }
+
+    case 'check': {
+      const cfg = loadConfig(findRepoRoot());
+      const stage = flag('stage', 'fast');
+      const files = has('changed') ? changedFiles(cfg.layout.root) : (flag('files') && typeof flag('files') === 'string' ? String(flag('files')).split(',') : []);
+      const report = await check(cfg, { stage, files, all: has('all') });
+      if (has('json')) console.log(JSON.stringify(report, null, 2));
+      else console.log(render(report, cfg.layout));
+      return report.ok ? 0 : 1;
+    }
+
+    case 'gauntlet': {
+      const cfg = loadConfig(findRepoRoot()); const sub = argv[1];
+      if (sub === 'doctor') {
+        const result = diagnoseGauntlet(cfg);
+        if (has('json')) console.log(JSON.stringify(result, null, 2));
+        else {
+          for (const profile of result.profiles) console.log(`${profile.ok ? 'PASS' : 'FAIL'}  ${profile.name.padEnd(14)} ${profile.live.join(', ') || profile.issues.join(', ')}`);
+          for (const issue of result.issues) console.log(`FAIL  ${issue}`);
+        }
+        return result.ok ? 0 : 1;
+      }
+      if (sub === 'run') {
+        const files = has('changed') ? changedFiles(cfg.layout.root) : [];
+        const profiles = typeof flag('profiles') === 'string' ? String(flag('profiles')).split(',').filter(Boolean) : undefined;
+        const report = await runGauntlet(cfg, { files, profiles });
+        console.log(has('json') ? JSON.stringify(report, null, 2) : renderGauntlet(report));
+        return report.ok ? 0 : 1;
+      }
+      if (sub === 'qualify') {
+        const file = flag('file');
+        if (typeof file !== 'string') { console.error('usage: harness gauntlet qualify --file experiment.json'); return 2; }
+        const result = qualifyExperiment(JSON.parse(readFileSync(path.resolve(file), 'utf8')));
+        if (has('json')) console.log(JSON.stringify(result, null, 2));
+        else {
+          for (const profile of result.profiles) console.log(`${profile.verdict === 'earning-its-place' ? 'PASS' : 'FAIL'}  ${profile.profile.padEnd(14)} ${profile.unique_catches} unique / ${profile.catches} catches`);
+          for (const issue of result.issues) console.log(`FAIL  ${issue}`);
+        }
+        return result.ok ? 0 : 1;
+      }
+      console.error('usage: harness gauntlet doctor|run|qualify [--file experiment.json]'); return 2;
+    }
+
+    case 'work-items': {
+      const cfg = loadConfig(findRepoRoot()); const sub = argv[1];
+      if (sub === 'doctor') {
+        try {
+          const issues = workItemAdapter(cfg, { validate: false }).doctor();
+          if (has('json')) console.log(JSON.stringify({ ok: !issues.length, provider: cfg.work_items.provider, issues }, null, 2));
+          else console.log(issues.length ? `FAIL  Jira work-item adapter\n${issues.map((issue) => `  - ${issue}`).join('\n')}` : 'PASS  Jira work-item adapter');
+          return issues.length ? 1 : 0;
+        } catch (error) { console.error(error.message); return 1; }
+      }
+      let port; try { port = new WorkItemPort(cfg); } catch (error) { console.error(error.message); return 1; }
+      try {
+        if (sub === 'resolve') {
+          if (!argv[2]) throw new Error('usage: harness work-items resolve <locator>');
+          console.log(JSON.stringify(await port.resolve(argv[2]), null, 2)); return 0;
+        }
+        if (sub === 'snapshot' || sub === 'verify') {
+          if (!validSlug(argv[2])) throw new Error(`usage: harness work-items ${sub} <slug>`);
+          const result = await port[sub](argv[2]); console.log(JSON.stringify(result, null, 2)); return result.ok === false ? 1 : 0;
+        }
+        if (sub === 'create') {
+          const slug = argv[2]; const title = flag('title'); const descriptionFile = flag('description-file');
+          if (!validSlug(slug) || typeof title !== 'string' || typeof descriptionFile !== 'string' || typeof flag('key') !== 'string') throw new Error('usage: harness work-items create <slug> --title text --description-file file --key id');
+          const result = await port.create(slug, { title, description: readFileSync(path.resolve(descriptionFile), 'utf8') }, { operationKey: flag('key') }); console.log(result.file); return 0;
+        }
+        if (sub === 'transition') {
+          const slug = argv[2]; const state = argv[3];
+          if (!validSlug(slug) || !state || typeof flag('actor') !== 'string' || typeof flag('actor-kind') !== 'string' || typeof flag('key') !== 'string') throw new Error('usage: harness work-items transition <slug> <accepted|closed> --actor id --actor-kind human|agent --key id');
+          const result = await port.transition(slug, state, { actor: flag('actor'), actorKind: flag('actor-kind'), operationKey: flag('key') }); console.log(result.file); return result.value.status === 'succeeded' ? 0 : 1;
+        }
+        if (['link-commit', 'link-contract', 'link-pr'].includes(sub)) {
+          const slug = argv[2]; const url = flag('url');
+          if (!validSlug(slug) || typeof url !== 'string' || typeof flag('key') !== 'string') throw new Error(`usage: harness work-items ${sub} <slug> --url https://... --key id`);
+          const result = await port.link(slug, sub.slice(5), url, { title: flag('title'), operationKey: flag('key') }); console.log(result.file); return 0;
+        }
+        if (sub === 'comment') {
+          const slug = argv[2]; const file = flag('file');
+          if (!validSlug(slug) || typeof file !== 'string' || typeof flag('key') !== 'string') throw new Error('usage: harness work-items comment <slug> --file body.md --key id');
+          const result = await port.comment(slug, readFileSync(path.resolve(file), 'utf8'), { operationKey: flag('key') }); console.log(result.file); return 0;
+        }
+      } catch (error) { console.error(error.message); return 1; }
+      console.error('usage: harness work-items doctor|resolve|snapshot|verify|create|transition|link-commit|link-contract|link-pr|comment'); return 2;
+    }
+
+    case 'ledger': {
+      const L = layout(findRepoRoot());
+      const days = Number(flag('days', 30));
+      if (argv[1] === 'audit') {
+        const a = ledger.audit(L, { days });
+        console.log(`ledger audit · ${a.rows} rows · ${a.runs} runs · last ${a.days}d`);
+        console.log(`thresholds: fires on >=${a.thresholds.min_fire_rate * 100}% of invocations, errors on <${a.thresholds.max_error_rate * 100}%, after ${a.thresholds.min_sessions} invocations\n`);
+        for (const c of a.controls) console.log(`  ${c.control.padEnd(16)} ${String(c.invocations).padStart(3)} inv  ${(c.fire_rate * 100).toFixed(1).padStart(5)}% fired  ${c.action}`);
+        console.log(a.deletions.length ? `\nDelete candidates: ${a.deletions.join(', ')}` : '\nNothing to delete this month. Some controls still lack the invocations for an honest verdict.');
+        return 0;
+      }
+      const r = ledger.report(L, { days });
+      if (has('json')) { console.log(JSON.stringify(r, null, 2)); return 0; }
+      console.log(`ledger  ${r.rows} rows  ${r.runs} runs  last ${r.days}d\n`);
+      console.log('  control      invocations  fired   fire%   errs  avg-ms  verdict');
+      for (const c of r.controls) console.log(`  ${c.control.padEnd(12)} ${String(c.invocations).padStart(11)} ${String(c.fired).padStart(6)} ${(c.fire_rate * 100).toFixed(1).padStart(7)} ${String(c.errored).padStart(6)} ${String(c.avg_ms).padStart(7)}  ${c.verdict}`);
+      return 0;
+    }
+
+    case 'baseline': {
+      const cfg = loadConfig(findRepoRoot());
+      const sub = argv[1];
+      const now = await baseline.capture(cfg);
+      if (sub === 'capture') { console.log(`baseline captured: ${baseline.save(cfg, now)}`); return 0; }
+      if (sub !== 'check') { console.error('usage: harness baseline capture|check'); return 2; }
+      const base = baseline.load(cfg);
+      if (!base) { console.error('no baseline — run: harness baseline capture'); return 2; }
+      const result = baseline.compare(base, now);
+      for (const r of result.rows) console.log(`${r.regressed ? 'FAIL' : r.skipped ? 'SKIP' : 'PASS'}  ${r.metric.padEnd(24)} ${r.was} -> ${r.is}${r.skipped ? `  (${r.skipped})` : ''}`);
+      return result.ok ? 0 : 1;
+    }
+
+    case 'graph': {
+      const cfg = loadConfig(findRepoRoot());
+      const sub = argv[1];
+      if (sub === 'build') { const g = graph.build(cfg); graph.save(cfg, g); renderWiki(cfg, g); console.log(`graph built: ${Object.keys(g.modules).length} modules`); return 0; }
+      if (sub === 'refresh') { console.log(JSON.stringify(refresh(cfg, { force: has('force') }), null, 2)); return 0; }
+      if (sub === 'query') {
+        const question = argv[2]; const arg = argv[3];
+        const g = graph.ensure(cfg);
+        console.log(renderGraphAnswer(question, arg, graph.query(g, question, arg, { root: cfg.layout.root })));
+        return 0;
+      }
+      console.error('usage: harness graph build|refresh|query <callers|calls|hubs|cycles|changed-since> [arg]'); return 2;
+    }
+
+    case 'wiki': {
+      const cfg = loadConfig(findRepoRoot());
+      const r = renderWiki(cfg, graph.ensure(cfg));
+      console.log(`wiki rendered: ${r.pages} pages in ${r.dir}`); return 0;
+    }
+
+    case 'pack': {
+      const cfg = loadConfig(findRepoRoot());
+      const question = argv.slice(1).filter((x) => x !== '--budget' && x !== String(flag('budget'))).join(' ');
+      console.log(renderPack(pack(cfg, graph.ensure(cfg), question, { budget: Number(flag('budget', 1200)) })));
+      return 0;
+    }
+
+    case 'new': {
+      const kind = argv[1]; const slug = argv[2];
+      if (!['intent', 'review', 'incident', 'eval'].includes(kind) || !slug) { console.error('usage: harness new intent|review|incident|eval <slug>'); return 2; }
+      if (!validSlug(slug)) { console.error('slug must be 1–63 lowercase letters, digits, or hyphens; it cannot contain paths'); return 2; }
+      const cfg = loadConfig(findRepoRoot());
+      if (kind === 'eval') {
+        const dir = path.join(cfg.layout.aidlc, 'evals', 'pending'); mkdirSync(dir, { recursive: true });
+        const dst = path.join(dir, `${slug}.json`);
+        if (existsSync(dst)) { console.log(dst); return 0; }
+        writeFileSync(dst, JSON.stringify({ id: slug, fixture: 'clean-app', prompt: `Regression for incident ${slug}. Reproduce, then keep the suite green without editing the failing test.`, assert: [{ fixture_tests_pass: true }, { files_unchanged: ['README.md'] }] }, null, 2) + '\n');
+        console.log(dst); return 0;
+      }
+      const dir = cfg.layout[kind]; mkdirSync(dir, { recursive: true });
+      const dst = path.join(dir, `${slug}.md`);
+      if (existsSync(dst)) { console.log(dst); return 0; }
+      const now = new Date();
+      const tpl = readFileSync(path.join(HERE, 'templates', `${kind}.md`), 'utf8').replaceAll('{{slug}}', slug).replaceAll('{{date}}', now.toISOString().slice(0, 10)).replaceAll('{{timestamp}}', now.toISOString());
+      writeFileSync(dst, tpl); console.log(dst); return 0;
+    }
+
+    case 'lock': {
+      const cfg = loadConfig(findRepoRoot());
+      if (argv[1] === 'clear') { console.log(clearLock(cfg)); return 0; }
+      if (argv[1] !== 'tests') { console.error('usage: harness lock tests [--pattern tests/] [--why "bug fix in progress"]\n       harness lock clear'); return 2; }
+      const pattern = typeof flag('pattern') === 'string' ? flag('pattern') : 'tests';
+      const why = typeof flag('why') === 'string' ? flag('why') : 'bug fix in progress';
+      console.log(lockTests(cfg, { patterns: [pattern], why })); return 0;
+    }
+
+    case 'worktree': {
+      const slug = argv[1];
+      if (!validSlug(slug)) { console.error('usage: harness worktree <slug>'); return 2; }
+      const cfg = loadConfig(findRepoRoot());
+      const result = addWorktree(cfg.layout.root, slug);
+      console.log(`${result.branch}\n${result.dest}`); return 0;
+    }
+
+    case 'status': {
+      const cfg = loadConfig(findRepoRoot());
+      const rows = lifecycle(cfg, argv[1] && !argv[1].startsWith('--') ? argv[1] : null);
+      const incidentRows = argv[1] && !argv[1].startsWith('--') ? [] : incidents(cfg);
+      const requested = argv[1] && !argv[1].startsWith('--') ? argv[1] : null;
+      const contractNames = requested ? [`${requested}.md`] : existsSync(cfg.layout.contracts) ? readdirSync(cfg.layout.contracts).filter((name) => name.endsWith('.md')).sort() : [];
+      const contractRows = contractNames.filter((name) => existsSync(path.join(cfg.layout.contracts, name))).map((name) => {
+        const slug = name.slice(0, -3); return { slug, ...contractState(cfg.layout.root, path.join(cfg.layout.contracts, name), path.join(cfg.layout.evidence, `${slug}.json`)) };
+      });
+      const playbook = playbookIndicators(cfg, lifecycle(cfg));
+      const renderedContracts = contractRows.length ? `\ncontracts\n\n${contractRows.map((row) => `  ${row.slug.padEnd(30)} ${row.stage.padEnd(20)} ${row.ok ? 'valid' : 'INVALID'}`).join('\n')}\n` : '';
+      console.log(has('json') ? JSON.stringify({ changes: rows, contracts: contractRows, incidents: incidentRows, playbook }, null, 2) : renderLifecycle(rows, incidentRows) + renderedContracts + renderPlaybook(playbook));
+      return [...rows, ...incidentRows].some((r) => !r.valid || r.sla === 'breached') || contractRows.some((row) => !row.ok) ? 1 : 0;
+    }
+
+    case 'contract': {
+      const cfg = loadConfig(findRepoRoot()); const sub = argv[1]; const slug = argv[2];
+      if (sub === 'validate' && has('all')) {
+        const names = existsSync(cfg.layout.contracts) ? readdirSync(cfg.layout.contracts).filter((name) => name.endsWith('.md')).sort() : [];
+        if (!names.length) { console.log('PASS  contracts  no contract artifacts'); return 0; }
+        let ok = true;
+        for (const name of names) {
+          const result = validateContract(cfg.layout.root, path.join(cfg.layout.contracts, name));
+          console.log(result.ok ? `PASS  ${name.slice(0, -3)}` : `FAIL  ${name.slice(0, -3)}\n${result.issues.map((issue) => `  - ${issue}`).join('\n')}`);
+          ok = ok && result.ok;
+        }
+        return ok ? 0 : 1;
+      }
+      if (!validSlug(slug)) { console.error('usage: harness contract new|accept|validate|seal|evidence <slug>'); return 2; }
+      const file = path.join(cfg.layout.contracts, `${slug}.md`);
+      const migrationFile = path.join(cfg.layout.migrations, `${slug}.json`);
+      if (sub === 'migrate') {
+        const legacy = Object.fromEntries(['intent', 'spec', 'plan'].map((kind) => [kind, path.join(cfg.layout[kind], `${slug}.md`)]));
+        const missing = Object.entries(legacy).filter(([, value]) => !existsSync(value)).map(([kind]) => kind);
+        if (missing.length) { console.error(`migration requires legacy ${missing.join(', ')} artifacts`); return 1; }
+        const ref = path.join(cfg.layout.intentRefs, `${slug}.json`);
+        if (existsSync(file) || existsSync(ref) || existsSync(migrationFile)) { console.error(`migration output already exists for ${slug}`); return 1; }
+        if (!has('write')) { console.log(`DRY-RUN  ${slug}\n  create ${path.relative(cfg.layout.root, ref)}\n  create ${path.relative(cfg.layout.root, file)}\n  preserve legacy intent/spec/plan`); return 0; }
+        let revision = 'pending';
+        try { revision = execSync('git rev-parse HEAD', { cwd: cfg.layout.root, encoding: 'utf8' }).trim(); } catch { /* remains pending */ }
+        writeIntentRef(ref, { id: slug, provider: 'git', locator: path.relative(cfg.layout.root, legacy.intent), revision, authority: 'git' });
+        try {
+          const template = readFileSync(path.join(HERE, 'templates', 'contract.md'), 'utf8').replaceAll('{{slug}}', slug);
+          const body = renderLegacyContract(template, Object.fromEntries(Object.entries(legacy).map(([kind, value]) => [kind, readFileSync(value, 'utf8')])));
+          mkdirSync(cfg.layout.contracts, { recursive: true }); writeFileSync(file, body, { flag: 'wx' });
+          const receipt = { schema: 'aidlc.migration/v1', change_id: slug, created: {
+            [path.relative(cfg.layout.root, ref)]: snapshotDigest(readFileSync(ref, 'utf8')),
+            [path.relative(cfg.layout.root, file)]: snapshotDigest(body),
+          } };
+          mkdirSync(cfg.layout.migrations, { recursive: true }); writeFileSync(migrationFile, JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx' });
+          console.log(`${file}\n${ref}\n${migrationFile}`); return 0;
+        } catch (error) { rmSync(ref, { force: true }); rmSync(file, { force: true }); rmSync(migrationFile, { force: true }); console.error(error.message); return 1; }
+      }
+      if (sub === 'rollback-migration') {
+        if (!existsSync(migrationFile)) { console.error(`migration receipt not found: ${migrationFile}`); return 1; }
+        const receipt = JSON.parse(readFileSync(migrationFile, 'utf8'));
+        for (const [rel, digest] of Object.entries(receipt.created ?? {})) {
+          const target = path.join(cfg.layout.root, rel);
+          if (!existsSync(target) || snapshotDigest(readFileSync(target, 'utf8')) !== digest) { console.error(`refusing rollback: migrated file changed or is missing: ${rel}`); return 1; }
+        }
+        for (const rel of Object.keys(receipt.created)) rmSync(path.join(cfg.layout.root, rel));
+        rmSync(migrationFile); console.log(`rolled back migration ${slug}; legacy artifacts were preserved`); return 0;
+      }
+      if (sub === 'new') {
+        const ref = path.join(cfg.layout.intentRefs, `${slug}.json`);
+        if (existsSync(file) || existsSync(ref)) { console.error(`contract or intent ref already exists for ${slug}`); return 2; }
+        const provider = String(flag('provider', 'git')); const locator = String(flag('locator', `.aidlc/artifacts/intent/${slug}.md`));
+        const revision = String(flag('revision', 'pending')); const authority = String(flag('authority', provider === 'git' ? 'git' : 'external'));
+        writeIntentRef(ref, { id: slug, provider, locator, revision, authority });
+        const tpl = readFileSync(path.join(HERE, 'templates', 'contract.md'), 'utf8').replaceAll('{{slug}}', slug);
+        try { mkdirSync(cfg.layout.contracts, { recursive: true }); writeFileSync(file, tpl, { flag: 'wx' }); }
+        catch (error) { rmSync(ref, { force: true }); throw error; }
+        console.log(`${file}\n${ref}`); return 0;
+      }
+      if (!existsSync(file)) { console.error(`contract not found: ${file}`); return 2; }
+      if (sub === 'accept') {
+        const by = flag('by'); const revision = flag('revision'); const digest = flag('snapshot-digest');
+        if (typeof by !== 'string' || typeof revision !== 'string' || typeof digest !== 'string') {
+          console.error('usage: harness contract accept <slug> --by <identity> --revision <immutable-revision> --snapshot-digest sha256:<64-hex>'); return 2;
+        }
+        try {
+          decideIntentRef(path.join(cfg.layout.intentRefs, `${slug}.json`), { by, revision, snapshot_digest: digest });
+          console.log(`intent accepted  ${slug}\ncommit this decision before sealing the spec`); return 0;
+        } catch (error) { console.error(error.message); return 1; }
+      }
+      if (sub === 'validate') {
+        const result = validateContract(cfg.layout.root, file);
+        if (has('json')) console.log(JSON.stringify(result, null, 2)); else console.log(result.ok ? `PASS  ${slug}` : `FAIL  ${slug}\n${result.issues.map((i) => `  - ${i}`).join('\n')}`);
+        return result.ok ? 0 : 1;
+      }
+      if (sub === 'status') {
+        const state = contractState(cfg.layout.root, file, path.join(cfg.layout.evidence, `${slug}.json`));
+        if (has('json')) console.log(JSON.stringify(state, null, 2));
+        else console.log(`${state.ok ? 'PASS' : 'FAIL'}  ${slug}  ${state.stage}${state.issues.length ? `\n${state.issues.map((issue) => `  - ${issue}`).join('\n')}` : ''}`);
+        return state.ok ? 0 : 1;
+      }
+      if (sub === 'prompt') {
+        const validation = validateContract(cfg.layout.root, file);
+        if (!validation.ok || validation.meta.plan_status !== 'approved' || !isCommitted(cfg.layout.root, file)) { console.error('a valid committed plan approval is required before rendering a prompt'); return 1; }
+        try { await requireCurrentExternalIntent(cfg, slug); } catch (error) { console.error(error.message); return 1; }
+        const role = String(flag('role', 'execute')); const provider = flag('provider');
+        if (typeof provider !== 'string') { console.error('usage: harness contract prompt <slug> --provider <agent> [--role execute|evaluate]'); return 2; }
+        const out = path.join(cfg.layout.prompts, `${slug}-${role}-${provider}.json`);
+        try {
+          const { policy } = loadModelPolicy(cfg.layout.root); const modelResolution = resolveModel(policy, role === 'evaluate' ? 'evaluate' : 'generate');
+          writePromptManifest(out, { changeId: slug, contractFile: path.relative(cfg.layout.root, file), contractBody: readFileSync(file, 'utf8'), role, provider, modelResolution });
+          console.log(out); return 0;
+        } catch (error) { console.error(error.message); return 1; }
+      }
+      if (sub === 'seal') {
+        const scope = String(flag('scope', 'spec')); const before = validateContract(cfg.layout.root, file);
+        if (scope === 'spec' && before.intent?.decision?.status !== 'accepted') { console.error('intent must be accepted before sealing the spec'); return 1; }
+        if (!before.ok) { console.error(`contract is invalid:\n${before.issues.map((issue) => `  - ${issue}`).join('\n')}`); return 1; }
+        const gateFile = scope === 'spec' ? path.join(cfg.layout.intentRefs, `${slug}.json`) : file;
+        if (!isCommitted(cfg.layout.root, gateFile)) { console.error(`${scope === 'spec' ? 'intent acceptance' : 'spec approval'} must be committed before sealing the ${scope}`); return 1; }
+        try {
+          const digest = sealContract(file, scope);
+          console.log(`${scope} sealed  ${digest}\ncommit this approval before continuing`); return 0;
+        } catch (error) { console.error(error.message); return 1; }
+      }
+      if (sub === 'evidence') {
+        const result = validateContract(cfg.layout.root, file);
+        if (!result.ok || result.meta.plan_status !== 'approved') { console.error('contract must have valid spec and plan approvals before evidence'); return 1; }
+        if (!isCommitted(cfg.layout.root, file)) { console.error('plan approval must be committed before evidence'); return 1; }
+        const out = path.join(cfg.layout.evidence, `${slug}.json`);
+        try { writeEvidence(out, slug, result.digests.plan, behaviourIds(readFileSync(file, 'utf8'))); console.log(out); return 0; }
+        catch (error) { console.error(error.message); return 1; }
+      }
+      console.error('usage: harness contract new|accept|validate|status|prompt|seal|evidence <slug> [--scope spec|plan]'); return 2;
+    }
+
+    case 'agents': {
+      const sub = argv[1];
+      if (sub === 'list') {
+        const values = adapterNames().map(adapterInfo);
+        if (has('json')) console.log(JSON.stringify(values, null, 2));
+        else for (const value of values) console.log(`${value.name}\t${value.capabilities.join(',')}`);
+        return 0;
+      }
+      const root = findRepoRoot();
+      let loaded;
+      try { loaded = loadAgentManifest(root); } catch (error) { console.error(error.message); return 1; }
+      if (sub === 'doctor') {
+        const result = diagnoseAgents(loaded.manifest);
+        if (has('json')) console.log(JSON.stringify(result, null, 2));
+        else {
+          for (const provider of result.providers) console.log(`${provider.missing.length ? 'FAIL' : 'PASS'}  ${provider.name}${provider.optional_missing.length ? `  optional unavailable: ${provider.optional_missing.join(', ')}` : ''}`);
+          for (const issue of result.issues) console.log(`FAIL  ${issue}`);
+        }
+        return result.ok ? 0 : 1;
+      }
+      const provider = argv[2];
+      if (!adapterInfo(provider)) { console.error('usage: harness agents render|verify <provider> [--into path]'); return 2; }
+      const target = path.resolve(String(flag('into', root)));
+      try {
+        if (sub === 'render') {
+          const files = renderAgentAdapter(provider, loaded.manifest, target, { force: has('force') });
+          if (has('json')) console.log(JSON.stringify({ provider, target, files }, null, 2)); else for (const file of files) console.log(file);
+          return 0;
+        }
+        if (sub === 'verify') {
+          const result = verifyAgentAdapter(provider, loaded.manifest, target);
+          if (has('json')) console.log(JSON.stringify(result, null, 2)); else console.log(result.ok ? `PASS  ${provider}` : `FAIL  ${provider}\n${result.mismatches.map((item) => `  - ${item}`).join('\n')}`);
+          return result.ok ? 0 : 1;
+        }
+      } catch (error) { console.error(error.message); return 1; }
+      console.error('usage: harness agents list|doctor|render|verify [provider] [--into path]'); return 2;
+    }
+
+    case 'models': {
+      const root = findRepoRoot(); const cfg = loadConfig(root); const sub = argv[1];
+      let loaded; try { loaded = loadModelPolicy(root); } catch (error) { console.error(error.message); return 1; }
+      if (sub === 'doctor') {
+        const issues = validateModelPolicy(loaded.policy);
+        if (has('json')) console.log(JSON.stringify({ ok: !issues.length, issues }, null, 2));
+        else console.log(issues.length ? `FAIL  model policy\n${issues.map((issue) => `  - ${issue}`).join('\n')}` : 'PASS  model policy');
+        return issues.length ? 1 : 0;
+      }
+      if (sub === 'resolve') {
+        try { const value = resolveModel(loaded.policy, String(argv[2] ?? '')); console.log(has('json') ? JSON.stringify(value, null, 2) : `${value.role}\t${value.provider}/${value.model}\t${value.effort}\t${value.policy_digest}`); return 0; }
+        catch (error) { console.error(error.message); return 1; }
+      }
+      if (sub === 'handoff') {
+        const slug = argv[2]; const from = String(flag('from', 'generate')); const to = String(flag('to', 'evaluate')); const invocation = flag('invocation'); const attempt = Number(flag('attempt', 1));
+        if (!validSlug(slug) || typeof invocation !== 'string' || !Number.isInteger(attempt) || attempt < 1) { console.error('usage: harness models handoff <slug> --from generate --to evaluate --invocation <id> [--attempt N]'); return 2; }
+        try {
+          await requireCurrentExternalIntent(cfg, slug);
+          const value = createHandoff(root, path.join(cfg.layout.contracts, `${slug}.md`), loaded.policy, { from, to, sourceInvocationId: invocation, attempt });
+          const file = path.join(cfg.layout.handoffs, `${slug}-${from}-${to}-a${attempt}.json`); writeHandoff(file, value); console.log(file); return 0;
+        } catch (error) { console.error(error.message); return 1; }
+      }
+      if (sub === 'invoke') {
+        const role = String(argv[2] ?? ''); const slug = argv[3]; const attempt = Number(flag('attempt', 1));
+        if (!validSlug(slug) || !Number.isInteger(attempt) || attempt < 1) { console.error('usage: harness models invoke <role> <slug> --prompt-file file | --attempt N'); return 2; }
+        try {
+          await requireCurrentExternalIntent(cfg, slug);
+          let resolution = resolveModel(loaded.policy, role); let prompt; let handoff = null;
+          if (role === 'evaluate') {
+            const handoffFile = path.join(cfg.layout.handoffs, `${slug}-generate-evaluate-a${attempt}.json`);
+            handoff = JSON.parse(readFileSync(handoffFile, 'utf8')); resolution = handoff.target;
+            if (resolution.policy_digest !== resolveModel(loaded.policy, 'evaluate').policy_digest) throw new Error('handoff model policy is stale');
+            prompt = evaluationPrompt(handoffFile);
+          } else {
+            const promptFile = flag('prompt-file'); if (typeof promptFile !== 'string') throw new Error(`${role} invocation requires --prompt-file`);
+            prompt = readFileSync(path.resolve(promptFile), 'utf8');
+          }
+          if (resolution.provider !== 'anthropic') throw new Error(`no invocation adapter configured for model provider ${resolution.provider}`);
+          const result = invokeClaudeCode({ resolution, prompt, cwd: root, readOnly: role === 'evaluate' || role === 'diagnose', structured: role === 'evaluate' });
+          const runFile = path.join(cfg.layout.modelRuns, `${slug}-${role}-a${attempt}.json`); writeRunReceipt(runFile, result.receipt);
+          if (result.receipt.status !== 'succeeded') { console.error(`${result.receipt.status}\n${runFile}`); return 1; }
+          if (role === 'evaluate') {
+            if (!result.output || typeof result.output !== 'object') throw new Error('evaluator returned no structured evaluation');
+            const evaluationFile = path.join(cfg.layout.evaluations, `${slug}-a${attempt}.json`); const receipt = ingestEvaluation(evaluationFile, result.output, handoff, readFileSync(path.join(cfg.layout.contracts, `${slug}.md`), 'utf8'), loaded.policy);
+            console.log(`${runFile}\n${evaluationFile}\n${receipt.decision.status}`); return receipt.decision.status === 'approved' ? 0 : 1;
+          }
+          console.log(`${runFile}\n${result.receipt.invocation_id}`); return 0;
+        } catch (error) { console.error(error.message); return 1; }
+      }
+      if (sub === 'ingest') {
+        const slug = argv[2]; const input = flag('file'); const attempt = Number(flag('attempt', 1));
+        if (!validSlug(slug) || typeof input !== 'string' || !Number.isInteger(attempt) || attempt < 1) { console.error('usage: harness models ingest <slug> --file evaluation.json [--attempt N]'); return 2; }
+        try {
+          const handoffFile = path.join(cfg.layout.handoffs, `${slug}-generate-evaluate-a${attempt}.json`);
+          const handoff = JSON.parse(readFileSync(handoffFile, 'utf8')); const contract = readFileSync(path.join(cfg.layout.contracts, `${slug}.md`), 'utf8'); const value = JSON.parse(readFileSync(path.resolve(input), 'utf8'));
+          const file = path.join(cfg.layout.evaluations, `${slug}-a${attempt}.json`); const receipt = ingestEvaluation(file, value, handoff, contract, loaded.policy); console.log(`${file}\n${receipt.decision.status}`); return receipt.decision.status === 'approved' ? 0 : 1;
+        } catch (error) { console.error(error.message); return 1; }
+      }
+      console.error('usage: harness models doctor|resolve <role>|handoff|invoke|ingest'); return 2;
+    }
+
+    case 'review': {
+      const cfg = loadConfig(findRepoRoot()); const sub = argv[1];
+      if ((sub === 'select' || sub === 'packet') && !flag('base')) { console.error('review requires --base <git-ref>'); return 2; }
+      if (sub === 'select') { console.log(selectSlug(cfg.layout.root, String(flag('base')), String(flag('head', 'HEAD')))); return 0; }
+      if (sub === 'packet') { const slug = argv[2]; if (!validSlug(slug)) { console.error('invalid review slug'); return 2; } try { await requireCurrentExternalIntent(cfg, slug); } catch (error) { console.error(error.message); return 1; } console.log(reviewPacket(cfg, slug, String(flag('base')), String(flag('head', 'HEAD')))); return 0; }
+      if (sub === 'ingest') {
+        const slug = argv[2]; if (!validSlug(slug)) { console.error('invalid review slug'); return 2; }
+        const file = flag('file'); const raw = file ? readFileSync(path.resolve(String(file)), 'utf8') : process.env.HARNESS_REVIEW_JSON;
+        if (!raw) { console.error('review JSON required via --file or HARNESS_REVIEW_JSON'); return 2; }
+        const result = writeReview(cfg, slug, JSON.parse(raw), { reviewer: process.env.GITHUB_ACTOR, commit: process.env.GITHUB_SHA, pull_request: process.env.HARNESS_PULL_REQUEST });
+        console.log(result.file); return result.recommendation === 'approve' ? 0 : 1;
+      }
+      console.error('usage: harness review select|packet|ingest'); return 2;
+    }
+
+    case 'github': {
+      if (argv[1] !== 'protection-check' || !flag('file')) { console.error('usage: harness github protection-check --file protection.json [--required-check harness]'); return 2; }
+      const value = JSON.parse(readFileSync(path.resolve(String(flag('file'))), 'utf8')); const result = checkProtection(value, String(flag('required-check', 'harness')));
+      if (has('json')) console.log(JSON.stringify(result, null, 2)); else console.log(result.ok ? 'branch protection: PASS' : `branch protection: FAIL\n${result.failures.map((f) => `  - ${f}`).join('\n')}`);
+      return result.ok ? 0 : 1;
+    }
+
+    case 'deploy': {
+      const cfg = loadConfig(findRepoRoot()); const operation = argv[1]; const environment = argv[2];
+      if (!operation || !environment) { console.error('usage: harness deploy <preflight|deploy|status|verify|promote|rollback> <environment> [--artifact sha256:...] [--from staging] [--risk standard] [--approval ID,...]'); return 2; }
+      try {
+        const result = deploy(cfg, operation, environment, { approval: flag('approval'), artifact: flag('artifact'), from: String(flag('from', 'staging')), risk: String(flag('risk', 'standard')) });
+        console.log(`${result.ok ? 'PASS' : 'FAIL'}  ${operation} ${environment}${result.receipt.artifact_digest ? `  ${result.receipt.artifact_digest}` : ''}\nreceipt  ${result.file}`);
+        return result.ok ? 0 : 1;
+      } catch (error) { console.error(`${error.message}${error.receipt ? `\nreceipt  ${error.receipt}` : ''}`); return 1; }
+    }
+
+    case 'monitor': {
+      const cfg = loadConfig(findRepoRoot());
+      if (argv[1] === 'ingest') {
+        if (!argv[2] || !flag('file')) { console.error('usage: harness monitor ingest <slug> --file bands.json'); return 2; }
+        const result = closeLoop(cfg, argv[2], readMonitorFile(path.resolve(String(flag('file')))));
+        console.log(result.breached ? `BREACH  ${result.breaches.length} control band(s)\n${result.files.join('\n')}` : 'PASS  all control bands within range');
+        return 0;
+      }
+      if (argv[1] !== 'detect') { console.error('usage: harness monitor detect [slug] [--file bands.json] [--json]\n       harness monitor ingest <slug> --file bands.json'); return 2; }
+      const slug = argv[2] && !String(argv[2]).startsWith('--') ? argv[2] : null;
+      const result = detect(cfg, { file: flag('file') ? path.resolve(String(flag('file'))) : null, slug });
+      if (has('json')) console.log(JSON.stringify(result, null, 2));
+      else if (!result.configured) console.log('monitor  not configured');
+      else if (result.already_open) console.log('OPEN  incident already recorded');
+      else if (result.breached) {
+        const rb = result.rolled_back ? `\nrollback  staging  ${result.rollback?.file ?? 'ok'}` : (result.tier >= 3 ? '\nrollback  skipped' : '');
+        console.log(`BREACH  ${result.breaches.length} control band(s)\n${result.files.join('\n')}${rb}`);
+      }
+      else console.log('PASS  all control bands within range');
+      return 0;
+    }
+
+    case 'hook': return dispatch(argv[1]);
+
+    default:
+      console.log(`harness — the lean SDLC harness
+
+  harness init [--into DIR]        create .aidlc/ plus selected provider projections
+  harness doctor [--enterprise]    capability verbs, budget, enterprise checklist
+  harness check --stage <s>        run a stage   (--changed  --all  --json)
+  harness gauntlet doctor|run      fail-closed behaviour/architecture/hardening/qa sensors
+  harness gauntlet qualify --file experiment.json
+  harness work-items doctor|resolve|snapshot|verify|create|transition
+  harness work-items link-commit|link-contract|link-pr|comment
+  harness new intent|review|incident|eval <slug>
+  harness contract new|accept|validate|status|prompt|seal|evidence <slug>
+  harness contract migrate <slug> [--write] | rollback-migration <slug>
+  harness agents list|doctor|render|verify [provider] [--into path]
+  harness models doctor|resolve <specify|generate|evaluate|diagnose>
+  harness models handoff <slug> --from <role> --to <role> --invocation <id>
+  harness models invoke <role> <slug> --prompt-file file | --attempt N
+  harness models ingest <slug> --file evaluation.json [--attempt N]
+  harness lock tests [--pattern p] [--why text]
+  harness lock clear
+  harness worktree <slug>          git worktree for an independent contract slice
+  harness status [slug] [--json]  artifact progress, SLA, playbook indicators
+  harness review select|packet|ingest
+  harness github protection-check --file protection.json
+  harness deploy <preflight|deploy|status|verify|promote|rollback> <environment>
+  harness monitor detect [slug] [--file bands.json]
+  harness monitor ingest <slug> --file bands.json
+  harness ledger [audit] [--days 30]
+  harness baseline capture|check
+  harness graph build|refresh|query <question> [arg]
+  harness wiki                     render the codebase map
+  harness pack <question>          budgeted graph context
+  harness hook <event>             hook dispatch (stdin/stdout JSON)`);
+      return cmd ? 2 : 0;
+  }
+}
+
+main().then((c) => process.exit(c ?? 0)).catch((e) => {
+  if (e.code === 'ENOCONFIG') { console.error(e.message); process.exit(2); }
+  console.error(`harness: ${e.message}`);
+  process.exit(2);
+});

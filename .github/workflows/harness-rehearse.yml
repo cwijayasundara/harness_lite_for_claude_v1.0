@@ -6,6 +6,21 @@ on:
   workflow_dispatch:
 
 jobs:
+  docker-compose-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Rehearse immutable deploy, verification, denial, and rollback
+        run: bash examples/docker-staging/rehearse.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: docker-staging-receipts
+          path: examples/docker-staging/.aidlc/artifacts/deployment/
+
   rollback-staging:
     if: github.event.repository.fork == false
     runs-on: ubuntu-latest
@@ -17,16 +32,16 @@ jobs:
         with: { node-version: '22' }
       - id: configured
         run: |
-          if grep -q '^rollback = \[' .claude/harness.toml && ! grep -q '^rollback = \[\]' .claude/harness.toml; then
+          if grep -q '^rollback = \[' .aidlc/harness.toml && ! grep -q '^rollback = \[\]' .aidlc/harness.toml; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "run=false" >> "$GITHUB_OUTPUT"
           fi
       - if: steps.configured.outputs.run == 'true'
-        run: node .claude/bin/harness deploy rollback staging
+        run: node .aidlc/bin/harness deploy rollback staging
       - if: steps.configured.outputs.run == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: rollback-receipt
-          path: .claude/artifacts/deployment/
+          path: .aidlc/artifacts/deployment/
           if-no-files-found: warn

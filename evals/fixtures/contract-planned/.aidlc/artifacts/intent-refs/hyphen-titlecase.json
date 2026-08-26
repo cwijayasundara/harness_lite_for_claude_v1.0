@@ -1,0 +1,16 @@
+{
+  "schema": "aidlc.intent-ref/v1",
+  "id": "hyphen-titlecase",
+  "source": {
+    "provider": "git",
+    "locator": "docs/req-a.md",
+    "revision": "fixture-revision-1",
+    "authority": "git"
+  },
+  "decision": {
+    "status": "accepted",
+    "decided_by": "product-owner@example.invalid",
+    "decided_at": "2026-08-23T10:00:00.000Z"
+  },
+  "snapshot_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

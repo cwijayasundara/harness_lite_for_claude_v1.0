@@ -5,10 +5,10 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { C, BIN } from './_paths.mjs';
-import { measure, RECORD } from '../.claude/checks/budget.mjs';
+import { A, C, BIN } from './_paths.mjs';
+import { measure, RECORD } from '../.aidlc/checks/budget.mjs';
 
-const LIMITS = { skills: 12, agents: 3, hooks: 5, hook_loc: 600, claude_md_lines: 120 };
+const LIMITS = { skills: 10, agents: 3, hooks: 5, hook_loc: 600, claude_md_lines: 120 };
 
 // An installed project, measured the way a user's CI measures it: by running the harness that
 // was actually installed there. Importing `measure` directly would resolve the harness root to
@@ -24,14 +24,14 @@ function installed() {
 // Through the generated shim, with HARNESS_HOME set — which is exactly how a project's CI runs
 // the sensors on a cold clone, having fetched the harness at the commit in its install record.
 function budgetOf(root, env = {}) {
-  const shim = path.join(root, '.claude', 'bin', 'harness');
-  const r = spawnSync('bash', [shim, 'check', '--stage', 'commit'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: C, ...env } });
-  const report = JSON.parse(readFileSync(path.join(root, '.claude', 'state', 'last-check.json'), 'utf8'));
+  const shim = path.join(root, '.aidlc', 'bin', 'harness');
+  const r = spawnSync('bash', [shim, 'check', '--stage', 'commit'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A, ...env } });
+  const report = JSON.parse(readFileSync(path.join(root, '.aidlc', 'state', 'last-check.json'), 'utf8'));
   return { ...report.controls.find((c) => c.control === 'budget'), status: r.status };
 }
 
 test('the harness stays inside its own budget', () => {
-  const m = measure({ layout: { claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
+  const m = measure({ layout: { aidlc: A, claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
   for (const [k, max] of Object.entries(LIMITS)) {
     assert.ok(m[k] <= max, `${k} = ${m[k]}, limit ${max}. Delete one before adding another.`);
   }
@@ -44,7 +44,7 @@ test('an installed project measures the harness it was given', () => {
   try {
     const b = budgetOf(root);
     assert.equal(b.measured.hooks, 5, 'hook bindings');
-    assert.equal(b.measured.skills, 12, 'skills');
+    assert.equal(b.measured.skills, 10, 'skills');
     assert.equal(b.measured.agents, 3, 'agents');
     assert.ok(b.measured.hook_loc > 0, `hook_loc = ${b.measured.hook_loc}`);
     assert.equal(b.verdict, 'pass', 'a full harness in an empty project is exactly at budget');
@@ -57,10 +57,10 @@ test('an installed project measures the harness it was given', () => {
 test('init records what it shipped, and a self-install records nothing', () => {
   const root = installed();
   try {
-    const record = path.join(root, '.claude', RECORD);
+    const record = path.join(root, '.aidlc', RECORD);
     assert.ok(existsSync(record), `${RECORD} was not written`);
-    assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).shipped, { skills: 12, agents: 3 });
-    assert.equal(existsSync(path.join(C, RECORD)), false, 'a self-install must not record itself');
+    assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).shipped, { skills: 10, agents: 3 });
+    assert.equal(existsSync(path.join(A, RECORD)), false, 'a self-install must not record itself');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -71,10 +71,10 @@ test('a project inherits a spent budget, not an empty one', () => {
   try {
     mkdirSync(path.join(root, '.claude', 'skills', 'my-own-skill'), { recursive: true });
     const b = budgetOf(root);
-    assert.equal(b.measured.skills, 13);
+    assert.equal(b.measured.skills, 11);
     assert.equal(b.verdict, 'fail');
     assert.notEqual(b.status, 0, 'the stage must go red, not merely report');
-    assert.match(JSON.stringify(b.findings), /skills = 13, limit 12/);
+    assert.match(JSON.stringify(b.findings), /skills = 11, limit 10/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -83,14 +83,14 @@ test('a project inherits a spent budget, not an empty one', () => {
 test('a budget that cannot account for a surface is red, not green', () => {
   const root = installed();
   try {
-    rmSync(path.join(root, '.claude', RECORD));
+    rmSync(path.join(root, '.aidlc', RECORD));
     const b = budgetOf(root);
     assert.equal(b.verdict, 'fail');
     assert.notEqual(b.status, 0, 'the stage must go red');
     assert.match(JSON.stringify(b.findings), /skills/, 'the finding names the surface');
-    const shim = path.join(root, '.claude', 'bin', 'harness');
-    const doctor = spawnSync('bash', [shim, 'doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: C } });
-    assert.match(doctor.stdout, /skills=\?\/12/, 'doctor must not print a confident zero either');
+    const shim = path.join(root, '.aidlc', 'bin', 'harness');
+    const doctor = spawnSync('bash', [shim, 'doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A } });
+    assert.match(doctor.stdout, /skills=\?\/10/, 'doctor must not print a confident zero either');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -100,9 +100,9 @@ test('the record survives a clone', () => {
   const root = installed();
   try {
     spawnSync('git', ['add', '-A'], { cwd: root });
-    const ignored = spawnSync('git', ['check-ignore', '-q', path.join('.claude', RECORD)], { cwd: root });
+    const ignored = spawnSync('git', ['check-ignore', '-q', path.join('.aidlc', RECORD)], { cwd: root });
     assert.notEqual(ignored.status, 0, `${RECORD} is gitignored and would vanish on a cold clone`);
-    const tracked = spawnSync('git', ['ls-files', path.join('.claude', RECORD)], { cwd: root, encoding: 'utf8' });
+    const tracked = spawnSync('git', ['ls-files', path.join('.aidlc', RECORD)], { cwd: root, encoding: 'utf8' });
     assert.match(tracked.stdout, /harness-install\.json/, 'the record is not staged for commit');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -112,12 +112,12 @@ test('the record survives a clone', () => {
 test('re-running init refreshes the recorded inventory', () => {
   const root = installed();
   try {
-    const record = path.join(root, '.claude', RECORD);
+    const record = path.join(root, '.aidlc', RECORD);
     writeFileSync(record, JSON.stringify({ shipped: { skills: 1, agents: 1 } }) + '\n');
     assert.equal(budgetOf(root).measured.skills, 1, 'the under-count should be believed first');
     const again = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
     assert.equal(again.status, 0, again.stderr);
-    assert.equal(budgetOf(root).measured.skills, 12);
+    assert.equal(budgetOf(root).measured.skills, 10);
     assert.equal(budgetOf(root).measured.agents, 3);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -129,7 +129,7 @@ test('the budget reads nothing outside the project', () => {
   const home = mkdtempSync(path.join(tmpdir(), 'empty-home-'));
   try {
     const b = budgetOf(root, { HOME: home, USERPROFILE: home });
-    assert.equal(b.measured.skills, 12);
+    assert.equal(b.measured.skills, 10);
     assert.equal(b.measured.agents, 3);
     assert.equal(b.measured.hooks, 5);
   } finally {
@@ -141,7 +141,7 @@ test('the budget reads nothing outside the project', () => {
 // Behaviour 3: the self-install still measures itself, and still measures itself from disk —
 // the recorded half must never apply here, or this repository could stop counting its own.
 test('the self-install measures the harness itself, not a record', () => {
-  const m = measure({ layout: { claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
-  assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 12, agents: 3, hooks: 5 });
+  const m = measure({ layout: { aidlc: A, claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
+  assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 10, agents: 3, hooks: 5 });
   assert.ok(m.hook_loc > 0, `hook_loc = ${m.hook_loc}`);
 });

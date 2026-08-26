@@ -8,8 +8,8 @@ import assert from 'node:assert/strict';
 import { writeFileSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { C, ROOT } from './_paths.mjs';
-import { build, query } from '../.claude/lib/graph.mjs';
+import { A, ROOT } from './_paths.mjs';
+import { build, query } from '../.aidlc/lib/graph.mjs';
 import { stage } from '../evals/lib/stage.mjs';
 
 const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
@@ -80,7 +80,7 @@ test('Q5 — what changed under this symbol since a ref', () => {
 // The regression test for v6's actual defect: a one-line dotdir filter made 48k LOC of harness
 // invisible to its own graph, and the committed wiki's top hubs were test helpers.
 test('the harness is visible to its own graph', () => {
-  const g = build({ ...CFG, layout: { root: C } });
+  const g = build({ ...CFG, layout: { root: A } });
   const modules = Object.keys(g.modules);
   assert.ok(modules.includes('lib/runner.mjs'), 'the runner must be in the graph');
   assert.ok(modules.includes('hooks/dispatch.mjs'), 'the hook dispatcher must be in the graph');
@@ -90,7 +90,7 @@ test('the harness is visible to its own graph', () => {
 test('a missing graph is a miss, not a crash — the agent falls back and says so', () => {
   const s = stage(FIXTURES, 'clean-app');
   try {
-    const r = spawnSync('node', [path.join(C, 'bin', 'harness'), 'graph', 'query', 'callers', 'nothing_here'],
+    const r = spawnSync('node', [path.join(A, 'bin', 'harness'), 'graph', 'query', 'callers', 'nothing_here'],
       { cwd: s.work, encoding: 'utf8' });
     assert.equal(r.status, 0);
     assert.match(`${r.stdout}${r.stderr}`, /(no match|grep)/i);
@@ -98,7 +98,7 @@ test('a missing graph is a miss, not a crash — the agent falls back and says s
 });
 
 test('pack: a budget is a budget, and what does not fit is named', async () => {
-  const { pack } = await import('../.claude/lib/pack.mjs');
+  const { pack } = await import('../.aidlc/lib/pack.mjs');
   const s = stage(FIXTURES, 'graph-app');
   try {
     const cfg = { ...CFG, layout: { root: s.work } };
@@ -117,7 +117,7 @@ test('pack: a budget is a budget, and what does not fit is named', async () => {
 });
 
 test('pack: a miss tells the caller to grep instead of implying absence', async () => {
-  const { pack, renderPack } = await import('../.claude/lib/pack.mjs');
+  const { pack, renderPack } = await import('../.aidlc/lib/pack.mjs');
   const s = stage(FIXTURES, 'graph-app');
   try {
     const cfg = { ...CFG, layout: { root: s.work } };
@@ -128,11 +128,11 @@ test('pack: a miss tells the caller to grep instead of implying absence', async 
 });
 
 test('wiki: deterministic, and stale is stamped where a reader will see it', async () => {
-  const { renderWiki } = await import('../.claude/lib/wiki.mjs');
+  const { renderWiki } = await import('../.aidlc/lib/wiki.mjs');
   const { readFileSync: rf, mkdirSync: mk } = await import('node:fs');
   const s = stage(FIXTURES, 'graph-app');
   try {
-    const cfg = { ...CFG, layout: { root: s.work, state: path.join(s.work, '.claude/state') } };
+    const cfg = { ...CFG, layout: { root: s.work, state: path.join(s.work, '.aidlc/state') } };
     mk(cfg.layout.state, { recursive: true });
     const g = build(cfg);
     const a = renderWiki(cfg, g);
@@ -148,11 +148,11 @@ test('wiki: deterministic, and stale is stamped where a reader will see it', asy
 });
 
 test('refresh: builds on a cold clone rather than returning quietly', async () => {
-  const { refresh } = await import('../.claude/lib/refresh.mjs');
+  const { refresh } = await import('../.aidlc/lib/refresh.mjs');
   const { existsSync: ex, mkdirSync: mk, appendFileSync: af } = await import('node:fs');
   const s = stage(FIXTURES, 'graph-app');
   try {
-    const state = path.join(s.work, '.claude/state');
+    const state = path.join(s.work, '.aidlc/state');
     mk(state, { recursive: true });
     const cfg = { ...CFG, layout: {
       root: s.work, state, graph: path.join(state, 'graph.json'),
@@ -179,11 +179,11 @@ test('the pack benchmark meets Phase 3 exit criterion', async () => {
 });
 
 test('the refresh lock releases by truncation, because unlink is not always available', async () => {
-  const { refresh } = await import('../.claude/lib/refresh.mjs');
+  const { refresh } = await import('../.aidlc/lib/refresh.mjs');
   const { mkdirSync: mk, writeFileSync: wf, statSync: st } = await import('node:fs');
   const s = stage(FIXTURES, 'graph-app');
   try {
-    const state = path.join(s.work, '.claude/state');
+    const state = path.join(s.work, '.aidlc/state');
     mk(state, { recursive: true });
     const cfg = { ...CFG, layout: {
       root: s.work, state, graph: path.join(state, 'graph.json'),
@@ -200,7 +200,7 @@ test('the refresh lock releases by truncation, because unlink is not always avai
 });
 
 test('an empty whole-graph answer is an answer; an empty symbol answer is a miss', () => {
-  const bin = path.join(C, 'bin', 'harness');
+  const bin = path.join(A, 'bin', 'harness');
   const s = stage(FIXTURES, 'clean-app');
   try {
     const run = (...a) => spawnSync('node', [bin, 'graph', 'query', ...a], { cwd: s.work, encoding: 'utf8' }).stdout;

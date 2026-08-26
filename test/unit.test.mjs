@@ -2,9 +2,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ROOT } from './_paths.mjs';
-import { parseToml } from '../.claude/lib/toml.mjs';
-import { resolveStage, DEFAULT_STAGES } from '../.claude/lib/config.mjs';
-import { normalize } from '../.claude/lib/normalize.mjs';
+import { parseToml } from '../.aidlc/lib/toml.mjs';
+import { resolveStage, DEFAULT_STAGES } from '../.aidlc/lib/config.mjs';
+import { normalize } from '../.aidlc/lib/normalize.mjs';
 
 test('toml: tables, types, arrays, comments', () => {
   const t = parseToml(`
@@ -84,7 +84,7 @@ test('normalize: a generic tool exiting non-zero produces exactly one', () => {
 test('runner inherits this process PATH instead of a login shell', async () => {
   const { spawnSync } = await import('node:child_process');
   if (spawnSync('python3', ['-c', 'import pytest'], { env: process.env }).status !== 0) return;
-  const { check } = await import('../.claude/lib/runner.mjs');
+  const { check } = await import('../.aidlc/lib/runner.mjs');
   const os = await import('node:os');
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -94,7 +94,7 @@ test('runner inherits this process PATH instead of a login shell', async () => {
     capabilities: { test: 'python3 -c "import pytest"' },
     formats: { test: 'generic' }, stages: { fast: ['test'] },
     budget: { max_findings: 20 },
-    layout: { root, state: path.join(root, '.claude/state'), ledger: path.join(root, '.claude/state/ledger.jsonl'), lastCheck: path.join(root, '.claude/state/last-check.json'), runId: path.join(root, '.claude/state/run-id') },
+    layout: { root, state: path.join(root, '.aidlc/state'), ledger: path.join(root, '.aidlc/state/ledger.jsonl'), lastCheck: path.join(root, '.aidlc/state/last-check.json'), runId: path.join(root, '.aidlc/state/run-id') },
   };
   const r = await check(cfg, { stage: 'fast' });
   assert.equal(r.controls[0].verdict, 'pass', r.controls[0].error || r.controls[0].findings.map((f) => f.message).join(' | '));
@@ -102,7 +102,7 @@ test('runner inherits this process PATH instead of a login shell', async () => {
 });
 
 test('runner: a missing tool is errored, not failed', async () => {
-  const { check } = await import('../.claude/lib/runner.mjs');
+  const { check } = await import('../.aidlc/lib/runner.mjs');
   const os = await import('node:os');
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -112,7 +112,7 @@ test('runner: a missing tool is errored, not failed', async () => {
     capabilities: { lint: 'definitely-not-a-real-binary-xyz' },
     formats: {}, stages: { fast: ['lint'] },
     budget: { max_findings: 20 },
-    layout: { root, state: path.join(root, '.claude/state'), ledger: path.join(root, '.claude/state/ledger.jsonl'), lastCheck: path.join(root, '.claude/state/last-check.json'), runId: path.join(root, '.claude/state/run-id') },
+    layout: { root, state: path.join(root, '.aidlc/state'), ledger: path.join(root, '.aidlc/state/ledger.jsonl'), lastCheck: path.join(root, '.aidlc/state/last-check.json'), runId: path.join(root, '.aidlc/state/run-id') },
   };
   const r = await check(cfg, { stage: 'fast' });
   assert.equal(r.controls[0].verdict, 'errored');
@@ -125,10 +125,10 @@ test('runner: a missing tool is errored, not failed', async () => {
 });
 
 test('runner: an explicit secrets command overrides the built-in fallback', async () => {
-  const { check } = await import('../.claude/lib/runner.mjs');
+  const { check } = await import('../.aidlc/lib/runner.mjs');
   const fs = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-secrets-'));
-  const state = path.join(root, '.claude/state'); fs.mkdirSync(state, { recursive: true });
+  const state = path.join(root, '.aidlc/state'); fs.mkdirSync(state, { recursive: true });
   const cfg = { capabilities: { secrets: 'echo configured-scanner >&2; exit 1' }, formats: { secrets: 'generic' }, stages: { s: ['secrets'] }, check: { fail_fast: true }, budget: { max_findings: 20 }, layout: { root, state, ledger: path.join(state, 'ledger.jsonl'), lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id') } };
   const report = await check(cfg, { stage: 's' });
   assert.equal(report.ok, false);
@@ -137,7 +137,7 @@ test('runner: an explicit secrets command overrides the built-in fallback', asyn
 });
 
 test('normalize: TAP failures carry file, line and reason', async () => {
-  const { normalize } = await import('../.claude/lib/normalize.mjs');
+  const { normalize } = await import('../.aidlc/lib/normalize.mjs');
   const tap = [
     'TAP version 13',
     '# Subtest: slugify lowercases',
@@ -162,7 +162,7 @@ test('normalize: TAP failures carry file, line and reason', async () => {
 // reporting PASS in 31ms while running nothing at all — bash passes an unmatched glob through
 // literally, node --test emits a well-formed empty report, and exit 0 reads as success.
 test('normalize: a TAP run that executed nothing is a failure, not a pass', async () => {
-  const { normalize } = await import('../.claude/lib/normalize.mjs');
+  const { normalize } = await import('../.aidlc/lib/normalize.mjs');
   const empty = ['TAP version 13', '1..0', '# tests 0', '# pass 0', '# fail 0'].join('\n');
   const out = normalize('tap', empty, '', 0);
   assert.equal(out.length, 1, 'an empty suite must produce exactly one finding');
@@ -172,13 +172,13 @@ test('normalize: a TAP run that executed nothing is a failure, not a pass', asyn
 });
 
 test('normalize: a healthy TAP run is not flagged as empty', async () => {
-  const { normalize } = await import('../.claude/lib/normalize.mjs');
+  const { normalize } = await import('../.aidlc/lib/normalize.mjs');
   const healthy = ['TAP version 13', 'ok 1 - slugify lowercases', '1..1', '# tests 1', '# pass 1', '# fail 0'].join('\n');
   assert.deepEqual(normalize('tap', healthy, '', 0), [], 'a green suite has no findings');
 });
 
 test('normalize: a suite that ran and failed is a test failure, not an empty suite', async () => {
-  const { normalize } = await import('../.claude/lib/normalize.mjs');
+  const { normalize } = await import('../.aidlc/lib/normalize.mjs');
   const failed = ['TAP version 13', 'not ok 1 - adds', '1..1', '# tests 1', '# pass 0', '# fail 1'].join('\n');
   const out = normalize('tap', failed, '', 1);
   assert.equal(out.length, 1);
@@ -186,13 +186,13 @@ test('normalize: a suite that ran and failed is a test failure, not an empty sui
 });
 
 test('check: fail-fast stops at the first failure and records what it skipped', async () => {
-  const { check } = await import('../.claude/lib/runner.mjs');
+  const { check } = await import('../.aidlc/lib/runner.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-ff-'));
   fs.mkdirSync(path.join(root, '.claude', 'state'), { recursive: true });
-  const layout = { root, state: path.join(root, '.claude/state'), ledger: path.join(root, '.claude/state/ledger.jsonl'), lastCheck: path.join(root, '.claude/state/last.json'), runId: path.join(root, '.claude/state/run-id') };
+  const layout = { root, state: path.join(root, '.aidlc/state'), ledger: path.join(root, '.aidlc/state/ledger.jsonl'), lastCheck: path.join(root, '.aidlc/state/last.json'), runId: path.join(root, '.aidlc/state/run-id') };
   const cfg = {
     capabilities: { lint: 'exit 1', typecheck: 'exit 0', test: 'exit 0' },
     formats: {}, stages: { s: ['lint', 'typecheck', 'test'] },
@@ -212,7 +212,7 @@ test('check: fail-fast stops at the first failure and records what it skipped', 
 });
 
 test('baseline: ratchets a rise, tolerates noise, records what has no history', async () => {
-  const { compare, RATCHETED } = await import('../.claude/lib/baseline.mjs');
+  const { compare, RATCHETED } = await import('../.aidlc/lib/baseline.mjs');
   const base = { tolerance: 1.10, claude_md_tokens: 100, session_context_tokens: 50, check_stop_tokens: 20, wiki_index_tokens: 80, pack_tokens_p50: 0 };
   const same = compare(base, { ...base });
   assert.equal(same.ok, true);
@@ -231,13 +231,13 @@ test('baseline: ratchets a rise, tolerates noise, records what has no history', 
 });
 
 test('baseline: every ratcheted metric is actually captured', async () => {
-  const { capture, RATCHETED } = await import('../.claude/lib/baseline.mjs');
+  const { capture, RATCHETED } = await import('../.aidlc/lib/baseline.mjs');
   const { stage } = await import('../evals/lib/stage.mjs');
   const fs = await import('node:fs');
   const path = await import('node:path');
   const s = stage(path.join(ROOT, 'evals', 'fixtures'), 'graph-app');
   try {
-    const state = path.join(s.work, '.claude/state');
+    const state = path.join(s.work, '.aidlc/state');
     fs.mkdirSync(state, { recursive: true });
     const cfg = {
       project: { name: 'graph-app' }, capabilities: {}, formats: {},
@@ -256,7 +256,7 @@ test('baseline: every ratcheted metric is actually captured', async () => {
 });
 
 test('baseline: an incomparable toolchain is not a regression', async () => {
-  const { compare } = await import('../.claude/lib/baseline.mjs');
+  const { compare } = await import('../.aidlc/lib/baseline.mjs');
   const base = { tolerance: 1.10, claude_md_tokens: 100, session_context_tokens: 50, check_stop_tokens: 18, wiki_index_tokens: 80, pack_tokens_p50: 100, errored_controls: [] };
   // Same change, measured on a machine with no ruff: the stage output balloons with
   // "tool not installed" text. That is a fact about the laptop, not about the change.
@@ -271,7 +271,7 @@ test('baseline: an incomparable toolchain is not a regression', async () => {
 });
 
 test('ledger audit turns rows into decisions, and refuses a verdict without evidence', async () => {
-  const { audit, KILL } = await import('../.claude/lib/ledger.mjs');
+  const { audit, KILL } = await import('../.aidlc/lib/ledger.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -300,55 +300,55 @@ test('ledger audit turns rows into decisions, and refuses a verdict without evid
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test('lifecycle does not treat an uncommitted approval as an auditable gate', async () => {
-  const { lifecycle, renderLifecycle } = await import('../.claude/lib/lifecycle.mjs');
+test('lifecycle does not treat uncommitted intent acceptance as an auditable gate', async () => {
+  const { lifecycle, renderLifecycle } = await import('../.aidlc/lib/lifecycle.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-life-'));
-  const artifacts = path.join(root, '.claude/artifacts');
+  const artifacts = path.join(root, '.aidlc/artifacts');
   const L = { root };
   for (const kind of ['intent', 'spec', 'plan', 'review']) {
     L[kind] = path.join(artifacts, kind);
     fs.mkdirSync(L[kind], { recursive: true });
   }
-  fs.writeFileSync(path.join(L.intent, 'change.md'), '# Intent\n\n- **Date:** 2026-01-01\n- **Status:** approved\n');
+  fs.writeFileSync(path.join(L.intent, 'change.md'), '# Intent\n\n- **Date:** 2026-01-01\n- **Status:** accepted\n');
   const rows = lifecycle({ layout: L, sla: { intent_hours: 8, design_hours: 24, planning_hours: 8, build_hours: 72, review_hours: 24 } }, 'change');
-  assert.equal(rows[0].stage, 'intent-approval');
-  assert.equal(rows[0].slas.design.verdict, 'unmeasured', 'an uncommitted approval has no auditable clock');
+  assert.equal(rows[0].stage, 'intent-acceptance');
+  assert.equal(rows[0].slas.design.verdict, 'unmeasured', 'uncommitted acceptance has no auditable clock');
   assert.equal(rows[0].valid, false);
-  assert.match(rows[0].issues.join('\n'), /approval is not committed/);
-  assert.match(renderLifecycle(rows), /change\s+intent-approval/);
+  assert.match(rows[0].issues.join('\n'), /acceptance is not committed/);
+  assert.match(renderLifecycle(rows), /change\s+intent-acceptance/);
   fs.rmSync(root, { recursive: true, force: true });
 });
 
 test('lifecycle rejects downstream artifacts that bypass human approval', async () => {
-  const { lifecycle } = await import('../.claude/lib/lifecycle.mjs');
+  const { lifecycle } = await import('../.aidlc/lib/lifecycle.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-order-'));
   const L = { root };
   for (const kind of ['intent', 'spec', 'plan', 'review']) {
-    L[kind] = path.join(root, '.claude/artifacts', kind);
+    L[kind] = path.join(root, '.aidlc/artifacts', kind);
     fs.mkdirSync(L[kind], { recursive: true });
   }
   fs.writeFileSync(path.join(L.intent, 'unsafe.md'), '- **Status:** draft\n');
   fs.writeFileSync(path.join(L.spec, 'unsafe.md'), '- **Status:** approved\n');
   const [row] = lifecycle({ layout: L, sla: {} }, 'unsafe');
   assert.equal(row.valid, false);
-  assert.match(row.issues.join('\n'), /spec exists before intent approval/);
-  assert.equal(row.stage, 'intent-approval');
+  assert.match(row.issues.join('\n'), /spec exists before intent acceptance/);
+  assert.equal(row.stage, 'intent-acceptance');
   fs.rmSync(root, { recursive: true, force: true });
 });
 
 test('incident loop requires a timestamp and the same-slug intent', async () => {
-  const { incidents } = await import('../.claude/lib/lifecycle.mjs');
+  const { incidents } = await import('../.aidlc/lib/lifecycle.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-incident-'));
-  const L = { root, incident: path.join(root, '.claude/artifacts/incident'), intent: path.join(root, '.claude/artifacts/intent') };
+  const L = { root, incident: path.join(root, '.aidlc/artifacts/incident'), intent: path.join(root, '.aidlc/artifacts/intent') };
   fs.mkdirSync(L.incident, { recursive: true }); fs.mkdirSync(L.intent, { recursive: true });
   fs.writeFileSync(path.join(L.incident, 'outage.md'), '- **Detected at:** 2026-01-01T00:00:00.000Z\n- **Status:** open\n');
   const [row] = incidents({ layout: L, sla: { incident_to_intent_minutes: 60 } }, Date.parse('2026-01-01T02:00:00.000Z'));
@@ -359,7 +359,7 @@ test('incident loop requires a timestamp and the same-slug intent', async () => 
 });
 
 test('lifecycle measures a committed, approved chain from source timestamps and git history', async () => {
-  const { lifecycle } = await import('../.claude/lib/lifecycle.mjs');
+  const { lifecycle } = await import('../.aidlc/lib/lifecycle.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -367,7 +367,7 @@ test('lifecycle measures a committed, approved chain from source timestamps and 
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-chain-'));
   const L = { root };
   for (const kind of ['intent', 'spec', 'plan', 'review']) {
-    L[kind] = path.join(root, '.claude/artifacts', kind);
+    L[kind] = path.join(root, '.aidlc/artifacts', kind);
     fs.mkdirSync(L[kind], { recursive: true });
   }
   execFileSync('git', ['init', '-q'], { cwd: root });

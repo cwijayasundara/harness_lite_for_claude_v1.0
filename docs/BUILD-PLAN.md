@@ -1,5 +1,9 @@
 # Build plan — claude_harness_lean_v1
 
+> **Historical baseline:** this records the original Claude-first build. The provider-neutral
+> layout and current implementation sequence are authoritative in
+> [`COMPANY-V1-IMPLEMENTATION-PLAN.md`](COMPANY-V1-IMPLEMENTATION-PLAN.md).
+
 > A lean, language-agnostic SDLC harness for Claude Code, built from the v6 post-mortem
 > (`docs/analysis.html`) and aligned to Anthropic's AI-native SDLC playbook.
 >
@@ -9,8 +13,8 @@
 > breach into incident → intent. Provider credentials, metric sources, and production commands
 > remain project-owned.
 >
-> **Decisions taken:** Node.js with zero dependencies · shipped as a Claude Code plugin ·
-> every generated artefact lives under `.claude/` · proven first against a scaffolded scratch
+> **Original decisions:** Node.js with zero dependencies · shipped first as a Claude Code plugin ·
+> generated artefacts originally lived under `.claude/` · proven first against a scaffolded scratch
 > repository, then dogfooded.
 
 ---
@@ -41,11 +45,11 @@ commits a file the next stage reads, and git is the audit trail.
 
 | Playbook stage | This harness | Human gate |
 |---|---|---|
-| **1. Plan** — capture as `intent.md` | `intent` skill → `.claude/artifacts/intent/<slug>.md` | — |
-| **2. Design** — `spec.md` guided by skills | `spec` skill → `.claude/artifacts/spec/<slug>.md` | **Gate 1** — spec approved |
+| **1. Plan** — capture as `intent.md` | `intent` skill → `.aidlc/artifacts/intent/<slug>.md` | — |
+| **2. Design** — `spec.md` guided by skills | `spec` skill → `.aidlc/artifacts/spec/<slug>.md` | **Gate 1** — spec approved |
 | **3. Build** — plan mode, CLAUDE.md, subagents | `plan` + `implement` skills, 5 hooks, 3 agents | **Gate 2** — plan approved |
 | **4. Test** — evals woven through | `harness check` stages + `evals/tasks.json` in CI; `harness status` reports pass rate | — |
-| **5. Deploy** — PR review, hooks as gates | `review` skill → `.claude/artifacts/review/<slug>.md`; CI + merge protection are the gate; `handoff` opens the next draft PR | **Gate 3** — review approved / PR merged |
+| **5. Deploy** — PR review, hooks as gates | `review` skill → `.aidlc/artifacts/review/<slug>.md`; CI + merge protection are the gate; `handoff` opens the next draft PR | **Gate 3** — review approved / PR merged |
 | **6. Maintain** — bands → `intent.md` | `harness monitor detect` (scheduled) writes incident + intent; collector is project-owned | service owner triage |
 
 This table distinguishes a **core implementation** from an **adapter contract**. Stages 1–4 run
@@ -86,7 +90,7 @@ not another permanent harness control; the plan's file ownership must be disjoin
 | Managed settings, OSCAL, certification | Template + `harness doctor --enterprise` | Enforcement is MDM/admin console, never git `settings.json`. |
 | `bands.yaml` anomaly detection → `intent.md` | `harness monitor detect` with 1σ/2σ/3σ tiers | Detection stays model-free. 2σ diagnoses; 3σ writes intent and may rollback staging. |
 | Skills up to 500 lines / 5k words | 130-line hard stop, ~80-line target | Empirically better triggering. v6's skills averaged 268 lines and its two conductors were effectively 1,000 and 1,850. |
-| Repo-root `docs/` for artefacts | Artefacts under `.claude/artifacts/`; everything that is not the harness at the repo root | The artefact chain stays under `.claude/` — one place an agent looks. But `.claude/` is the harness, so the things that *exercise* it (`test/` `evals/` `examples/`) and the prose *about* it (`docs/`) sit beside it, not inside it. |
+| Repo-root `docs/` for artefacts | Artefacts under `.aidlc/artifacts/`; everything that is not the harness at the repo root | The artefact chain stays under `.claude/` — one place an agent looks. But `.claude/` is the harness, so the things that *exercise* it (`test/` `evals/` `examples/`) and the prose *about* it (`docs/`) sit beside it, not inside it. |
 
 ---
 
@@ -165,7 +169,7 @@ Four chain skills · two write guards with the shell-bypass closed · three agen
 
 - **Exit criterion:** a PRD reaches a merged change through the chain, and the diff's file list
   matches the plan.
-- **Evidence:** `.claude/artifacts/` in the scratch repo; `harness check --stage commit` passes
+- **Evidence:** `.aidlc/artifacts/` in the scratch repo; `harness check --stage commit` passes
   on the aligned diff and fails on an off-plan edit.
 
 ### Phase 2 — Evals, then freeze · **COMPLETE**
@@ -245,7 +249,7 @@ requires a deletion, which is the state Law 5 exists to force.
 
 **Law 6 held.** `examples/scratch-ts` — TypeScript, eslint, tsc, `node:test` — runs the same
 harness as the Python example with **zero code differences between them**. The whole of the
-difference is eight strings in `.claude/harness.toml`. The `eslint` and `tsc` normalizers
+difference is eight strings in `.aidlc/harness.toml`. The `eslint` and `tsc` normalizers
 written in Phase 0 needed no changes; findings from ruff, eslint and tsc arrive in the identical
 `{file, line, rule, message, fix}` shape, which is the point of that decision.
 
@@ -316,8 +320,8 @@ only reason these were found before your team hit them:
 
 | Failure | Root cause | Fix |
 |---|---|---|
-| 3 artifact-chain tasks | Claude Code guards `.claude/**` as sensitive, so the artifact chain we deliberately put there **cannot be written non-interactively** | `harness init` now writes a scoped `permissions.allow` for `.claude/artifacts/**`; evals use a disposable copy |
-| `red-first` | `CLAUDE.md` documents `bash .claude/bin/harness`, which does not exist when the harness is installed as a plugin — the model ran `find / -iname harness` looking for it | `harness init` writes a shim at that exact path, so the documented command is always true |
+| 3 artifact-chain tasks | Claude Code guards `.claude/**` as sensitive, so the artifact chain we deliberately put there **cannot be written non-interactively** | `harness init` now writes a scoped `permissions.allow` for `.aidlc/artifacts/**`; evals use a disposable copy |
+| `red-first` | `CLAUDE.md` documents `bash .aidlc/bin/harness`, which does not exist when the harness is installed as a plugin — the model ran `find / -iname harness` looking for it | `harness init` writes a shim at that exact path, so the documented command is always true |
 | `scope-refusal` | assertion chased *phrasings* of a refusal; three correct refusals failed in a row | assert the **subject** the response must engage with, never the wording |
 | `plan-drift-honesty` | the task's premise was false — nothing forced an off-plan change | fixture now requires one |
 | 2 more | prompts under-specified, so the skills correctly asked a question a one-shot run has nobody to answer | prompts supply what the interview asks for |
@@ -435,7 +439,7 @@ dashboard stack.
 
 | Risk | Signal | Mitigation |
 |---|---|---|
-| The chain becomes ceremony people route around | `.claude/artifacts/` empty while commits land | Gate 1 and 2 are the only pauses; `low` risk tier skips straight to implement |
+| The chain becomes ceremony people route around | `.aidlc/artifacts/` empty while commits land | Gate 1 and 2 are the only pauses; `low` risk tier skips straight to implement |
 | The graph repeats the v6 blindness | wiki hubs are test helpers | Phase 3's five-question test is written *before* the producer |
 | Controls creep back in | budget test needs an exemption | Law 5 is a red test, not a review comment |
 | Evals rot into transcript-regex theatre | assertions drift toward `transcript_matches` | Deterministic assertions are the default; regex needs a reason in the task |

@@ -1,33 +1,35 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { selectSlug, packet, validateReview, writeReview, checkProtection } from '../.claude/lib/review-adapter.mjs';
+import { selectSlug, packet, validateReview, writeReview, checkProtection } from '../.aidlc/lib/review-adapter.mjs';
+import { behaviourIds, contractDigest, writeEvidence } from '../.aidlc/lib/contract.mjs';
 
 function fixture() {
   const root = mkdtempSync(path.join(tmpdir(), 'review-adapter-'));
-  const artifacts = path.join(root, '.claude/artifacts');
-  const layout = { root };
-  for (const kind of ['intent', 'spec', 'plan', 'review']) { layout[kind] = path.join(artifacts, kind); mkdirSync(layout[kind], { recursive: true }); }
+  const artifacts = path.join(root, '.aidlc/artifacts');
+  const layout = { root, contracts: path.join(artifacts, 'contracts'), intentRefs: path.join(artifacts, 'intent-refs'), evidence: path.join(artifacts, 'evidence'), review: path.join(artifacts, 'review') };
+  for (const dir of [layout.contracts, layout.intentRefs, layout.evidence, layout.review]) mkdirSync(dir, { recursive: true });
   execFileSync('git', ['init', '-q'], { cwd: root }); execFileSync('git', ['config', 'user.email', 'test@example.invalid'], { cwd: root }); execFileSync('git', ['config', 'user.name', 'test'], { cwd: root });
-  writeFileSync(path.join(layout.intent, 'safe-change.md'), '- **Opened at:** 2026-01-01T00:00:00Z\n- **Status:** approved\n');
-  writeFileSync(path.join(layout.spec, 'safe-change.md'), '- **Status:** approved\n\n1. safe behaviour\n');
-  writeFileSync(path.join(layout.plan, 'safe-change.md'), '- **Status:** approved\n\n## Files\n```\nsrc/a.js\n```\n');
-  execFileSync('git', ['add', '.'], { cwd: root }); execFileSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'approved artifacts'], { cwd: root });
+  writeFileSync(path.join(root, 'README.md'), 'base\n'); execFileSync('git', ['add', '.'], { cwd: root }); execFileSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'base'], { cwd: root });
   const base = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  const source = path.resolve('evals/fixtures/contract-planned/.aidlc/artifacts');
+  cpSync(path.join(source, 'contracts/hyphen-titlecase.md'), path.join(layout.contracts, 'hyphen-titlecase.md'));
+  cpSync(path.join(source, 'intent-refs/hyphen-titlecase.json'), path.join(layout.intentRefs, 'hyphen-titlecase.json'));
+  const contract = readFileSync(path.join(layout.contracts, 'hyphen-titlecase.md'), 'utf8');
+  writeEvidence(path.join(layout.evidence, 'hyphen-titlecase.json'), 'hyphen-titlecase', contractDigest(contract, 'plan'), behaviourIds(contract));
   mkdirSync(path.join(root, 'src')); writeFileSync(path.join(root, 'src/a.js'), 'export const a = 1;\n');
-  writeFileSync(path.join(layout.plan, 'safe-change.md'), readFileSync(path.join(layout.plan, 'safe-change.md'), 'utf8') + '\nimplementation started\n');
   execFileSync('git', ['add', '.'], { cwd: root }); execFileSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'implementation'], { cwd: root });
   return { root, base, layout, cfg: { layout, budget: { review_diff_max_bytes: 200000 }, sla: {} }, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
-test('review adapter selects one plan and builds a bounded packet from committed approvals', () => {
+test('review adapter selects one contract and builds a bounded packet from approvals and evidence', () => {
   const f = fixture(); try {
-    assert.equal(selectSlug(f.root, f.base), 'safe-change');
-    const text = packet(f.cfg, 'safe-change', f.base);
-    assert.match(text, /Approved spec/); assert.match(text, /export const a/); assert.match(text, /Diff truncated: false/);
+    assert.equal(selectSlug(f.root, f.base), 'hyphen-titlecase');
+    const text = packet(f.cfg, 'hyphen-titlecase', f.base);
+    assert.match(text, /Approved delivery contract/); assert.match(text, /Behaviour evidence/); assert.match(text, /export const a/); assert.match(text, /Diff truncated: false/);
   } finally { f.cleanup(); }
 });
 
@@ -39,7 +41,7 @@ test('review validation rejects unsafe paths, inconsistent approval, and nit flo
 
 test('rendered agent review remains a draft human gate', () => {
   const f = fixture(); try {
-    const result = writeReview(f.cfg, 'safe-change', { recommendation: 'approve', summary: 'Looks aligned.', findings: [] }, { reviewer: 'bot', commit: 'abc' });
+    const result = writeReview(f.cfg, 'hyphen-titlecase', { recommendation: 'approve', summary: 'Looks aligned.', findings: [] }, { reviewer: 'bot', commit: 'abc' });
     const text = readFileSync(result.file, 'utf8');
     assert.match(text, /Status:\*\* draft/); assert.match(text, /Agent recommendation:\*\* approve/); assert.doesNotMatch(text, /Status:\*\* approved/);
   } finally { f.cleanup(); }

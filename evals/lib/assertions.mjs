@@ -9,7 +9,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
 // A deliberately small glob: `*` inside one path segment. Enough for
-// ".claude/artifacts/intent/*.md" and "tests/*.py", and small enough to have no bugs.
+// ".aidlc/artifacts/intent/*.md" and "tests/*.py", and small enough to have no bugs.
 export function expand(root, pattern) {
   const parts = pattern.split('/');
   let dirs = [''];
@@ -48,7 +48,7 @@ export function toRegExp(pattern) {
   return m ? new RegExp(m[2], m[1]) : new RegExp(String(pattern));
 }
 
-const IGNORE = /(^|\/)(\.git|\.claude\/state|__pycache__|\.pytest_cache|\.ruff_cache)(\/|$)/;
+const IGNORE = /(^|\/)(\.git|\.aidlc\/state|__pycache__|\.pytest_cache|\.ruff_cache)(\/|$)/;
 
 function walk(root, rel = '') {
   const out = [];

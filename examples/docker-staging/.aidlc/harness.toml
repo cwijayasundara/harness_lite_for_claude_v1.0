@@ -1,0 +1,17 @@
+[project]
+name = "docker-staging-rehearsal"
+
+[capabilities]
+
+[deployment]
+platform = "docker-compose"
+compose_file = "compose.yaml"
+service = "web"
+image_repository = "nginx"
+project_slug = "aidlc-rehearsal"
+verify_url_staging = "http://127.0.0.1:18080/"
+production_requires_approval = true
+production_allowed_risks = ["low", "standard", "critical"]
+critical_approvals = 2
+require_preflight = true
+timeout_ms = 300000

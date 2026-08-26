@@ -1,14 +1,14 @@
 {
-  "name": "lean_harness_cs_v1",
-  "description": "Marketplace for the lean AIDLC kernel. Add it from this repository, not from a path: a marketplace that resolves on one laptop cannot be a pod's source of truth. The plugin root is .claude/.",
+  "name": "lean-harness-cs-v1",
+  "description": "Marketplace for the Claude adapter and the agent-neutral AIDLC kernel.",
   "owner": {
     "name": "Chaminda Wijayasundara"
   },
   "plugins": [
     {
-      "name": "lean_harness_cs_v1",
-      "source": "./.claude",
-      "description": "Lean AIDLC kernel: intent → spec → plan → review, ledger, and five hook bindings."
+      "name": "lean-harness-cs-v1",
+      "source": "./.",
+      "description": "Claude adapter for the .aidlc kernel: skills, agents, and five hook bindings."
     }
   ]
 }
