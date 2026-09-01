@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/p0-unblock-the-loop.md",
-    "revision": "pending",
+    "revision": "70305c3",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijay@biz2bricks.ai",
+    "decided_at": "2026-09-01T05:51:00.992Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:fda9c0c41978ec72ab5845ffcd6d37000c5e65ede07e4271df6a914bc3e6619e"
 }
