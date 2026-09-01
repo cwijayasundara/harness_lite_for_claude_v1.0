@@ -83,6 +83,7 @@ marked as one.
 | `.aidlc/hooks/dispatch.mjs` | rotate the run id on `session-start` |
 | `test/gauntlet.test.mjs` | mark line 92 `harness:allow-secret` |
 | `test/guard.test.mjs` | regression cases for B1 and B2 |
+| `test/unit.test.mjs` | regression case for B4, beside the existing ledger audit test |
 
 ## Safeguards
 
