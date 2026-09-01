@@ -42,6 +42,10 @@
     }
   },
   "review": {
-    "status": "pending"
+    "status": "pending",
+    "artifact": ".aidlc/artifacts/review/p0-unblock-the-loop.md",
+    "agent_pass": "approve",
+    "findings": { "blocking": 0, "important": 1, "nit": 2 },
+    "note": "The Important finding — the artifact/state carve-out stopped covering absolute paths — was fixed within the review and --stage commit re-run green. Human sign-off (gate 3) outstanding."
   }
 }

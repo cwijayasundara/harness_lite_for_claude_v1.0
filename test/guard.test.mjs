@@ -82,6 +82,10 @@ test('the contract guard does not block a command that writes no product file', 
       'grep -rn contractScopeState .aidlc/lib 2>/dev/null',
       'ls -la > /dev/null',
       'node .aidlc/bin/harness status >> .aidlc/state/last-check.json',
+      // The carve-out is about the artifact and state trees, not about how they were spelled.
+      `echo x > ${f.root}/.aidlc/artifacts/intent/foo.md`,
+      `echo x > ${f.root}/.aidlc/state/scratch`,
+      'echo x > ./.aidlc/state/scratch',
     ]) assert.equal(bashContractBlocked(cmd, cfg), null, `blocked a command that writes no product file: ${cmd}`);
   } finally { f.cleanup(); }
 });

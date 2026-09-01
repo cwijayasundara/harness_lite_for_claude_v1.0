@@ -141,8 +141,15 @@ export function bashContractBlocked(cmd, cfg) {
   // through. Still regex-level, per the tree-sitter decision in docs/BUILD-PLAN.md Phase 3: a
   // `>` inside quoted prose followed by a word will still read as a write. That is the residual
   // and it is a narrower one than refusing every co-authored commit.
+  //
+  // artifactOrState wants a repo-relative path, and the string it replaces matched anywhere in
+  // the command — including inside an absolute one. Rooting the target first keeps that carve-out
+  // for `> /abs/repo/.aidlc/state/x`, which the narrowing would otherwise have started refusing.
+  const root = cfg.layout?.root ? String(cfg.layout.root).replace(/\/+$/, '') + '/' : null;
   const targets = writeTargets(cmd)
-    .map((t) => t.replace(/^['"]+|['"]+$/g, '').replace(/^\.\//, ''))
+    .map((t) => t.replace(/^['"]+|['"]+$/g, ''))
+    .map((t) => (root && t.startsWith(root) ? t.slice(root.length) : t))
+    .map((t) => t.replace(/^\.\//, ''))
     .filter((t) => t && !t.startsWith('/dev/') && !artifactOrState(t));
   if (!targets.length) return null;
   try {
