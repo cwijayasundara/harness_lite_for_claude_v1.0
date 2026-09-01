@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/p0-unblock-the-loop.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:4825cb8d7060fc374f9b8468f9c85314cae015af29d8d79bd686524633d7fce7
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
