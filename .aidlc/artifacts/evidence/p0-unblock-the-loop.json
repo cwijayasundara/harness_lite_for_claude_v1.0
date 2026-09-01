@@ -1,0 +1,47 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "p0-unblock-the-loop",
+  "contract_digest": "sha256:653bb08d15b705ddc04dd10085e0382c9af3560b273aa87289e9fe17fdbfae8f",
+  "generated_at": "2026-09-01T05:56:07.386Z",
+  "capabilities": {
+    "secrets": "PASS 48ms",
+    "test": "PASS 6944ms (24 files; previously skipped behind the secrets false positive)",
+    "scope-drift": "PASS 51ms",
+    "budget": "PASS 1ms"
+  },
+  "behaviours": {
+    "B1": {
+      "status": "pass",
+      "evidence": [
+        "test/guard.test.mjs :: the contract guard does not block a command that writes no product file",
+        "live: `echo hi 2>/dev/null | head -1` returns `hi` (refused before the change)",
+        "live: `node .aidlc/bin/harness check --stage stop 2>&1 | tail -5` runs (refused before the change)",
+        "live: commit fa422ff carries a Co-Authored-By trailer ending in `>` (refused before the change)"
+      ]
+    },
+    "B2": {
+      "status": "pass",
+      "evidence": [
+        "test/guard.test.mjs :: the contract guard still blocks an unowned write to a product file",
+        "live: scope-drift refused the edit to test/unit.test.mjs until the contract was widened and re-sealed (commits d48d60a, eb16d24)"
+      ]
+    },
+    "B3": {
+      "status": "pass",
+      "evidence": [
+        "`harness check --stage commit` — secrets PASS, test PASS, scope-drift PASS, budget PASS",
+        "test/gauntlet.test.mjs :: Phase 4 conformance still asserts the hardening profile detects security-defective across Python, TypeScript and JVM"
+      ]
+    },
+    "B4": {
+      "status": "pass",
+      "evidence": [
+        "test/unit.test.mjs :: a new session rotates the run id, and HARNESS_RUN_ID still pins it",
+        "`harness ledger audit` reports 1277 rows over 4 runs, and returns per-control verdicts instead of a single insufficient-data block"
+      ]
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}
