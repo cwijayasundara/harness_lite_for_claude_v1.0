@@ -89,7 +89,10 @@ test('Phase 4 conformance: Python, TypeScript, and JVM reject all four defect cl
       ['do-nothing', () => writeFileSync(path.join(p.root, p.source), p.healthy.replace('return "delivered"', 'return "not-delivered"').replace('return "delivered";', 'return "not-delivered";'))],
       ['test-cheating', () => writeFileSync(path.join(p.root, p.tests), p.test.replace('ASSERT_REQUIRED_BEHAVIOUR', 'ASSERTION_REMOVED').replace(/assert deliver\(\) == "delivered"/, 'assert True').replace(/assert\.equal\(deliver\(\), 'delivered'\);/, "assert.equal(true, true);").replace(/if \(!App\.deliver\(\)\.equals\("delivered"\)\) throw new AssertionError\(\);/, 'if (false) throw new AssertionError();'))],
       ['boundary-breaking', () => writeFileSync(path.join(p.root, p.source), `${p.healthy}\n${definition.comment} FORBIDDEN_BOUNDARY\n`)],
-      ['security-defective', () => writeFileSync(path.join(p.root, p.source), `${p.healthy}\n${definition.comment} api_key = "sk-123456789012345678901234567890"\n`)],
+      // The injected string below is the defect this case exists to detect. The allow marker is
+      // on the JavaScript line only; the fixture it writes still carries the live secret, so the
+      // hardening profile must still fail on it — see the assertion at the foot of this loop.
+      ['security-defective', () => writeFileSync(path.join(p.root, p.source), `${p.healthy}\n${definition.comment} api_key = "sk-123456789012345678901234567890"\n`)], // harness:allow-secret
     ];
     for (const [defect, inject] of defects) {
       writeFileSync(path.join(p.root, p.source), p.healthy); writeFileSync(path.join(p.root, p.tests), p.test); inject();

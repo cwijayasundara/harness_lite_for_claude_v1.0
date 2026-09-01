@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { C, BIN } from './_paths.mjs';
-import { writeBlocked, productionDenied, lockTests, clearLock, bandTier, classifyBands, bashTouchesProtected } from '../.aidlc/lib/guard.mjs';
+import { writeBlocked, productionDenied, lockTests, clearLock, bandTier, classifyBands, bashTouchesProtected, bashContractBlocked } from '../.aidlc/lib/guard.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 
 
@@ -57,6 +57,48 @@ test('a command that writes to a protected path is still denied', () => {
   ]) {
     assert.ok(bashTouchesProtected(cmd, paths), `allowed a write to a protected path: ${cmd}`);
   }
+});
+
+function contractCfg(f) {
+  return {
+    layout: { ...f.layout, contracts: path.join(f.root, '.aidlc/artifacts/contracts') },
+    guard: { require_contract: true },
+  };
+}
+
+// p0-unblock-the-loop B1. bashContractBlocked was left on the string test that
+// bashTouchesProtected had already been repaired for, so it read a `>` anywhere as a write. It
+// refused `2>/dev/null`, it refused `harness check --stage stop 2>&1 | tail` — the command
+// CLAUDE.md calls non-negotiable — and it refused every commit carrying a `Co-Authored-By`
+// trailer, because a mail address ends in `>`. Three separate refusals in the session that
+// found it.
+test('the contract guard does not block a command that writes no product file', () => {
+  const f = tmp('contract-guard-read-'); try {
+    const cfg = contractCfg(f);
+    for (const cmd of [
+      'echo hi 2>/dev/null | head -1',
+      'node .aidlc/bin/harness check --stage stop 2>&1 | tail -30',
+      'git commit -q -m "fix: x" -m "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"',
+      'grep -rn contractScopeState .aidlc/lib 2>/dev/null',
+      'ls -la > /dev/null',
+      'node .aidlc/bin/harness status >> .aidlc/state/last-check.json',
+    ]) assert.equal(bashContractBlocked(cmd, cfg), null, `blocked a command that writes no product file: ${cmd}`);
+  } finally { f.cleanup(); }
+});
+
+// p0-unblock-the-loop B2. Narrowing the guard must not open it.
+test('the contract guard still blocks an unowned write to a product file', () => {
+  const f = tmp('contract-guard-write-'); try {
+    const cfg = contractCfg(f);
+    for (const cmd of [
+      'echo x > src/app.py',
+      'echo x >> src/app.py',
+      "sed -i '' s/a/b/ src/app.py",
+      'cat x | tee src/app.py',
+      'node build.mjs 2>&1 > dist/out.js',
+      'cp /tmp/other.py src/app.py',
+    ]) assert.ok(bashContractBlocked(cmd, cfg), `allowed an unowned product write: ${cmd}`);
+  } finally { f.cleanup(); }
 });
 
 test('scope guard remains configurable for non-product repositories', () => {

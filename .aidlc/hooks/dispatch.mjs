@@ -56,6 +56,10 @@ export async function dispatch(event) {
   try {
     switch (event) {
       case 'session-start': {
+        // Start of a session is the one honest place to rotate the run id: every row appended
+        // from here until the next session belongs to this one. The 30-day report below reads
+        // history, so rotating first costs it nothing.
+        ledger.newRun(cfg.layout);
         const m = measure(cfg);
         const led = ledger.report(cfg.layout, { days: 30 });
         const noisy = led.controls.filter((c) => c.verdict === 'unreliable' || c.verdict === 'candidate-for-deletion').slice(0, 3);

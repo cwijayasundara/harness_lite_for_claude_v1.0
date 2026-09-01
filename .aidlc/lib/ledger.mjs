@@ -18,6 +18,21 @@ export function runId(L = layout()) {
   return id;
 }
 
+// A run is a session, and `report().runs` is the denominator behind KILL.min_sessions. runId()
+// above only ever *creates* an id, so without a rotation point the file written on the first
+// invocation is the run id forever: this repo accumulated 1,185 rows over eight days under a
+// single id, which left every control sitting at `insufficient-data` and made `ledger audit` —
+// the only query that authorises deleting a control — unable to return a verdict.
+//
+// HARNESS_RUN_ID still wins, so CI can pin one run across several steps.
+export function newRun(L = layout()) {
+  if (process.env.HARNESS_RUN_ID) return process.env.HARNESS_RUN_ID;
+  mkdirSync(L.state, { recursive: true });
+  const id = randomUUID().slice(0, 8);
+  writeFileSync(L.runId, id);
+  return id;
+}
+
 export function append(row, L = layout()) {
   try {
     mkdirSync(path.dirname(L.ledger), { recursive: true });

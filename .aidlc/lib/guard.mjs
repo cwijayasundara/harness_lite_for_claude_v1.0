@@ -95,7 +95,7 @@ export function productionDenied(cmd, env = process.env) {
 // Deliberately regex-level: shell is not parseable without a parser, and the tree-sitter
 // decision in docs/BUILD-PLAN.md Phase 3 applies here too. The trade is the one the spec states
 // — a write may slip through, a read is never blocked. It is a guard, not a permission system.
-export function bashTouchesProtected(cmd, protectedPaths) {
+export function writeTargets(cmd) {
   const text = String(cmd ?? '');
   const targets = [];
 
@@ -114,15 +114,37 @@ export function bashTouchesProtected(cmd, protectedPaths) {
     else targets.push(args[args.length - 1]);
   }
 
+  return targets;
+}
+
+export function bashTouchesProtected(cmd, protectedPaths) {
+  const targets = writeTargets(cmd);
   for (const p of protectedPaths) if (targets.some((t) => t.includes(p))) return p;
   return null;
 }
 
 export function bashContractBlocked(cmd, cfg) {
   if (!(cfg.guard?.require_contract ?? false)) return null;
-  const writeish = /(>>?|\btee\b|\bsed\s+-i\b|\bmv\b|\bcp\b|\btruncate\b|\bdd\b)/;
-  if (!writeish.test(String(cmd ?? ''))) return null;
-  if (/\.aidlc\/(artifacts|state)\//.test(cmd) && !/\bsrc\/|\btests?\//.test(cmd)) return null;
+
+  // Ask what the command writes *to*, not whether a `>` appears somewhere in it. The previous
+  // version tested the whole string and so refused `echo hi 2>/dev/null`, refused
+  // `harness check --stage stop 2>&1 | tail` — the one command CLAUDE.md calls non-negotiable —
+  // and refused every commit carrying a `Co-Authored-By: ... <noreply@...>` trailer, because a
+  // mail address ends in `>`. bashTouchesProtected above was repaired for this exact defect and
+  // its sibling was left behind, so the two disagreed about what a write is.
+  //
+  // A descriptor is not a file (`2>&1`), a discard is not a product edit (`/dev/null`), and the
+  // artifact and state trees are the harness's own bookkeeping — the old carve-out asked that of
+  // the whole command string, which let any command merely *naming* an artifact path through.
+  // A redirect target is a path. `<noreply@anthropic.com>"` leaves a bare quote behind, which is
+  // not one — stripping quotes and dropping what is left empty is what lets a commit trailer
+  // through. Still regex-level, per the tree-sitter decision in docs/BUILD-PLAN.md Phase 3: a
+  // `>` inside quoted prose followed by a word will still read as a write. That is the residual
+  // and it is a narrower one than refusing every co-authored commit.
+  const targets = writeTargets(cmd)
+    .map((t) => t.replace(/^['"]+|['"]+$/g, '').replace(/^\.\//, ''))
+    .filter((t) => t && !t.startsWith('/dev/') && !artifactOrState(t));
+  if (!targets.length) return null;
   try {
     const { declared, parseError } = contractScopeState(cfg);
     if (parseError || declared.length) return null;

@@ -270,6 +270,39 @@ test('baseline: an incomparable toolchain is not a regression', async () => {
   assert.equal(sameEnv.ok, false);
 });
 
+// p0-unblock-the-loop B4. runId() only ever creates an id, so with no rotation point the file
+// written on the very first invocation stays the run id forever. This repo reached 1,185 rows
+// across eight days under one id, which pins every control at `insufficient-data` and leaves
+// `ledger audit` — the query that authorises deleting a control — unable to answer.
+test('a new session rotates the run id, and HARNESS_RUN_ID still pins it', async () => {
+  const { newRun, runId, append, report } = await import('../.aidlc/lib/ledger.mjs');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-run-'));
+  const L = { state: root, ledger: path.join(root, 'ledger.jsonl'), runId: path.join(root, 'run-id') };
+
+  const first = newRun(L);
+  assert.equal(runId(L), first, 'rows within a session share the run id');
+  append({ stage: 'stop', control: 'secrets', verdict: 'pass', ms: 1, findings: 0 }, L);
+
+  const second = newRun(L);
+  assert.notEqual(second, first, 'a new session is a new run');
+  append({ stage: 'stop', control: 'secrets', verdict: 'pass', ms: 1, findings: 0 }, L);
+  assert.equal(report(L).runs, 2, 'two sessions must report as two runs');
+
+  const saved = process.env.HARNESS_RUN_ID;
+  try {
+    process.env.HARNESS_RUN_ID = 'pinned01';
+    assert.equal(newRun(L), 'pinned01', 'CI pins a run across steps');
+    assert.equal(runId(L), 'pinned01');
+    assert.equal(fs.readFileSync(L.runId, 'utf8').trim(), second, 'a pinned run does not clobber the file');
+  } finally {
+    if (saved === undefined) delete process.env.HARNESS_RUN_ID; else process.env.HARNESS_RUN_ID = saved;
+  }
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test('ledger audit turns rows into decisions, and refuses a verdict without evidence', async () => {
   const { audit, KILL } = await import('../.aidlc/lib/ledger.mjs');
   const fs = await import('node:fs');
