@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/a-draft-governs-only-its-own-files.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:14ef6523b0b042d753a4cd75cdb0be8f809bae8665634ba131ca46da9e382ed4
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
