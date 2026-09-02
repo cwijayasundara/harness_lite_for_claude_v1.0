@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/require-contract-defaults-on.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:60e4c78d2bdf5738c36ad5a423a2f6ce3f9fdaf1442e6bd516ed68a5286c9e34
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
