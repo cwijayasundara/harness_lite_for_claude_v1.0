@@ -34,11 +34,19 @@ test('new rejects path traversal and non-canonical artifact slugs', () => {
 test('status fails when intent acceptance has not entered git history', () => {
   const root = repo();
   try {
-    assert.equal(run(root, 'new', 'intent', 'uncommitted-gate').status, 0);
-    const file = path.join(root, '.aidlc/artifacts/intent/uncommitted-gate.md');
-    writeFileSync(file, readFileSync(file, 'utf8').replace('Status:** draft', 'Status:** accepted'));
+    // A spec approval standing on an intent acceptance that never entered git history.
+    // validateContract checks the ref *says* accepted; only history says anyone can see it.
+    assert.equal(run(root, 'contract', 'new', 'uncommitted-gate').status, 0);
+    const ref = path.join(root, '.aidlc/artifacts/intent-refs/uncommitted-gate.json');
+    const value = JSON.parse(readFileSync(ref, 'utf8'));
+    value.decision = { status: 'accepted', decided_by: 'test', decided_at: '2026-08-24T00:00:00.000Z' };
+    value.snapshot_digest = `sha256:${'a'.repeat(64)}`;
+    value.source = { ...value.source, revision: 'deadbeef' };
+    writeFileSync(ref, JSON.stringify(value, null, 2) + '\n');
+    const contract = path.join(root, '.aidlc/artifacts/contracts/uncommitted-gate.md');
+    sealContract(contract, 'spec');
     const result = run(root, 'status', 'uncommitted-gate');
-    assert.equal(result.status, 1);
+    assert.equal(result.status, 1, result.stdout + result.stderr);
     assert.match(result.stdout, /acceptance is not committed/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

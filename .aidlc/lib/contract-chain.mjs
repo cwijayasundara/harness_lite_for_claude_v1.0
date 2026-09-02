@@ -97,9 +97,50 @@ export function slugs(L) {
   return [...new Set([...names(L?.contracts, '.md'), ...names(L?.intentRefs, '.json')])].sort();
 }
 
-export function rows(cfg, onlySlug = null) {
+function hours(from, to) {
+  if (!from || !to || !Number.isFinite(Date.parse(from)) || !Number.isFinite(Date.parse(to))) return null;
+  return Math.round(((Date.parse(to) - Date.parse(from)) / 36e5) * 10) / 10;
+}
+
+// The five stage clocks, on the contract chain's own timestamps. They used to hang off the
+// four-file lifecycle; the limits in `[sla]` are unchanged, only where the dates come from.
+//
+// `unmeasured` is not `within`: a stage that has not started yet has no verdict to give, and a
+// harness that reports `within` for work nobody has begun is lying comfortably.
+function slaFor(row, sla = {}, nowIso) {
+  const clocks = {
+    intent: [row.intent?.opened_at, row.intent?.accepted_at, sla.intent_hours],
+    design: [row.intent?.accepted_at, row.contract?.spec_sealed_at, sla.design_hours],
+    planning: [row.contract?.spec_sealed_at, row.contract?.plan_sealed_at, sla.planning_hours],
+    delivery: [row.contract?.plan_sealed_at, row.review?.committed_at, sla.build_hours],
+    review: [row.review?.committed_at, row.review?.approved_at, sla.review_hours],
+  };
+  const stages = {};
+  for (const [name, [from, to, limit]] of Object.entries(clocks)) {
+    // An open stage is measured against now, so a clock that is running late says so before it
+    // stops rather than after.
+    const elapsed = hours(from, to ?? (from ? nowIso : null));
+    stages[name] = { hours: elapsed, limit_hours: limit ?? null, verdict: elapsed == null || limit == null ? 'unmeasured' : elapsed <= limit ? 'within' : 'breached' };
+  }
+  const verdicts = Object.values(stages).map((s) => s.verdict);
+  return { stages, verdict: verdicts.includes('breached') ? 'breached' : verdicts.includes('within') ? 'within' : 'unmeasured' };
+}
+
+// The gate the retired lifecycle used to hold: a downstream approval standing on an upstream one
+// that never entered git history. `validateContract` checks that the intent ref *says* accepted;
+// only history can say whether anyone can see it.
+function chainIssues(row) {
+  const issues = [];
+  if (row.contract?.spec_status === 'approved' && row.intent && !row.intent.accepted_at) {
+    issues.push('intent acceptance is not committed');
+  }
+  return issues;
+}
+
+export function rows(cfg, onlySlug = null, now = Date.now()) {
   const L = cfg.layout;
   const root = L.root;
+  const nowIso = new Date(now).toISOString();
   return (onlySlug ? [onlySlug] : slugs(L)).map((id) => {
     const intentFile = path.join(L.intent, `${id}.md`);
     const refFile = path.join(L.intentRefs, `${id}.json`);
@@ -145,10 +186,11 @@ export function rows(cfg, onlySlug = null) {
         file: reviewFile,
         status: reviewStatus,
         committed_at: firstCommit(root, reviewFile),
+        approved_at: committedWhen(root, reviewFile, (b) => field(b, 'Status') === 'approved'),
         // A review that ever said `changes-requested` was not a first-pass approval, even if it
         // says `approved` now.
         ever_requested_changes: Boolean(git(root, ['log', '-S', 'changes-requested', '--format=%H', '--', path.relative(root, reviewFile)])),
       } : null,
     };
-  });
+  }).map((row) => ({ ...row, sla: slaFor(row, cfg.sla, nowIso), issues: chainIssues(row) }));
 }

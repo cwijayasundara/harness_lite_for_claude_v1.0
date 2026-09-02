@@ -15,10 +15,9 @@ function tmp(prefix) {
     root,
     aidlc: path.join(root, '.aidlc'),
     claude: path.join(root, '.claude'),
-    plan: path.join(root, '.aidlc/artifacts/plan'),
     state: path.join(root, '.aidlc/state'),
   };
-  mkdirSync(layout.plan, { recursive: true });
+  mkdirSync(path.join(root, ".aidlc/artifacts/contracts"), { recursive: true });
   mkdirSync(layout.state, { recursive: true });
   return { root, layout, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }

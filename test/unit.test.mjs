@@ -333,50 +333,10 @@ test('ledger audit turns rows into decisions, and refuses a verdict without evid
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test('lifecycle does not treat uncommitted intent acceptance as an auditable gate', async () => {
-  const { lifecycle, renderLifecycle } = await import('../.aidlc/lib/lifecycle.mjs');
-  const fs = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-life-'));
-  const artifacts = path.join(root, '.aidlc/artifacts');
-  const L = { root };
-  for (const kind of ['intent', 'spec', 'plan', 'review']) {
-    L[kind] = path.join(artifacts, kind);
-    fs.mkdirSync(L[kind], { recursive: true });
-  }
-  fs.writeFileSync(path.join(L.intent, 'change.md'), '# Intent\n\n- **Date:** 2026-01-01\n- **Status:** accepted\n');
-  const rows = lifecycle({ layout: L, sla: { intent_hours: 8, design_hours: 24, planning_hours: 8, build_hours: 72, review_hours: 24 } }, 'change');
-  assert.equal(rows[0].stage, 'intent-acceptance');
-  assert.equal(rows[0].slas.design.verdict, 'unmeasured', 'uncommitted acceptance has no auditable clock');
-  assert.equal(rows[0].valid, false);
-  assert.match(rows[0].issues.join('\n'), /acceptance is not committed/);
-  assert.match(renderLifecycle(rows), /change\s+intent-acceptance/);
-  fs.rmSync(root, { recursive: true, force: true });
-});
 
-test('lifecycle rejects downstream artifacts that bypass human approval', async () => {
-  const { lifecycle } = await import('../.aidlc/lib/lifecycle.mjs');
-  const fs = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-order-'));
-  const L = { root };
-  for (const kind of ['intent', 'spec', 'plan', 'review']) {
-    L[kind] = path.join(root, '.aidlc/artifacts', kind);
-    fs.mkdirSync(L[kind], { recursive: true });
-  }
-  fs.writeFileSync(path.join(L.intent, 'unsafe.md'), '- **Status:** draft\n');
-  fs.writeFileSync(path.join(L.spec, 'unsafe.md'), '- **Status:** approved\n');
-  const [row] = lifecycle({ layout: L, sla: {} }, 'unsafe');
-  assert.equal(row.valid, false);
-  assert.match(row.issues.join('\n'), /spec exists before intent acceptance/);
-  assert.equal(row.stage, 'intent-acceptance');
-  fs.rmSync(root, { recursive: true, force: true });
-});
 
 test('incident loop requires a timestamp and the same-slug intent', async () => {
-  const { incidents } = await import('../.aidlc/lib/lifecycle.mjs');
+  const { incidents } = await import('../.aidlc/lib/incidents.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -391,34 +351,3 @@ test('incident loop requires a timestamp and the same-slug intent', async () => 
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test('lifecycle measures a committed, approved chain from source timestamps and git history', async () => {
-  const { lifecycle } = await import('../.aidlc/lib/lifecycle.mjs');
-  const fs = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
-  const { execFileSync } = await import('node:child_process');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-chain-'));
-  const L = { root };
-  for (const kind of ['intent', 'spec', 'plan', 'review']) {
-    L[kind] = path.join(root, '.aidlc/artifacts', kind);
-    fs.mkdirSync(L[kind], { recursive: true });
-  }
-  execFileSync('git', ['init', '-q'], { cwd: root });
-  execFileSync('git', ['config', 'user.email', 'harness@example.invalid'], { cwd: root });
-  execFileSync('git', ['config', 'user.name', 'Harness Test'], { cwd: root });
-  const commit = (kind, body, date) => {
-    fs.writeFileSync(path.join(L[kind], 'change.md'), body);
-    execFileSync('git', ['add', '.'], { cwd: root });
-    execFileSync('git', ['commit', '-qm', kind], { cwd: root, env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date } });
-  };
-  commit('intent', '- **Opened at:** 2026-01-01T00:00:00Z\n- **Status:** approved\n', '2026-01-01T01:00:00Z');
-  commit('spec', '- **Status:** approved\n', '2026-01-01T03:00:00Z');
-  commit('plan', '- **Status:** approved\n', '2026-01-01T04:00:00Z');
-  commit('review', '- **Status:** approved\n', '2026-01-01T06:00:00Z');
-  const [row] = lifecycle({ layout: L, sla: { intent_hours: 2, design_hours: 3, planning_hours: 2, build_hours: 4, review_hours: 1 } }, 'change', Date.parse('2026-01-01T07:00:00Z'));
-  assert.equal(row.stage, 'complete');
-  assert.equal(row.valid, true);
-  assert.equal(row.sla, 'within');
-  assert.deepEqual(Object.fromEntries(Object.entries(row.slas).map(([k, v]) => [k, v.hours])), { intent: 1, design: 2, planning: 1, delivery: 2, review: 0 });
-  fs.rmSync(root, { recursive: true, force: true });
-});

@@ -91,8 +91,35 @@ test('a completed chain reports a value for every indicator', () => {
   } finally { r.cleanup(); }
 });
 
-// B2. The rule lifecycle.mjs enforced, carried over: an approval sitting in a working tree is
-// not an auditable gate.
+// retire-the-legacy-lifecycle B2. The five stage clocks moved off the four-file lifecycle onto
+// the contract chain when it was retired. Deleting the host of a governance feature is not the
+// same as deciding you no longer need it.
+test('a completed chain reports an SLA verdict from the contract chain', () => {
+  const r = repo(); try {
+    change(r, 'eta');
+    review(r, 'eta', 'approved');
+    const sla = { intent_hours: 8, design_hours: 24, planning_hours: 8, build_hours: 72, review_hours: 24 };
+    const [row] = rows({ layout: r.L, sla });
+    assert.equal(row.sla.verdict, 'within', 'a chain completed in seconds is inside every limit');
+    for (const stage of ['intent', 'design', 'planning', 'delivery', 'review']) {
+      assert.equal(row.sla.stages[stage].verdict, 'within', stage);
+    }
+    // A limit of zero hours makes the same chain late: the clocks are real, not decorative.
+    const [late] = rows({ layout: r.L, sla: { ...sla, design_hours: -1 } });
+    assert.equal(late.sla.verdict, 'breached');
+  } finally { r.cleanup(); }
+});
+
+test('a stage that has not started is unmeasured, not within', () => {
+  const r = repo(); try {
+    change(r, 'theta'); // no review, so the delivery and review clocks never start
+    const [row] = rows({ layout: r.L, sla: { intent_hours: 8, design_hours: 24, planning_hours: 8, build_hours: 72, review_hours: 24 } });
+    assert.equal(row.sla.stages.review.verdict, 'unmeasured', 'a harness that reports `within` for work nobody began is lying comfortably');
+  } finally { r.cleanup(); }
+});
+
+// B2 of indicators-on-the-contract-chain. The rule lifecycle.mjs enforced, carried over: an
+// approval sitting in a working tree is not an auditable gate.
 test('an accepted intent whose acceptance was never committed does not count', () => {
   const r = repo(); try {
     change(r, 'beta', { commitAcceptance: false });

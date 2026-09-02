@@ -3,19 +3,6 @@ import path from 'node:path';
 import { PREFIX_CACHE_PATHS } from './paths.mjs';
 import { isCommitted, ownedFiles, validateContract } from './contract.mjs';
 
-export function declaredFiles(text) {
-  const body = String(text ?? '');
-  const start = body.search(/^##\s*Files\b/im);
-  if (start < 0) return null;
-  const rest = body.slice(start);
-  const next = rest.slice(1).search(/^##\s/m);
-  const section = next >= 0 ? rest.slice(0, next + 1) : rest;
-  const fence = section.match(/```[^\n]*\n([\s\S]*?)```/);
-  if (!fence) return null;
-  const files = fence[1].split('\n').map((l) => l.trim().replace(/^[-*]\s*/, '')).filter((l) => l && !l.startsWith('#'));
-  return files.length ? files : null;
-}
-
 function contractScopeState(cfg) {
   const dir = cfg.layout?.contracts;
   if (!dir || !existsSync(dir)) return { declared: [], parseError: false };

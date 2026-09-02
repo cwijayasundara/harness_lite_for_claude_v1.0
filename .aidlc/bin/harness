@@ -19,7 +19,7 @@ import { refresh } from '../lib/refresh.mjs';
 import { renderWiki } from '../lib/wiki.mjs';
 import { measure, shipped, RECORD } from '../checks/budget.mjs';
 import { dispatch } from '../hooks/dispatch.mjs';
-import { lifecycle, incidents, renderLifecycle } from '../lib/lifecycle.mjs';
+import { incidents, renderIncidents } from '../lib/incidents.mjs';
 import { selectSlug, packet as reviewPacket, writeReview, checkProtection } from '../lib/review-adapter.mjs';
 import { deploy, closeLoop, detect, readMonitorFile } from '../lib/operations.mjs';
 import { playbookIndicators, renderPlaybook } from '../lib/indicators.mjs';
@@ -434,18 +434,27 @@ async function main() {
 
     case 'status': {
       const cfg = loadConfig(findRepoRoot());
-      const rows = lifecycle(cfg, argv[1] && !argv[1].startsWith('--') ? argv[1] : null);
-      const incidentRows = argv[1] && !argv[1].startsWith('--') ? [] : incidents(cfg);
       const requested = argv[1] && !argv[1].startsWith('--') ? argv[1] : null;
+      const incidentRows = requested ? [] : incidents(cfg);
+      // One artifact model. The pre-contract intent -> spec -> plan -> review walk is gone; the
+      // chain's own rows carry the stage clocks that used to hang off it.
+      const chainRows = contractChain.rows(cfg, requested);
+      const slaOf = new Map(chainRows.map((r) => [r.id, r.sla.verdict]));
+      const chainIssuesOf = new Map(chainRows.map((r) => [r.id, r.issues]));
       const contractNames = requested ? [`${requested}.md`] : existsSync(cfg.layout.contracts) ? readdirSync(cfg.layout.contracts).filter((name) => name.endsWith('.md')).sort() : [];
       const contractRows = contractNames.filter((name) => existsSync(path.join(cfg.layout.contracts, name))).map((name) => {
         const slug = name.slice(0, -3); return { slug, ...contractState(cfg.layout.root, path.join(cfg.layout.contracts, name), path.join(cfg.layout.evidence, `${slug}.json`)) };
       });
-      // The playbook block reads the contract chain, not the pre-contract four-file lifecycle.
-      const playbook = playbookIndicators(cfg, contractChain.rows(cfg));
-      const renderedContracts = contractRows.length ? `\ncontracts\n\n${contractRows.map((row) => `  ${row.slug.padEnd(30)} ${row.stage.padEnd(20)} ${row.ok ? 'valid' : 'INVALID'}`).join('\n')}\n` : '';
-      console.log(has('json') ? JSON.stringify({ changes: rows, contracts: contractRows, incidents: incidentRows, playbook }, null, 2) : renderLifecycle(rows, incidentRows) + renderedContracts + renderPlaybook(playbook));
-      return [...rows, ...incidentRows].some((r) => !r.valid || r.sla === 'breached') || contractRows.some((row) => !row.ok) ? 1 : 0;
+      const playbook = playbookIndicators(cfg, chainRows);
+      const rendered = contractRows.length
+        ? `contracts\n\n  change                         next-stage           integrity  SLA\n${contractRows.map((row) => `  ${row.slug.padEnd(30)} ${row.stage.padEnd(20)} ${((row.ok && !(chainIssuesOf.get(row.slug) ?? []).length) ? 'valid' : 'INVALID').padEnd(9)} ${slaOf.get(row.slug) ?? 'unmeasured'}`).join('\n')}\n${contractRows.flatMap((row) => [...(row.issues ?? []), ...(chainIssuesOf.get(row.slug) ?? [])].map((issue) => `  ERROR ${row.slug}: ${issue}`)).join('\n')}\n`
+        : 'contracts  no contracts\n';
+      console.log(has('json')
+        ? JSON.stringify({ changes: chainRows.map((r) => ({ slug: r.id, sla: r.sla })), contracts: contractRows, incidents: incidentRows, playbook }, null, 2)
+        : rendered + renderIncidents(incidentRows) + renderPlaybook(playbook));
+      return incidentRows.some((r) => !r.valid || r.sla === 'breached')
+        || contractRows.some((row) => !row.ok)
+        || chainRows.some((r) => r.issues.length || r.sla.verdict === 'breached') ? 1 : 0;
     }
 
     case 'contract': {

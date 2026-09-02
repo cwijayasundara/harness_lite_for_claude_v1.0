@@ -167,6 +167,37 @@ test('contract identity and section ordering are validation boundaries', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+// retire-the-legacy-lifecycle B7. Human approval is ordered: an intent is accepted before its
+// spec is approved, and a spec before its plan. The only test of that ordering lived in the
+// legacy lifecycle walk, so retiring it would have dropped the rule silently — which is the
+// exact failure this line of work exists to stop.
+test('approval order is a validation boundary: acceptance before spec, spec before plan', () => {
+  const root = repo();
+  try {
+    assert.equal(run(root, 'contract', 'new', 'ordered').status, 0);
+    const file = path.join(root, '.aidlc/artifacts/contracts/ordered.md');
+    const digests = () => {
+      const body = readFileSync(file, 'utf8');
+      return { spec: body.match(/Spec approval digest:\*\* (\S+)/)[1], plan: body.match(/Plan approval digest:\*\* (\S+)/)[1] };
+    };
+
+    // A spec approved while the intent ref is still draft.
+    writeFileSync(file, readFileSync(file, 'utf8').replace('Spec status:** draft', 'Spec status:** approved'));
+    let result = run(root, 'contract', 'validate', 'ordered');
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /spec cannot be approved before intent acceptance/);
+
+    // A plan approved while the spec is still draft.
+    writeFileSync(file, readFileSync(file, 'utf8')
+      .replace('Spec status:** approved', 'Spec status:** draft')
+      .replace('Plan status:** draft', 'Plan status:** approved'));
+    result = run(root, 'contract', 'validate', 'ordered');
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /plan cannot be approved before spec/);
+    assert.deepEqual(digests(), { spec: 'pending', plan: 'pending' }, 'no approval digest was minted by claiming a status');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test('all contracts can be validated as one CI boundary', () => {
   const root = repo();
   try {
