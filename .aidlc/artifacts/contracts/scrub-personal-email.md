@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/scrub-personal-email.json
 - **Story ref:** none
 - **Risk:** low
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:e07f33744be7d6f69fc2048cfa2e981cb8a01ca87f9c42c39104dc6406bf54f1
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
