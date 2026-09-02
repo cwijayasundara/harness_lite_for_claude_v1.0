@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/overlay-narrow-eval-runs.md",
-    "revision": "pending",
+    "revision": "8174bca",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-02T05:26:40.904Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:a0f8768d699970c1893606a37cecafe215e318925bcc1ee35f48032a7cf84f0a"
 }
