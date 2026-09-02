@@ -74,6 +74,34 @@ test('init is idempotent and installs a checkout-independent shim', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+// init-does-not-invalidate-the-prefix B2-B5. `init` writes through Node, so no guard sees it.
+// A model used that on 2026-09-02 to route around the prompt-prefix guard: edit the canonical
+// instructions, re-run init, and CLAUDE.md changes with nothing said.
+test('init refuses to rewrite a cached-prefix file it would change, unless forced', () => {
+  const root = repo();
+  try {
+    const claudeMd = path.join(root, '.claude/CLAUDE.md');
+    const instructions = path.join(root, '.aidlc/instructions.md');
+    const before = readFileSync(claudeMd, 'utf8');
+
+    // B2: an install that is already current writes nothing and is not refused.
+    assert.equal(run(root, 'init', '--into', root).status, 0);
+    assert.equal(readFileSync(claudeMd, 'utf8'), before);
+
+    // B3: the route the model took. Refused, named, and nothing written.
+    writeFileSync(instructions, `${readFileSync(instructions, 'utf8')}\nRun the linter before saying done.\n`);
+    const refused = run(root, 'init', '--into', root);
+    assert.equal(refused.status, 1);
+    assert.match(refused.stderr, /cached prompt prefix/);
+    assert.match(refused.stderr, /\.claude\/CLAUDE\.md/);
+    assert.equal(readFileSync(claudeMd, 'utf8'), before, 'a refused init leaves the tree untouched');
+
+    // B4: deliberate stays possible. The control makes it visible, not impossible.
+    assert.equal(run(root, 'init', '--into', root, '--force').status, 0);
+    assert.match(readFileSync(claudeMd, 'utf8'), /Run the linter before saying done/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test('a committed incident reaches its same-slug intent within SLA', () => {
   const root = repo();
   try {

@@ -63,6 +63,11 @@ export const PREFIX_CACHE_PATHS = [
   '.claude/settings.json',
   '.claude/settings.local.json',
   '.aidlc/harness.toml',
+  // The canonical source `.claude/CLAUDE.md` is generated from. Editing it and re-running
+  // `harness init` invalidates the cached prefix exactly as editing the generated file would —
+  // which is the route a model took on 2026-09-02, respecting the letter of the guard while
+  // defeating its purpose.
+  '.aidlc/instructions.md',
   '.aidlc/model-policy.json',
   '.mcp.json',
   'CLAUDE.md',

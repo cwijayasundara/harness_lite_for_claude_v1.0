@@ -156,12 +156,34 @@ async function main() {
       for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/model-policy.json', L.modelPolicy], ['templates/gitignore', path.join(L.aidlc, '.gitignore')]]) {
         if (!existsSync(dst)) cpSync(path.join(HERE, src), dst);
       }
-      if (!existsSync(L.instructions)) {
+      // Whether this is an install or a re-run. On a first install the project's existing
+      // CLAUDE.md is adopted as the canonical source and then re-rendered with the generated
+      // header, so its content legitimately changes — that is installing, not invalidating.
+      const reinstall = existsSync(L.instructions);
+      if (!reinstall) {
         if (existsSync(L.claudeMd)) writeFileSync(L.instructions, readFileSync(L.claudeMd, 'utf8'));
         else cpSync(path.join(HERE, 'templates', 'project-instructions.md'), L.instructions);
       }
       if (!existsSync(L.reviewPolicy)) cpSync(path.join(HERE, 'policies', 'review.md'), L.reviewPolicy);
-      writeFileSync(L.claudeMd, renderClaudeInstructions(readFileSync(L.instructions, 'utf8')));
+
+      // Regenerating a cached-prefix file mid-session invalidates the prompt cache for every
+      // remaining turn — the same cost the write guard refuses a direct edit for. `init` writes
+      // through Node, so no guard sees it, and on 2026-09-02 a model used exactly that to route
+      // around the guard: edit .aidlc/instructions.md, re-run init, CLAUDE.md changes.
+      //
+      // Compared by content, not by asking whether a session is running: an install that is
+      // already current writes nothing and cannot trip this, which is what "safe to re-run" has
+      // always meant. Collected before anything is written, so a refusal leaves the tree alone.
+      const claudeMdNext = renderClaudeInstructions(readFileSync(L.instructions, 'utf8'));
+      const wouldChange = (reinstall ? [[L.claudeMd, claudeMdNext]] : [])
+        .filter(([file, next]) => existsSync(file) && readFileSync(file, 'utf8') !== next)
+        .map(([file]) => path.relative(root, file));
+      if (wouldChange.length && !has('force')) {
+        console.error(`init would rewrite ${wouldChange.join(', ')}, which is part of the cached prompt prefix.\nDoing that mid-session invalidates the prompt cache for every remaining turn.\nRe-run with --force, or make the change between sessions.`);
+        return 1;
+      }
+
+      writeFileSync(L.claudeMd, claudeMdNext);
       if (!existsSync(path.join(L.aidlc, 'agents.json'))) cpSync(path.join(HERE, 'templates', 'agents.json'), path.join(L.aidlc, 'agents.json'));
       // A project declares the harness; it never contains one. Copying the sensors in and
       // leaving the guides to a second, invisible install step is what produced projects that

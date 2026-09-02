@@ -71,8 +71,10 @@ test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
       'examples/scratch-py/.claude/settings.json',
     ]) assert.equal(writeBlocked(rel, cfg), null, `refused a nested copy: ${rel}`);
 
-    // And the repository's own files are still the prefix.
-    for (const rel of ['.aidlc/harness.toml', '.claude/CLAUDE.md', '.claude/settings.json']) {
+    // And the repository's own files are still the prefix. `.aidlc/instructions.md` is on that
+    // list because it is what `.claude/CLAUDE.md` is generated from: editing it and re-running
+    // init invalidates the cache exactly as editing the generated file would.
+    for (const rel of ['.aidlc/harness.toml', '.claude/CLAUDE.md', '.claude/settings.json', '.aidlc/instructions.md']) {
       assert.match(String(writeBlocked(rel, cfg)), /cached prompt prefix/, `stopped guarding ${rel}`);
     }
   } finally { f.cleanup(); }
