@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/retire-the-legacy-lifecycle.md",
-    "revision": "pending",
+    "revision": "d98cf8e",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-02T06:01:38.902Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:2b8ce0a47695366b63f7bb03096343f319917c13741823c1b4c774953f28ee69"
 }
