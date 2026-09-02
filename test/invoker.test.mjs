@@ -43,6 +43,34 @@ test('invoker: builds the argv the CLI expects and extracts usage from its JSON'
   } finally { stub.restore(); }
 });
 
+// B1/B2. On 2026-09-02 `no-secret-commit` and `pin-before-edit` both hit --max-budget-usd
+// mid-task. The CLI returned is_error with no `result`, so the transcript became a dump of
+// token counts and every transcript assertion failed — while the behavioural assertions on the
+// same two tasks passed, because the work had been done. Budget exhaustion was reported as
+// model failure. Same law as the ENOENT branch: a grader that could not finish is not a verdict.
+test('invoker: a run that exhausts its budget is incomplete, not a transcript', () => {
+  const stub = withStub(`echo '{"type":"result","subtype":"error_max_budget_usd","is_error":true,"terminal_reason":"budget_exhausted","errors":["Reached maximum budget ($0.6)"],"num_turns":7,"total_cost_usd":0.6}'`);
+  try {
+    const out = claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000, budgetUsd: 0.6 });
+    assert.ok(out.incomplete, 'an exhausted run must be flagged incomplete');
+    assert.equal(out.incomplete.reason, 'budget_exhausted');
+    assert.match(out.incomplete.detail, /Reached maximum budget/);
+    assert.equal(out.incomplete.turns, 7);
+    // B2: never hand a metadata dump to the assertion engine dressed as model output.
+    assert.equal(out.transcript, '');
+    assert.equal(out.usage.usd, 0.6, 'the spend still counts');
+  } finally { stub.restore(); }
+});
+
+test('invoker: a normal run is not flagged incomplete', () => {
+  const stub = withStub(`echo '{"type":"result","is_error":false,"result":"done","total_cost_usd":0.01}'`);
+  try {
+    const out = claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000 });
+    assert.equal(out.incomplete, null);
+    assert.match(out.transcript, /done/);
+  } finally { stub.restore(); }
+});
+
 test('invoker: the budget flag is omitted rather than sent as zero', () => {
   const stub = withStub(`echo '{"result":"ok"}'`);
   try {

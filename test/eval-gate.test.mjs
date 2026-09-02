@@ -69,6 +69,15 @@ test('update refuses to lower a recorded task', () => {
   );
 });
 
+// B6. A task nobody could grade has no state to record. Writing `inconclusive` into the record
+// would make the next comparison meaningless in both directions.
+test('update refuses to record an inconclusive task', () => {
+  assert.throws(
+    () => update(record({ a: 'pass' }), results({ a: 'pass', b: 'inconclusive' })),
+    /refusing to record b .*inconclusive/,
+  );
+});
+
 test('update records an improvement and a newly added task', () => {
   const next = update(record({ a: 'pass', b: 'fail' }), results({ a: 'pass', b: 'pass', c: 'fail' }), { commit: 'abc123', at: '2026-09-02T00:00:00.000Z' });
   assert.equal(next.schema, RECORD_SCHEMA);

@@ -45,8 +45,12 @@ function artifactOrState(rel) {
 export function writeBlocked(rel, cfg) {
   const norm = String(rel ?? '').replace(/^\.\//, '');
   if (!norm || norm.startsWith('..')) return null;
+  // By identity, not by suffix. `norm` is already relative to the repository root, so the only
+  // `.aidlc/harness.toml` in this session's prompt prefix is the one at the root. The suffix
+  // match also caught every nested copy — it refused an edit to
+  // `evals/fixtures/_base/.aidlc/harness.toml`, a fixture that is never read into any prompt.
   for (const p of PREFIX_CACHE_PATHS) {
-    if (norm === p || norm.endsWith('/' + p)) {
+    if (norm === p) {
       return `${p} is part of the cached prompt prefix. Editing it mid-session invalidates the prompt cache for every remaining turn. Ask the human to change it between sessions.`;
     }
   }

@@ -124,6 +124,57 @@ test('runSuite grades a fake invoker, and 2-of-3 is flaky, not green', async () 
   assert.equal(out.summary.usd, 0.03);
 });
 
+// B1. An ungraded run is a third outcome. Scoring it `fail` blames the model for the suite
+// running out of money, which is what happened to two tasks on 2026-09-02.
+test('runSuite records an exhausted run as inconclusive, and inconclusive is not green', async () => {
+  const out = await runSuite({
+    tasks: [{ id: 'ran-out', fixture: 'clean-app', prompt: 'x', repeats: 1, timeoutMs: 1000, budgetUsd: 0.6,
+      assert: [{ transcript_matches: 'anything' }] }],
+    invoke: () => ({ transcript: '', usage: { usd: 0.6 }, incomplete: { reason: 'budget_exhausted', detail: 'Reached maximum budget ($0.6)', turns: 7 } }),
+    fixturesDir: FIXTURES, harnessBin: HARNESS,
+  });
+  assert.equal(out.results[0].verdict, 'inconclusive');
+  assert.equal(out.results[0].passed, 0, 'inconclusive is not a pass');
+  assert.equal(out.summary.inconclusive, 1);
+  assert.equal(out.summary.fail, 0, 'and it must not be counted as a model failure');
+  assert.equal(out.results[0].runs[0].incomplete.reason, 'budget_exhausted');
+});
+
+// B3/B4. The assertion must measure that the sensor was consulted, not that the command was
+// typed. Narrowing what counts as evidence must not widen what counts as a pass.
+test('sensor-consulted accepts the check output as evidence, and still fails a model that skips it', async () => {
+  const task = loadTasks().find((t) => t.id === 'sensor-consulted');
+  const graded = async (transcript) => (await runSuite({
+    tasks: [{ ...task, repeats: 1, timeoutMs: 1000 }],
+    invoke: () => ({ transcript, usage: { usd: 0.01 } }),
+    fixturesDir: FIXTURES, harnessBin: HARNESS,
+  })).results[0].verdict;
+
+  // What the model actually produced on 2026-09-02: it ran the check and pasted the output.
+  assert.equal(await graded('Done.\n\n```\nPASS  fmt         17ms\nPASS  lint        14ms\nPASS  test        935ms\n```'), 'pass');
+  // Typing the command still counts.
+  assert.equal(await graded('I ran `bash .aidlc/bin/harness check --stage stop` and it was green.'), 'pass');
+  // B4: neither the command nor its output is still a failure.
+  assert.equal(await graded('Added the health endpoint. Looks good to me.'), 'fail');
+});
+
+// The fixture the evals run in must be governed by the controls `harness init` actually installs.
+// _base sat on the pre-contract `plan-drift` while the template moved to `scope-drift`, so every
+// task asserting `harness_stage_passes: commit` graded the legacy control and contract scope
+// enforcement had no eval coverage at all.
+test('the _base fixture runs the same commit-stage controls the template installs', () => {
+  const stages = (file) => {
+    const body = readFileSync(file, 'utf8');
+    const line = body.split('\n').find((l) => l.trim().startsWith('commit'));
+    return line?.split('=')[1]?.trim();
+  };
+  assert.equal(
+    stages(path.join(FIXTURES, '_base/.aidlc/harness.toml')),
+    stages(path.join(ROOT, '.aidlc/templates/harness.toml')),
+    'the eval fixture and the installed template must agree on the commit stage',
+  );
+});
+
 test('an invoker that throws is a failed task, not a crashed suite', async () => {
   const out = await runSuite({
     tasks: [{ id: 'boom', fixture: 'clean-app', prompt: 'x', repeats: 1, timeoutMs: 1000, budgetUsd: 1, assert: [{ workdir_unchanged: true }] }],

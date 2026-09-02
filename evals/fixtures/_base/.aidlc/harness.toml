@@ -13,4 +13,4 @@ test = "generic"
 [stages]
 fast   = ["fmt", "lint"]
 stop   = ["fast", "test"]
-commit = ["stop", "secrets", "plan-drift", "budget"]
+commit = ["stop", "secrets", "scope-drift", "budget"]

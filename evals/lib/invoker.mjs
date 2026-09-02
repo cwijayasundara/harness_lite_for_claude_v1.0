@@ -31,13 +31,32 @@ export function claudeInvoker({ pluginDir }) {
     const raw = `${r.stdout ?? ''}${r.stderr ?? ''}`;
     let usage = {};
     let transcript = raw;
+    let incomplete = null;
     try {
       const parsed = JSON.parse(r.stdout);
       transcript = [parsed.result, JSON.stringify(parsed)].filter(Boolean).join('\n');
       usage = { usd: parsed.total_cost_usd, output_tokens: parsed.usage?.output_tokens };
       const denied = (parsed.permission_denials ?? []).map((d) => d.tool_input?.command ?? d.tool_name);
       if (denied.length) transcript = `[permission denied: ${denied.join(' | ')}]\n${transcript}`;
+
+      // A run that stopped before writing a result has no model output to grade. The 2026-09-02
+      // suite scored two of these as model failures: both hit `--max-budget-usd` mid-task
+      // (`subtype: error_max_budget_usd`), so `parsed.result` was absent, `filter(Boolean)` left
+      // a transcript made only of token counts, and every transcript assertion failed — while
+      // the behavioural assertions on the same tasks passed, because the work had been done.
+      //
+      // Same law as ENOENT above, one level down: never let a grader that could not finish
+      // masquerade as a verdict. Per-task, so it does not abort the suite.
+      if (parsed.is_error && !parsed.result) {
+        incomplete = {
+          reason: parsed.terminal_reason ?? parsed.subtype ?? 'ended without a result',
+          detail: (parsed.errors ?? []).join('; ') || parsed.subtype || '',
+          turns: parsed.num_turns ?? null,
+        };
+        // Do not hand a metadata dump to the assertion engine dressed as model output.
+        transcript = '';
+      }
     } catch { /* not JSON: grade the raw transcript, which is still honest */ }
-    return { transcript, usage, exitCode: r.status ?? -1, timedOut };
+    return { transcript, usage, exitCode: r.status ?? -1, timedOut, incomplete };
   };
 }

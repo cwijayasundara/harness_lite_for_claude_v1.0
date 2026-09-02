@@ -59,6 +59,26 @@ test('a command that writes to a protected path is still denied', () => {
   }
 });
 
+// p0 B7 of eval-suite-tells-the-truth. The prompt-prefix guard matched `norm.endsWith('/' + p)`,
+// so every nested copy counted as the prefix: editing `evals/fixtures/_base/.aidlc/harness.toml`
+// — a fixture never read into any prompt — was refused as cache invalidation. `norm` is already
+// repo-relative, so identity is the whole test. The control had no unit coverage before this.
+test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
+  const f = tmp('prefix-'); try {
+    const cfg = { layout: f.layout, guard: {} };
+    for (const rel of [
+      'evals/fixtures/_base/.aidlc/harness.toml',
+      'evals/fixtures/clean-app/.claude/CLAUDE.md',
+      'examples/scratch-py/.claude/settings.json',
+    ]) assert.equal(writeBlocked(rel, cfg), null, `refused a nested copy: ${rel}`);
+
+    // And the repository's own files are still the prefix.
+    for (const rel of ['.aidlc/harness.toml', '.claude/CLAUDE.md', '.claude/settings.json']) {
+      assert.match(String(writeBlocked(rel, cfg)), /cached prompt prefix/, `stopped guarding ${rel}`);
+    }
+  } finally { f.cleanup(); }
+});
+
 function contractCfg(f) {
   return {
     layout: { ...f.layout, contracts: path.join(f.root, '.aidlc/artifacts/contracts') },

@@ -119,14 +119,18 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
     const out = await invoke({ prompt: t.prompt, cwd: s.work, timeoutMs: t.timeoutMs, budgetUsd: t.budgetUsd, task: t });
     const fatal = invokerFatal(out);
     if (fatal) throw fatal;
+    // A run that never produced model output cannot be graded. Grading it anyway is how budget
+    // exhaustion got reported as model failure twice on 2026-09-02.
+    if (out.incomplete) return { assertions: [], usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: '', incomplete: out.incomplete };
     const ctx = { work: s.work, pristine: s.pristine, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
-    return { assertions: evaluate(ctx, t.assert), usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: out.transcript ?? '' };
+    return { assertions: evaluate(ctx, t.assert), usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: out.transcript ?? '', incomplete: null };
   }
 
   const assertions = [];
   let usage = {};
   let timedOut = false;
   let transcript = '';
+  let incomplete = null;
   for (let idx = 0; idx < t.steps.length; idx++) {
     const step = t.steps[idx];
     const out = await invoke({
@@ -139,18 +143,20 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
       output_tokens: (usage.output_tokens ?? 0) + (out.usage?.output_tokens ?? 0),
     };
     timedOut = timedOut || !!out.timedOut;
+    // A step that ran out of budget stops the task, and the task is ungraded rather than failed.
+    if (out.incomplete) { incomplete = { ...out.incomplete, step: idx }; break; }
     transcript = [transcript, out.transcript ?? ''].filter(Boolean).join('\n');
     const ctx = { work: s.work, pristine: s.pristine, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
     const stepAsserts = evaluate(ctx, step.assert ?? []);
     assertions.push(...stepAsserts);
     if (stepAsserts.some((a) => !a.pass)) break;
   }
-  if (t.assert?.length) {
+  if (!incomplete && t.assert?.length) {
     assertions.push(...evaluate({
       work: s.work, pristine: s.pristine, transcript, harness: harnessBin, usage, baseline: baseline[t.id],
     }, t.assert));
   }
-  return { assertions, usage, timedOut, transcript };
+  return { assertions, usage, timedOut, transcript, incomplete };
 }
 
 export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {} }) {
@@ -161,9 +167,11 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
       const s = stage(fixturesDir, t.fixture);
       try {
         const out = await runAttempt(t, invoke, s, harnessBin, baseline);
-        const pass = out.assertions.every((a) => a.pass);
+        // An ungraded run is not a passing run, and an empty assertion list is not a pass
+        // either — "An empty suite is not a pass" (6496934) applies to a single attempt too.
+        const pass = !out.incomplete && out.assertions.length > 0 && out.assertions.every((a) => a.pass);
         runs.push({
-          attempt: i + 1, pass, assertions: out.assertions,
+          attempt: i + 1, pass, incomplete: out.incomplete ?? null, assertions: out.assertions,
           usage: out.usage ?? {}, timedOut: !!out.timedOut,
           // Without the transcript, a failure can only be triaged by paying for the task again.
           // Kept for failures only, and capped, so the results file stays readable.
@@ -174,13 +182,17 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
         if (e.fatal) { s.cleanup(); throw e; }
         runs.push({ attempt: i + 1, pass: false, assertions: [{ name: 'harness', pass: false, detail: e.message }], usage: {} });
       } finally { if (!s.cleaned) s.cleanup(); }
-      log(`  ${t.id} [${i + 1}/${t.repeats ?? 1}] ${runs.at(-1).pass ? 'pass' : 'FAIL'}`);
+      const last = runs.at(-1);
+      log(`  ${t.id} [${i + 1}/${t.repeats ?? 1}] ${last.pass ? 'pass' : last.incomplete ? `INCONCLUSIVE (${last.incomplete.reason})` : 'FAIL'}`);
     }
     const passed = runs.filter((r) => r.pass).length;
+    const ungraded = runs.filter((r) => r.incomplete).length;
     results.push({
       id: t.id, fixture: t.fixture, repeats: runs.length, passed,
       // A 2-of-3 is a different finding from a 3-of-3 and must never be rounded to "green".
-      verdict: passed === runs.length ? 'pass' : passed === 0 ? 'fail' : 'flaky',
+      // A run nobody could grade is a third thing again: not green, and not the model's fault.
+      verdict: ungraded === runs.length ? 'inconclusive'
+        : passed === runs.length ? 'pass' : passed === 0 ? 'fail' : 'flaky',
       usd: runs.reduce((n, r) => n + (r.usage.usd ?? 0), 0),
       runs,
     });
@@ -190,6 +202,7 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
     pass: results.filter((r) => r.verdict === 'pass').length,
     flaky: results.filter((r) => r.verdict === 'flaky').length,
     fail: results.filter((r) => r.verdict === 'fail').length,
+    inconclusive: results.filter((r) => r.verdict === 'inconclusive').length,
     usd: Number(results.reduce((n, r) => n + r.usd, 0).toFixed(4)),
   };
   return { summary, results };
@@ -245,13 +258,17 @@ async function main() {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   writeFileSync(path.join(dir, `${stamp}.json`), JSON.stringify(out, null, 2));
 
-  console.log(`\n${out.summary.pass} pass · ${out.summary.flaky} flaky · ${out.summary.fail} fail · $${out.summary.usd}`);
+  console.log(`\n${out.summary.pass} pass · ${out.summary.flaky} flaky · ${out.summary.fail} fail · ${out.summary.inconclusive} inconclusive · $${out.summary.usd}`);
   for (const r of out.results.filter((r) => r.verdict !== 'pass')) {
     console.log(`\n${r.verdict.toUpperCase()}  ${r.id}  (${r.passed}/${r.repeats})`);
-    for (const run of r.runs) for (const a of run.assertions.filter((a) => !a.pass)) console.log(`    ${a.name}: ${a.detail}`);
+    for (const run of r.runs) {
+      if (run.incomplete) console.log(`    ungraded: ${run.incomplete.reason}${run.incomplete.detail ? ` — ${run.incomplete.detail}` : ''}${run.incomplete.turns ? ` after ${run.incomplete.turns} turns` : ''}`);
+      for (const a of run.assertions.filter((a) => !a.pass)) console.log(`    ${a.name}: ${a.detail}`);
+    }
   }
   // Flaky is not green. A suite that rounds 2-of-3 up is a suite that stops detecting drift.
-  return out.summary.fail || out.summary.flaky ? 1 : 0;
+  // Inconclusive is not green either — it is a question the suite failed to ask.
+  return out.summary.fail || out.summary.flaky || out.summary.inconclusive ? 1 : 0;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main().then((c) => process.exit(c ?? 0));

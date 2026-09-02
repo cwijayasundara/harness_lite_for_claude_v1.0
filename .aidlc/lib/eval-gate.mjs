@@ -58,6 +58,12 @@ export function gate(results, record) {
 // for exactly that reason.
 export function update(record, results, { commit = null, at = new Date().toISOString() } = {}) {
   const graded = verdicts(results);
+
+  // A task nobody could grade has no state to record. Writing `inconclusive` into the record
+  // would make the next run's comparison meaningless in both directions.
+  const ungraded = [...graded.entries()].filter(([, v]) => v === 'inconclusive').map(([id]) => id);
+  if (ungraded.length) throw new Error(`refusing to record ${ungraded.join(', ')} — inconclusive; re-run those tasks first`);
+
   const previous = record?.tasks ?? {};
   const lowered = Object.entries(previous).filter(([id, expected]) => passed(expected) && !passed(graded.get(id)));
   if (lowered.length) throw new Error(`refusing to lower ${lowered.map(([id]) => id).join(', ')} — the record only moves fail -> pass`);
