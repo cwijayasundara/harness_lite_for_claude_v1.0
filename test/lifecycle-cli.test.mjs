@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { A, C, BIN } from './_paths.mjs';
+import { sealContract } from '../.aidlc/lib/contract.mjs';
 
 const run = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
 
@@ -90,14 +91,37 @@ test('a committed incident reaches its same-slug intent within SLA', () => {
 test('status reports playbook indicators from git history and eval results', () => {
   const root = repo();
   try {
-    assert.equal(run(root, 'new', 'intent', 'kept-change').status, 0);
-    assert.equal(run(root, 'new', 'intent', 'dropped-change').status, 0);
-    const kept = path.join(root, '.aidlc/artifacts/intent/kept-change.md');
-    const dropped = path.join(root, '.aidlc/artifacts/intent/dropped-change.md');
-    writeFileSync(kept, readFileSync(kept, 'utf8').replace('Status:** draft', 'Status:** approved'));
-    writeFileSync(dropped, readFileSync(dropped, 'utf8').replace('Status:** draft', 'Status:** closed'));
-    spawnSync('git', ['add', '.'], { cwd: root });
-    spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'decide intents'], { cwd: root });
+    // Intent survival now reads the contract chain: the intent ref's committed decision, not a
+    // Status line in a legacy intent file. An acceptance that was never committed is not a gate.
+    const commit = (m) => {
+      spawnSync('git', ['add', '.'], { cwd: root });
+      spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', m], { cwd: root });
+    };
+    for (const slug of ['kept-change', 'dropped-change']) {
+      assert.equal(run(root, 'contract', 'new', slug).status, 0);
+    }
+    // dropped-change is an intent closed before any contract was written, which is what a
+    // dropped intent actually looks like: a ref, and nothing built from it.
+    rmSync(path.join(root, '.aidlc/artifacts/contracts/dropped-change.md'));
+    commit('one contract, two intents');
+
+    const refOf = (slug) => path.join(root, `.aidlc/artifacts/intent-refs/${slug}.json`);
+    const decide = (slug, status) => {
+      const ref = JSON.parse(readFileSync(refOf(slug), 'utf8'));
+      ref.decision = { status, decided_by: 'test', decided_at: '2026-08-24T00:00:00.000Z' };
+      // A decided intent must pin what was decided: an immutable snapshot digest and a
+      // reproducible source revision. validateIntentRef enforces both.
+      ref.snapshot_digest = `sha256:${'a'.repeat(64)}`;
+      ref.source = { ...ref.source, revision: 'deadbeef' };
+      writeFileSync(refOf(slug), JSON.stringify(ref, null, 2) + '\n');
+    };
+    decide('kept-change', 'accepted');
+    decide('dropped-change', 'closed');
+    commit('decide intents');
+
+    const kept = path.join(root, '.aidlc/artifacts/contracts/kept-change.md');
+    sealContract(kept, 'spec'); commit('spec seal: kept-change');
+    sealContract(kept, 'plan'); commit('plan seal: kept-change');
 
     mkdirSync(path.join(root, '.aidlc/evals/results'), { recursive: true });
     writeFileSync(path.join(root, '.aidlc/evals/results/2026-08-24T04-01-22-046Z.json'), JSON.stringify({ summary: { total: 20, pass: 14 } }));

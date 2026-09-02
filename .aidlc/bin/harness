@@ -23,6 +23,7 @@ import { lifecycle, incidents, renderLifecycle } from '../lib/lifecycle.mjs';
 import { selectSlug, packet as reviewPacket, writeReview, checkProtection } from '../lib/review-adapter.mjs';
 import { deploy, closeLoop, detect, readMonitorFile } from '../lib/operations.mjs';
 import { playbookIndicators, renderPlaybook } from '../lib/indicators.mjs';
+import * as contractChain from '../lib/contract-chain.mjs';
 import { lockTests, clearLock, enterpriseChecklist } from '../lib/guard.mjs';
 import * as evalGate from '../lib/eval-gate.mjs';
 
@@ -440,7 +441,8 @@ async function main() {
       const contractRows = contractNames.filter((name) => existsSync(path.join(cfg.layout.contracts, name))).map((name) => {
         const slug = name.slice(0, -3); return { slug, ...contractState(cfg.layout.root, path.join(cfg.layout.contracts, name), path.join(cfg.layout.evidence, `${slug}.json`)) };
       });
-      const playbook = playbookIndicators(cfg, lifecycle(cfg));
+      // The playbook block reads the contract chain, not the pre-contract four-file lifecycle.
+      const playbook = playbookIndicators(cfg, contractChain.rows(cfg));
       const renderedContracts = contractRows.length ? `\ncontracts\n\n${contractRows.map((row) => `  ${row.slug.padEnd(30)} ${row.stage.padEnd(20)} ${row.ok ? 'valid' : 'INVALID'}`).join('\n')}\n` : '';
       console.log(has('json') ? JSON.stringify({ changes: rows, contracts: contractRows, incidents: incidentRows, playbook }, null, 2) : renderLifecycle(rows, incidentRows) + renderedContracts + renderPlaybook(playbook));
       return [...rows, ...incidentRows].some((r) => !r.valid || r.sla === 'breached') || contractRows.some((row) => !row.ok) ? 1 : 0;
