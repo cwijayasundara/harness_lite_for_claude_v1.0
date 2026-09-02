@@ -1,0 +1,16 @@
+{
+  "schema": "aidlc.intent-ref/v1",
+  "id": "eval-suite-tells-the-truth",
+  "source": {
+    "provider": "git",
+    "locator": ".aidlc/artifacts/intent/eval-suite-tells-the-truth.md",
+    "revision": "pending",
+    "authority": "git"
+  },
+  "decision": {
+    "status": "draft",
+    "decided_by": null,
+    "decided_at": null
+  },
+  "snapshot_digest": "pending"
+}
