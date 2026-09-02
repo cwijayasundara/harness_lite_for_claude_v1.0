@@ -5,10 +5,10 @@
 - **Intent ref:** ../intent-refs/retire-the-legacy-lifecycle.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** approved
-- **Spec approval digest:** sha256:4d9ec7aa64c93f94c1366ed8a8671e34e7c893dc85fb6c861903f6f15a41d91b
-- **Plan status:** approved
-- **Plan approval digest:** sha256:2adf0cec95a48040131c46c663f11b36c8f898eabeb41737fa8ea9d060fba17c
+- **Spec status:** draft
+- **Spec approval digest:** pending
+- **Plan status:** draft
+- **Plan approval digest:** pending
 
 ## Outcome
 
@@ -46,8 +46,17 @@ Then it is `INVALID` and the command exits non-zero, exactly as today.
 
 Given the repository after this change,
 When the source is searched,
-Then nothing imports `lifecycle.mjs`, nothing reads `layout.spec` or `layout.plan`, and
-`declaredFiles` and the legacy-plan branch of `scope-drift` are gone.
+Then nothing imports `lifecycle.mjs`, and `declaredFiles` and the legacy-plan branch of
+`scope-drift` are gone. No gate, check, or indicator reads `layout.spec` or `layout.plan`;
+`contract migrate` still does, and is the only thing that may.
+
+### B7
+
+Given a contract whose spec is approved before its intent was accepted, or whose plan is approved
+before its spec,
+When it is validated,
+Then it is invalid. The legacy lifecycle was the only place this ordering was tested, and the
+coverage must move rather than die with it.
 
 ### B6
 
@@ -92,6 +101,12 @@ Rejected: keeping `lifecycle.mjs` for repositories still on the pre-contract mod
 produced five defects by coexisting. A project that needs the old model can pin the harness
 commit that still has it — which is what declaring the harness by version is for.
 
+Rejected: deleting `contract migrate` along with the model. Every defect this retirement fixes
+came from a *gate or an indicator* reading the legacy chain — two things disagreeing about a
+verdict. Migration is read-only, on demand, and participates in no gate, so it cannot produce that
+class of defect; and it is the documented off-ramp for the pre-v1 repositories this change most
+affects. Removing it for tidiness would strand exactly the people it is for.
+
 Rejected: splitting this into "move" then "delete" contracts. The move leaves `lifecycle.mjs`
 importable with no callers, which is the same two-models-alive state in a new shape. The ordering
 inside the diff is what keeps it reviewable, not a second contract.
@@ -110,6 +125,8 @@ inside the diff is what keeps it reviewable, not a second contract.
 | `test/unit.test.mjs` | the two `lifecycle()` tests move to the contract chain |
 | `test/lifecycle-cli.test.mjs` | the uncommitted-acceptance test moves to the contract chain |
 | `test/indicators.test.mjs` | B2 coverage for the SLA verdict |
+| `test/contract.test.mjs` | B7 — approval ordering, whose only coverage was the legacy test |
+| `test/guard.test.mjs` | its tmp layout builds a legacy plan directory |
 
 ## Safeguards
 
@@ -141,5 +158,6 @@ inside the diff is what keeps it reviewable, not a second contract.
 | B2 | `test/indicators.test.mjs` — a completed chain reports an SLA verdict |
 | B3 | `test/lifecycle-cli.test.mjs` — the incident SLA test, unchanged |
 | B4 | `test/lifecycle-cli.test.mjs` — an incident with no intent is INVALID and exits non-zero |
-| B5 | `grep` finds no importer of `lifecycle.mjs`, no `layout.spec`, no `declaredFiles` |
+| B5 | `grep` finds no importer of `lifecycle.mjs`, no `declaredFiles`, and no gate reading the legacy dirs |
+| B7 | `test/contract.test.mjs` — spec before acceptance, and plan before spec, are both invalid |
 | B6 | `test/lifecycle-cli.test.mjs` — an invalid contract still exits non-zero |
