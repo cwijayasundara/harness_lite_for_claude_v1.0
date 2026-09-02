@@ -1,0 +1,16 @@
+{
+  "schema": "aidlc.intent-ref/v1",
+  "id": "fixtures-are-governed-like-installs",
+  "source": {
+    "provider": "git",
+    "locator": ".aidlc/artifacts/intent/fixtures-are-governed-like-installs.md",
+    "revision": "pending",
+    "authority": "git"
+  },
+  "decision": {
+    "status": "draft",
+    "decided_by": null,
+    "decided_at": null
+  },
+  "snapshot_digest": "pending"
+}
