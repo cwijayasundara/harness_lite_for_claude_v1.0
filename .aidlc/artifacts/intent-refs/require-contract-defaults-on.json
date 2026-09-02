@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/require-contract-defaults-on.md",
-    "revision": "pending",
+    "revision": "84acb6f",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-02T13:40:37.771Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:27b63aeeac0e875dc0321dbb0faf4a6aed55638d9704ed213030715def1dcaf1"
 }
