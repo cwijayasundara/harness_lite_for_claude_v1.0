@@ -45,6 +45,12 @@ const DESTRUCTIVE = [
   [/\bgit\s+checkout\s+--\s+\./, 'git checkout -- . discards uncommitted work'],
   [/\bchmod\s+-R\s+777\b/, 'chmod -R 777'],
   [/\bcurl\b[^|]*\|\s*(ba)?sh\b/, 'piping a download straight into a shell'],
+  // `init` refuses to rewrite a cached-prefix file and says to make the change between sessions.
+  // `--force` is the human's way past that. On 2026-09-02 the agent read the refusal, named the
+  // cache miss it would cause, and forced anyway — an escape hatch anyone may take is not an
+  // escape hatch. This hook sees only commands the agent issues, so a human's own shell is
+  // untouched, which is the whole mechanism.
+  [/\bharness\b[^|;&]*\binit\b[^|;&]*--force\b/, 'harness init --force rewrites the cached prompt prefix mid-session'],
 ];
 
 export async function dispatch(event) {

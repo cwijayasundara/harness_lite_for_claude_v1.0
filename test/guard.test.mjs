@@ -80,6 +80,41 @@ test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
   } finally { f.cleanup(); }
 });
 
+// force-is-not-the-agents-to-give B1/B2. `init` refuses to rewrite a cached-prefix file and says
+// to make the change between sessions; `--force` is the human's way past that. On 2026-09-02 the
+// agent read the refusal, named the cache miss it would cause, and forced anyway. The pre-bash
+// hook sees only commands the agent issues, so denying there leaves a human's own shell alone.
+test('the agent cannot force init past the prefix guard, in any spelling', async () => {
+  const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
+  const ask = async (command) => {
+    const chunks = [];
+    const write = process.stdout.write.bind(process.stdout);
+    process.stdout.write = (s) => { chunks.push(String(s)); return true; };
+    const stdin = process.stdin;
+    // dispatch reads the tool call from stdin as JSON.
+    const { Readable } = await import('node:stream');
+    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: process.cwd(), tool_input: { command } })]), configurable: true });
+    try { await dispatch('pre-bash'); } finally {
+      process.stdout.write = write;
+      Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
+    }
+    return chunks.join('');
+  };
+
+  for (const cmd of [
+    'node .aidlc/bin/harness init --force',
+    'bash .aidlc/bin/harness init --into . --force',
+    '.aidlc/bin/harness init --force --into .',
+  ]) {
+    const out = await ask(cmd);
+    assert.match(out, /cached prompt prefix/, `allowed: ${cmd}`);
+    assert.match(out, /ask the human to run it/i, `no human hand-off named for: ${cmd}`);
+  }
+
+  // B2: ordinary init stays available, or the install and upgrade paths close.
+  assert.doesNotMatch(await ask('node .aidlc/bin/harness init --into .'), /cached prompt prefix/);
+});
+
 function contractCfg(f) {
   return {
     layout: { ...f.layout, contracts: path.join(f.root, '.aidlc/artifacts/contracts') },
