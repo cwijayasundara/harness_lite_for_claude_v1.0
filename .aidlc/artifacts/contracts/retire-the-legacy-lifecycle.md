@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/retire-the-legacy-lifecycle.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:797d3f333b6c180198d2abd615b5f394ed641da79ac955a714fe9b45a60c083f
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
