@@ -5,10 +5,10 @@
 - **Intent ref:** ../intent-refs/eval-suite-tells-the-truth.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** approved
-- **Spec approval digest:** sha256:ef6d525492314093609977c5bca846f13e85df3eb233485e49f5add2181d2fa1
-- **Plan status:** approved
-- **Plan approval digest:** sha256:63676b58ddd9544e104d6e35e5a8f15aff73a9cb313e3d781a1d511a712ed376
+- **Spec status:** draft
+- **Spec approval digest:** pending
+- **Plan status:** draft
+- **Plan approval digest:** pending
 
 ## Outcome
 
@@ -54,6 +54,14 @@ Then it fails with a `scope-drift` finding.
 Given a results file containing an `inconclusive` task,
 When `harness evals gate --update` runs,
 Then it refuses to record, because a task whose state is unknown must not enter the ratchet.
+
+### B7
+
+Given a path that merely ends with a prompt-prefix filename but is not the repository's own —
+`evals/fixtures/_base/.aidlc/harness.toml`,
+When `writeBlocked` is asked about it,
+Then it is not refused as a cached-prefix file, while the repository's own
+`.aidlc/harness.toml` and `.claude/CLAUDE.md` still are.
 
 ## Out of scope
 
@@ -104,6 +112,8 @@ which is the situation being fixed.
 | `test/invoker.test.mjs` | B1, B2 |
 | `test/evals.test.mjs` | B3, B4, and the fixture-matches-template guard |
 | `test/eval-gate.test.mjs` | B6 |
+| `.aidlc/lib/guard.mjs` | `writeBlocked` matches a prompt-prefix path by identity, not by suffix |
+| `test/guard.test.mjs` | B7 — the control has no unit coverage at all today |
 
 ## Safeguards
 
@@ -136,3 +146,4 @@ which is the situation being fixed.
 | B4 | `test/evals.test.mjs` — a transcript with neither command nor output still fails |
 | B5 | staged-fixture reproduction: `--stage commit` fails with a `scope-drift` finding |
 | B6 | `test/eval-gate.test.mjs` — `update` throws on an inconclusive task |
+| B7 | `test/guard.test.mjs` — a nested copy is not the prefix, the repository's own file still is |
