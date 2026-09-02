@@ -115,6 +115,29 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
   assert.doesNotMatch(await ask('node .aidlc/bin/harness init --into .'), /cached prompt prefix/);
 });
 
+// require-contract-defaults-on B1/B2. The default used to be off while the installed template
+// set it on, so the control ran for anyone who took the template and not for anyone who did not
+// — and the second group was invisible, because a control that is absent looks exactly like a
+// control that passed. Every eval fixture was in that group.
+test('require_contract defaults on, and an explicit choice still wins', async () => {
+  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const write = (body) => {
+    const root = mkdtempSync(path.join(tmpdir(), 'cfg-'));
+    mkdirSync(path.join(root, '.aidlc'), { recursive: true });
+    writeFileSync(path.join(root, '.aidlc/harness.toml'), body);
+    return root;
+  };
+  const bare = write('[project]\nname = "x"\n');
+  const off = write('[project]\nname = "x"\n\n[guard]\nrequire_contract = false\n');
+  try {
+    assert.equal(loadConfig(bare).guard.require_contract, true, 'saying nothing gets you the control');
+    assert.equal(loadConfig(off).guard.require_contract, false, 'a default is what happens when nobody chose');
+  } finally {
+    rmSync(bare, { recursive: true, force: true });
+    rmSync(off, { recursive: true, force: true });
+  }
+});
+
 function contractCfg(f) {
   return {
     layout: { ...f.layout, contracts: path.join(f.root, '.aidlc/artifacts/contracts') },

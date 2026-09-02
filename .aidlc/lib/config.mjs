@@ -34,7 +34,16 @@ export function loadConfig(root) {
     graph: { include: ['.', '.aidlc'], exclude: ['node_modules', '.venv', 'dist', 'target', '.git'], ...(raw.graph ?? {}) },
     budget: { subagent_context_soft: 140000, subagent_context_hard: 200000, change_cost_ceiling: 4.0, max_findings: 20, review_diff_max_bytes: 200000, ...(raw.budget ?? {}) },
     limits: { skills: 12, hooks: 5, agents: 3, hook_loc: 600, claude_md_lines: 120, ...(raw.limits ?? {}) },
-    guard: { protected_paths: [], deny_bash: [], require_contract: false, ...(raw.guard ?? {}) },
+    // require_contract defaults ON. It used to default off while the installed template set it
+    // true, so the control ran for anyone who took the template and not for anyone who did not —
+    // and the second group was invisible, because a control that is absent looks exactly like a
+    // control that passed. That is how every eval fixture ended up ungoverned, and how
+    // contract-scope-honesty was read as a model failure twice.
+    //
+    // protected_paths and deny_bash stay empty: a list of project-specific paths has a genuine
+    // "nothing to declare", which a boolean gate does not. The spread below means an explicit
+    // false is still honoured — a default is what happens when nobody chose.
+    guard: { protected_paths: [], deny_bash: [], require_contract: true, ...(raw.guard ?? {}) },
     deployment: { production_requires_approval: true, production_allowed_risks: ['low', 'standard', 'critical'], critical_approvals: 2, require_preflight: true, timeout_ms: 300000, ...(raw.deployment ?? {}) },
     work_items: { provider: '', authority: 'external', approvers: [], timeout_ms: 30000, ...(raw.work_items ?? {}) },
     monitoring: { collect: [], ...(raw.monitoring ?? {}) },

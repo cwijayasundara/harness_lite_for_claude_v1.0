@@ -2,12 +2,15 @@
 // spend. If this file is green, a green eval run means what it says.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { A, ROOT } from './_paths.mjs';
 import { evaluate, expand, KNOWN, toRegExp } from '../evals/lib/assertions.mjs';
 import { stage } from '../evals/lib/stage.mjs';
+import { tmpdir } from 'node:os';
+import { writeBlocked } from '../.aidlc/lib/guard.mjs';
+import { loadConfig } from '../.aidlc/lib/config.mjs';
 import { claudeAuthenticated, loadTasks, validate, runSuite, promptCount } from '../evals/run.mjs';
 
 const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
@@ -162,17 +165,42 @@ test('sensor-consulted accepts the check output as evidence, and still fails a m
 // _base sat on the pre-contract `plan-drift` while the template moved to `scope-drift`, so every
 // task asserting `harness_stage_passes: commit` graded the legacy control and contract scope
 // enforcement had no eval coverage at all.
-test('the _base fixture runs the same commit-stage controls the template installs', () => {
-  const stages = (file) => {
-    const body = readFileSync(file, 'utf8');
-    const line = body.split('\n').find((l) => l.trim().startsWith('commit'));
-    return line?.split('=')[1]?.trim();
+// Extended from the commit stage to every setting that gates what the agent may do. The same
+// drift hit twice: _base kept `plan-drift` after the template moved to `scope-drift`, leaving
+// contract scope enforcement with no eval coverage; and _base declares no [guard] at all, so
+// `require_contract` fell back to the config default of false and the write guard never ran in
+// any fixture. contract-scope-honesty was read as a model failure twice on that basis.
+test('the _base fixture is governed by the same agent-gating settings the template installs', () => {
+  // Effective configuration, not declared text. The fixture correctly omits [guard] and inherits
+  // require_contract from the default; a text comparison would fail it for being right.
+  const effective = (file) => {
+    const root = mkdtempSync(path.join(tmpdir(), 'parity-'));
+    mkdirSync(path.join(root, '.aidlc'), { recursive: true });
+    writeFileSync(path.join(root, '.aidlc/harness.toml'), readFileSync(file, 'utf8'));
+    const cfg = loadConfig(root);
+    rmSync(root, { recursive: true, force: true });
+    return { commit: cfg.stages.commit, require_contract: cfg.guard.require_contract };
   };
-  assert.equal(
-    stages(path.join(FIXTURES, '_base/.aidlc/harness.toml')),
-    stages(path.join(ROOT, '.aidlc/templates/harness.toml')),
-    'the eval fixture and the installed template must agree on the commit stage',
-  );
+  const fixture = effective(path.join(FIXTURES, '_base/.aidlc/harness.toml'));
+  const template = effective(path.join(ROOT, '.aidlc/templates/harness.toml'));
+  assert.deepEqual(fixture.commit, template.commit, 'fixture and template must run the same commit stage');
+  assert.equal(fixture.require_contract, template.require_contract,
+    'the eval fixture and the installed template must agree on require_contract, or the suite grades a harness nobody runs');
+});
+
+// B2/B3. With the control on, an unowned product write is refused at write time rather than
+// caught at commit time after the edit already happened.
+test('a fixture governed like an install refuses an unowned product write', () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    const cfg = {
+      layout: { root: s.work, claude: path.join(s.work, '.claude'), state: path.join(s.work, '.aidlc/state'), contracts: path.join(s.work, '.aidlc/artifacts/contracts') },
+      guard: { require_contract: true, protected_paths: [] },
+    };
+    // hyphen-titlecase owns src/app/text.py and tests/test_app.py, and nothing else.
+    assert.equal(writeBlocked('src/app/text.py', cfg), null, 'an owned path stays writable');
+    assert.match(String(writeBlocked('src/app/handlers.py', cfg)), /contract/i, 'an unowned product write must be refused');
+  } finally { s.cleanup(); }
 });
 
 test('an invoker that throws is a failed task, not a crashed suite', async () => {
