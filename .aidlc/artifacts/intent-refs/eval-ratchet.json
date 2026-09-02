@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/eval-ratchet.md",
-    "revision": "pending",
+    "revision": "fa9544e",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijay@biz2bricks.ai",
+    "decided_at": "2026-09-02T03:50:19.652Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:3dbe7211aaa81523a36600f256698cd3de1466dae1bfe59127f8a38626bea8e2"
 }
