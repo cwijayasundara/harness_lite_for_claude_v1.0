@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/init-does-not-invalidate-the-prefix.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:7b8db146a1a90f843098dfc98d1da4ad6730536605196f8c1a760e6d405c2c0e
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
