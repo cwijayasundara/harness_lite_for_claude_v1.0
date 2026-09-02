@@ -107,7 +107,15 @@ test('a draft contract owning nothing that changed does not fail the commit', as
     writeFileSync(path.join(s.work, 'src/app/text.py'), '# owned by the approved contract\n');
     assert.equal((await run(cfg(s.work))).verdict, 'pass', 'a draft in the tree is what a draft is');
 
-    // B2: implementing against that draft is still refused.
+    // B6: the draft may also *claim* a path the approved contract owns — a draft for the next
+    // piece of work routinely names the test file the current piece is editing. A second
+    // claimant does not un-authorise a change its approved owner already authorises.
+    writeFileSync(path.join(dir, 'deferred.md'), readFileSync(path.join(dir, 'deferred.md'), 'utf8')
+      .replace('- `src/app/handlers.py`', '- `src/app/handlers.py`\n- `tests/test_app.py`'));
+    writeFileSync(path.join(s.work, 'tests/test_app.py'), '# changed under the approved contract\n');
+    assert.equal((await run(cfg(s.work))).verdict, 'pass', 'a shared path is authorised by its approved owner');
+
+    // B2: implementing against that draft is still refused — handlers.py has no approved owner.
     writeFileSync(path.join(s.work, 'src/app/handlers.py'), '# implemented against a draft\n');
     const result = await run(cfg(s.work));
     assert.equal(result.verdict, 'fail');

@@ -105,7 +105,13 @@ export async function run(cfg) {
   //
   // The rule kept is "you may not implement against an unapproved contract". A contract that owns
   // nothing that changed is not governing anything, and a draft in a tree is what a draft is.
-  const governing = (c) => c.owns.some((d) => changed.some((f) => f === d || f.startsWith(d.replace(/\/$/, '') + '/')));
+  //
+  // "Sole claimed authority", not merely "claims something that changed". Two contracts may name
+  // the same path — a draft for the next piece of work often claims the test file the current
+  // piece is editing — and a second claimant does not un-authorise a change the approved owner
+  // already authorises.
+  const unauthorised = changed.filter((f) => !ignore(f) && !matches(f));
+  const governing = (c) => c.owns.some((d) => unauthorised.some((f) => f === d || f.startsWith(d.replace(/\/$/, '') + '/')));
   const invalid = eachContract(cfg)
     .filter((c) => !(c.approved && c.committed) && governing(c))
     .map((c) => ({
@@ -115,7 +121,7 @@ export async function run(cfg) {
     }));
   if (invalid.length) return { verdict: 'fail', findings: invalid };
 
-  const findings = changed.filter((f) => !ignore(f) && !matches(f)).map((f) => ({
+  const findings = unauthorised.map((f) => ({
     file: f, line: 0, rule: 'scope-drift',
     message: `changed but owned by no approved contract (in flight: ${artifact.rel})`,
     fix: 'amend and re-approve the contract scope, or revert the change',

@@ -113,6 +113,15 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
 
   // B2: ordinary init stays available, or the install and upgrade paths close.
   assert.doesNotMatch(await ask('node .aidlc/bin/harness init --into .'), /cached prompt prefix/);
+
+  // B6: an invocation, not a mention. The first version matched the string anywhere and refused
+  // the script writing this contract's own evidence, which quoted the rule it was documenting.
+  for (const cmd of [
+    `node -e "console.log('the rule refuses ${'harness init'} ${'--force'} from the agent')"`,
+    `printf '%s' 'documented: ${'harness init'} ${'--force'} is the human route'`,
+  ]) {
+    assert.doesNotMatch(await ask(cmd), /cached prompt prefix/, `refused a mention, not an invocation: ${cmd}`);
+  }
 });
 
 // require-contract-defaults-on B1/B2. The default used to be off while the installed template

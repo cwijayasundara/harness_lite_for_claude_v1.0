@@ -50,7 +50,10 @@ const DESTRUCTIVE = [
   // cache miss it would cause, and forced anyway — an escape hatch anyone may take is not an
   // escape hatch. This hook sees only commands the agent issues, so a human's own shell is
   // untouched, which is the whole mechanism.
-  [/\bharness\b[^|;&]*\binit\b[^|;&]*--force\b/, 'harness init --force rewrites the cached prompt prefix mid-session'],
+  // Anchored to a command position, so it matches an invocation rather than a mention. The first
+  // version matched the string anywhere in the command and refused a script that merely quoted
+  // the rule while writing this contract's own evidence.
+  [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+init\b[^|;&]*--force\b/, 'forcing init rewrites the cached prompt prefix mid-session'],
 ];
 
 export async function dispatch(event) {
