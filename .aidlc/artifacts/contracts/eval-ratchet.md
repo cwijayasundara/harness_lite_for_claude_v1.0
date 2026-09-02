@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/eval-ratchet.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:c2a4811f2ff995bf107ab70b756515b0f103a20a3fe10f7c7018b0589cb14546
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
