@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/eval-suite-tells-the-truth.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:ef6d525492314093609977c5bca846f13e85df3eb233485e49f5add2181d2fa1
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
