@@ -1,0 +1,16 @@
+{
+  "schema": "aidlc.intent-ref/v1",
+  "id": "a-draft-governs-only-its-own-files",
+  "source": {
+    "provider": "git",
+    "locator": ".aidlc/artifacts/intent/a-draft-governs-only-its-own-files.md",
+    "revision": "pending",
+    "authority": "git"
+  },
+  "decision": {
+    "status": "draft",
+    "decided_by": null,
+    "decided_at": null
+  },
+  "snapshot_digest": "pending"
+}
