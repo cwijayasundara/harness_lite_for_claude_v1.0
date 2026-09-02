@@ -7,8 +7,8 @@
 - **Risk:** standard
 - **Spec status:** approved
 - **Spec approval digest:** sha256:797d3f333b6c180198d2abd615b5f394ed641da79ac955a714fe9b45a60c083f
-- **Plan status:** draft
-- **Plan approval digest:** pending
+- **Plan status:** approved
+- **Plan approval digest:** sha256:56c8bbfc9462bbf155f3096f974a6a71f6b3bf1cf9ab1eae7f5377293f2216b8
 
 ## Outcome
 
