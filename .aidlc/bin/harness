@@ -24,6 +24,9 @@ import { selectSlug, packet as reviewPacket, writeReview, checkProtection } from
 import { deploy, closeLoop, detect, readMonitorFile } from '../lib/operations.mjs';
 import { playbookIndicators, renderPlaybook } from '../lib/indicators.mjs';
 import { lockTests, clearLock, enterpriseChecklist } from '../lib/guard.mjs';
+import * as evalGate from '../lib/eval-gate.mjs';
+
+const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
 import { addWorktree } from '../lib/worktree.mjs';
 import { behaviourIds, contractState, decideIntentRef, isCommitted, renderLegacyContract, sealContract, snapshotDigest, validateContract, writeEvidence, writeIntentRef, writePromptManifest } from '../lib/contract.mjs';
 import { adapterNames, adapterInfo, diagnoseAgents, loadAgentManifest, renderAgentAdapter, renderClaudeHooks, renderClaudeInstructions, verifyAgentAdapter } from '../lib/agent-adapters.mjs';
@@ -306,6 +309,29 @@ async function main() {
         }
       } catch (error) { console.error(error.message); return 1; }
       console.error('usage: harness work-items doctor|resolve|snapshot|verify|create|transition|link-commit|link-contract|link-pr|comment'); return 2;
+    }
+
+    case 'evals': {
+      if (argv[1] !== 'gate') { console.error('usage: harness evals gate [--update]'); return 2; }
+      const root = findRepoRoot(); const L = layout(root);
+      const recordFile = path.join(root, 'evals', 'expected.json');
+      const results = evalGate.loadResults(path.join(L.aidlc, 'evals', 'results'));
+      let record;
+      try { record = evalGate.readRecord(recordFile); } catch (e) { console.error(String(e.message)); return 2; }
+
+      if (has('update')) {
+        if (!results) { console.error('no eval results to record — run `node evals/run.mjs` first'); return 1; }
+        let next;
+        try { next = evalGate.update(record, results, { commit: gitHead(root) }); }
+        catch (e) { console.error(String(e.message)); return 1; }
+        evalGate.writeRecord(recordFile, next);
+        console.log(`${recordFile}\n${Object.keys(next.tasks).length} tasks recorded from ${next.source}`);
+        return 0;
+      }
+
+      const result = evalGate.gate(results, record);
+      for (const line of evalGate.render(result)) console.log(line);
+      return result.ok ? 0 : 1;
     }
 
     case 'ledger': {
@@ -718,6 +744,7 @@ async function main() {
   harness monitor detect [slug] [--file bands.json]
   harness monitor ingest <slug> --file bands.json
   harness ledger [audit] [--days 30]
+  harness evals gate [--update]    grade the newest run against evals/expected.json
   harness baseline capture|check
   harness graph build|refresh|query <question> [arg]
   harness wiki                     render the codebase map

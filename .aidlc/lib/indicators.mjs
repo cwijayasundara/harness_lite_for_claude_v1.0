@@ -26,21 +26,31 @@ function commitsAfter(root, file, iso) {
   return dates.filter((d) => Date.parse(d) > t).length;
 }
 
-function latestEval(dir) {
-  if (!existsSync(dir)) return { source: null, pass: null, total: null, rate: null };
+// The widest run wins, then the newest among equals. A three-task smoke must not displace a
+// full suite as the thing the indicator — or the gate — reads. Exported because the eval gate
+// has to answer "which run are we grading?" the same way this does; two answers to that
+// question is how a stale score survives.
+export function widestResults(dir) {
+  if (!existsSync(dir)) return null;
   const parsed = [];
   for (const name of readdirSync(dir).filter((f) => f.endsWith('.json'))) {
     try {
-      const summary = JSON.parse(readFileSync(path.join(dir, name), 'utf8')).summary ?? {};
-      const total = Number(summary.total);
-      const pass = Number(summary.pass);
-      if (Number.isFinite(total) && total > 0 && Number.isFinite(pass)) parsed.push({ source: name, pass, total, rate: Math.round((pass / total) * 1000) / 1000 });
+      const body = JSON.parse(readFileSync(path.join(dir, name), 'utf8'));
+      const total = Number(body.summary?.total);
+      const pass = Number(body.summary?.pass);
+      if (Number.isFinite(total) && total > 0 && Number.isFinite(pass)) parsed.push({ source: name, pass, total, body });
     } catch { /* skip unreadable result files */ }
   }
-  if (!parsed.length) return { source: null, pass: null, total: null, rate: null };
+  if (!parsed.length) return null;
   const maxTotal = Math.max(...parsed.map((p) => p.total));
   const widest = parsed.filter((p) => p.total === maxTotal).sort((a, b) => a.source.localeCompare(b.source));
   return widest[widest.length - 1];
+}
+
+function latestEval(dir) {
+  const w = widestResults(dir);
+  if (!w) return { source: null, pass: null, total: null, rate: null };
+  return { source: w.source, pass: w.pass, total: w.total, rate: Math.round((w.pass / w.total) * 1000) / 1000 };
 }
 
 export function playbookIndicators(cfg, rows) {
