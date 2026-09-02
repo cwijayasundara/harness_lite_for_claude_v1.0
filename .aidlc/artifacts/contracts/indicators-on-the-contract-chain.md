@@ -5,10 +5,10 @@
 - **Intent ref:** ../intent-refs/indicators-on-the-contract-chain.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** approved
-- **Spec approval digest:** sha256:92fbd59c582184c04f443bc5c33e07308e2100b400bea7c19df4e70ecfae8bb8
-- **Plan status:** approved
-- **Plan approval digest:** sha256:6a185b25854c6297182c4c994e7ed555457abd6f24893811b5c9f298b1c56fe8
+- **Spec status:** draft
+- **Spec approval digest:** pending
+- **Plan status:** draft
+- **Plan approval digest:** pending
 
 ## Outcome
 
@@ -108,6 +108,7 @@ playbook names both.
 | `.aidlc/bin/harness` | `status` sources the playbook block from the contract chain |
 | `docs/PLAYBOOK-CONFORMANCE.md` | new — stage-by-stage mapping with honest gaps |
 | `test/indicators.test.mjs` | new — B1 to B6 |
+| `test/lifecycle-cli.test.mjs` | its playbook assertions drive intent survival from legacy intent files, the source this change replaces |
 
 ## Safeguards
 
