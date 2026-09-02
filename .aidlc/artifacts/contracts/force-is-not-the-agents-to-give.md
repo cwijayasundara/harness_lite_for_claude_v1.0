@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/force-is-not-the-agents-to-give.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:7ba092d853d4d26296feb725d748f762ef4ba119389996988605b0f61ae132fe
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
