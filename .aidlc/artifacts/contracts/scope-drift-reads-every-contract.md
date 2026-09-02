@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/scope-drift-reads-every-contract.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:55de5b8f641bfec8555e79028adb764688beff778088b640d959862fa0480450
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
