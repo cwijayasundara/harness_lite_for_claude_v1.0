@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/fixtures-are-governed-like-installs.md",
-    "revision": "pending",
+    "revision": "0f45c7b",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-02T06:25:45.815Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:1c849e75068861d8545504498ae324e78796a1095e75cc5212bee46a28863090"
 }
