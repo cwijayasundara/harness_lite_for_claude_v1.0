@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/overlay-narrow-eval-runs.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:090f16b3afb8cfe7d7d40edb5c2775650a54ea0105d41414f5b711eaf6274e06
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
