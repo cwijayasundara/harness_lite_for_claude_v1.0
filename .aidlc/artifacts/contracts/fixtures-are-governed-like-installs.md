@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/fixtures-are-governed-like-installs.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:1ca0edb31de25f099f4f88e1e6197253d17678c7884343c54b65670221310d69
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
