@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/indicators-on-the-contract-chain.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:92fbd59c582184c04f443bc5c33e07308e2100b400bea7c19df4e70ecfae8bb8
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
