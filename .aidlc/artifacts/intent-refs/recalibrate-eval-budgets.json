@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/recalibrate-eval-budgets.md",
-    "revision": "pending",
+    "revision": "5161ef2",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-02T04:55:35.958Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:8d7829fd767bb9e904fe803ee56d79cb057ebd19d32273b38e88a76d1f4ef2d5"
 }
