@@ -49,19 +49,25 @@ function currentDeliveryArtifact(cfg) {
 //
 // Same validity bar as the guard: valid, plan approved, and committed. An uncommitted approval
 // is not an auditable gate.
-function ownedByAnyContract(cfg) {
+function eachContract(cfg) {
   const dir = cfg.layout?.contracts;
   if (!dir || !existsSync(dir)) return [];
-  const owned = [];
-  for (const name of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
+  return readdirSync(dir).filter((f) => f.endsWith('.md')).map((name) => {
     const file = path.join(dir, name);
     try {
       const validation = validateContract(cfg.layout.root, file);
-      if (!validation.ok || validation.meta.plan_status !== 'approved' || !isCommitted(cfg.layout.root, file)) continue;
-      for (const owns of ownedFiles(readFileSync(file, 'utf8')) ?? []) owned.push({ path: owns, contract: name });
-    } catch { /* a contract that cannot be read owns nothing; the in-flight check reports it */ }
-  }
-  return owned;
+      const approved = validation.ok && validation.meta.plan_status === 'approved';
+      return { name, file, rel: path.relative(cfg.layout.root, file), approved, committed: isCommitted(cfg.layout.root, file), owns: ownedFiles(readFileSync(file, 'utf8')) ?? [], issues: validation.issues };
+    } catch (error) {
+      return { name, file, rel: path.relative(cfg.layout.root, file), approved: false, committed: false, owns: [], issues: [String(error.message)] };
+    }
+  });
+}
+
+function ownedByAnyContract(cfg) {
+  return eachContract(cfg)
+    .filter((c) => c.approved && c.committed)
+    .flatMap((c) => c.owns.map((p) => ({ path: p, contract: c.name })));
 }
 
 function changedFiles(root) {
@@ -74,10 +80,6 @@ export async function run(cfg) {
   const artifact = currentDeliveryArtifact(cfg);
   if (!artifact) return { verdict: 'skipped', findings: [], note: 'no delivery contract' };
   const body = readFileSync(artifact.abs, 'utf8');
-  const validation = validateContract(cfg.layout.root, artifact.abs);
-  if (!validation.ok || validation.meta.plan_status !== 'approved') return {
-    verdict: 'fail', findings: [{ file: artifact.rel, line: 0, rule: 'contract-invalid', message: validation.issues.join('; ') || 'contract plan is not approved', fix: 'validate and approve the delivery contract before implementation' }],
-  };
   const inFlight = ownedFiles(body);
   if (!inFlight?.length) return { verdict: 'fail', findings: [{ file: artifact.rel, line: 0, rule: 'delivery-scope-missing', message: `${artifact.f} declares no owned files`, fix: 'add exact paths under "## Structure and ownership"' }] };
 
@@ -95,6 +97,24 @@ export async function run(cfg) {
 
   const ignore = (f) => f.startsWith('.aidlc/artifacts/') || f.startsWith('.aidlc/state/');
   const matches = (f) => declared.some((d) => f === d || f.startsWith(d.replace(/\/$/, '') + '/'));
+
+  // Validity is a question about the contracts governing *this* diff, not about whichever
+  // contract was touched last. `currentDeliveryArtifact` prefers the dirty one, and a draft being
+  // written is always the dirty one — so drafting the next piece of work made the current piece
+  // uncommittable, and a model that behaved perfectly failed contract-scope-honesty for it.
+  //
+  // The rule kept is "you may not implement against an unapproved contract". A contract that owns
+  // nothing that changed is not governing anything, and a draft in a tree is what a draft is.
+  const governing = (c) => c.owns.some((d) => changed.some((f) => f === d || f.startsWith(d.replace(/\/$/, '') + '/')));
+  const invalid = eachContract(cfg)
+    .filter((c) => !(c.approved && c.committed) && governing(c))
+    .map((c) => ({
+      file: c.rel, line: 0, rule: 'contract-invalid',
+      message: c.issues.join('; ') || (c.approved ? 'contract is not committed' : 'contract plan is not approved'),
+      fix: 'validate and approve the delivery contract before implementation',
+    }));
+  if (invalid.length) return { verdict: 'fail', findings: invalid };
+
   const findings = changed.filter((f) => !ignore(f) && !matches(f)).map((f) => ({
     file: f, line: 0, rule: 'scope-drift',
     message: `changed but owned by no approved contract (in flight: ${artifact.rel})`,
