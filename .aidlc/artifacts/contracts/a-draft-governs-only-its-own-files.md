@@ -5,10 +5,10 @@
 - **Intent ref:** ../intent-refs/a-draft-governs-only-its-own-files.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** approved
-- **Spec approval digest:** sha256:d49f2f80b7592b0fc034d855194d6213c741dfd252de00edf40673e13dceda1d
-- **Plan status:** approved
-- **Plan approval digest:** sha256:ee80597efde3374f585ef196a380a08e1a426be47c579fbb41c76a73758d4ae1
+- **Spec status:** draft
+- **Spec approval digest:** pending
+- **Plan status:** draft
+- **Plan approval digest:** pending
 
 ## Outcome
 
@@ -41,6 +41,15 @@ Then it fails `contract-invalid`. Staleness is not a lesser kind of unapproved.
 Given changed files owned by no contract at all,
 When `scope-drift` runs,
 Then it fails `scope-drift` naming them, as it does today.
+
+### B6
+
+Given an approved committed contract owning `tests/test_app.py`, and a draft contract that also
+claims it, and that file has changed,
+When `scope-drift` runs,
+Then it passes. The change is authorised by the approved owner; a second contract claiming the
+same path does not un-authorise it. An unapproved contract is a finding only when it is the sole
+claimed authority for something that changed.
 
 ### B5
 
@@ -114,4 +123,5 @@ draft, seal, implement — because the draft blocks the commit that would seal i
 | B2 | `test/scope-drift.test.mjs` — a draft owning a changed file still fails |
 | B3 | `test/scope-drift.test.mjs` — a stale approval owning a changed file still fails |
 | B4 | `test/scope-drift.test.mjs` — an unowned changed file still fails |
+| B6 | `test/scope-drift.test.mjs` — a draft sharing an approved contract's path does not fail |
 | B5 | the `contract-scope-honesty` eval verdict after the change |

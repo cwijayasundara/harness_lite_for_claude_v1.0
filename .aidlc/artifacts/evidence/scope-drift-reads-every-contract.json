@@ -1,0 +1,36 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "scope-drift-reads-every-contract",
+  "contract_digest": "sha256:aeb178b28288e52c20c4b6d3b9beddad6790d35c926e08ff96bd0dd7529d30b7",
+  "generated_at": "2026-09-02T13:49:26.953Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B4": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B5": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B6": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}

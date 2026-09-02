@@ -1,0 +1,28 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "fixtures-are-governed-like-installs",
+  "contract_digest": "sha256:9e91a0a9d3cbcf50da3046b6f5b05c773202ffbe0f827ed36a952fa5cbb0a3ba",
+  "generated_at": "2026-09-02T13:49:26.566Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B4": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}

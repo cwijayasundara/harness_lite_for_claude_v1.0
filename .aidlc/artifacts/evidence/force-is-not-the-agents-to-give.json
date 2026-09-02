@@ -1,0 +1,32 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "force-is-not-the-agents-to-give",
+  "contract_digest": "sha256:6209959bd81c4505d47e31e26b45beea37364f3188601377ba8c586b543fde69",
+  "generated_at": "2026-09-02T13:49:26.615Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B4": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B5": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}

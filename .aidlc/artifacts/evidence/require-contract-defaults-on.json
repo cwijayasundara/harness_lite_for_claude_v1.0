@@ -1,0 +1,32 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "require-contract-defaults-on",
+  "contract_digest": "sha256:f2dda9908eb7ee8f91b21dd16387152164eb379ae86804c80f6c271b4b3173fb",
+  "generated_at": "2026-09-02T13:49:26.856Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B4": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B5": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}

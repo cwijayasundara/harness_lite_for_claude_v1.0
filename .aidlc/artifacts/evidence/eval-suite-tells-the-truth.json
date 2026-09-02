@@ -1,0 +1,40 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "eval-suite-tells-the-truth",
+  "contract_digest": "sha256:341d510d4c51c1ba79873fc084c7481a9d17eff1c397d88597ffe012d23a608b",
+  "generated_at": "2026-09-02T13:49:26.517Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B4": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B5": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B6": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B7": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}

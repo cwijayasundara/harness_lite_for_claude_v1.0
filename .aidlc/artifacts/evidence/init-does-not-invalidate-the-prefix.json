@@ -1,0 +1,36 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "init-does-not-invalidate-the-prefix",
+  "contract_digest": "sha256:49d1b8362031c53350cf1ab07a8611a98d2305645a0bd6b6f5f735928038058d",
+  "generated_at": "2026-09-02T13:49:26.713Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B4": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B5": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B6": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}

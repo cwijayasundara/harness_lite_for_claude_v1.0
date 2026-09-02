@@ -5,10 +5,10 @@
 - **Intent ref:** ../intent-refs/force-is-not-the-agents-to-give.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** approved
-- **Spec approval digest:** sha256:7ba092d853d4d26296feb725d748f762ef4ba119389996988605b0f61ae132fe
-- **Plan status:** approved
-- **Plan approval digest:** sha256:6209959bd81c4505d47e31e26b45beea37364f3188601377ba8c586b543fde69
+- **Spec status:** draft
+- **Spec approval digest:** pending
+- **Plan status:** draft
+- **Plan approval digest:** pending
 
 ## Outcome
 
@@ -35,6 +35,14 @@ Given a human running `harness init --force` in their own terminal,
 When it executes,
 Then it regenerates the file and succeeds. The pre-tool hook observes agent tool calls only, and
 this must remain the seam.
+
+### B6
+
+Given a command that merely *mentions* the forced invocation inside other text — a script writing
+documentation, an evidence artifact quoting the rule,
+When the pre-bash hook sees it,
+Then it is allowed. The rule matches an invocation, not a mention; the first version matched the
+string anywhere and blocked writing the evidence for this very contract.
 
 ### B4
 
@@ -117,6 +125,7 @@ read and overridden. A rule the agent can decline is not a control.
 |---|---|
 | B1 | `test/guard.test.mjs` — every spelling of `init --force` is denied |
 | B2 | `test/guard.test.mjs` — plain `init` is allowed |
+| B6 | `test/guard.test.mjs` — a command that only quotes the invocation is allowed |
 | B3 | the hook fires on agent tool calls only; no code path intercepts a human's shell |
 | B4 | the `prefix-cache-guard` eval verdict after the change |
 | B5 | the `contract-scope-honesty` eval verdict after the change |

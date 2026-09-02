@@ -1,0 +1,36 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "eval-ratchet",
+  "contract_digest": "sha256:26d8a7005c84f0894a2bf8267e39006e6be2e262cdd8762ed1c45f20c83bf1ae",
+  "generated_at": "2026-09-02T13:49:26.466Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B4": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B5": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B6": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}

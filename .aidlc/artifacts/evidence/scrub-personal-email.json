@@ -1,0 +1,24 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "scrub-personal-email",
+  "contract_digest": "sha256:97ec73688b5b6bd446e33d609068d35bb36df84724e2fba28485beef60af7336",
+  "generated_at": "2026-09-02T13:49:27.002Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}

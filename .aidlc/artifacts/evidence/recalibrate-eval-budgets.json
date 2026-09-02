@@ -1,0 +1,28 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "recalibrate-eval-budgets",
+  "contract_digest": "sha256:33a656eca1f3dc48edadb7488ff97a33d34ee46634f4d6d6c60c7226a76da6c3",
+  "generated_at": "2026-09-02T13:49:26.810Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B4": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}

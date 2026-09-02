@@ -1,0 +1,40 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "retire-the-legacy-lifecycle",
+  "contract_digest": "sha256:56c8bbfc9462bbf155f3096f974a6a71f6b3bf1cf9ab1eae7f5377293f2216b8",
+  "generated_at": "2026-09-02T13:49:26.905Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B4": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B5": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B7": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B6": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}
