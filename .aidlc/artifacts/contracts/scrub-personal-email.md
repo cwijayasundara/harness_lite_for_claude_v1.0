@@ -5,10 +5,10 @@
 - **Intent ref:** ../intent-refs/scrub-personal-email.json
 - **Story ref:** none
 - **Risk:** low
-- **Spec status:** approved
-- **Spec approval digest:** sha256:e07f33744be7d6f69fc2048cfa2e981cb8a01ca87f9c42c39104dc6406bf54f1
-- **Plan status:** approved
-- **Plan approval digest:** sha256:6366cd83c92399f9c4f42a3e195c08892dca27a2a60abb5bda98bef1914e6f30
+- **Spec status:** draft
+- **Spec approval digest:** pending
+- **Plan status:** draft
+- **Plan approval digest:** pending
 
 ## Outcome
 
@@ -88,6 +88,6 @@ operation inside a routine diff.
 
 | Behaviour | Test or evidence |
 |---|---|
-| B1 | `git grep cwijay@biz2bricks` returns nothing |
+| B1 | `git grep` for the address returns no match in any tracked file — including this contract, which must not quote what it is removing |
 | B2 | `harness contract validate` PASSes for all four contracts |
 | B3 | `git diff` on the three archived intents shows only the Author line |
