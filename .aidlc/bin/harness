@@ -325,7 +325,8 @@ async function main() {
         try { next = evalGate.update(record, results, { commit: gitHead(root) }); }
         catch (e) { console.error(String(e.message)); return 1; }
         evalGate.writeRecord(recordFile, next);
-        console.log(`${recordFile}\n${Object.keys(next.tasks).length} tasks recorded from ${next.source}`);
+        const from = next.sources?.length > 1 ? `${next.sources.length} runs: ${next.sources.join(', ')}` : next.source;
+        console.log(`${recordFile}\n${Object.keys(next.tasks).length} tasks recorded from ${from}`);
         return 0;
       }
 

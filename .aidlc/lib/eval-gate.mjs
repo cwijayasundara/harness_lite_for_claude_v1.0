@@ -3,7 +3,8 @@
 // last graded run; the score on the status board never moved, because an aggregate cannot see a
 // substitution. This grades task by task, and it fails closed.
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { widestResults } from './indicators.mjs';
 
 export const RECORD_SCHEMA = 'aidlc.eval-expectation/v1';
@@ -48,6 +49,7 @@ export function gate(results, record) {
     ok: !regressed.length && !missing.length && !unrecorded.length,
     reason: null,
     source: results.source ?? null,
+    sources: results.sources ?? (results.source ? [results.source] : []),
     regressed, improved, missing, unrecorded,
   };
 }
@@ -70,7 +72,9 @@ export function update(record, results, { commit = null, at = new Date().toISOSt
 
   const tasks = {};
   for (const id of [...graded.keys()].sort()) tasks[id] = graded.get(id);
-  return { schema: RECORD_SCHEMA, recorded_at: at, source: results.source ?? null, commit, tasks };
+  // `sources` oldest first, so a reader can see which run supplied a corrected verdict. A record
+  // assembled from several runs without saying so would be worse than one that is merely stale.
+  return { schema: RECORD_SCHEMA, recorded_at: at, source: results.source ?? null, sources: results.sources ?? (results.source ? [results.source] : []), commit, tasks };
 }
 
 export function writeRecord(file, record) {
@@ -78,15 +82,49 @@ export function writeRecord(file, record) {
   return file;
 }
 
+// The widest run is the base, and later narrow runs correct individual tasks within it.
+//
+// Without this, a task that ends `inconclusive` can only be repaired by re-running all
+// twenty-two — about thirteen dollars to fix one, because a one-task results file loses the
+// widest-run tie-break and is ignored. That bit twice on 2026-09-02.
+//
+// A narrow run may only *correct* ids the base already graded, never introduce new ones: the
+// graded set is set by a full run, so a smoke run cannot quietly become the baseline. Results
+// filenames are ISO timestamps, so sorting by name is sorting by time, and only files after the
+// base are considered — an overlay moves forward or not at all.
 export function loadResults(dir) {
-  const w = widestResults(dir);
-  return w ? { ...w.body, source: w.source } : null;
+  const base = widestResults(dir);
+  if (!base) return null;
+
+  const merged = verdicts(base.body);
+  const sources = [base.source];
+  for (const name of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
+    if (name <= base.source) continue;
+    let body;
+    try { body = JSON.parse(readFileSync(path.join(dir, name), 'utf8')); } catch { continue; }
+    let corrected = false;
+    for (const [id, verdict] of verdicts(body)) {
+      if (!merged.has(id) || merged.get(id) === verdict) continue;
+      merged.set(id, verdict);
+      corrected = true;
+    }
+    if (corrected) sources.push(name);
+  }
+
+  const results = [...merged].map(([id, verdict]) => ({ id, verdict }));
+  return {
+    ...base.body,
+    results,
+    summary: { ...(base.body.summary ?? {}), total: results.length, pass: results.filter((r) => r.verdict === 'pass').length },
+    source: base.source,
+    sources,
+  };
 }
 
 export function render(result) {
   const lines = [];
   if (result.reason) return [`FAIL  evals  ${result.reason}`];
-  lines.push(`evals gate · ${result.source}`);
+  lines.push(`evals gate · ${result.source}${result.sources?.length > 1 ? ` (+${result.sources.length - 1} correcting run${result.sources.length > 2 ? 's' : ''})` : ''}`);
   for (const r of result.regressed) lines.push(`  REGRESSED   ${r.id}  recorded ${r.expected}, now ${r.actual}`);
   for (const id of result.missing) lines.push(`  MISSING     ${id}  recorded but not graded in this run`);
   for (const id of result.unrecorded) lines.push(`  UNRECORDED  ${id}  graded but absent from the record`);

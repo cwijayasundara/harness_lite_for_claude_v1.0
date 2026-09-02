@@ -116,6 +116,70 @@ test('loadResults prefers the widest run, then the newest', () => {
   } finally { f.cleanup(); }
 });
 
+// overlay-narrow-eval-runs B1-B6. Without the overlay an inconclusive task can only be repaired
+// by re-running the whole suite, because a one-task results file loses the widest-run tie-break.
+function results_dir(files) {
+  const f = tmp();
+  mkdirSync(f.dir, { recursive: true });
+  for (const [name, pairs] of Object.entries(files)) writeFileSync(path.join(f.dir, name), JSON.stringify(results(pairs)));
+  return f;
+}
+
+test('a later narrow run corrects one task and leaves the rest of the widest run alone', () => {
+  const f = results_dir({
+    '2026-09-02T04.json': { a: 'pass', b: 'inconclusive', c: 'fail' },
+    '2026-09-02T09.json': { b: 'pass' },
+  }); try {
+    const out = loadResults(f.dir);
+    const by = Object.fromEntries(out.results.map((r) => [r.id, r.verdict]));
+    assert.deepEqual(by, { a: 'pass', b: 'pass', c: 'fail' }, 'only b moves');
+    assert.equal(out.source, '2026-09-02T04.json', 'the widest run is still the base');
+    // B2
+    assert.deepEqual(out.sources, ['2026-09-02T04.json', '2026-09-02T09.json'], 'oldest first');
+  } finally { f.cleanup(); }
+});
+
+test('an older narrow run is ignored — overlays move forward only', () => {
+  const f = results_dir({
+    '2026-09-02T01.json': { b: 'pass' },
+    '2026-09-02T04.json': { a: 'pass', b: 'inconclusive' },
+  }); try {
+    const out = loadResults(f.dir);
+    assert.equal(out.results.find((r) => r.id === 'b').verdict, 'inconclusive', 'a stale verdict must not be revived');
+    assert.deepEqual(out.sources, ['2026-09-02T04.json']);
+  } finally { f.cleanup(); }
+});
+
+test('a narrow run cannot introduce a task the widest run never graded', () => {
+  const f = results_dir({
+    '2026-09-02T04.json': { a: 'pass', b: 'pass', c: 'pass' },
+    '2026-09-02T09.json': { a: 'pass', 'sneaked-in': 'pass' },
+  }); try {
+    const out = loadResults(f.dir);
+    assert.deepEqual(out.results.map((r) => r.id).sort(), ['a', 'b', 'c'], 'the graded set is set by a full run');
+    assert.deepEqual(out.sources, ['2026-09-02T04.json'], 'a run that corrected nothing is not a source');
+  } finally { f.cleanup(); }
+});
+
+test('a task still inconclusive after the overlay still refuses to record', () => {
+  const f = results_dir({
+    '2026-09-02T04.json': { a: 'pass', b: 'inconclusive' },
+    '2026-09-02T09.json': { b: 'inconclusive' },
+  }); try {
+    assert.throws(() => update(record({ a: 'pass' }), loadResults(f.dir)), /refusing to record b/);
+  } finally { f.cleanup(); }
+});
+
+test('a lone widest run behaves exactly as before, with one source', () => {
+  const f = results_dir({ '2026-09-02T04.json': { a: 'pass', b: 'fail' } }); try {
+    const out = loadResults(f.dir);
+    assert.deepEqual(Object.fromEntries(out.results.map((r) => [r.id, r.verdict])), { a: 'pass', b: 'fail' });
+    assert.deepEqual(out.sources, ['2026-09-02T04.json']);
+    const next = update(null, out, { at: '2026-09-02T00:00:00.000Z' });
+    assert.deepEqual(next.sources, ['2026-09-02T04.json']);
+  } finally { f.cleanup(); }
+});
+
 test('readRecord rejects a file with the wrong schema', () => {
   const f = tmp(); try {
     mkdirSync(f.root, { recursive: true });

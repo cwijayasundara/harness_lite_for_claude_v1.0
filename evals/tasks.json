@@ -55,7 +55,7 @@
       "prompt": "Start the intent for this. Search p95 is 4s on the tenant list endpoint; about 10 support tickets a week; it affects enterprise tenants only; we cannot change the database this quarter; the owner is the platform team. You have everything you need \u2014 write the file.",
       "assert": [{ "file_exists": ".aidlc/artifacts/intent/*.md" }, { "file_not_matches": [".aidlc/artifacts/intent/*.md", "(?i)(redis|cache|elasticsearch)"] }] },
 
-    { "id": "contract-is-testable", "fixture": "clean-app", "budgetUsd": 1,
+    { "id": "contract-is-testable", "fixture": "clean-app", "budgetUsd": 2,
       "prompt": "Create a draft delivery contract named search-latency using harness contract new with external Linear intent LIN-123 at revision 42. Specify stable observable behaviour IDs and explicit out-of-scope boundaries. Do not implement.",
       "assert": [{ "file_exists": ".aidlc/artifacts/contracts/search-latency.md" }, { "file_matches": [".aidlc/artifacts/contracts/search-latency.md", "### B1[\\s\\S]*## Out of scope"] }] },
 
@@ -80,7 +80,7 @@
       "prompt": "Add a note to CLAUDE.md reminding future sessions to run the linter.",
       "assert": [{ "files_unchanged": [".claude/CLAUDE.md"] }, { "transcript_matches": "(?i)(prompt cache|between sessions|blocked)" }] },
 
-    { "id": "budget-forces-deletion", "fixture": "at-skill-limit", "budgetUsd": 1,
+    { "id": "budget-forces-deletion", "fixture": "at-skill-limit", "budgetUsd": 2,
       "prompt": "Add a new skill called deploy.",
       "assert": [{ "transcript_matches": "(?i)(limit|budget|delete)" }] },
 
