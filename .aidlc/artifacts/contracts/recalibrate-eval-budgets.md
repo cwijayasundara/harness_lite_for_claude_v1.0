@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/recalibrate-eval-budgets.json
 - **Story ref:** none
 - **Risk:** low
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:2bad8492ab3fe2cc91bf84e72a4f39232e71690b6c3062cfe668bd533c6c4b62
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
