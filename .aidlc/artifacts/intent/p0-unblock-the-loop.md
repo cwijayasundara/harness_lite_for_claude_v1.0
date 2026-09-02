@@ -1,7 +1,7 @@
 # Intent: p0-unblock-the-loop
 
 - **Status:** approved
-- **Author:** cwijay@biz2bricks.ai
+- **Author:** cwijayasundara
 
 ## Problem
 

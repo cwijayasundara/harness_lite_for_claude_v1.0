@@ -1,7 +1,7 @@
 # Intent: indicators-on-the-contract-chain
 
 - **Status:** approved
-- **Author:** cwijay@biz2bricks.ai
+- **Author:** cwijayasundara
 
 ## Problem
 

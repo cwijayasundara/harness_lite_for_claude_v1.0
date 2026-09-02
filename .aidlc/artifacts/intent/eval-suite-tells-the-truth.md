@@ -1,7 +1,7 @@
 # Intent: eval-suite-tells-the-truth
 
 - **Status:** approved
-- **Author:** cwijay@biz2bricks.ai
+- **Author:** cwijayasundara
 
 ## Problem
 

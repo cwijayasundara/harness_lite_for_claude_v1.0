@@ -1,7 +1,7 @@
 # Intent: status-grades-two-lifecycles
 
 - **Status:** draft
-- **Author:** cwijay@biz2bricks.ai
+- **Author:** cwijayasundara
 
 ## Problem
 
