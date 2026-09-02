@@ -2,7 +2,7 @@
 
 - **Date:** 2026-08-25
 - **Opened at:** 2026-08-25T05:34:06.765Z
-- **Author:** cwijay@biz2bricks.ai
+- **Author:** cwijayasundara
 - **Source:** conversation, 2026-08-25 — dead-code audit of the tree
 - **Status:** draft <!-- draft | approved | closed -->
 

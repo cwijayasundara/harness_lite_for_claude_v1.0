@@ -2,7 +2,7 @@
 
 - **Date:** 2026-08-24
 - **Opened at:** 2026-08-24T15:55:32.748Z
-- **Author:** cwijay@biz2bricks.ai
+- **Author:** cwijayasundara
 - **Status:** approved <!-- draft | approved | closed -->
 - **Source:** conversation, 2026-08-24 — "whats the use of the code in the .github? I see most
   of these are failing"

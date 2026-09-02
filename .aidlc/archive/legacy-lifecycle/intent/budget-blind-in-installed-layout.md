@@ -2,7 +2,7 @@
 
 - **Date:** 2026-08-24
 - **Opened at:** 2026-08-24T16:34:20.972Z
-- **Author:** cwijay@biz2bricks.ai
+- **Author:** cwijayasundara
 - **Status:** approved <!-- draft | approved | closed -->
 - **Source:** conversation, 2026-08-24 — `harness init --into .` run against a scratch repo,
   followed by "the budget check is blind in an installed layout"
