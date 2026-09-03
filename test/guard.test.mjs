@@ -87,6 +87,15 @@ test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
 // hook sees only commands the agent issues, so denying there leaves a human's own shell alone.
 test('the agent cannot force init past the prefix guard, in any spelling', async () => {
   const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
+
+  // A temp repo, not this one. Dispatching against the real root wrote every rehearsal into the
+  // real ledger: `init-force` reached 120 recorded fires, none of them a person being stopped
+  // from anything, and it was the busiest rule on the audit. A ledger that counts its own tests
+  // is the "17.7% fired, keep" guess that B9 exists to end.
+  const home = mkdtempSync(path.join(tmpdir(), 'dispatch-'));
+  mkdirSync(path.join(home, '.aidlc'), { recursive: true });
+  writeFileSync(path.join(home, '.aidlc/harness.toml'), '[project]\nname = "dispatch-test"\n');
+
   const ask = async (command) => {
     const chunks = [];
     const write = process.stdout.write.bind(process.stdout);
@@ -94,7 +103,7 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
     const stdin = process.stdin;
     // dispatch reads the tool call from stdin as JSON.
     const { Readable } = await import('node:stream');
-    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: process.cwd(), tool_input: { command } })]), configurable: true });
+    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_input: { command } })]), configurable: true });
     try { await dispatch('pre-bash'); } finally {
       process.stdout.write = write;
       Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
@@ -123,6 +132,8 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
   ]) {
     assert.doesNotMatch(await ask(cmd), /cached prompt prefix/, `refused a mention, not an invocation: ${cmd}`);
   }
+
+  rmSync(home, { recursive: true, force: true });
 });
 
 // require-contract-defaults-on B1/B2. The default used to be off while the installed template
