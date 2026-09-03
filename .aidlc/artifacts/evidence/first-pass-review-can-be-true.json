@@ -1,0 +1,42 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "first-pass-review-can-be-true",
+  "contract_digest": "sha256:8668d9b306546696e287e9c50f41761f95802a87ee2816556da19c744007319f",
+  "generated_at": "2026-09-03T04:22:51.228Z",
+  "capabilities": {
+    "secrets": "PASS",
+    "test": "PASS — 216 pass, 0 fail",
+    "scope-drift": "PASS",
+    "budget": "PASS"
+  },
+  "behaviours": {
+    "B1": {
+      "status": "pass",
+      "evidence": [
+        "test/indicators.test.mjs :: a review carrying the template comment can still be a first-pass approval"
+      ]
+    },
+    "B2": {
+      "status": "pass",
+      "evidence": [
+        "test/indicators.test.mjs :: a Status field that genuinely said changes-requested still disqualifies it"
+      ]
+    },
+    "B3": {
+      "status": "pass",
+      "evidence": [
+        "harness status: first-pass review 1/1 (1), the first positive value the indicator has ever produced"
+      ]
+    },
+    "B4": {
+      "status": "pass",
+      "evidence": [
+        "test/indicators.test.mjs :: a review still in draft is in neither part of the rate"
+      ]
+    }
+  },
+  "review": {
+    "status": "pending",
+    "note": "Implementation complete and checks green. Human review (gate 3) outstanding."
+  }
+}
