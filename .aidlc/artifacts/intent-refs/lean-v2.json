@@ -1,0 +1,16 @@
+{
+  "schema": "aidlc.intent-ref/v1",
+  "id": "lean-v2",
+  "source": {
+    "provider": "git",
+    "locator": ".aidlc/artifacts/intent/lean-v2.md",
+    "revision": "pending",
+    "authority": "git"
+  },
+  "decision": {
+    "status": "draft",
+    "decided_by": null,
+    "decided_at": null
+  },
+  "snapshot_digest": "pending"
+}
