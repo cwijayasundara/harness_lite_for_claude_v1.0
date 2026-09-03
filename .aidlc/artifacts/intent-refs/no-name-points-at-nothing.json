@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/no-name-points-at-nothing.md",
-    "revision": "pending",
+    "revision": "ef5188f",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-03T05:23:54.490Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:4a781927d31a09b8d9ffda9d70bec771a91a3447c9d7c754e3f56dc84d29b5a6"
 }
