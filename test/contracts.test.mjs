@@ -230,3 +230,83 @@ test('legacy handoff automation is absent', () => {
   // and the pull request it opened are gone along with operations.mjs and incidents.mjs. The
   // Maintain loop is an example script now, and returns as code when a service produces a defect.
 });
+
+// lean-v2 B1. Every kernel module is reachable from something that runs it.
+//
+// The audit that opened lean-v2 found roughly 2,700 kernel lines that no stage, hook or CLI verb
+// reached: a work-item port, a release port, a monitoring loop, four agent adapters, a model-role
+// tree, a second sensor runner, playbook indicators. The ledger could not see any of it, because
+// the ledger can only count what runs — so the mechanism meant to stop the harness growing was
+// blind to exactly the growth that happened. This is the test that makes that impossible to
+// repeat quietly: a module nobody imports is named, in CI, on the commit that adds it.
+test('every kernel module is reachable from an entrypoint', () => {
+  const entrypoints = [path.join(A, 'bin/harness'), path.join(A, 'hooks/dispatch.mjs')];
+  const dirs = ['lib', 'checks', 'sensors'].map((d) => path.join(A, d));
+
+  const all = new Set();
+  for (const dir of dirs) {
+    if (!existsSync(dir)) continue;
+    for (const name of readdirSync(dir)) if (name.endsWith('.mjs')) all.add(path.join(dir, name));
+  }
+
+  // Sensors are named by `[stages]` and run as commands, not imported. Reaching them means being
+  // named by a stage, which `test/contracts.test.mjs` already proves resolves to something real.
+  const staged = new Set();
+  const cfg = readFileSync(path.join(A, 'harness.toml'), 'utf8');
+  for (const [, body] of cfg.matchAll(/^\s*\w+\s*=\s*\[([^\]]*)\]/gm)) {
+    for (const [, name] of body.matchAll(/"([^"]+)"/g)) staged.add(name);
+  }
+
+  const seen = new Set();
+  const visit = (file) => {
+    if (seen.has(file) || !existsSync(file)) return;
+    seen.add(file);
+    const body = readFileSync(file, 'utf8');
+    for (const [, spec] of body.matchAll(/(?:from\s+|import\s*\()['"](\.[^'"]+)['"]/g)) {
+      visit(path.resolve(path.dirname(file), spec));
+    }
+  };
+  for (const entry of entrypoints) visit(entry);
+
+  const unreachable = [...all]
+    .filter((file) => !seen.has(file))
+    // A sensor is reached by being named in a stage, not by being imported.
+    .filter((file) => !staged.has(path.basename(file, '.mjs').replace(/-/g, '_')) && !staged.has(path.basename(file, '.mjs')))
+    .map((file) => path.relative(ROOT, file));
+
+  assert.deepEqual(unreachable, [], `\n  no entrypoint, hook or stage reaches:\n  ${unreachable.join('\n  ')}`);
+});
+
+// lean-v2 B3. One budget, in one place.
+//
+// The skill ceiling was stated as 12 in the README and the constitution, 11 in the build plan,
+// 10 in CLAUDE.md and the registry, and 6 in the company plan. Law 3 says that if two files can
+// disagree about the same fact, delete one; four could, and did, for ten days. The registry is
+// the fact. Prose may describe the budget and must not restate its numbers.
+test('no document states a budget number of its own', () => {
+  const toml = readFileSync(path.join(A, 'harness.toml'), 'utf8');
+  const limits = Object.fromEntries([...toml.matchAll(/^(skills|agents|hooks)\s*=\s*(\d+)/gm)].map((m) => [m[1], Number(m[2])]));
+  assert.ok(limits.skills > 0, 'the registry must state the ceiling');
+
+  const docs = [path.join(ROOT, 'README.md'), path.join(A, 'instructions.md'), path.join(ROOT, '.claude/CLAUDE.md')]
+    .concat(readdirSync(path.join(ROOT, 'docs')).filter((f) => f.endsWith('.md')).map((f) => path.join(ROOT, 'docs', f)));
+
+  // A line stating what THIS harness allows or ships. A line recounting what v6 had — the
+  // comparison table in the build plan — is history, and history does not have to match a limit.
+  const claims = /\b(budget|limit|ceiling|supplies|ships|fixed at|inherits|full|allow)/i;
+
+  const wrong = [];
+  for (const file of docs) {
+    if (!existsSync(file)) continue;
+    for (const line of readFileSync(file, 'utf8').split('\n')) {
+      if (!claims.test(line)) continue;
+      for (const [, count, surface] of line.matchAll(/(\d+)\s+(skills|agents|hooks?\b)/g)) {
+        const key = surface.startsWith('hook') ? 'hooks' : surface;
+        if (limits[key] !== undefined && Number(count) !== limits[key]) {
+          wrong.push(`${path.relative(ROOT, file)}: "${line.trim()}" — [limits] says ${key} = ${limits[key]}`);
+        }
+      }
+    }
+  }
+  assert.deepEqual(wrong, [], `\n  ${wrong.join('\n  ')}`);
+});
