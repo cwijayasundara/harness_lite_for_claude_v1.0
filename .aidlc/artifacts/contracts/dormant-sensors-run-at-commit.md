@@ -5,9 +5,9 @@
 - **Intent ref:** ../intent-refs/dormant-sensors-run-at-commit.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** approved
+- **Spec status:** draft
 - **Spec approval digest:** sha256:545bfc49c38fadd67d167d64d754f1b939294b43f453dc3af8c0c5bae16dc079
-- **Plan status:** approved
+- **Plan status:** draft
 - **Plan approval digest:** sha256:fa1041e4223d0b14f2abdc1fb1342796f9497e20773be1201338651a307e1740
 
 ## Outcome
@@ -59,6 +59,15 @@ Given the added verbs,
 When the commit stage runs,
 Then it is not materially slower: both sensors together are under a tenth of a second against a
 stage that takes nine seconds.
+
+### B7
+
+Given `evals/fixtures/_base`, which exists to be governed exactly as an install is,
+When the template's commit stage changes,
+Then the fixture's commit stage changes with it, and `test/evals.test.mjs` fails until it does —
+"or the suite grades a harness nobody runs". This behaviour is here because the first plan for this
+change did not have it: ownership was listed by hand while the coupling was enforced by a test, and
+the test found the omission. The rework is recorded rather than hidden.
 
 ## Out of scope
 
@@ -128,6 +137,7 @@ structural rule belongs, and the cheaper stage stays cheap.
 |---|---|
 | `.aidlc/harness.toml` | `commit` gains `arch` and `test_quality` — the owner's edit, not the agent's |
 | `.aidlc/templates/harness.toml` | same, so a generated project wires them from install |
+| `evals/fixtures/_base/.aidlc/harness.toml` | the same commit stage as the template — a protected path, so also the owner's edit |
 | `test/contracts.test.mjs` | B1: every required-profile command is reachable from a stage |
 
 ## Safeguards
@@ -142,6 +152,9 @@ structural rule belongs, and the cheaper stage stays cheap.
 - The write guard on `.aidlc/harness.toml` is untouched. The agent prepares; the owner commits the
   registry line. That separation is the point of the guard, and this change respects it while
   changing the file it protects.
+- The fixture tracks the template by test, not by memory. B7 exists because a hand-written
+  ownership table missed a coupling that a test already enforced; the table is now the weaker of
+  the two records, which is the right way round.
 - The known limit of B1 is written into Out of scope rather than left for someone to discover.
 
 ## Operations
@@ -149,10 +162,15 @@ structural rule belongs, and the cheaper stage stays cheap.
 1. Add B1 to `test/contracts.test.mjs`, importing `wiredControls` from `.aidlc/lib/ledger.mjs` and
    reusing the existing `harness.toml` discovery walk. Run it and record the B2 failure.
 2. Add `arch` and `test_quality` to `[stages] commit` in `.aidlc/templates/harness.toml`.
-3. The owner edits `.aidlc/harness.toml`: `commit = ["stop", "scope-drift", "budget", "arch", "test_quality"]`.
-4. `harness check --stage commit`, recording that both sensors now appear with a verdict, and the
+3. Install from the template into an empty repository and run `harness check --stage commit` there,
+   recording the two `SKIP` lines and the zero exit for B5.
+4. The owner makes two edits the guard reserves for them. `.aidlc/harness.toml`:
+   `commit = ["stop", "scope-drift", "budget", "arch", "test_quality"]`. And
+   `evals/fixtures/_base/.aidlc/harness.toml`, to match the template exactly:
+   `commit = ["stop", "secrets", "scope-drift", "budget", "arch", "test_quality"]`.
+5. `harness check --stage commit`, recording that both sensors now appear with a verdict, and the
    elapsed time for B6.
-5. `harness ledger audit`, recording that neither is reported unwired.
+6. `harness ledger audit`, recording that neither is reported unwired.
 
 ## Proof
 
@@ -164,3 +182,4 @@ structural rule belongs, and the cheaper stage stays cheap.
 | B4 | `harness check --stage commit` output naming `arch` and `test_quality` |
 | B5 | `harness check --stage commit` in a template install: both `skipped`, stage passes |
 | B6 | the elapsed milliseconds for both sensors in the B4 output |
+| B7 | `test/evals.test.mjs` — fixture and template must run the same commit stage; recorded failing against the unedited fixture |
