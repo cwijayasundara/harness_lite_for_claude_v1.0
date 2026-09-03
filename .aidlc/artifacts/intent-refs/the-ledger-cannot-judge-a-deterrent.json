@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/the-ledger-cannot-judge-a-deterrent.md",
-    "revision": "pending",
+    "revision": "2589f9a",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-03T03:44:56.550Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:270924132627463e153df399b7410304a701d99038f4d3886775a4659d6940cf"
 }
