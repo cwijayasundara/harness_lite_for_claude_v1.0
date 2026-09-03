@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/dormant-sensors-run-at-commit.md",
-    "revision": "pending",
+    "revision": "666c14b",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-03T08:04:09.676Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:0eff04be98fa25bf5b88613dc9e3c77ffb6efa5dc759cf86187c3c7c3d9ca355"
 }
