@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/the-suite-total-is-ratcheted.md",
-    "revision": "pending",
+    "revision": "61997a2",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-03T05:43:10.740Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:0a91a3a8b0895851fcc3364b6ce57cccc6fd54f1c5e2e0cc973a59bcd432bcad"
 }
