@@ -154,6 +154,43 @@ test('a spec untouched after the plan seal counts zero rework', () => {
   } finally { r.cleanup(); }
 });
 
+// first-pass-review-can-be-true B1/B2/B4. The detection used `git log -S 'changes-requested'`,
+// which counts any change in occurrence count anywhere in the file — and the template's Status
+// line ships that word inside its own comment listing the allowed values. So writing a review
+// from the template was one match and replacing that line on signing was another: every review
+// made the intended way looked like it had been sent back, and the rate could never be above 0.
+test('a review carrying the template comment can still be a first-pass approval', () => {
+  const r = repo(); try {
+    // Exactly the template's Status line, comment and all — the shape the old test never used.
+    const templated = (status) => `# Review: iota\n\n- **Status:** ${status} <!-- draft | approved | changes-requested  (HUMAN GATE 3) -->\n`;
+    change(r, 'iota');
+    const file = path.join(r.L.review, 'iota.md');
+    writeFileSync(file, templated('draft')); r.commit('review: iota drafted');
+    writeFileSync(file, templated('approved')); r.commit('review: iota approved');
+
+    const [row] = rows(r.cfg);
+    assert.equal(row.review.ever_requested_changes, false, 'the comment is not a verdict');
+    assert.equal(playbookIndicators(r.cfg, rows(r.cfg)).first_pass_review.rate, 1);
+
+    // B2: a Status field that genuinely said changes-requested still disqualifies it.
+    writeFileSync(file, templated('changes-requested')); r.commit('review: iota sent back');
+    writeFileSync(file, templated('approved')); r.commit('review: iota approved again');
+    assert.equal(rows(r.cfg)[0].review.ever_requested_changes, true);
+    assert.equal(playbookIndicators(r.cfg, rows(r.cfg)).first_pass_review.rate, 0);
+  } finally { r.cleanup(); }
+});
+
+test('a review still in draft is in neither part of the rate', () => {
+  const r = repo(); try {
+    change(r, 'kappa');
+    writeFileSync(path.join(r.L.review, 'kappa.md'), '# Review: kappa\n\n- **Status:** draft\n');
+    r.commit('review: kappa drafted');
+    const p = playbookIndicators(r.cfg, rows(r.cfg));
+    assert.equal(p.first_pass_review.total, 0, 'an unsigned review is not a failed one');
+    assert.equal(p.first_pass_review.rate, null);
+  } finally { r.cleanup(); }
+});
+
 // B5
 test('a review that ever requested changes is not a first-pass approval', () => {
   const r = repo(); try {

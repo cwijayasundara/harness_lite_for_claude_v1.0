@@ -188,8 +188,16 @@ export function rows(cfg, onlySlug = null, now = Date.now()) {
         committed_at: firstCommit(root, reviewFile),
         approved_at: committedWhen(root, reviewFile, (b) => field(b, 'Status') === 'approved'),
         // A review that ever said `changes-requested` was not a first-pass approval, even if it
-        // says `approved` now.
-        ever_requested_changes: Boolean(git(root, ['log', '-S', 'changes-requested', '--format=%H', '--', path.relative(root, reviewFile)])),
+        // says `approved` now — asked of the Status *field* across history, not of a substring.
+        //
+        // `git log -S 'changes-requested'` counted the template's own comment. The Status line
+        // ships as `draft <!-- draft | approved | changes-requested (HUMAN GATE 3) -->`, so
+        // writing a review from the template was one match and replacing that line on signing was
+        // another. Every review made the intended way looked like it had been sent back, and the
+        // indicator could only ever report the negative.
+        ever_requested_changes: history(root, reviewFile).some((commit) => {
+          try { return field(at(root, commit), 'Status') === 'changes-requested'; } catch { return false; }
+        }),
       } : null,
     };
   }).map((row) => ({ ...row, sla: slaFor(row, cfg.sla, nowIso), issues: chainIssues(row) }));
