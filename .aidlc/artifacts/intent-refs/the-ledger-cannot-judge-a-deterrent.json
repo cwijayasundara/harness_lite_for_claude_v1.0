@@ -1,0 +1,16 @@
+{
+  "schema": "aidlc.intent-ref/v1",
+  "id": "the-ledger-cannot-judge-a-deterrent",
+  "source": {
+    "provider": "git",
+    "locator": ".aidlc/artifacts/intent/the-ledger-cannot-judge-a-deterrent.md",
+    "revision": "pending",
+    "authority": "git"
+  },
+  "decision": {
+    "status": "draft",
+    "decided_by": null,
+    "decided_at": null
+  },
+  "snapshot_digest": "pending"
+}
