@@ -31,7 +31,7 @@ test      = "generic"
 [stages]
 fast   = ["fmt", "lint", "typecheck"]
 stop   = ["fast", "test"]
-commit = ["stop", "secrets", "scope-drift", "budget"]
+commit = ["stop", "secrets", "scope-drift", "budget", "arch", "test_quality"]
 drift  = ["coverage", "deps"]
 
 # Release-grade sensor ownership. Profiles select the project commands that are actually live;

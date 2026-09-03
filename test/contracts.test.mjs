@@ -18,6 +18,23 @@ function frontmatter(file) {
   return out;
 }
 
+// Every harness.toml in the tree, discovered rather than listed. Two tests ask questions of this
+// set and neither may answer for a file someone forgot to add.
+function discoverConfigs() {
+  const configs = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === '.git' || e.name === 'node_modules') continue;
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name === 'harness.toml') configs.push(p);
+    }
+  };
+  walk(ROOT);
+  assert.ok(configs.length >= 5, `expected to discover several harness.toml, found ${configs.length}`);
+  return configs;
+}
+
 test('every agent has a contract, and its tools match its frontmatter', () => {
   const dir = path.join(A, 'roles');
   for (const f of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
@@ -79,17 +96,7 @@ test('every stage entry in every harness.toml resolves to something that runs', 
   const { VERBS } = await import('../.aidlc/lib/config.mjs');
   const { parseToml } = await import('../.aidlc/lib/toml.mjs');
 
-  const configs = [];
-  const walk = (dir) => {
-    for (const e of readdirSync(dir, { withFileTypes: true })) {
-      if (e.name === '.git' || e.name === 'node_modules') continue;
-      const p = path.join(dir, e.name);
-      if (e.isDirectory()) walk(p);
-      else if (e.name === 'harness.toml') configs.push(p);
-    }
-  };
-  walk(ROOT);
-  assert.ok(configs.length >= 5, `expected to discover several harness.toml, found ${configs.length}`);
+  const configs = discoverConfigs();
 
   const resolvable = new Set([...Object.keys(LOCAL_CHECKS), ...VERBS]);
   const dangling = [];
@@ -103,6 +110,35 @@ test('every stage entry in every harness.toml resolves to something that runs', 
     }
   }
   assert.deepEqual(dangling, [], `\n  ${dangling.join('\n  ')}`);
+});
+
+// dormant-sensors-run-at-commit B1. The mirror of the test above: that one asks whether every
+// name a stage uses resolves to something real, this one asks whether everything that must run is
+// named by a stage at all. `arch` and `test_quality` were declared, required by
+// `[sensors] required_profiles`, and reachable from no stage — so `harness check` never invoked
+// them and the ledger, unable to tell silence from health, filed them beside a control that had
+// run 78 times. A sensor nobody runs is enforced only at release, which is the last place a
+// structural rule is any use.
+//
+// B3: reachability is asked through `wiredControls`, the same function `ledger audit` uses. A
+// second stage walk here would be one more pair of components answering one question two ways.
+test('every command a required sensor profile depends on is reachable from a stage', async () => {
+  const { wiredControls } = await import('../.aidlc/lib/ledger.mjs');
+  const { parseToml } = await import('../.aidlc/lib/toml.mjs');
+
+  const dormant = [];
+  for (const file of discoverConfigs()) {
+    const cfg = parseToml(readFileSync(file, 'utf8'));
+    const sensors = cfg.sensors ?? {};
+    const staged = wiredControls(cfg);
+    for (const profile of sensors.required_profiles ?? []) {
+      for (const command of sensors[profile] ?? []) {
+        if (staged.has(command)) continue;
+        dormant.push(`${path.relative(ROOT, file)} [sensors] ${profile} requires "${command}", which no stage runs`);
+      }
+    }
+  }
+  assert.deepEqual(dormant, [], `\n  ${dormant.join('\n  ')}`);
 });
 
 // B4. Making every name resolve must not flatten two examples into one — they demonstrate
