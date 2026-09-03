@@ -1,0 +1,36 @@
+{
+  "stage": "stop",
+  "ok": false,
+  "changed_files": [],
+  "controls": [
+    {
+      "control": "fmt",
+      "verdict": "pass",
+      "ms": 16,
+      "findings": [],
+      "command": "ruff format --check ."
+    },
+    {
+      "control": "lint",
+      "verdict": "pass",
+      "ms": 15,
+      "findings": [],
+      "command": "ruff check --output-format=json ."
+    },
+    {
+      "control": "test",
+      "verdict": "fail",
+      "ms": 646,
+      "findings": [
+        {
+          "file": "",
+          "line": 0,
+          "rule": "exit-nonzero",
+          "message": "ERROR: usage: python3 -m pytest [options] [file_or_dir] [file_or_dir] [...]\npython3 -m pytest: error: unrecognized arguments: --json-report --json-report-file=/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/examples/scratch-py/.claude/state/test-report.json\n  inifile: /Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/examples/scratch-py/pyproject.toml\n  rootdir: /Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/examples/scratch-py",
+          "fix": ""
+        }
+      ],
+      "command": "python3 -m pytest -q --json-report --json-report-file=\"/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/examples/scratch-py/.claude/state/test-report.json\""
+    }
+  ]
+}

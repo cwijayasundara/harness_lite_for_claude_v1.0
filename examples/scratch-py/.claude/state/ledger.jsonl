@@ -1,0 +1,31 @@
+{"ts":"2026-08-23T19:36:15.688Z","run":"0737c79d","stage":"stop","control":"fmt","verdict":"fail","ms":5,"findings":1,"changed_files":0}
+{"ts":"2026-08-23T19:36:15.692Z","run":"0737c79d","stage":"stop","control":"lint","verdict":"fail","ms":2,"findings":1,"changed_files":0}
+{"ts":"2026-08-23T19:36:15.707Z","run":"0737c79d","stage":"stop","control":"test","verdict":"fail","ms":9,"findings":1,"changed_files":0}
+{"ts":"2026-08-23T19:37:24.839Z","run":"0737c79d","stage":"stop","control":"fmt","verdict":"fail","ms":2,"findings":1,"changed_files":0}
+{"ts":"2026-08-23T19:37:24.841Z","run":"0737c79d","stage":"stop","control":"lint","verdict":"fail","ms":1,"findings":1,"changed_files":0}
+{"ts":"2026-08-23T19:37:24.851Z","run":"0737c79d","stage":"stop","control":"test","verdict":"fail","ms":8,"findings":1,"changed_files":0}
+{"ts":"2026-08-23T19:37:36.444Z","run":"0737c79d","stage":"stop","control":"fmt","verdict":"errored","ms":2,"findings":0,"changed_files":0,"error":"tool not installed: bash: line 1: ruff: command not found"}
+{"ts":"2026-08-23T19:37:36.445Z","run":"0737c79d","stage":"stop","control":"lint","verdict":"errored","ms":1,"findings":0,"changed_files":0,"error":"tool not installed: bash: line 1: ruff: command not found"}
+{"ts":"2026-08-23T19:37:36.448Z","run":"0737c79d","stage":"stop","control":"test","verdict":"fail","ms":10,"findings":1,"changed_files":0}
+{"ts":"2026-08-24T04:57:57.901Z","run":"0737c79d","stage":"stop","control":"fmt","verdict":"pass","ms":18,"findings":0,"changed_files":0}
+{"ts":"2026-08-24T04:57:57.914Z","run":"0737c79d","stage":"stop","control":"lint","verdict":"pass","ms":14,"findings":0,"changed_files":0}
+{"ts":"2026-08-24T04:57:57.923Z","run":"0737c79d","stage":"stop","control":"test","verdict":"fail","ms":19,"findings":1,"changed_files":0}
+{"ts":"2026-08-24T15:56:44.353Z","run":"0737c79d","stage":"pre-bash","control":"bash-guard","verdict":"fail","ms":0,"findings":1}
+{"ts":"2026-08-24T15:56:49.622Z","run":"0737c79d","stage":"pre-bash","control":"bash-guard","verdict":"pass","ms":0,"findings":0}
+{"ts":"2026-08-24T15:56:55.510Z","run":"0737c79d","stage":"pre-bash","control":"bash-guard","verdict":"pass","ms":0,"findings":0}
+{"ts":"2026-08-24T15:56:58.279Z","run":"0737c79d","stage":"stop","control":"fmt","verdict":"pass","ms":16,"findings":0,"changed_files":0}
+{"ts":"2026-08-24T15:56:58.280Z","run":"0737c79d","stage":"stop","control":"lint","verdict":"pass","ms":13,"findings":0,"changed_files":0}
+{"ts":"2026-08-24T15:56:58.280Z","run":"0737c79d","stage":"stop","control":"test","verdict":"fail","ms":629,"findings":1,"changed_files":0}
+{"ts":"2026-08-24T15:57:14.932Z","run":"0737c79d","stage":"pre-bash","control":"bash-guard","verdict":"pass","ms":0,"findings":0}
+{"ts":"2026-08-24T16:00:27.686Z","run":"0737c79d","stage":"pre-bash","control":"bash-guard","verdict":"pass","ms":0,"findings":0}
+{"ts":"2026-08-24T16:00:42.587Z","run":"0737c79d","stage":"pre-bash","control":"bash-guard","verdict":"pass","ms":0,"findings":0}
+{"ts":"2026-08-24T16:00:45.563Z","run":"0737c79d","stage":"stop","control":"fmt","verdict":"errored","ms":3,"findings":0,"changed_files":0,"error":"tool not installed: bash: ruff: command not found"}
+{"ts":"2026-08-24T16:00:45.564Z","run":"0737c79d","stage":"stop","control":"lint","verdict":"errored","ms":2,"findings":0,"changed_files":0,"error":"tool not installed: bash: ruff: command not found"}
+{"ts":"2026-08-24T16:00:45.564Z","run":"0737c79d","stage":"stop","control":"test","verdict":"fail","ms":43,"findings":1,"changed_files":0}
+{"ts":"2026-08-24T16:00:50.748Z","run":"0737c79d","stage":"pre-bash","control":"bash-guard","verdict":"pass","ms":0,"findings":0}
+{"ts":"2026-08-24T20:07:51.341Z","run":"0737c79d","stage":"pre-bash","control":"bash-guard","verdict":"pass","ms":0,"findings":0}
+{"ts":"2026-08-24T20:35:11.375Z","run":"0737c79d","stage":"pre-bash","control":"bash-guard","verdict":"pass","ms":0,"findings":0}
+{"ts":"2026-08-24T20:35:33.521Z","run":"0737c79d","stage":"stop","control":"fmt","verdict":"pass","ms":16,"findings":0,"changed_files":0}
+{"ts":"2026-08-24T20:35:33.522Z","run":"0737c79d","stage":"stop","control":"lint","verdict":"pass","ms":15,"findings":0,"changed_files":0}
+{"ts":"2026-08-24T20:35:33.523Z","run":"0737c79d","stage":"stop","control":"test","verdict":"fail","ms":646,"findings":1,"changed_files":0}
+{"ts":"2026-08-24T20:35:50.153Z","run":"0737c79d","stage":"pre-bash","control":"bash-guard","verdict":"pass","ms":0,"findings":0}

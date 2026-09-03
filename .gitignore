@@ -1,11 +1,18 @@
-.claude/state/
-examples/*/.claude/state/
+.aidlc/state/
+examples/*/.aidlc/state/
 examples/*/node_modules/
 examples/*/dist/
-.claude/evals/results/
+.aidlc/evals/results/
 __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
 node_modules/
 .DS_Store
+
+# Never a key in the tree. The commit stage's secret scanner catches `sk-ant-` in a tracked file,
+# but a scanner is the second line: the first is that the file was never trackable. CI reads the
+# key from a repository secret, not from here.
+.env
+.env.*
+!.env.example
