@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/lean-v2.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:b2cda61e9eef4be4b23d9b7af42607eb13a61babb75337958e574c3230406773
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
