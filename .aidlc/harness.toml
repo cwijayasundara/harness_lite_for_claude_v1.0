@@ -53,10 +53,6 @@ claude_md_lines = 120
 protected_paths = ["evals/fixtures"]
 require_contract = true
 
-[work_items]
-provider = "" # Jira remains disabled in the harness repo; pilot pods set jira and connection fields.
-authority = "external"
-
 [monitoring]
 collect = ["node", "examples/collect-ci-failure-rate.mjs"]
 timeout_ms = 300000

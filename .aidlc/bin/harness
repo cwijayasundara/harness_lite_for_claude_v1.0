@@ -34,7 +34,6 @@ import { adapterNames, adapterInfo, diagnoseAgents, loadAgentManifest, renderAge
 import { createHandoff, ingestEvaluation, loadModelPolicy, resolveModel, validateModelPolicy, writeHandoff, writeRunReceipt } from '../lib/model-policy.mjs';
 import { evaluationPrompt, invokeClaudeCode } from '../providers/claude-code.mjs';
 import { diagnose as diagnoseGauntlet, qualifyExperiment, renderGauntlet, runGauntlet } from '../lib/gauntlet.mjs';
-import { WorkItemPort, requireCurrentExternalIntent, workItemAdapter } from '../lib/work-items.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PLUGIN_ROOT = path.dirname(HERE);
@@ -152,7 +151,7 @@ async function main() {
     case 'init': {
       const root = path.resolve(flag('into', process.cwd()));
       const L = layout(root);
-      for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.intent, L.contracts, L.intentRefs, L.evidence, L.handoffs, L.evaluations, L.modelRuns, L.workItems, L.workItemReceipts, L.review, L.incident, L.deployment, L.adr, L.state, path.join(L.artifacts, 'design')]) mkdirSync(d, { recursive: true });
+      for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.intent, L.contracts, L.intentRefs, L.evidence, L.handoffs, L.evaluations, L.modelRuns, L.review, L.incident, L.deployment, L.adr, L.state, path.join(L.artifacts, 'design')]) mkdirSync(d, { recursive: true });
       for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/model-policy.json', L.modelPolicy], ['templates/gitignore', path.join(L.aidlc, '.gitignore')]]) {
         if (!existsSync(dst)) cpSync(path.join(HERE, src), dst);
       }
@@ -290,49 +289,6 @@ async function main() {
       console.error('usage: harness gauntlet doctor|run|qualify [--file experiment.json]'); return 2;
     }
 
-    case 'work-items': {
-      const cfg = loadConfig(findRepoRoot()); const sub = argv[1];
-      if (sub === 'doctor') {
-        try {
-          const issues = workItemAdapter(cfg, { validate: false }).doctor();
-          if (has('json')) console.log(JSON.stringify({ ok: !issues.length, provider: cfg.work_items.provider, issues }, null, 2));
-          else console.log(issues.length ? `FAIL  Jira work-item adapter\n${issues.map((issue) => `  - ${issue}`).join('\n')}` : 'PASS  Jira work-item adapter');
-          return issues.length ? 1 : 0;
-        } catch (error) { console.error(error.message); return 1; }
-      }
-      let port; try { port = new WorkItemPort(cfg); } catch (error) { console.error(error.message); return 1; }
-      try {
-        if (sub === 'resolve') {
-          if (!argv[2]) throw new Error('usage: harness work-items resolve <locator>');
-          console.log(JSON.stringify(await port.resolve(argv[2]), null, 2)); return 0;
-        }
-        if (sub === 'snapshot' || sub === 'verify') {
-          if (!validSlug(argv[2])) throw new Error(`usage: harness work-items ${sub} <slug>`);
-          const result = await port[sub](argv[2]); console.log(JSON.stringify(result, null, 2)); return result.ok === false ? 1 : 0;
-        }
-        if (sub === 'create') {
-          const slug = argv[2]; const title = flag('title'); const descriptionFile = flag('description-file');
-          if (!validSlug(slug) || typeof title !== 'string' || typeof descriptionFile !== 'string' || typeof flag('key') !== 'string') throw new Error('usage: harness work-items create <slug> --title text --description-file file --key id');
-          const result = await port.create(slug, { title, description: readFileSync(path.resolve(descriptionFile), 'utf8') }, { operationKey: flag('key') }); console.log(result.file); return 0;
-        }
-        if (sub === 'transition') {
-          const slug = argv[2]; const state = argv[3];
-          if (!validSlug(slug) || !state || typeof flag('actor') !== 'string' || typeof flag('actor-kind') !== 'string' || typeof flag('key') !== 'string') throw new Error('usage: harness work-items transition <slug> <accepted|closed> --actor id --actor-kind human|agent --key id');
-          const result = await port.transition(slug, state, { actor: flag('actor'), actorKind: flag('actor-kind'), operationKey: flag('key') }); console.log(result.file); return result.value.status === 'succeeded' ? 0 : 1;
-        }
-        if (['link-commit', 'link-contract', 'link-pr'].includes(sub)) {
-          const slug = argv[2]; const url = flag('url');
-          if (!validSlug(slug) || typeof url !== 'string' || typeof flag('key') !== 'string') throw new Error(`usage: harness work-items ${sub} <slug> --url https://... --key id`);
-          const result = await port.link(slug, sub.slice(5), url, { title: flag('title'), operationKey: flag('key') }); console.log(result.file); return 0;
-        }
-        if (sub === 'comment') {
-          const slug = argv[2]; const file = flag('file');
-          if (!validSlug(slug) || typeof file !== 'string' || typeof flag('key') !== 'string') throw new Error('usage: harness work-items comment <slug> --file body.md --key id');
-          const result = await port.comment(slug, readFileSync(path.resolve(file), 'utf8'), { operationKey: flag('key') }); console.log(result.file); return 0;
-        }
-      } catch (error) { console.error(error.message); return 1; }
-      console.error('usage: harness work-items doctor|resolve|snapshot|verify|create|transition|link-commit|link-contract|link-pr|comment'); return 2;
-    }
 
     case 'evals': {
       if (argv[1] !== 'gate') { console.error('usage: harness evals gate [--update]'); return 2; }
@@ -568,7 +524,6 @@ async function main() {
       if (sub === 'prompt') {
         const validation = validateContract(cfg.layout.root, file);
         if (!validation.ok || validation.meta.plan_status !== 'approved' || !isCommitted(cfg.layout.root, file)) { console.error('a valid committed plan approval is required before rendering a prompt'); return 1; }
-        try { await requireCurrentExternalIntent(cfg, slug); } catch (error) { console.error(error.message); return 1; }
         const role = String(flag('role', 'execute')); const provider = flag('provider');
         if (typeof provider !== 'string') { console.error('usage: harness contract prompt <slug> --provider <agent> [--role execute|evaluate]'); return 2; }
         const out = path.join(cfg.layout.prompts, `${slug}-${role}-${provider}.json`);
@@ -655,7 +610,6 @@ async function main() {
         const slug = argv[2]; const from = String(flag('from', 'generate')); const to = String(flag('to', 'evaluate')); const invocation = flag('invocation'); const attempt = Number(flag('attempt', 1));
         if (!validSlug(slug) || typeof invocation !== 'string' || !Number.isInteger(attempt) || attempt < 1) { console.error('usage: harness models handoff <slug> --from generate --to evaluate --invocation <id> [--attempt N]'); return 2; }
         try {
-          await requireCurrentExternalIntent(cfg, slug);
           const value = createHandoff(root, path.join(cfg.layout.contracts, `${slug}.md`), loaded.policy, { from, to, sourceInvocationId: invocation, attempt });
           const file = path.join(cfg.layout.handoffs, `${slug}-${from}-${to}-a${attempt}.json`); writeHandoff(file, value); console.log(file); return 0;
         } catch (error) { console.error(error.message); return 1; }
@@ -664,7 +618,6 @@ async function main() {
         const role = String(argv[2] ?? ''); const slug = argv[3]; const attempt = Number(flag('attempt', 1));
         if (!validSlug(slug) || !Number.isInteger(attempt) || attempt < 1) { console.error('usage: harness models invoke <role> <slug> --prompt-file file | --attempt N'); return 2; }
         try {
-          await requireCurrentExternalIntent(cfg, slug);
           let resolution = resolveModel(loaded.policy, role); let prompt; let handoff = null;
           if (role === 'evaluate') {
             const handoffFile = path.join(cfg.layout.handoffs, `${slug}-generate-evaluate-a${attempt}.json`);
@@ -703,7 +656,7 @@ async function main() {
       const cfg = loadConfig(findRepoRoot()); const sub = argv[1];
       if ((sub === 'select' || sub === 'packet') && !flag('base')) { console.error('review requires --base <git-ref>'); return 2; }
       if (sub === 'select') { console.log(selectSlug(cfg.layout.root, String(flag('base')), String(flag('head', 'HEAD')))); return 0; }
-      if (sub === 'packet') { const slug = argv[2]; if (!validSlug(slug)) { console.error('invalid review slug'); return 2; } try { await requireCurrentExternalIntent(cfg, slug); } catch (error) { console.error(error.message); return 1; } console.log(reviewPacket(cfg, slug, String(flag('base')), String(flag('head', 'HEAD')))); return 0; }
+      if (sub === 'packet') { const slug = argv[2]; if (!validSlug(slug)) { console.error('invalid review slug'); return 2; } console.log(reviewPacket(cfg, slug, String(flag('base')), String(flag('head', 'HEAD')))); return 0; }
       if (sub === 'ingest') {
         const slug = argv[2]; if (!validSlug(slug)) { console.error('invalid review slug'); return 2; }
         const file = flag('file'); const raw = file ? readFileSync(path.resolve(String(file)), 'utf8') : process.env.HARNESS_REVIEW_JSON;
@@ -763,8 +716,6 @@ async function main() {
   harness check --stage <s>        run a stage   (--changed  --all  --json)
   harness gauntlet doctor|run      fail-closed behaviour/architecture/hardening/qa sensors
   harness gauntlet qualify --file experiment.json
-  harness work-items doctor|resolve|snapshot|verify|create|transition
-  harness work-items link-commit|link-contract|link-pr|comment
   harness new intent|review|incident|eval <slug>
   harness contract new|accept|validate|status|prompt|seal|evidence <slug>
   harness contract migrate <slug> [--write] | rollback-migration <slug>

@@ -45,7 +45,6 @@ export function loadConfig(root) {
     // false is still honoured — a default is what happens when nobody chose.
     guard: { protected_paths: [], deny_bash: [], require_contract: true, ...(raw.guard ?? {}) },
     deployment: { production_requires_approval: true, production_allowed_risks: ['low', 'standard', 'critical'], critical_approvals: 2, require_preflight: true, timeout_ms: 300000, ...(raw.deployment ?? {}) },
-    work_items: { provider: '', authority: 'external', approvers: [], timeout_ms: 30000, ...(raw.work_items ?? {}) },
     monitoring: { collect: [], ...(raw.monitoring ?? {}) },
     sla: { intent_hours: 8, design_hours: 24, planning_hours: 8, build_hours: 72, review_hours: 24, incident_to_intent_minutes: 60, ...(raw.sla ?? {}) },
     layout: L,

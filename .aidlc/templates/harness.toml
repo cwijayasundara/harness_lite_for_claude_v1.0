@@ -73,19 +73,6 @@ protected_paths = []            # e.g. ["db/migrations", "vendor"]
 deny_bash       = []            # extra regexes, on top of the built-in destructive-command list
 require_contract = true         # product files need a committed approved contract that owns them
 
-# First production work-item adapter. Credentials stay in JIRA_EMAIL and JIRA_API_TOKEN.
-# authority is singular: use "external" for Jira, or leave provider empty for Git intents.
-[work_items]
-provider = ""                   # "jira" for the pilot pod
-authority = "external"
-base_url = ""                   # e.g. https://company.atlassian.net
-project_key = ""
-issue_type = "Story"
-accepted_status = "Accepted"
-closed_status = "Done"
-approvers = []                   # verified HARNESS_ACTOR identities allowed to accept/close
-timeout_ms = 30000
-
 # Optional project-owned adapter commands. Each receives the environment as its final argument.
 # Commands execute without a shell; production deploy/rollback requires an approval identifier.
 [deployment]

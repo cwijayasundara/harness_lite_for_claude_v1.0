@@ -306,9 +306,6 @@ node .aidlc/bin/harness gauntlet run --changed
 
 Profiles and project wiring are documented in [docs/SENSOR-GAUNTLET.md](docs/SENSOR-GAUNTLET.md).
 
-External intent integration starts with the Jira Cloud pilot and is also exposed to MCP-capable
-coding agents. See [docs/WORK-ITEMS.md](docs/WORK-ITEMS.md).
-
 Immutable staging deployment, verification, promotion and rollback are described in
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
