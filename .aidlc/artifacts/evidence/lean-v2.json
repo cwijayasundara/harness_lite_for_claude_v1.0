@@ -1,0 +1,64 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "lean-v2",
+  "contract_digest": "sha256:7f8d0a1ca7ebd8ca6583ab8a82ed4c2e962b52c40f2703220c5c9e0d318be9ac",
+  "generated_at": "2026-09-03T16:41:54.732Z",
+  "capabilities": {},
+  "behaviours": {
+    "B1": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B2": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B3": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B4": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B5": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B6": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B7": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B8": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B9": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B10": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B11": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B12": {
+      "status": "pending",
+      "evidence": []
+    },
+    "B13": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
+  "review": {
+    "status": "pending"
+  }
+}
