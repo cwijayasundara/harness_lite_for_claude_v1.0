@@ -6,10 +6,11 @@ import path from 'node:path';
 import { gate, update, readRecord, writeRecord, loadResults, RECORD_SCHEMA } from '../.aidlc/lib/eval-gate.mjs';
 
 const record = (tasks) => ({ schema: RECORD_SCHEMA, recorded_at: '2026-09-01T00:00:00.000Z', source: 'r.json', commit: null, tasks });
+const norm = (v) => (typeof v === 'string' ? { verdict: v } : v);
 const results = (pairs) => ({
   source: 'now.json',
-  summary: { total: Object.keys(pairs).length, pass: Object.values(pairs).filter((v) => v === 'pass').length },
-  results: Object.entries(pairs).map(([id, verdict]) => ({ id, verdict })),
+  summary: { total: Object.keys(pairs).length, pass: Object.values(pairs).filter((v) => norm(v).verdict === 'pass').length },
+  results: Object.entries(pairs).map(([id, v]) => ({ id, verdict: norm(v).verdict, usd: norm(v).usd })),
 });
 
 function tmp() {
@@ -81,7 +82,7 @@ test('update refuses to record an inconclusive task', () => {
 test('update records an improvement and a newly added task', () => {
   const next = update(record({ a: 'pass', b: 'fail' }), results({ a: 'pass', b: 'pass', c: 'fail' }), { commit: 'abc123', at: '2026-09-02T00:00:00.000Z' });
   assert.equal(next.schema, RECORD_SCHEMA);
-  assert.deepEqual(next.tasks, { a: 'pass', b: 'pass', c: 'fail' });
+  assert.deepEqual(next.tasks, { a: { verdict: 'pass', usd: null }, b: { verdict: 'pass', usd: null }, c: { verdict: 'fail', usd: null } });
   assert.equal(next.commit, 'abc123');
 });
 
@@ -211,6 +212,65 @@ test('with no results the board reads unmeasured', async () => {
     mkdirSync(f.dir, { recursive: true });
     assert.equal(loadResults(f.dir), null, 'empty directory');
   } finally { f.cleanup(); }
+});
+
+// cost-is-ratcheted-too B1-B8. Three ceilings were raised in one session to keep the suite
+// gradeable, and each raise was reasonable against the run before it. budget-forces-deletion went
+// 0.184 -> 0.580 -> 0.636 -> 1.004: a five-fold climb in small steps, with nothing reporting the
+// sequence. budgetUsd is a per-run cap, not a measure of drift.
+const withCost = (v, usd) => ({ verdict: v, usd });
+const recorded = (v, usd) => ({ verdict: v, usd });
+
+test('a task that costs more than the tolerance is a finding', () => {
+  // B1: floor 1.0, tolerance 1.5x, observed 1.6.
+  const r = gate(results({ a: withCost('pass', 1.6) }), record({ a: recorded('pass', 1.0) }));
+  assert.equal(r.ok, false);
+  assert.deepEqual(r.costly.map((c) => c.id), ['a']);
+  assert.equal(r.costly[0].floor, 1.0);
+  assert.equal(r.costly[0].observed, 1.6);
+  // B6: a costly task that behaved is not a verdict regression.
+  assert.deepEqual(r.regressed, [], 'behaviour is fine; the price is not');
+});
+
+test('a task inside the tolerance passes on cost', () => {
+  // B2: identical work has measured 0.858 to 1.208, so the bound has to absorb that.
+  const r = gate(results({ a: withCost('pass', 1.4) }), record({ a: recorded('pass', 1.0) }));
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.costly, []);
+});
+
+test('the cost floor falls on a cheaper run and holds on a dearer one', () => {
+  // B3
+  const cheaper = update(record({ a: recorded('pass', 1.0) }), results({ a: withCost('pass', 0.4) }));
+  assert.equal(cheaper.tasks.a.usd, 0.4, 'a cheaper run lowers the floor');
+
+  // B4: the teeth. Recording the latest would let a floor climb step by step, which is exactly
+  // how the five-fold rise stayed invisible.
+  const dearer = update(record({ a: recorded('pass', 1.0) }), results({ a: withCost('pass', 1.3) }));
+  assert.equal(dearer.tasks.a.usd, 1.0, 'a dearer run must not raise the floor');
+});
+
+test('a task with no recorded floor records its observed cost', () => {
+  // B5
+  const next = update(record({ a: recorded('pass', 1.0) }), results({ a: withCost('pass', 1.0), b: withCost('pass', 0.7) }));
+  assert.equal(next.tasks.b.usd, 0.7);
+});
+
+test('adding cost does not loosen the verdict ratchet', () => {
+  // B7: the rules that were already there, unchanged.
+  assert.throws(() => update(record({ a: recorded('pass', 1.0) }), results({ a: withCost('fail', 0.5) })), /refusing to lower a/);
+  assert.throws(() => update(record({ a: recorded('pass', 1.0) }), results({ a: withCost('pass', 1.0), b: 'inconclusive' })), /refusing to record b/);
+  const improved = update(record({ a: recorded('fail', 1.0) }), results({ a: withCost('pass', 1.0) }));
+  assert.equal(improved.tasks.a.verdict, 'pass', 'fail -> pass still records');
+});
+
+test('a record written before cost was tracked still loads', () => {
+  // B8: a v1 entry is a bare verdict string. It reads, and simply has no floor yet.
+  const v1 = { schema: 'aidlc.eval-expectation/v1', recorded_at: 'x', source: 'r.json', commit: null, tasks: { a: 'pass' } };
+  const r = gate(results({ a: withCost('pass', 99) }), v1);
+  assert.deepEqual(r.costly, [], 'no floor recorded, so nothing to exceed');
+  assert.equal(r.ok, true);
+  assert.equal(update(v1, results({ a: withCost('pass', 0.5) })).tasks.a.usd, 0.5, 'the next update gives it one');
 });
 
 test('readRecord rejects a file with the wrong schema', () => {

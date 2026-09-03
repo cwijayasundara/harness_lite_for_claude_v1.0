@@ -55,22 +55,24 @@ export function loadResults(dir) {
   const base = widestResults(dir);
   if (!base) return null;
 
-  const merged = verdicts(base.body);
+  // Whole entries, not just verdicts. Rebuilding results as { id, verdict } silently dropped
+  // every other field a run recorded — including per-task usd, which the cost ratchet needs.
+  const merged = new Map((base.body.results ?? []).map((r) => [r.id, r]));
   const sources = [base.source];
   for (const name of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
     if (name <= base.source) continue;
     let body;
     try { body = JSON.parse(readFileSync(path.join(dir, name), 'utf8')); } catch { continue; }
     let corrected = false;
-    for (const [id, verdict] of verdicts(body)) {
-      if (!merged.has(id) || merged.get(id) === verdict) continue;
-      merged.set(id, verdict);
+    for (const r of body.results ?? []) {
+      if (!merged.has(r.id) || merged.get(r.id)?.verdict === r.verdict) continue;
+      merged.set(r.id, r);
       corrected = true;
     }
     if (corrected) sources.push(name);
   }
 
-  const results = [...merged].map(([id, verdict]) => ({ id, verdict }));
+  const results = [...merged.values()];
   // A run that recorded a summary but no per-task detail is still a run. Recomputing from an
   // absent `results` array would report 0/0 for every older results file, which is how this
   // reader first broke the status board it was meant to fix.
