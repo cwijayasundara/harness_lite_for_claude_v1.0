@@ -2,8 +2,8 @@
 
 - **Date:** 2026-09-01
 - **Contract:** [.aidlc/artifacts/contracts/p0-unblock-the-loop.md](../contracts/p0-unblock-the-loop.md)
-- **Status:** draft <!-- draft | approved | changes-requested  (HUMAN GATE 3) -->
-- **Reviewer:** Claude Opus 5 (agent pass) — human approval outstanding
+- **Status:** approved
+- **Reviewer:** cwijayasundara
 - **Commit:** fa422ff, plus the review fix below
 
 ## Verification
