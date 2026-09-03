@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/dormant-sensors-run-at-commit.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** sha256:545bfc49c38fadd67d167d64d754f1b939294b43f453dc3af8c0c5bae16dc079
+- **Spec status:** approved
+- **Spec approval digest:** sha256:bd494acf1128a8e1bd0aa7d57719bc3554d5c89b2198e0b8fe49cbe6836d4039
 - **Plan status:** draft
 - **Plan approval digest:** sha256:fa1041e4223d0b14f2abdc1fb1342796f9497e20773be1201338651a307e1740
 
