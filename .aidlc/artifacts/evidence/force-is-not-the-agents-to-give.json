@@ -1,32 +1,54 @@
 {
   "schema": "aidlc.evidence/v1",
   "change_id": "force-is-not-the-agents-to-give",
-  "contract_digest": "sha256:6209959bd81c4505d47e31e26b45beea37364f3188601377ba8c586b543fde69",
-  "generated_at": "2026-09-02T13:49:26.615Z",
-  "capabilities": {},
+  "contract_digest": "sha256:771536995d82f1db279ed10fd6c31c6b15fec30f588df7a02a6dca3ca83bfce4",
+  "generated_at": "2026-09-03T03:57:48.249Z",
+  "capabilities": {
+    "secrets": "PASS",
+    "test": "PASS — node --test test/*.test.mjs — 214 pass, 0 fail",
+    "scope-drift": "PASS",
+    "budget": "PASS"
+  },
   "behaviours": {
     "B1": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/guard.test.mjs :: the agent cannot force init past the prefix guard, in any spelling"
+      ]
     },
     "B2": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/guard.test.mjs :: ordinary init stays available"
+      ]
     },
     "B3": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "the pre-bash hook observes agent tool calls only; no code path intercepts a human shell"
+      ]
     },
     "B4": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "prefix-cache-guard eval: pass, 2026-09-02"
+      ]
     },
     "B5": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "contract-scope-honesty produced a verdict rather than inconclusive at the raised ceiling"
+      ]
+    },
+    "B6": {
+      "status": "pass",
+      "evidence": [
+        "test/guard.test.mjs :: a command that only quotes the invocation is allowed"
+      ]
     }
   },
   "review": {
-    "status": "pending"
+    "status": "pending",
+    "note": "Implementation complete and checks green. Human review (gate 3) outstanding."
   }
 }

@@ -1,32 +1,54 @@
 {
   "schema": "aidlc.evidence/v1",
   "change_id": "a-draft-governs-only-its-own-files",
-  "contract_digest": "sha256:ee80597efde3374f585ef196a380a08e1a426be47c579fbb41c76a73758d4ae1",
-  "generated_at": "2026-09-02T13:49:26.420Z",
-  "capabilities": {},
+  "contract_digest": "sha256:e348661302dfe14bc5328c2290c504a3c6ae0dc91d0c2d1b011e3d4c5c9fdbb2",
+  "generated_at": "2026-09-03T03:57:48.167Z",
+  "capabilities": {
+    "secrets": "PASS",
+    "test": "PASS — node --test test/*.test.mjs — 214 pass, 0 fail",
+    "scope-drift": "PASS",
+    "budget": "PASS"
+  },
   "behaviours": {
     "B1": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/scope-drift.test.mjs :: a draft contract owning nothing that changed does not fail the commit"
+      ]
     },
     "B2": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/scope-drift.test.mjs :: implementing against that draft is still refused"
+      ]
     },
     "B3": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/scope-drift.test.mjs :: an invalidated contract cannot authorize product changes"
+      ]
     },
     "B4": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/scope-drift.test.mjs :: an unowned changed file still fails"
+      ]
+    },
+    "B6": {
+      "status": "pass",
+      "evidence": [
+        "test/scope-drift.test.mjs :: a shared path is authorised by its approved owner"
+      ]
     },
     "B5": {
       "status": "pending",
-      "evidence": []
+      "evidence": [
+        "needs one more contract-scope-honesty run: the last was graded before the B6 shared-path fix, and failed on exactly that"
+      ]
     }
   },
   "review": {
-    "status": "pending"
+    "status": "pending",
+    "note": "Implementation complete and checks green, except B5. Human review (gate 3) outstanding."
   }
 }

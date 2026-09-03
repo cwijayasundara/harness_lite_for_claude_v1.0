@@ -3,22 +3,34 @@
   "change_id": "scrub-personal-email",
   "contract_digest": "sha256:97ec73688b5b6bd446e33d609068d35bb36df84724e2fba28485beef60af7336",
   "generated_at": "2026-09-02T13:49:27.002Z",
-  "capabilities": {},
+  "capabilities": {
+    "secrets": "PASS",
+    "test": "PASS — node --test test/*.test.mjs — 214 pass, 0 fail",
+    "scope-drift": "PASS",
+    "budget": "PASS"
+  },
   "behaviours": {
     "B1": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "git grep for the address returns no match in any tracked file"
+      ]
     },
     "B2": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "harness contract validate PASSes for every contract"
+      ]
     },
     "B3": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "git show 23483c3 — only the Author line differs in the three archived intents"
+      ]
     }
   },
   "review": {
-    "status": "pending"
+    "status": "pending",
+    "note": "Implementation complete and checks green. Human review (gate 3) outstanding."
   }
 }

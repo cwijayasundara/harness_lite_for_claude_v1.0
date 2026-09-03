@@ -1,0 +1,60 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "ci-is-green-without-a-key",
+  "contract_digest": "sha256:3e54633a60eb65aa88c791fe94a4497078d963f59622f84fcbb7d7dcc674ff7b",
+  "generated_at": "2026-09-03T03:57:48.207Z",
+  "capabilities": {
+    "secrets": "PASS",
+    "test": "PASS — node --test test/*.test.mjs — 214 pass, 0 fail",
+    "scope-drift": "PASS",
+    "budget": "PASS"
+  },
+  "behaviours": {
+    "B1": {
+      "status": "pass",
+      "evidence": [
+        "the guard is a job-level if in all five files; GitHub evaluates it before allocating a runner"
+      ]
+    },
+    "B2": {
+      "status": "pass",
+      "evidence": [
+        "test/contracts.test.mjs :: every model-invoking workflow job is gated behind the one switch"
+      ]
+    },
+    "B3": {
+      "status": "pass",
+      "evidence": [
+        "the same condition read as an enabling one: setting HARNESS_MODEL_JOBS=enabled turns all five on"
+      ]
+    },
+    "B4": {
+      "status": "pass",
+      "evidence": [
+        "negative-tested: removing the guard from harness-triage.yml turns the suite red, naming the file"
+      ]
+    },
+    "B5": {
+      "status": "pass",
+      "evidence": [
+        "runner-like PATH with no ruff, pytest or claude: 214 tests 0 failures, and baseline check exits 0"
+      ]
+    },
+    "B6": {
+      "status": "pass",
+      "evidence": [
+        "test/contracts.test.mjs and test/playbook-pack.test.mjs, unchanged and still passing"
+      ]
+    },
+    "B7": {
+      "status": "pass",
+      "evidence": [
+        "test/contracts.test.mjs :: the intent draft job is not gated, and its model step guards itself"
+      ]
+    }
+  },
+  "review": {
+    "status": "pending",
+    "note": "Implementation complete and checks green. Human review (gate 3) outstanding."
+  }
+}

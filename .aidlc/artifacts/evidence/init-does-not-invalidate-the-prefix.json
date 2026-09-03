@@ -3,34 +3,52 @@
   "change_id": "init-does-not-invalidate-the-prefix",
   "contract_digest": "sha256:49d1b8362031c53350cf1ab07a8611a98d2305645a0bd6b6f5f735928038058d",
   "generated_at": "2026-09-02T13:49:26.713Z",
-  "capabilities": {},
+  "capabilities": {
+    "secrets": "PASS",
+    "test": "PASS — node --test test/*.test.mjs — 214 pass, 0 fail",
+    "scope-drift": "PASS",
+    "budget": "PASS"
+  },
   "behaviours": {
     "B1": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/guard.test.mjs :: the repository's own prompt-prefix files include .aidlc/instructions.md"
+      ]
     },
     "B2": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/lifecycle-cli.test.mjs :: an install already current writes nothing"
+      ]
     },
     "B3": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/lifecycle-cli.test.mjs :: a changed source makes init refuse and write nothing"
+      ]
     },
     "B4": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/lifecycle-cli.test.mjs :: --force regenerates"
+      ]
     },
     "B5": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/lifecycle-cli.test.mjs :: init is idempotent and installs a checkout-independent shim"
+      ]
     },
     "B6": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "prefix-cache-guard eval: pass, 2026-09-02, $0.5484"
+      ]
     }
   },
   "review": {
-    "status": "pending"
+    "status": "pending",
+    "note": "Implementation complete and checks green. Human review (gate 3) outstanding."
   }
 }

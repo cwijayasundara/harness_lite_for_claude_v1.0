@@ -1,8 +1,8 @@
 {
   "schema": "aidlc.evidence/v1",
-  "change_id": "overlay-narrow-eval-runs",
-  "contract_digest": "sha256:05c848d43fb0db583c59f769825defe139d0e02fd73445d15e0e6c02d40ed671",
-  "generated_at": "2026-09-02T13:49:26.762Z",
+  "change_id": "the-ledger-cannot-judge-a-deterrent",
+  "contract_digest": "sha256:70db28a851dfa19a95806aaed9e5b3a03f5f9e132cfc6091e8cd6c92eac35055",
+  "generated_at": "2026-09-03T03:57:48.288Z",
   "capabilities": {
     "secrets": "PASS",
     "test": "PASS — node --test test/*.test.mjs — 214 pass, 0 fail",
@@ -13,37 +13,37 @@
     "B1": {
       "status": "pass",
       "evidence": [
-        "test/eval-gate.test.mjs :: a later narrow run corrects one task and leaves the rest of the widest run alone"
+        "test/unit.test.mjs :: the audit separates a control that did not fire from one that did not run"
       ]
     },
     "B2": {
       "status": "pass",
       "evidence": [
-        "test/eval-gate.test.mjs :: sources names both files, oldest first"
+        "same test: a control no stage or hook reaches reads unwired"
       ]
     },
     "B3": {
       "status": "pass",
       "evidence": [
-        "test/eval-gate.test.mjs :: an older narrow run is ignored — overlays move forward only"
+        "same test: deletions holds only the unreliable control; never-fired and unwired move to decide"
       ]
     },
     "B4": {
       "status": "pass",
       "evidence": [
-        "test/eval-gate.test.mjs :: a narrow run cannot introduce a task the widest run never graded"
+        "same test: a firing control still earns its place"
       ]
     },
     "B5": {
       "status": "pass",
       "evidence": [
-        "test/eval-gate.test.mjs :: a task still inconclusive after the overlay still refuses to record"
+        "same test: a staged control under the threshold is still insufficient-data"
       ]
     },
     "B6": {
       "status": "pass",
       "evidence": [
-        "test/eval-gate.test.mjs :: a lone widest run behaves exactly as before, with one source"
+        "harness ledger audit on this repository: budget never-fired, arch and test_quality unwired, nothing in deletions"
       ]
     }
   },

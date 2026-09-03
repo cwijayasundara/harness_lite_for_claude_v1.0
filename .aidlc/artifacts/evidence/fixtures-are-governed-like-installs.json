@@ -3,26 +3,40 @@
   "change_id": "fixtures-are-governed-like-installs",
   "contract_digest": "sha256:9e91a0a9d3cbcf50da3046b6f5b05c773202ffbe0f827ed36a952fa5cbb0a3ba",
   "generated_at": "2026-09-02T13:49:26.566Z",
-  "capabilities": {},
+  "capabilities": {
+    "secrets": "PASS",
+    "test": "PASS — node --test test/*.test.mjs — 214 pass, 0 fail",
+    "scope-drift": "PASS",
+    "budget": "PASS"
+  },
   "behaviours": {
     "B1": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "superseded by require-contract-defaults-on: the fixture omits [guard] and inherits the control, and the parity test compares effective configuration"
+      ]
     },
     "B2": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/evals.test.mjs :: a fixture governed like an install refuses an unowned product write"
+      ]
     },
     "B3": {
-      "status": "pending",
-      "evidence": []
+      "status": "pass",
+      "evidence": [
+        "test/evals.test.mjs :: an owned path stays writable"
+      ]
     },
     "B4": {
       "status": "pending",
-      "evidence": []
+      "evidence": [
+        "needs one more contract-scope-honesty run: the last was graded before the shared-path fix in a-draft-governs-only-its-own-files"
+      ]
     }
   },
   "review": {
-    "status": "pending"
+    "status": "pending",
+    "note": "Implementation complete and checks green, except B4. Human review (gate 3) outstanding."
   }
 }
