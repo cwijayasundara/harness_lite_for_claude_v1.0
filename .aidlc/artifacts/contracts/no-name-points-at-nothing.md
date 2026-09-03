@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/no-name-points-at-nothing.json
 - **Story ref:** none
 - **Risk:** low
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:ce7e44f46fc64546722e2f932e98d2150ac5674fd6b1c9a7101f06996e1ad976
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
