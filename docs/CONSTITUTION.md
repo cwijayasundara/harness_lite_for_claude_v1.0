@@ -1,6 +1,6 @@
 # Constitution
 
-Ten laws. Three are mechanically enforced (2, 5, 9) — the rest are review criteria.
+Eleven laws. Three are mechanically enforced (2, 5, 9) — the rest are review criteria.
 When a law and a convenience disagree, the law wins; when a law is wrong, change it here in a
 commit of its own, with the evidence that changed your mind.
 
@@ -53,3 +53,14 @@ touching the harness's own configuration.
 A `why:` naming the incident or eval it prevents. No why, or no firings in 50 sessions with
 zero true positives — it goes at the next audit. Record the defect that motivated a control in
 the file itself; future readers cannot infer it and will delete the wrong thing.
+
+### Law 11 — A control's defect comes from outside this repository
+A new control enters the harness only with a failing eval, or a defect recorded while building a
+non-harness application through the harness. A defect in harness machinery justifies a fix, never
+a new control.
+
+Recorded because both attempts grew the same way. v6 reached 180 controls and 185k lines; this
+repository reached 22 delivery contracts, ~2,700 kernel lines no stage reaches, and 142 of 181
+commits that touch only artifacts — and not one of those contracts was about a product behaviour.
+When the only workload a harness governs is itself, every control is motivated by the last
+control, and the ledger cannot see the growth because no stage runs it.
