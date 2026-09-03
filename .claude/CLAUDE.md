@@ -66,10 +66,14 @@ final gate is human PR approval and merge.
 
 ## Generator and evaluator
 
-`[models]` names two: the `implement` skill runs on the generator in a forked context, the
-`evaluator` agent runs on the evaluator in a worktree it did not write to, with Bash and no Write.
-`harness init` renders both from the registry. A changes-requested review returns to `implement`
-at most twice, then the human decides.
+`[models]` names three. `generator` (Sonnet 5) writes the code, through the `implement` skill in a
+forked context. `evaluator` (Opus 5) judges it, through the `evaluator` agent in a worktree it did
+not write to, with Bash and no Write. `evals` (Haiku 4.5) is the model the golden suite drives,
+cheap because what the suite measures is whether the harness steers a model to the right answer.
+
+`harness init` renders the first two from the registry, and a test fails if generator and
+evaluator are ever the same id. A changes-requested review returns to `implement` at most twice,
+then the human decides.
 
 Deploy and Maintain are project-owned. The harness ships one example,
 `examples/maintain/band-to-intent.mjs`, which turns a control-band breach into an intent.

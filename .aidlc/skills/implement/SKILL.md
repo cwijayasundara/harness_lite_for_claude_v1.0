@@ -2,7 +2,7 @@
 name: implement
 description: Executes an approved plan one behaviour at a time under a red-green loop. Use whenever code is about to be written for .aidlc/artifacts/<slug>/plan.md or someone asks to build an approved change.
 context: fork
-model: claude-haiku-4-5-20251001
+model: claude-sonnet-5
 ---
 
 # Implement the approved plan

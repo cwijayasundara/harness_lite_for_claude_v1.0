@@ -28,9 +28,9 @@ is a loop, not a fix.
 Independence is structural here, not promised. Three things make it so, and each replaces a
 paragraph of the model-handoff machinery lean-v2 deleted:
 
-- **A different model.** `model: opus` against the generator's Haiku. Devin's Fusion result is
-  that a cheap model does the mechanical work well and a frontier model should hold the judgment;
-  their own failure case is delegating the judgment itself.
+- **A different model.** Opus against the generator's Sonnet, and a test fails if the two ever
+  become one. Not a cost trick: a model marking its own work has no independence to lose, and
+  Fusion's own failure case is delegating the part that carries the judgment.
 - **A different context.** `isolation: worktree` gives a fresh checkout this agent did not write
   to, so it reads the diff rather than remembering having produced it.
 - **No way to make the diff pass.** `Bash` so it can run the checks; no `Write` or `Edit`, so it

@@ -321,9 +321,16 @@ test('no document states a budget number of its own', () => {
 test('the generator and the evaluator are different models, and only one of them can write', async () => {
   const { parseToml } = await import('../.aidlc/lib/toml.mjs');
   const models = parseToml(readFileSync(path.join(A, 'harness.toml'), 'utf8')).models ?? {};
-  assert.ok(models.generator && models.evaluator, '[models] must name a generator and an evaluator');
+  for (const role of ['generator', 'evaluator', 'evals']) {
+    assert.ok(models[role], `[models] must name a ${role}`);
+  }
   assert.notEqual(models.generator, models.evaluator,
     'one model doing both jobs is not a separation of duties, whatever the config says');
+
+  // The template ships the same three roles, or a generated project gets one model doing
+  // everything while this repository's own board says otherwise.
+  const template = parseToml(readFileSync(path.join(A, 'templates/harness.toml'), 'utf8')).models ?? {};
+  assert.notEqual(template.generator, template.evaluator, 'the installed template must split them too');
 
   const implement = frontmatter(path.join(A, 'skills/implement/SKILL.md'));
   assert.equal(implement.model, models.generator, 'the implement skill must run on the generator');
