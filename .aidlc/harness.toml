@@ -53,6 +53,5 @@ claude_md_lines = 120
 protected_paths = ["evals/fixtures"]
 require_contract = true
 
-[monitoring]
-collect = ["node", "examples/collect-ci-failure-rate.mjs"]
+["node", "examples/collect-ci-failure-rate.mjs"]
 timeout_ms = 300000

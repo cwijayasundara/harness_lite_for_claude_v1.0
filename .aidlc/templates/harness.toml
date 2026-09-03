@@ -73,11 +73,7 @@ protected_paths = []            # e.g. ["db/migrations", "vendor"]
 deny_bash       = []            # extra regexes, on top of the built-in destructive-command list
 require_contract = true         # product files need a committed approved contract that owns them
 
-# Optional project-owned adapter commands. Each receives the environment as its final argument.
-# Commands execute without a shell; production deploy/rollback requires an approval identifier.
-[deployment]
-platform = ""                 # "docker-compose" uses the packaged staging adapter
-preflight = []
+[]
 deploy = []
 status = []
 verify = []
@@ -91,11 +87,7 @@ timeout_ms = 300000
 # Docker Compose platform fields: compose_file, service, image_repository, project_slug,
 # verify_url_staging, verify_url_production. Compose references image: ${AIDLC_IMAGE}.
 
-# Optional. argv that prints {"bands":[{"metric","observed",min?,max?,"source"}]}.
-# Empty means `harness monitor detect` is a no-op. Detection stays model-free.
-# A 3σ detect runs [deployment].rollback against staging when that argv is set.
-[monitoring]
-collect = []
+[]
 timeout_ms = 300000
 
 [sla]

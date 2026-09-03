@@ -178,7 +178,10 @@ test('every model-invoking workflow job is gated behind the one switch', () => {
   }
 
   assert.deepEqual(offenders, [], `these jobs can invoke a model with no switch guarding them: ${offenders.join(', ')}`);
-  assert.ok(gated >= 5, `expected at least five gated workflows, found ${gated}`);
+  // lean-v2 cuts 2 and 3 removed the diagnose, monitor and rehearse workflows with the
+  // subsystems they drove. The floor exists so this test cannot pass by finding nothing at all;
+  // the invariant it guards is `offenders`, not the count.
+  assert.ok(gated >= 1, `expected at least one gated workflow, found ${gated}`);
 });
 
 // B6, restated as a boundary: gating changes WHEN a job runs, never what it may do when it does.
@@ -227,18 +230,13 @@ test('marketplace ships the kernel plugin only; extra policy skills stay out of 
   assert.equal(existsSync(path.join(A, 'roles', 'simplifier.md')), false);
 });
 
-test('legacy handoff automation is absent and monitor writes through a PR without a model', () => {
+test('legacy handoff automation is absent', () => {
   assert.equal(existsSync(path.join(ROOT, '.github/workflows/harness-handoff.yml')), false);
   assert.equal(existsSync(path.join(ROOT, '.github/workflows/harness-design.yml')), false);
   assert.equal(existsSync(path.join(A, 'lib/handoff.mjs')), false);
   assert.equal(existsSync(path.join(A, 'templates/spec.md')), false);
   assert.equal(existsSync(path.join(A, 'templates/plan.md')), false);
-  const monitor = readFileSync(path.join(ROOT, '.github/workflows/harness-monitor.yml'), 'utf8');
-  assert.match(monitor, /schedule:/);
-  assert.match(monitor, /harness monitor detect/);
-  assert.match(monitor, /gh pr create/);
-  assert.match(monitor, /actions:\s*read/);
-  assert.doesNotMatch(monitor, /claude -p/);
-  assert.doesNotMatch(monitor, /ANTHROPIC_API_KEY/);
-  assert.doesNotMatch(monitor, /deploy rollback production/);
+  // The monitor half of this test went with lean-v2 cut 3: the workflow, the scheduled detect,
+  // and the pull request it opened are gone along with operations.mjs and incidents.mjs. The
+  // Maintain loop is an example script now, and returns as code when a service produces a defect.
 });

@@ -40,8 +40,6 @@ export function layout(root = findRepoRoot()) {
     evaluations: path.join(aidlc, 'artifacts', 'evaluations'),
     modelRuns: path.join(aidlc, 'artifacts', 'model-runs'),
     review: path.join(aidlc, 'artifacts', 'review'),
-    incident: path.join(aidlc, 'artifacts', 'incident'),
-    deployment: path.join(aidlc, 'artifacts', 'deployment'),
     adr: path.join(aidlc, 'artifacts', 'adr'),
     state: path.join(aidlc, 'state'),
     ledger: path.join(aidlc, 'state', 'ledger.jsonl'),

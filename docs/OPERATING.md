@@ -85,49 +85,25 @@ The core must not pretend to deploy or monitor a product. A production installat
 
 - **SCM review:** read-only diff access, a bot identity, branch protection, and a way to publish
   the committed review finding set. Agent writes still arrive only through a PR.
-- **Deployment:** allowlisted `preflight`, `deploy`, `status`, `verify`, `promote`, and `rollback` operations; short-lived identity;
-  environment-specific approval; and a durable deployment receipt.
-- **Monitoring:** a deterministic, unit-tested band detector that emits metric, baseline, band,
-  observed value, timestamp, and source. The model diagnoses only after this trigger fires.
+- **Deployment:** the project owns it. The harness has no deployment port, no receipts and no
+  approval ladder, because it never ran one: lean-v2 cut 2 deleted 190 lines and a Docker Compose
+  provider that no ledger row and no contract's evidence had ever touched. What the playbook
+  requires of you is unchanged — a human authorizes a release, and branch protection is the gate.
+- **Maintain:** a deterministic script watches the metric and writes an intent on a breach. That
+  is `examples/maintain/band-to-intent.mjs`, fifty lines, project-owned. 1σ logs, 2σ diagnoses
+  read-only, 3σ writes the intent. Detection stays model-free; an agent reads the intent afterwards.
 
-An adapter is complete only when staging proves deploy, status, verify, and rollback; a denied production
-action is tested; and a synthetic band breach produces an incident and linked intent inside its
-SLA. Until then Deploy and Maintain are contracts, not automated stages.
-
-The core now exposes those seams without embedding provider credentials:
+Both are adapter contracts, not automated stages, and they say so. The code returns to the kernel
+when a service running behind it produces a defect, under Law 11 — not before.
 
 ```
-harness deploy preflight staging --artifact sha256:<digest>
-harness deploy deploy staging --artifact sha256:<digest>
-harness deploy status staging
-harness deploy verify staging --artifact sha256:<digest>
-harness deploy rollback staging
-harness deploy promote production --from staging --artifact sha256:<digest> --approval CAB-1234
-harness monitor detect --file bands.json
-harness monitor ingest elevated-errors --file bands.json
+your-metric-command | node examples/maintain/band-to-intent.mjs
 harness contract status <slug>
 ```
-
-`harness monitor detect` runs the `[monitoring].collect` argv when `--file` is omitted.
-1σ logs only, 2σ writes an incident, 3σ (or a min/max breach) writes incident + intent.
-The first 3σ also runs `[deployment].rollback` against **staging** when that argv is set;
-a repeat detect for the same slug does not. Production is never the rollback target.
-Empty collect is a no-op. This repo wires the example CI-failure collector, which prints
-empty bands when GitHub is unavailable. `.github/workflows/harness-monitor.yml` stays
-model-free and opens a PR; `.github/workflows/harness-diagnose.yml` may comment on that PR.
-No lifecycle workflow creates or approves contracts. Monitor never pushes to `main`.
 
 This checkout is one local plugin whose portable kernel lives under `.aidlc/`. The repo-root marketplace lists that kernel
 only. Do not add policy skills or extra agents under `.aidlc/skills` or `.aidlc/roles` —
 Law 5 is full. The kernel hook budget is also full (5/5); do not add a sixth kernel binding.
-
-`[deployment]` commands are argv arrays, execute without a shell, receive the environment as their
-final argument, and write a durable JSON receipt under `.aidlc/artifacts/deployment/`. Mutating
-operations receive an immutable digest in `HARNESS_ARTIFACT_DIGEST`; promotion requires the same
-verified digest. Production operations fail closed under the configured risk/approval policy.
-See `DEPLOYMENT.md`. Monitoring input is deterministic JSON;
-a 3σ or min/max breach creates the same-slug incident and intent. The model belongs after
-that trigger, for diagnosis, never inside the detector.
 
 ### GitHub review adapter
 

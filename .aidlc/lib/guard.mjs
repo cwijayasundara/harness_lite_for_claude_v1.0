@@ -182,32 +182,7 @@ export function clearLock(cfg) {
   return file;
 }
 
-export function bandTier(b) {
-  if (!b || !Number.isFinite(b.observed)) throw new Error('each band requires metric and numeric observed');
-  if (Number.isFinite(b.mean) && Number.isFinite(b.stdev) && b.stdev > 0) {
-    const z = Math.abs((b.observed - b.mean) / b.stdev);
-    if (z >= 3) return 3;
-    if (z >= 2) return 2;
-    if (z >= 1) return 1;
-    return 0;
-  }
-  const breach = (Number.isFinite(b.min) && b.observed < b.min) || (Number.isFinite(b.max) && b.observed > b.max);
-  return breach ? 3 : 0;
-}
 
-export function classifyBands(document) {
-  if (!Array.isArray(document?.bands)) throw new Error('monitor document requires a bands array');
-  const bands = document.bands.map((b) => {
-    if (!b.metric || !Number.isFinite(b.observed)) throw new Error('each band requires metric and numeric observed');
-    return { ...b, tier: bandTier(b) };
-  });
-  return {
-    bands,
-    log: bands.filter((b) => b.tier === 1),
-    diagnose: bands.filter((b) => b.tier >= 2),
-    propose: bands.filter((b) => b.tier >= 3),
-  };
-}
 
 export function enterpriseChecklist(cfg) {
   const items = [

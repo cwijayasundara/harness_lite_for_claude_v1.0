@@ -306,8 +306,5 @@ node .aidlc/bin/harness gauntlet run --changed
 
 Profiles and project wiring are documented in [docs/SENSOR-GAUNTLET.md](docs/SENSOR-GAUNTLET.md).
 
-Immutable staging deployment, verification, promotion and rollback are described in
-[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-
 Worked examples: [`examples/scratch-py`](examples/scratch-py),
 [`examples/scratch-ts`](examples/scratch-ts).

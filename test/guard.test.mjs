@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { C, BIN } from './_paths.mjs';
-import { writeBlocked, productionDenied, lockTests, clearLock, bandTier, classifyBands, bashTouchesProtected, bashContractBlocked } from '../.aidlc/lib/guard.mjs';
+import { writeBlocked, productionDenied, lockTests, clearLock, bashTouchesProtected, bashContractBlocked } from '../.aidlc/lib/guard.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 
 
@@ -262,20 +262,6 @@ test('lock tests writes a lock the write guard honors, and clear removes it', ()
     assert.equal(existsSync(path.join(f.layout.state, 'test-lock.json')), false);
     assert.equal(writeBlocked('tests/test_calc.py', cfg), null);
   } finally { f.cleanup(); }
-});
-
-test('sigma tiers: 1σ does not propose, 3σ and min/max breaches do', () => {
-  assert.equal(bandTier({ metric: 'x', observed: 0.22, mean: 0.1, stdev: 0.1 }), 1);
-  assert.equal(bandTier({ metric: 'x', observed: 0.45, mean: 0.1, stdev: 0.1 }), 3);
-  assert.equal(bandTier({ metric: 'x', observed: 0.12, max: 0.05 }), 3);
-  assert.equal(bandTier({ metric: 'x', observed: 0.01, max: 0.05 }), 0);
-  const c = classifyBands({ bands: [
-    { metric: 'a', observed: 0.22, mean: 0.1, stdev: 0.1 },
-    { metric: 'b', observed: 0.45, mean: 0.1, stdev: 0.1 },
-  ] });
-  assert.equal(c.log.length, 1);
-  assert.equal(c.propose.length, 1);
-  assert.equal(c.diagnose.length, 1);
 });
 
 test('harness lock tests / lock clear round-trips through the CLI', () => {

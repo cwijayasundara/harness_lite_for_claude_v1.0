@@ -388,19 +388,3 @@ test('ledger audit turns rows into decisions, and refuses a verdict without evid
 
 
 
-test('incident loop requires a timestamp and the same-slug intent', async () => {
-  const { incidents } = await import('../.aidlc/lib/incidents.mjs');
-  const fs = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-incident-'));
-  const L = { root, incident: path.join(root, '.aidlc/artifacts/incident'), intent: path.join(root, '.aidlc/artifacts/intent') };
-  fs.mkdirSync(L.incident, { recursive: true }); fs.mkdirSync(L.intent, { recursive: true });
-  fs.writeFileSync(path.join(L.incident, 'outage.md'), '- **Detected at:** 2026-01-01T00:00:00.000Z\n- **Status:** open\n');
-  const [row] = incidents({ layout: L, sla: { incident_to_intent_minutes: 60 } }, Date.parse('2026-01-01T02:00:00.000Z'));
-  assert.equal(row.valid, false);
-  assert.equal(row.sla, 'breached');
-  assert.match(row.issues.join('\n'), /linked intent is missing/);
-  fs.rmSync(root, { recursive: true, force: true });
-});
-

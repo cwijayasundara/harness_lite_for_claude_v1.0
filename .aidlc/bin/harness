@@ -19,9 +19,7 @@ import { refresh } from '../lib/refresh.mjs';
 import { renderWiki } from '../lib/wiki.mjs';
 import { measure, shipped, RECORD } from '../checks/budget.mjs';
 import { dispatch } from '../hooks/dispatch.mjs';
-import { incidents, renderIncidents } from '../lib/incidents.mjs';
 import { selectSlug, packet as reviewPacket, writeReview, checkProtection } from '../lib/review-adapter.mjs';
-import { deploy, closeLoop, detect, readMonitorFile } from '../lib/operations.mjs';
 import { playbookIndicators, renderPlaybook } from '../lib/indicators.mjs';
 import * as contractChain from '../lib/contract-chain.mjs';
 import { lockTests, clearLock, enterpriseChecklist } from '../lib/guard.mjs';
@@ -151,7 +149,7 @@ async function main() {
     case 'init': {
       const root = path.resolve(flag('into', process.cwd()));
       const L = layout(root);
-      for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.intent, L.contracts, L.intentRefs, L.evidence, L.handoffs, L.evaluations, L.modelRuns, L.review, L.incident, L.deployment, L.adr, L.state, path.join(L.artifacts, 'design')]) mkdirSync(d, { recursive: true });
+      for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.intent, L.contracts, L.intentRefs, L.evidence, L.handoffs, L.evaluations, L.modelRuns, L.review, L.adr, L.state, path.join(L.artifacts, 'design')]) mkdirSync(d, { recursive: true });
       for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/model-policy.json', L.modelPolicy], ['templates/gitignore', path.join(L.aidlc, '.gitignore')]]) {
         if (!existsSync(dst)) cpSync(path.join(HERE, src), dst);
       }
@@ -380,7 +378,7 @@ async function main() {
 
     case 'new': {
       const kind = argv[1]; const slug = argv[2];
-      if (!['intent', 'review', 'incident', 'eval'].includes(kind) || !slug) { console.error('usage: harness new intent|review|incident|eval <slug>'); return 2; }
+      if (!['intent', 'review', 'eval'].includes(kind) || !slug) { console.error('usage: harness new intent|review|eval <slug>'); return 2; }
       if (!validSlug(slug)) { console.error('slug must be 1–63 lowercase letters, digits, or hyphens; it cannot contain paths'); return 2; }
       const cfg = loadConfig(findRepoRoot());
       if (kind === 'eval') {
@@ -418,7 +416,6 @@ async function main() {
     case 'status': {
       const cfg = loadConfig(findRepoRoot());
       const requested = argv[1] && !argv[1].startsWith('--') ? argv[1] : null;
-      const incidentRows = requested ? [] : incidents(cfg);
       // One artifact model. The pre-contract intent -> spec -> plan -> review walk is gone; the
       // chain's own rows carry the stage clocks that used to hang off it.
       const chainRows = contractChain.rows(cfg, requested);
@@ -433,10 +430,9 @@ async function main() {
         ? `contracts\n\n  change                         next-stage           integrity  SLA\n${contractRows.map((row) => `  ${row.slug.padEnd(30)} ${row.stage.padEnd(20)} ${((row.ok && !(chainIssuesOf.get(row.slug) ?? []).length) ? 'valid' : 'INVALID').padEnd(9)} ${slaOf.get(row.slug) ?? 'unmeasured'}`).join('\n')}\n${contractRows.flatMap((row) => [...(row.issues ?? []), ...(chainIssuesOf.get(row.slug) ?? [])].map((issue) => `  ERROR ${row.slug}: ${issue}`)).join('\n')}\n`
         : 'contracts  no contracts\n';
       console.log(has('json')
-        ? JSON.stringify({ changes: chainRows.map((r) => ({ slug: r.id, sla: r.sla })), contracts: contractRows, incidents: incidentRows, playbook }, null, 2)
-        : rendered + renderIncidents(incidentRows) + renderPlaybook(playbook));
-      return incidentRows.some((r) => !r.valid || r.sla === 'breached')
-        || contractRows.some((row) => !row.ok)
+        ? JSON.stringify({ changes: chainRows.map((r) => ({ slug: r.id, sla: r.sla })), contracts: contractRows, playbook }, null, 2)
+        : rendered + renderPlaybook(playbook));
+      return contractRows.some((row) => !row.ok)
         || chainRows.some((r) => r.issues.length || r.sla.verdict === 'breached') ? 1 : 0;
     }
 
@@ -674,38 +670,6 @@ async function main() {
       return result.ok ? 0 : 1;
     }
 
-    case 'deploy': {
-      const cfg = loadConfig(findRepoRoot()); const operation = argv[1]; const environment = argv[2];
-      if (!operation || !environment) { console.error('usage: harness deploy <preflight|deploy|status|verify|promote|rollback> <environment> [--artifact sha256:...] [--from staging] [--risk standard] [--approval ID,...]'); return 2; }
-      try {
-        const result = deploy(cfg, operation, environment, { approval: flag('approval'), artifact: flag('artifact'), from: String(flag('from', 'staging')), risk: String(flag('risk', 'standard')) });
-        console.log(`${result.ok ? 'PASS' : 'FAIL'}  ${operation} ${environment}${result.receipt.artifact_digest ? `  ${result.receipt.artifact_digest}` : ''}\nreceipt  ${result.file}`);
-        return result.ok ? 0 : 1;
-      } catch (error) { console.error(`${error.message}${error.receipt ? `\nreceipt  ${error.receipt}` : ''}`); return 1; }
-    }
-
-    case 'monitor': {
-      const cfg = loadConfig(findRepoRoot());
-      if (argv[1] === 'ingest') {
-        if (!argv[2] || !flag('file')) { console.error('usage: harness monitor ingest <slug> --file bands.json'); return 2; }
-        const result = closeLoop(cfg, argv[2], readMonitorFile(path.resolve(String(flag('file')))));
-        console.log(result.breached ? `BREACH  ${result.breaches.length} control band(s)\n${result.files.join('\n')}` : 'PASS  all control bands within range');
-        return 0;
-      }
-      if (argv[1] !== 'detect') { console.error('usage: harness monitor detect [slug] [--file bands.json] [--json]\n       harness monitor ingest <slug> --file bands.json'); return 2; }
-      const slug = argv[2] && !String(argv[2]).startsWith('--') ? argv[2] : null;
-      const result = detect(cfg, { file: flag('file') ? path.resolve(String(flag('file'))) : null, slug });
-      if (has('json')) console.log(JSON.stringify(result, null, 2));
-      else if (!result.configured) console.log('monitor  not configured');
-      else if (result.already_open) console.log('OPEN  incident already recorded');
-      else if (result.breached) {
-        const rb = result.rolled_back ? `\nrollback  staging  ${result.rollback?.file ?? 'ok'}` : (result.tier >= 3 ? '\nrollback  skipped' : '');
-        console.log(`BREACH  ${result.breaches.length} control band(s)\n${result.files.join('\n')}${rb}`);
-      }
-      else console.log('PASS  all control bands within range');
-      return 0;
-    }
-
     case 'hook': return dispatch(argv[1]);
 
     default:
@@ -716,7 +680,7 @@ async function main() {
   harness check --stage <s>        run a stage   (--changed  --all  --json)
   harness gauntlet doctor|run      fail-closed behaviour/architecture/hardening/qa sensors
   harness gauntlet qualify --file experiment.json
-  harness new intent|review|incident|eval <slug>
+  harness new intent|review|eval <slug>
   harness contract new|accept|validate|status|prompt|seal|evidence <slug>
   harness contract migrate <slug> [--write] | rollback-migration <slug>
   harness agents list|doctor|render|verify [provider] [--into path]
@@ -730,9 +694,6 @@ async function main() {
   harness status [slug] [--json]  artifact progress, SLA, playbook indicators
   harness review select|packet|ingest
   harness github protection-check --file protection.json
-  harness deploy <preflight|deploy|status|verify|promote|rollback> <environment>
-  harness monitor detect [slug] [--file bands.json]
-  harness monitor ingest <slug> --file bands.json
   harness ledger [audit] [--days 30]
   harness evals gate [--update]    grade the newest run against evals/expected.json
   harness baseline capture|check

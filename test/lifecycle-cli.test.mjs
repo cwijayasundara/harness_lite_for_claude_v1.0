@@ -102,28 +102,6 @@ test('init refuses to rewrite a cached-prefix file it would change, unless force
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('a committed incident reaches its same-slug intent within SLA', () => {
-  const root = repo();
-  try {
-    const now = new Date(); const detected = new Date(now.getTime() - 30 * 60000);
-    assert.equal(run(root, 'new', 'incident', 'service-outage').status, 0);
-    assert.equal(run(root, 'new', 'intent', 'service-outage').status, 0);
-    const incident = path.join(root, '.aidlc/artifacts/incident/service-outage.md');
-    writeFileSync(incident, readFileSync(incident, 'utf8').replace(/Detected at:\*\* .+/, `Detected at:** ${detected.toISOString()}`));
-    const intent = path.join(root, '.aidlc/artifacts/intent/service-outage.md');
-    writeFileSync(intent, readFileSync(intent, 'utf8').replace('Status:** draft', 'Status:** approved'));
-    spawnSync('git', ['add', '.'], { cwd: root });
-    const committed = spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'incident to intent'], { cwd: root, env: { ...process.env, GIT_AUTHOR_DATE: now.toISOString(), GIT_COMMITTER_DATE: now.toISOString() } });
-    assert.equal(committed.status, 0, committed.stderr);
-    const result = run(root, 'status', '--json');
-    assert.equal(result.status, 0, result.stdout);
-    const body = JSON.parse(result.stdout);
-    assert.equal(body.incidents[0].valid, true);
-    assert.equal(body.incidents[0].sla, 'within');
-    assert.ok(body.incidents[0].elapsed_minutes <= 60);
-  } finally { rmSync(root, { recursive: true, force: true }); }
-});
-
 test('status reports playbook indicators from git history and eval results', () => {
   const root = repo();
   try {
