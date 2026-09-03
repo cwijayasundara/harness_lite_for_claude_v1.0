@@ -349,8 +349,9 @@ async function main() {
         catch (e) { console.error(String(e.message)); return 1; }
         evalGate.writeRecord(recordFile, next);
         const priced = Object.values(next.tasks).filter((t) => t?.usd != null).length;
+        const total = next.usd_total != null ? `, suite floor ${next.usd_total.toFixed(2)}` : '';
         const from = next.sources?.length > 1 ? `${next.sources.length} runs: ${next.sources.join(', ')}` : next.source;
-        console.log(`${recordFile}\n${Object.keys(next.tasks).length} tasks recorded from ${from}${priced ? `, ${priced} with a cost floor` : ''}`);
+        console.log(`${recordFile}\n${Object.keys(next.tasks).length} tasks recorded from ${from}${priced ? `, ${priced} with a cost floor` : ''}${total}`);
         return 0;
       }
 

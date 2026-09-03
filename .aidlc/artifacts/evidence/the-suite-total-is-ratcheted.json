@@ -1,0 +1,54 @@
+{
+  "schema": "aidlc.evidence/v1",
+  "change_id": "the-suite-total-is-ratcheted",
+  "contract_digest": "sha256:c54e874ad7b88ce7dab433fb7b51e0b865a0c1bc7c00ebe8e282453c7ad9fefe",
+  "generated_at": "2026-09-03T05:44:39.513Z",
+  "capabilities": {
+    "secrets": "PASS",
+    "test": "PASS",
+    "scope-drift": "PASS",
+    "budget": "PASS"
+  },
+  "behaviours": {
+    "B1": {
+      "status": "pass",
+      "evidence": [
+        "test/eval-gate.test.mjs :: a suite that creeps fails even when no single task trips — 22 tasks each +40%, none costly, suite fails"
+      ]
+    },
+    "B2": {
+      "status": "pass",
+      "evidence": [
+        "test/eval-gate.test.mjs :: a suite inside the aggregate tolerance passes"
+      ]
+    },
+    "B3": {
+      "status": "pass",
+      "evidence": [
+        "test/eval-gate.test.mjs :: the suite total falls on a cheaper run and holds on a dearer one"
+      ]
+    },
+    "B4": {
+      "status": "pass",
+      "evidence": [
+        "test/eval-gate.test.mjs :: a run grading a different set reports the mismatch, not a total"
+      ]
+    },
+    "B5": {
+      "status": "pass",
+      "evidence": [
+        "test/eval-gate.test.mjs :: a record with no suite total passes and gains one"
+      ]
+    },
+    "B6": {
+      "status": "pass",
+      "evidence": [
+        "test/eval-gate.test.mjs :: the three cost and verdict problems are separate findings"
+      ]
+    }
+  },
+  "review": {
+    "status": "pending",
+    "note": "Implementation complete and checks green. Human review (gate 3) outstanding."
+  }
+}

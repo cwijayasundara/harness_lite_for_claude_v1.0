@@ -1,6 +1,7 @@
 {
   "schema": "aidlc.eval-expectation/v2",
-  "recorded_at": "2026-09-03T05:36:55.703Z",
+  "recorded_at": "2026-09-03T05:44:07.723Z",
+  "usd_total": 13.761615,
   "source": "2026-09-02T05-21-50-092Z.json",
   "sources": [
     "2026-09-02T05-21-50-092Z.json",
@@ -11,7 +12,7 @@
     "2026-09-02T06-24-07-591Z.json",
     "2026-09-03T04-19-40-829Z.json"
   ],
-  "commit": "3466bd774c7b45d7e7981f8515bbbea5b1a0b047",
+  "commit": "4616d9e1a527458748382d0049d1856d664629cb",
   "tasks": {
     "budget-forces-deletion": {
       "verdict": "pass",

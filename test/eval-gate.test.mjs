@@ -273,6 +273,67 @@ test('a record written before cost was tracked still loads', () => {
   assert.equal(update(v1, results({ a: withCost('pass', 0.5) })).tasks.a.usd, 0.5, 'the next update gives it one');
 });
 
+// the-suite-total-is-ratcheted B1-B6. The per-task bound is 1.5x because identical work has
+// measured 40% apart — which means twenty-two tasks can each grow 40% and the suite costs half
+// again as much with every task individually innocent. That is the blind spot, and aggregate
+// noise is small enough to close it: like-for-like full runs measured 9% apart.
+const suiteRecord = (tasks, usd_total) => ({ ...record(tasks), usd_total });
+
+test('a suite that creeps fails even when no single task trips', () => {
+  // B1: every task grows 40%, inside the per-task 1.5x. The total grows 40% too, over 1.25x.
+  const floors = {}; const run = {};
+  for (let i = 0; i < 22; i++) { floors[`t${i}`] = recorded('pass', 1.0); run[`t${i}`] = withCost('pass', 1.4); }
+  const r = gate(results(run), suiteRecord(floors, 22));
+  assert.deepEqual(r.costly, [], 'no individual task tripped — that is the point');
+  assert.ok(r.suite, 'the suite total did');
+  assert.equal(r.suite.floor, 22);
+  assert.equal(Math.round(r.suite.observed), 31);
+  assert.equal(r.ok, false);
+});
+
+test('a suite inside the aggregate tolerance passes', () => {
+  // B2: 10% up, inside 1.25x.
+  const floors = {}; const run = {};
+  for (let i = 0; i < 22; i++) { floors[`t${i}`] = recorded('pass', 1.0); run[`t${i}`] = withCost('pass', 1.1); }
+  const r = gate(results(run), suiteRecord(floors, 22));
+  assert.equal(r.suite, null);
+  assert.equal(r.ok, true);
+});
+
+test('the suite total falls on a cheaper run and holds on a dearer one', () => {
+  // B3
+  const cheaper = update(suiteRecord({ a: recorded('pass', 1.0) }, 1.0), results({ a: withCost('pass', 0.4) }));
+  assert.equal(cheaper.usd_total, 0.4);
+  const dearer = update(suiteRecord({ a: recorded('pass', 1.0) }, 1.0), results({ a: withCost('pass', 1.2) }));
+  assert.equal(dearer.usd_total, 1.0, 'a dearer total must not raise the floor');
+});
+
+test('a run grading a different set reports the mismatch, not a total', () => {
+  // B4: the intersection of two sets is not the suite.
+  const r = gate(results({ a: withCost('pass', 99) }), suiteRecord({ a: recorded('pass', 1.0), b: recorded('pass', 1.0) }, 2));
+  assert.deepEqual(r.missing, ['b']);
+  assert.equal(r.suite, null, 'an incomparable total is worse than none');
+  assert.equal(r.ok, false);
+});
+
+test('a record with no suite total passes and gains one', () => {
+  // B5
+  const r = gate(results({ a: withCost('pass', 99) }), record({ a: recorded('pass', 99) }));
+  assert.equal(r.suite, null);
+  assert.equal(update(record({ a: recorded('pass', 1) }), results({ a: withCost('pass', 0.5) })).usd_total, 0.5);
+});
+
+test('the three cost and verdict problems are separate findings', () => {
+  // B6
+  const r = gate(
+    results({ a: withCost('fail', 1.0), b: withCost('pass', 9.0) }),
+    suiteRecord({ a: recorded('pass', 1.0), b: recorded('pass', 1.0) }, 2),
+  );
+  assert.deepEqual(r.regressed.map((x) => x.id), ['a'], 'a verdict regression');
+  assert.deepEqual(r.costly.map((c) => c.id), ['b'], 'a per-task cost finding');
+  assert.ok(r.suite, 'and a suite-total finding');
+});
+
 test('readRecord rejects a file with the wrong schema', () => {
   const f = tmp(); try {
     mkdirSync(f.root, { recursive: true });

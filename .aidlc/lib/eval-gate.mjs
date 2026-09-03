@@ -19,6 +19,18 @@ const RECORD_SCHEMA_V1 = 'aidlc.eval-expectation/v1';
 // tolerates noise without tolerating a trend.
 export const COST_TOLERANCE = 1.5;
 
+// The aggregate bound. Independent per-task variation cancels, so the suite total is far quieter
+// than any single task: like-for-like full runs measured $12.31 and $13.40, 9% apart, against a
+// 40% spread within one task. That is what lets this be tight enough to see creep the per-task
+// bound cannot — twenty-two tasks each growing 40% is a suite half again as expensive with every
+// task individually innocent.
+//
+// Two comparable runs is thin evidence. 25% allowed against 9% observed leaves room for a third
+// run to be worse than both without crying wolf; revisit with more data, not with taste.
+export const SUITE_COST_TOLERANCE = 1.25;
+
+const totalOf = (results) => (results ?? []).reduce((sum, r) => sum + (r.usd ?? 0), 0) || null;
+
 // A v1 entry is a bare verdict string; a v2 entry is { verdict, usd }. Reading both means an
 // older record loads rather than erroring, and simply has no floor until the next --update.
 const entry = (value) => (typeof value === 'string' ? { verdict: value, usd: null } : { verdict: value?.verdict ?? null, usd: value?.usd ?? null });
@@ -39,8 +51,8 @@ export function readRecord(file) {
 // Missing and unrecorded are findings rather than warnings on purpose: a task renamed without
 // being re-recorded is invisible to any check that only walks the intersection.
 export function gate(results, record) {
-  if (!results) return { ok: false, reason: 'no eval results found — run `node evals/run.mjs` first', regressed: [], improved: [], missing: [], unrecorded: [], costly: [] };
-  if (!record) return { ok: false, reason: 'no expectation record — run `harness evals gate --update` after a full run', regressed: [], improved: [], missing: [], unrecorded: [], costly: [] };
+  if (!results) return { ok: false, reason: 'no eval results found — run `node evals/run.mjs` first', regressed: [], improved: [], missing: [], unrecorded: [], costly: [], suite: null };
+  if (!record) return { ok: false, reason: 'no expectation record — run `harness evals gate --update` after a full run', regressed: [], improved: [], missing: [], unrecorded: [], costly: [], suite: null };
 
   const graded = verdicts(results);
   const spend = new Map((results.results ?? []).map((r) => [r.id, r.usd]));
@@ -65,12 +77,22 @@ export function gate(results, record) {
   }
   const unrecorded = [...graded.keys()].filter((id) => !(id in record.tasks));
 
+  // Only comparable sets get a total. If the graded set differs from the record the gate has
+  // already failed, and the intersection of two sets is not the suite.
+  let suite = null;
+  if (!missing.length && !unrecorded.length && record.usd_total != null) {
+    const observed = totalOf(results.results);
+    if (observed != null && observed > record.usd_total * SUITE_COST_TOLERANCE) {
+      suite = { floor: record.usd_total, observed, tolerance: SUITE_COST_TOLERANCE };
+    }
+  }
+
   return {
-    ok: !regressed.length && !missing.length && !unrecorded.length && !costly.length,
+    ok: !regressed.length && !missing.length && !unrecorded.length && !costly.length && !suite,
     reason: null,
     source: results.source ?? null,
     sources: results.sources ?? (results.source ? [results.source] : []),
-    regressed, improved, missing, unrecorded, costly,
+    regressed, improved, missing, unrecorded, costly, suite,
   };
 }
 
@@ -103,7 +125,11 @@ export function update(record, results, { commit = null, at = new Date().toISOSt
   }
   // `sources` oldest first, so a reader can see which run supplied a corrected verdict. A record
   // assembled from several runs without saying so would be worse than one that is merely stale.
-  return { schema: RECORD_SCHEMA, recorded_at: at, source: results.source ?? null, sources: results.sources ?? (results.source ? [results.source] : []), commit, tasks };
+  const wasTotal = record?.usd_total ?? null;
+  const nowTotal = totalOf(results.results);
+  const usd_total = wasTotal == null ? nowTotal : nowTotal == null ? wasTotal : Math.min(wasTotal, nowTotal);
+
+  return { schema: RECORD_SCHEMA, recorded_at: at, usd_total, source: results.source ?? null, sources: results.sources ?? (results.source ? [results.source] : []), commit, tasks };
 }
 
 export function writeRecord(file, record) {
@@ -119,6 +145,7 @@ export function render(result) {
   for (const r of result.regressed) lines.push(`  REGRESSED   ${r.id}  recorded ${r.expected}, now ${r.actual}`);
   for (const id of result.missing) lines.push(`  MISSING     ${id}  recorded but not graded in this run`);
   for (const id of result.unrecorded) lines.push(`  UNRECORDED  ${id}  graded but absent from the record`);
+  if (result.suite) lines.push(`  SUITE COST  ${result.suite.observed.toFixed(2)} against a floor of ${result.suite.floor.toFixed(2)} (over ${result.suite.tolerance}x) — no single task tripped; the suite crept`);
   for (const c of result.costly ?? []) lines.push(`  COSTLY      ${c.id}  ${c.observed.toFixed(3)} against a floor of ${c.floor.toFixed(3)} (over ${c.tolerance}x) — behaviour is fine, the price is not`);
   for (const r of result.improved) lines.push(`  improved    ${r.id}  recorded ${r.expected}, now ${r.actual} — rerun with --update to hold it`);
   lines.push(result.ok ? 'PASS  evals  no task lost ground' : (result.regressed.length || result.missing.length || result.unrecorded.length) ? 'FAIL  evals  the record and this run disagree' : 'FAIL  evals  every task behaved, but the suite got more expensive');
