@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/lean-v2.md",
-    "revision": "pending",
+    "revision": "101c9c1e41bbdfe1fd48e8f77df4aea952508809",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-03T16:41:38.600Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:4903df7fdecf9052fadc12c1c3c1333b468416ba1938198ca022470a1af91a72"
 }
