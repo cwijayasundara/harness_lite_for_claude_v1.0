@@ -8,7 +8,8 @@ on:
 
 jobs:
   diagnose:
-    if: github.event.repository.fork == false && startsWith(github.event.pull_request.head.ref, 'harness/monitor-')
+    if: vars.HARNESS_MODEL_JOBS == 'enabled'
+      && github.event.repository.fork == false && startsWith(github.event.pull_request.head.ref, 'harness/monitor-')
     runs-on: ubuntu-latest
     permissions:
       contents: read

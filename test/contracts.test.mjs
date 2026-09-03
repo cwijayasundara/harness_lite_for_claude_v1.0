@@ -66,6 +66,51 @@ test('no skill sequences phases (Law 2)', () => {
   }
 });
 
+// ci-is-green-without-a-key B2/B4/B7. Every push turned the Actions tab red because six
+// workflows passed an ANTHROPIC_API_KEY this repository does not have, and none was gated. A
+// result that has never carried information is one nobody reads. This is the part that keeps the
+// guarantee true: the next workflow someone adds cannot re-open the hole quietly.
+test('every model-invoking workflow job is gated behind the one switch', () => {
+  const SWITCH = "vars.HARNESS_MODEL_JOBS == 'enabled'";
+  const dir = path.join(ROOT, '.github/workflows');
+  // harness-intent's draft job is deliberately ungated: its model step carries its own secrets
+  // guard with a key-free fallback, and the deterministic intake must keep working without a key.
+  const INTENT = 'harness-intent.yml';
+  const offenders = [];
+  let gated = 0;
+
+  for (const name of readdirSync(dir).filter((f) => f.endsWith('.yml'))) {
+    const body = readFileSync(path.join(dir, name), 'utf8');
+    if (!/claude-code-action|ANTHROPIC_API_KEY/.test(body)) continue;
+
+    if (name === INTENT) {
+      // B7: the job runs, and only the model step is conditional on a key being present.
+      assert.doesNotMatch(body, new RegExp(SWITCH.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `${name}: the deterministic intake must not be gated off`);
+      assert.match(body, /if: \$\{\{ secrets\.ANTHROPIC_API_KEY != '' \}\}/, `${name}: the model step must guard itself`);
+      assert.match(body, /if: \$\{\{ secrets\.ANTHROPIC_API_KEY == '' \}\}/, `${name}: and there must be a key-free path`);
+      continue;
+    }
+    if (body.includes(SWITCH)) gated++; else offenders.push(name);
+  }
+
+  assert.deepEqual(offenders, [], `these jobs can invoke a model with no switch guarding them: ${offenders.join(', ')}`);
+  assert.ok(gated >= 5, `expected at least five gated workflows, found ${gated}`);
+});
+
+// B6, restated as a boundary: gating changes WHEN a job runs, never what it may do when it does.
+// unit and cost need no key and must keep running, or the repository has no CI rather than quiet
+// CI.
+test('the jobs that need no key are not gated', () => {
+  const body = readFileSync(path.join(ROOT, '.github/workflows/harness.yml'), 'utf8');
+  const jobs = body.split(/\n  (?=[a-z_-]+:\n)/);
+  const unit = jobs.find((j) => j.trimStart().startsWith('unit:'));
+  const cost = jobs.find((j) => j.trimStart().startsWith('cost:'));
+  for (const [name, job] of [['unit', unit], ['cost', cost]]) {
+    assert.ok(job, `${name} job not found`);
+    assert.doesNotMatch(job, /HARNESS_MODEL_JOBS/, `${name} needs no key and must run on every push`);
+  }
+});
+
 test('Claude PR review is read-only and cannot declare the human gate approved', () => {
   const workflow = readFileSync(path.join(ROOT, '.github/workflows/claude-review.yml'), 'utf8');
   assert.match(workflow, /contents: read/);

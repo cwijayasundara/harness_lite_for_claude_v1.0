@@ -7,6 +7,7 @@ on:
 jobs:
   fix:
     if: >
+      vars.HARNESS_MODEL_JOBS == 'enabled' &&
       github.event.repository.fork == false &&
       github.event.issue.pull_request &&
       contains(github.event.comment.body, '@harness-fix')

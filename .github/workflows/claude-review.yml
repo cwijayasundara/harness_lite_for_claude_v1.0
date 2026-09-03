@@ -12,7 +12,8 @@ jobs:
   review:
     # Secrets are never exposed to an untrusted fork. Add a separately sandboxed GitHub App
     # workflow before reviewing forked contributions automatically.
-    if: github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
+    if: vars.HARNESS_MODEL_JOBS == 'enabled'
+      && github.event.pull_request.draft == false && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     permissions:
       contents: read

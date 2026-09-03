@@ -43,7 +43,7 @@ jobs:
     # Law 9: the suite runs on any diff touching the harness's own configuration.
     # That trigger IS the governance model — it replaces certification and autonomy tiers.
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: vars.HARNESS_MODEL_JOBS == 'enabled' && github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }

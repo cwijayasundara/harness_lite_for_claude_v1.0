@@ -7,7 +7,8 @@ on:
 
 jobs:
   triage:
-    if: github.event.workflow_run.conclusion == 'failure' && github.event.repository.fork == false
+    if: vars.HARNESS_MODEL_JOBS == 'enabled'
+      && github.event.workflow_run.conclusion == 'failure' && github.event.repository.fork == false
     runs-on: ubuntu-latest
     permissions:
       contents: read
