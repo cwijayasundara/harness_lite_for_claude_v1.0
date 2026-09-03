@@ -52,7 +52,7 @@ test('validate rejects the four ways a task wastes money', () => {
 test('glob expands one segment at a time', () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
-    assert.deepEqual(expand(s.work, '.aidlc/artifacts/contracts/*.md'), ['.aidlc/artifacts/contracts/hyphen-titlecase.md']);
+    assert.deepEqual(expand(s.work, '.aidlc/artifacts/hyphen-titlecase/*.md'), ['.aidlc/artifacts/hyphen-titlecase/intent.md', '.aidlc/artifacts/hyphen-titlecase/plan.md', '.aidlc/artifacts/hyphen-titlecase/spec.md']);
     assert.deepEqual(expand(s.work, 'tests/*.py'), ['tests/test_app.py']);
     assert.deepEqual(expand(s.work, 'nothing/*.md'), []);
   } finally { s.cleanup(); }
@@ -194,12 +194,12 @@ test('a fixture governed like an install refuses an unowned product write', () =
   const s = stage(FIXTURES, 'contract-planned');
   try {
     const cfg = {
-      layout: { root: s.work, claude: path.join(s.work, '.claude'), state: path.join(s.work, '.aidlc/state'), contracts: path.join(s.work, '.aidlc/artifacts/contracts') },
+      layout: { root: s.work, claude: path.join(s.work, '.claude'), state: path.join(s.work, '.aidlc/state'), artifacts: path.join(s.work, '.aidlc/artifacts') },
       guard: { require_contract: true, protected_paths: [] },
     };
     // hyphen-titlecase owns src/app/text.py and tests/test_app.py, and nothing else.
     assert.equal(writeBlocked('src/app/text.py', cfg), null, 'an owned path stays writable');
-    assert.match(String(writeBlocked('src/app/handlers.py', cfg)), /contract/i, 'an unowned product write must be refused');
+    assert.match(String(writeBlocked('src/app/handlers.py', cfg)), /approved/i, 'an unowned product write must be refused');
   } finally { s.cleanup(); }
 });
 

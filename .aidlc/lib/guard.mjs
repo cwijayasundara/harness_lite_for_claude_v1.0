@@ -1,24 +1,14 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { PREFIX_CACHE_PATHS } from './paths.mjs';
-import { isCommitted, ownedFiles, validateContract } from './contract.mjs';
+import { governingPlans } from './artifacts.mjs';
 
+// One reader of ownership, shared with `scope-drift`. Two readers is how the guard and the check
+// came to disagree about which file was owned by what.
 function contractScopeState(cfg) {
-  const dir = cfg.layout?.contracts;
-  if (!dir || !existsSync(dir)) return { declared: [], parseError: false };
-  const declared = [];
-  let parseError = false;
-  for (const name of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
-    try {
-      const file = path.join(dir, name); const text = readFileSync(file, 'utf8');
-      const validation = validateContract(cfg.layout.root, file);
-      if (!validation.ok || validation.meta.plan_status !== 'approved' || !isCommitted(cfg.layout.root, file)) continue;
-      const files = ownedFiles(text);
-      if (!files) { parseError = true; continue; }
-      declared.push(...files);
-    } catch { parseError = true; }
-  }
-  return { declared, parseError };
+  try {
+    return { declared: governingPlans(cfg).flatMap((p) => p.owns), parseError: false };
+  } catch { return { declared: [], parseError: true }; }
 }
 
 function matchesDeclared(rel, declared) {
@@ -144,9 +134,17 @@ export function writeTargets(cmd) {
   const text = String(cmd ?? '').replace(/<<-?\s*['"]?([A-Za-z_][A-Za-z0-9_]*)['"]?[\s\S]*?^\s*\1\s*$/gm, ' ');
   const targets = [];
 
-  // A redirection writes to what follows it, and to nothing else. `2>&1` names a descriptor
-  // rather than a file, and the character class below declines to match it.
-  for (const [, target] of text.matchAll(/\d*>>?\s*([^\s;|&]+)/g)) targets.push(target);
+  // A redirection writes to what follows it, on the same line, and to nothing else. `2>&1` names
+  // a descriptor rather than a file, and the character class below declines to match it.
+  //
+  // Three narrowings, each from a fire this rule got wrong. `[ \t]*` rather than `\s*`: a `>` at
+  // the end of a line is not a redirection into the next line, which is how a commit message
+  // ending `<noreply@anthropic.com>` came to claim it was writing to `Claude-Session:`. `(?![=>])`
+  // and a preceding non-`=`: `=>` is an arrow function and `>=` a comparison, which is how a
+  // one-line node script reading the ledger came to look like a write. Six false blocks of this
+  // family in one session, against zero true catches — the whole point of recording a rule id is
+  // that the next narrowing does not have to be argued from memory.
+  for (const [, target] of text.matchAll(/(?<![=<>])\d*>>?(?![=>])[ \t]*([^\s;|&]+)/g)) targets.push(target);
 
   // Commands whose arguments are destinations. `cp` reads its sources, so only the last argument
   // is a write; `mv` unlinks its source, so every argument is.

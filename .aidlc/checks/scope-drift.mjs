@@ -1,74 +1,15 @@
-// The predictability guarantee, made testable.
+// The playbook asks that alignment between the diff and the plan be measured. This enforces it:
+// a changed file that no approved committed plan claims is a finding.
 //
-// The delivery contract owns exact paths. This compares the working diff against that scope.
+// lean-v2 B5 moved ownership to `## Files` in `plan.md`. It used to live in a contract section
+// called `## Structure and ownership`, and the plan's hand-written list was checked against a
+// diff the tooling could already compute — which is how ten of twenty-three contracts came to be
+// re-sealed for a missing line. One source now, in the artifact a human approved.
+
 import { execSync } from 'node:child_process';
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
-import path from 'node:path';
-import { isCommitted, ownedFiles, validateContract } from '../lib/contract.mjs';
+import * as artifacts from '../lib/artifacts.mjs';
 
-function git(root, args) {
-  return execSync(`git ${args}`, { cwd: root, encoding: 'utf8' });
-}
-
-function dirty(root, rel) {
-  try {
-    return git(root, `status --porcelain -- ${JSON.stringify(rel)}`).trim().length > 0;
-  } catch { return false; }
-}
-
-function age(root, abs, rel) {
-  let committed = 0;
-  try { committed = Date.parse(git(root, `log -1 --format=%cI -- ${JSON.stringify(rel)}`).trim()) || 0; } catch { /* untracked */ }
-  let mtime = 0;
-  try { mtime = statSync(abs).mtimeMs; } catch { /* missing */ }
-  return Math.max(committed, mtime);
-}
-
-// Prefer the contract being written in this change, not the last committed artifact.
-function currentDeliveryArtifact(cfg) {
-  const dir = cfg.layout.contracts;
-  if (!dir || !existsSync(dir)) return null;
-  const rows = readdirSync(dir).filter((f) => f.endsWith('.md')).map((f) => {
-    const abs = path.join(dir, f); const rel = path.relative(cfg.layout.root, abs);
-    return { f, abs, rel, dirty: dirty(cfg.layout.root, rel), m: age(cfg.layout.root, abs, rel) };
-  });
-  const pool = rows.filter((r) => r.dirty);
-  const ranked = (pool.length ? pool : rows).sort((a, b) => b.m - a.m);
-  return ranked[0] ?? null;
-}
-
-// Ownership is a property of the repository, not of whichever contract was edited last.
-//
-// This function and `currentDeliveryArtifact` answer two different questions that the check used
-// to conflate: "what is owned" and "which contract is being written now". Reading ownership off
-// the single most-recently-modified contract made the check disagree with the write guard —
-// `contractScopeState` in guard.mjs has always unioned across every approved committed contract,
-// and CLAUDE.md states that rule: a product file edit needs a committed approved contract that
-// owns the path. Recording `evals/expected.json`, owned by `eval-ratchet`, failed because
-// `recalibrate-eval-budgets` happened to have a newer mtime.
-//
-// Same validity bar as the guard: valid, plan approved, and committed. An uncommitted approval
-// is not an auditable gate.
-function eachContract(cfg) {
-  const dir = cfg.layout?.contracts;
-  if (!dir || !existsSync(dir)) return [];
-  return readdirSync(dir).filter((f) => f.endsWith('.md')).map((name) => {
-    const file = path.join(dir, name);
-    try {
-      const validation = validateContract(cfg.layout.root, file);
-      const approved = validation.ok && validation.meta.plan_status === 'approved';
-      return { name, file, rel: path.relative(cfg.layout.root, file), approved, committed: isCommitted(cfg.layout.root, file), owns: ownedFiles(readFileSync(file, 'utf8')) ?? [], issues: validation.issues };
-    } catch (error) {
-      return { name, file, rel: path.relative(cfg.layout.root, file), approved: false, committed: false, owns: [], issues: [String(error.message)] };
-    }
-  });
-}
-
-function ownedByAnyContract(cfg) {
-  return eachContract(cfg)
-    .filter((c) => c.approved && c.committed)
-    .flatMap((c) => c.owns.map((p) => ({ path: p, contract: c.name })));
-}
+const git = (root, args) => execSync(`git ${args}`, { cwd: root, encoding: 'utf8' }).trim();
 
 function changedFiles(root) {
   const tracked = git(root, 'diff --name-only HEAD').split('\n');
@@ -76,55 +17,50 @@ function changedFiles(root) {
   return [...new Set([...tracked, ...untracked])].filter(Boolean);
 }
 
+const under = (file, owned) => file === owned || file.startsWith(owned.replace(/\/$/, '') + '/');
+
 export async function run(cfg) {
-  const artifact = currentDeliveryArtifact(cfg);
-  if (!artifact) return { verdict: 'skipped', findings: [], note: 'no delivery contract' };
-  const body = readFileSync(artifact.abs, 'utf8');
-  const inFlight = ownedFiles(body);
-  if (!inFlight?.length) return { verdict: 'fail', findings: [{ file: artifact.rel, line: 0, rule: 'delivery-scope-missing', message: `${artifact.f} declares no owned files`, fix: 'add exact paths under "## Structure and ownership"' }] };
-
-  // What is owned: every approved *committed* contract, and nothing else. The same bar the write
-  // guard applies, which is the point — the guard already refuses product edits until the
-  // contract is committed, so by the time code changes exist the contract is in history. An
-  // in-flight uncommitted contract granting itself scope would let the check pass on an approval
-  // no reviewer can see.
-  const declared = [...new Set(ownedByAnyContract(cfg).map((o) => o.path))];
-
   let changed = [];
-  try {
-    changed = changedFiles(cfg.layout.root);
-  } catch { return { verdict: 'skipped', findings: [], note: 'not a git repo' }; }
+  try { changed = changedFiles(cfg.layout.root); }
+  catch { return { verdict: 'skipped', findings: [], note: 'not a git repo' }; }
 
+  // The artifacts themselves are always writable. A gate you cannot draft is not a gate.
   const ignore = (f) => f.startsWith('.aidlc/artifacts/') || f.startsWith('.aidlc/state/');
-  const matches = (f) => declared.some((d) => f === d || f.startsWith(d.replace(/\/$/, '') + '/'));
+  const product = changed.filter((f) => !ignore(f));
+  if (!product.length) return { verdict: 'pass', findings: [] };
 
-  // Validity is a question about the contracts governing *this* diff, not about whichever
-  // contract was touched last. `currentDeliveryArtifact` prefers the dirty one, and a draft being
-  // written is always the dirty one — so drafting the next piece of work made the current piece
-  // uncommittable, and a model that behaved perfectly failed contract-scope-honesty for it.
-  //
-  // The rule kept is "you may not implement against an unapproved contract". A contract that owns
-  // nothing that changed is not governing anything, and a draft in a tree is what a draft is.
-  //
-  // "Sole claimed authority", not merely "claims something that changed". Two contracts may name
-  // the same path — a draft for the next piece of work often claims the test file the current
-  // piece is editing — and a second claimant does not un-authorise a change the approved owner
-  // already authorises.
-  const unauthorised = changed.filter((f) => !ignore(f) && !matches(f));
-  const governing = (c) => c.owns.some((d) => unauthorised.some((f) => f === d || f.startsWith(d.replace(/\/$/, '') + '/')));
-  const invalid = eachContract(cfg)
-    .filter((c) => !(c.approved && c.committed) && governing(c))
-    .map((c) => ({
-      file: c.rel, line: 0, rule: 'contract-invalid',
-      message: c.issues.join('; ') || (c.approved ? 'contract is not committed' : 'contract plan is not approved'),
-      fix: 'validate and approve the delivery contract before implementation',
-    }));
-  if (invalid.length) return { verdict: 'fail', findings: invalid };
+  // Approved, committed, and unchanged since approval. An uncommitted approval is not an
+  // auditable gate, and an approved plan whose body has since been edited is a stale approval —
+  // `governingPlans` drops both, so a plan cannot widen its own scope after the fact.
+  const plans = artifacts.governingPlans(cfg);
+  const owned = [...new Set(plans.flatMap((p) => p.owns))];
 
-  const findings = unauthorised.map((f) => ({
-    file: f, line: 0, rule: 'scope-drift',
-    message: `changed but owned by no approved contract (in flight: ${artifact.rel})`,
-    fix: 'amend and re-approve the contract scope, or revert the change',
+  if (!plans.length) {
+    return {
+      verdict: 'fail',
+      findings: product.map((f) => ({
+        file: f, line: 0, rule: 'no-approved-plan',
+        message: 'changed with no approved committed plan governing this repository',
+        fix: 'harness approve <slug> spec --by <you>, then plan, and commit each',
+      })),
+    };
+  }
+
+  // A plan that claims nothing governs nothing, and would silently authorise the whole tree.
+  const empty = plans.filter((p) => !p.owns.length).map((p) => ({
+    file: `.aidlc/artifacts/${p.slug}/plan.md`, line: 0, rule: 'plan-scope-missing',
+    message: 'an approved plan declares no owned files',
+    fix: 'list every path this change may touch, in backticks, under "## Files"',
   }));
+  if (empty.length) return { verdict: 'fail', findings: empty };
+
+  const findings = product
+    .filter((f) => !owned.some((d) => under(f, d)))
+    .map((f) => ({
+      file: f, line: 0, rule: 'scope-drift',
+      message: `changed but claimed by no approved plan (${plans.map((p) => p.slug).join(', ')})`,
+      fix: 'add the path to "## Files" and re-approve the plan, or revert the change',
+    }));
+
   return { verdict: findings.length ? 'fail' : 'pass', findings };
 }

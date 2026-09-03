@@ -224,8 +224,9 @@ test('legacy handoff automation is absent', () => {
   assert.equal(existsSync(path.join(ROOT, '.github/workflows/harness-handoff.yml')), false);
   assert.equal(existsSync(path.join(ROOT, '.github/workflows/harness-design.yml')), false);
   assert.equal(existsSync(path.join(A, 'lib/handoff.mjs')), false);
-  assert.equal(existsSync(path.join(A, 'templates/spec.md')), false);
-  assert.equal(existsSync(path.join(A, 'templates/plan.md')), false);
+  // spec.md and plan.md are templates again — lean-v2 B4 made them two of the three artifacts a
+  // change produces. What must stay absent is the automation that once wrote them unasked.
+  assert.equal(existsSync(path.join(A, 'lib/contract.mjs')), false);
   // The monitor half of this test went with lean-v2 cut 3: the workflow, the scheduled detect,
   // and the pull request it opened are gone along with operations.mjs and incidents.mjs. The
   // Maintain loop is an example script now, and returns as code when a service produces a defect.

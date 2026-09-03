@@ -21,7 +21,7 @@ import { dispatch } from '../hooks/dispatch.mjs';
 import * as evalGate from '../lib/eval-gate.mjs';
 
 const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
-import { behaviourIds, contractState, decideIntentRef, isCommitted, sealContract, validateContract, writeEvidence, writeIntentRef } from '../lib/contract.mjs';
+import * as artifacts from '../lib/artifacts.mjs';
 import { renderClaudeHooks, renderClaudeInstructions } from '../lib/projection.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -341,110 +341,57 @@ async function main() {
     }
 
     case 'new': {
-      const kind = argv[1]; const slug = argv[2];
-      if (!['intent', 'review', 'eval'].includes(kind) || !slug) { console.error('usage: harness new intent|review|eval <slug>'); return 2; }
-      if (!validSlug(slug)) { console.error('slug must be 1–63 lowercase letters, digits, or hyphens; it cannot contain paths'); return 2; }
+      const slug = argv[1];
+      if (!slug) { console.error('usage: harness new <slug>   |   harness new eval <slug>'); return 2; }
       const cfg = loadConfig(findRepoRoot());
-      if (kind === 'eval') {
+
+      // An eval is not a change; it is a regression the suite keeps. Kept on this verb because
+      // "the incident becomes a permanent eval" is a step of the same loop.
+      if (slug === 'eval') {
+        const id = argv[2];
+        if (!validSlug(id)) { console.error('usage: harness new eval <slug>'); return 2; }
         const dir = path.join(cfg.layout.aidlc, 'evals', 'pending'); mkdirSync(dir, { recursive: true });
-        const dst = path.join(dir, `${slug}.json`);
+        const dst = path.join(dir, `${id}.json`);
         if (existsSync(dst)) { console.log(dst); return 0; }
-        writeFileSync(dst, JSON.stringify({ id: slug, fixture: 'clean-app', prompt: `Regression for incident ${slug}. Reproduce, then keep the suite green without editing the failing test.`, assert: [{ fixture_tests_pass: true }, { files_unchanged: ['README.md'] }] }, null, 2) + '\n');
+        writeFileSync(dst, JSON.stringify({ id, fixture: 'clean-app', prompt: `Regression for ${id}. Reproduce, then keep the suite green without editing the failing test.`, assert: [{ fixture_tests_pass: true }, { files_unchanged: ['README.md'] }] }, null, 2) + '\n');
         console.log(dst); return 0;
       }
-      const dir = cfg.layout[kind]; mkdirSync(dir, { recursive: true });
-      const dst = path.join(dir, `${slug}.md`);
-      if (existsSync(dst)) { console.log(dst); return 0; }
-      const now = new Date();
-      const tpl = readFileSync(path.join(HERE, 'templates', `${kind}.md`), 'utf8').replaceAll('{{slug}}', slug).replaceAll('{{date}}', now.toISOString().slice(0, 10)).replaceAll('{{timestamp}}', now.toISOString());
-      writeFileSync(dst, tpl); console.log(dst); return 0;
+
+      if (!validSlug(slug)) { console.error('slug must be 1-63 lowercase letters, digits, or hyphens; it cannot contain paths'); return 2; }
+      try {
+        for (const written of artifacts.create(cfg, slug, path.join(HERE, 'templates'))) console.log(written);
+        return 0;
+      } catch (error) { console.error(error.message); return 1; }
+    }
+
+    // The one approval verb. It replaced `contract accept`, two `contract seal --scope` calls and
+    // `contract evidence`: four commands, and because each seal demanded a commit before the next
+    // was allowed, four commits for one human decision.
+    case 'approve': {
+      const cfg = loadConfig(findRepoRoot());
+      const slug = argv[1]; const kind = argv[2];
+      const by = flag('by', process.env.HARNESS_ACTOR);
+      if (!validSlug(slug) || !artifacts.GATED.includes(kind)) { console.error(`usage: harness approve <slug> ${artifacts.GATED.join('|')} --by <identity>`); return 2; }
+      try {
+        const result = artifacts.approve(cfg, slug, kind, { by: typeof by === 'string' ? by : null });
+        console.log(`${kind} approved  ${result.digest}\n${path.relative(cfg.layout.root, result.file)}\ncommit this approval before continuing`);
+        return 0;
+      } catch (error) { console.error(error.message); return 1; }
     }
 
     case 'status': {
       const cfg = loadConfig(findRepoRoot());
       const requested = argv[1] && !argv[1].startsWith('--') ? argv[1] : null;
-      // One artifact model. The pre-contract intent -> spec -> plan -> review walk is gone; the
-      // chain's own rows carry the stage clocks that used to hang off it.
-      const contractNames = requested ? [`${requested}.md`] : existsSync(cfg.layout.contracts) ? readdirSync(cfg.layout.contracts).filter((name) => name.endsWith('.md')).sort() : [];
-      const contractRows = contractNames.filter((name) => existsSync(path.join(cfg.layout.contracts, name))).map((name) => {
-        const slug = name.slice(0, -3); return { slug, ...contractState(cfg.layout.root, path.join(cfg.layout.contracts, name), path.join(cfg.layout.evidence, `${slug}.json`)) };
-      });
-      const rendered = contractRows.length
-        ? `contracts\n\n  change                         next-stage           integrity\n${contractRows.map((row) => `  ${row.slug.padEnd(30)} ${row.stage.padEnd(20)} ${row.ok ? 'valid' : 'INVALID'}`).join('\n')}\n${contractRows.flatMap((row) => (row.issues ?? []).map((issue) => `  ERROR ${row.slug}: ${issue}`)).join('\n')}\n`
-        : 'contracts  no contracts\n';
-      console.log(has('json') ? JSON.stringify({ contracts: contractRows }, null, 2) : rendered);
-      return contractRows.some((row) => !row.ok) ? 1 : 0;
-    }
-
-    case 'contract': {
-      const cfg = loadConfig(findRepoRoot()); const sub = argv[1]; const slug = argv[2];
-      if (sub === 'validate' && has('all')) {
-        const names = existsSync(cfg.layout.contracts) ? readdirSync(cfg.layout.contracts).filter((name) => name.endsWith('.md')).sort() : [];
-        if (!names.length) { console.log('PASS  contracts  no contract artifacts'); return 0; }
-        let ok = true;
-        for (const name of names) {
-          const result = validateContract(cfg.layout.root, path.join(cfg.layout.contracts, name));
-          console.log(result.ok ? `PASS  ${name.slice(0, -3)}` : `FAIL  ${name.slice(0, -3)}\n${result.issues.map((issue) => `  - ${issue}`).join('\n')}`);
-          ok = ok && result.ok;
-        }
-        return ok ? 0 : 1;
+      const rows = (requested ? [requested] : artifacts.slugs(cfg)).map((slug) => artifacts.state(cfg, slug));
+      if (has('json')) { console.log(JSON.stringify({ changes: rows }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
+      if (!rows.length) { console.log('changes  none'); return 0; }
+      console.log('changes\n\n  change                         next                 spec       plan');
+      for (const row of rows) {
+        const mark = (kind) => row.artifacts[kind]?.state ?? 'absent';
+        console.log(`  ${row.slug.padEnd(30)} ${row.next.padEnd(20)} ${mark('spec').padEnd(10)} ${mark('plan')}`);
       }
-      if (!validSlug(slug)) { console.error('usage: harness contract new|accept|validate|seal|evidence <slug>'); return 2; }
-      const file = path.join(cfg.layout.contracts, `${slug}.md`);
-      const migrationFile = path.join(cfg.layout.migrations, `${slug}.json`);
-      if (sub === 'new') {
-        const ref = path.join(cfg.layout.intentRefs, `${slug}.json`);
-        if (existsSync(file) || existsSync(ref)) { console.error(`contract or intent ref already exists for ${slug}`); return 2; }
-        const provider = String(flag('provider', 'git')); const locator = String(flag('locator', `.aidlc/artifacts/intent/${slug}.md`));
-        const revision = String(flag('revision', 'pending')); const authority = String(flag('authority', provider === 'git' ? 'git' : 'external'));
-        writeIntentRef(ref, { id: slug, provider, locator, revision, authority });
-        const tpl = readFileSync(path.join(HERE, 'templates', 'contract.md'), 'utf8').replaceAll('{{slug}}', slug);
-        try { mkdirSync(cfg.layout.contracts, { recursive: true }); writeFileSync(file, tpl, { flag: 'wx' }); }
-        catch (error) { rmSync(ref, { force: true }); throw error; }
-        console.log(`${file}\n${ref}`); return 0;
-      }
-      if (!existsSync(file)) { console.error(`contract not found: ${file}`); return 2; }
-      if (sub === 'accept') {
-        const by = flag('by'); const revision = flag('revision'); const digest = flag('snapshot-digest');
-        if (typeof by !== 'string' || typeof revision !== 'string' || typeof digest !== 'string') {
-          console.error('usage: harness contract accept <slug> --by <identity> --revision <immutable-revision> --snapshot-digest sha256:<64-hex>'); return 2;
-        }
-        try {
-          decideIntentRef(path.join(cfg.layout.intentRefs, `${slug}.json`), { by, revision, snapshot_digest: digest });
-          console.log(`intent accepted  ${slug}\ncommit this decision before sealing the spec`); return 0;
-        } catch (error) { console.error(error.message); return 1; }
-      }
-      if (sub === 'validate') {
-        const result = validateContract(cfg.layout.root, file);
-        if (has('json')) console.log(JSON.stringify(result, null, 2)); else console.log(result.ok ? `PASS  ${slug}` : `FAIL  ${slug}\n${result.issues.map((i) => `  - ${i}`).join('\n')}`);
-        return result.ok ? 0 : 1;
-      }
-      if (sub === 'status') {
-        const state = contractState(cfg.layout.root, file, path.join(cfg.layout.evidence, `${slug}.json`));
-        if (has('json')) console.log(JSON.stringify(state, null, 2));
-        else console.log(`${state.ok ? 'PASS' : 'FAIL'}  ${slug}  ${state.stage}${state.issues.length ? `\n${state.issues.map((issue) => `  - ${issue}`).join('\n')}` : ''}`);
-        return state.ok ? 0 : 1;
-      }
-      if (sub === 'seal') {
-        const scope = String(flag('scope', 'spec')); const before = validateContract(cfg.layout.root, file);
-        if (scope === 'spec' && before.intent?.decision?.status !== 'accepted') { console.error('intent must be accepted before sealing the spec'); return 1; }
-        if (!before.ok) { console.error(`contract is invalid:\n${before.issues.map((issue) => `  - ${issue}`).join('\n')}`); return 1; }
-        const gateFile = scope === 'spec' ? path.join(cfg.layout.intentRefs, `${slug}.json`) : file;
-        if (!isCommitted(cfg.layout.root, gateFile)) { console.error(`${scope === 'spec' ? 'intent acceptance' : 'spec approval'} must be committed before sealing the ${scope}`); return 1; }
-        try {
-          const digest = sealContract(file, scope);
-          console.log(`${scope} sealed  ${digest}\ncommit this approval before continuing`); return 0;
-        } catch (error) { console.error(error.message); return 1; }
-      }
-      if (sub === 'evidence') {
-        const result = validateContract(cfg.layout.root, file);
-        if (!result.ok || result.meta.plan_status !== 'approved') { console.error('contract must have valid spec and plan approvals before evidence'); return 1; }
-        if (!isCommitted(cfg.layout.root, file)) { console.error('plan approval must be committed before evidence'); return 1; }
-        const out = path.join(cfg.layout.evidence, `${slug}.json`);
-        try { writeEvidence(out, slug, result.digests.plan, behaviourIds(readFileSync(file, 'utf8'))); console.log(out); return 0; }
-        catch (error) { console.error(error.message); return 1; }
-      }
-      console.error('usage: harness contract new|accept|validate|status|seal|evidence <slug> [--scope spec|plan]'); return 2;
+      for (const row of rows) for (const issue of row.issues) console.log(`  ERROR ${row.slug}: ${issue}`);
+      return rows.some((r) => !r.ok) ? 1 : 0;
     }
 
     case 'hook': return dispatch(argv[1]);
@@ -455,9 +402,9 @@ async function main() {
   harness init [--into DIR]        create .aidlc/ plus selected provider projections
   harness doctor                   capability verbs and budget
   harness check --stage <s>        run a stage   (--changed  --all  --json)
-  harness new intent|review|eval <slug>
-  harness contract new|accept|validate|status|seal|evidence <slug>
-  harness status [slug] [--json]  contract stage and integrity
+  harness new <slug>               intent.md, spec.md, plan.md, review.md for one change
+  harness approve <slug> spec|plan --by <identity>
+  harness status [slug] [--json]  where each change is, and whether its approvals still hold
   harness ledger [audit] [--days 30]
   harness evals gate [--update]    grade the newest run against evals/expected.json
   harness baseline capture|check

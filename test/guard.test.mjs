@@ -150,7 +150,7 @@ test('require_contract defaults on, and an explicit choice still wins', async ()
 
 function contractCfg(f) {
   return {
-    layout: { ...f.layout, contracts: path.join(f.root, '.aidlc/artifacts/contracts') },
+    layout: { ...f.layout, artifacts: path.join(f.root, '.aidlc/artifacts') },
     guard: { require_contract: true },
   };
 }
@@ -202,10 +202,10 @@ test('scope guard remains configurable for non-product repositories', () => {
 
 test('require_contract permits only paths owned by a committed approved contract', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const layout = { root: s.work, contracts: path.join(s.work, '.aidlc/artifacts/contracts'), state: path.join(s.work, '.aidlc/state') };
+    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
     const cfg = { layout, guard: { require_contract: true } };
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
-    assert.match(writeBlocked('src/app/handlers.py', cfg), /outside every approved contract/);
+    assert.match(writeBlocked('src/app/handlers.py', cfg), /outside every approved/);
     assert.equal(writeBlocked('.aidlc/artifacts/intent-refs/change.json', cfg), null);
   } finally { s.cleanup(); }
 });
@@ -217,7 +217,7 @@ test('require_contract permits only paths owned by a committed approved contract
 // A human sealing a plan that names the exact path is the decision the rule exists to require.
 test('a protected path an approved committed contract names is writable', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const layout = { root: s.work, contracts: path.join(s.work, '.aidlc/artifacts/contracts'), state: path.join(s.work, '.aidlc/state') };
+    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
     const cfg = { layout, guard: { require_contract: true, protected_paths: ['src/app', 'evals/fixtures'] } };
 
     // Owned by the fixture's committed approved contract, and protected. The plan wins.
@@ -232,7 +232,7 @@ test('a protected path an approved committed contract names is writable', () => 
     // With nothing protected, the same path is refused by the ownership rule instead. Both rules
     // still refuse it; ownership is what either of them yields to.
     const unprotected = { layout, guard: { require_contract: true } };
-    assert.match(String(writeBlocked('src/app/handlers.py', unprotected)), /outside every approved contract/);
+    assert.match(String(writeBlocked('src/app/handlers.py', unprotected)), /outside every approved/);
     assert.equal(writeBlocked('src/app/text.py', unprotected), null);
   } finally { s.cleanup(); }
 });
@@ -269,6 +269,21 @@ test('naming a rule is not invoking it', () => {
 
   // Heredoc bodies are not write destinations either: the file after `>` is, and nothing inside.
   assert.deepEqual(writeTargets("cat > real.txt <<'EOF'\nnot > a-target.txt\nEOF"), ['real.txt']);
+});
+
+// lean-v2 B9, continued. Six false blocks of one family in one session, against zero true
+// catches: a `>` that is not a redirection. A guard people route around protects nothing.
+test('a redirection is a redirection, not every angle bracket', () => {
+  // A trailer ending in an address, with the next line read as its destination.
+  assert.deepEqual(writeTargets('git commit -m "x\nCo-Authored-By: A <n@example.invalid>\nClaude-Session: https://x"'), []);
+  // An arrow function and a comparison.
+  assert.deepEqual(writeTargets('node -e "console.log(p.map(x=>x.owns).length)"'), []);
+  assert.deepEqual(writeTargets('node -e "if (a >= b) log(1)"'), []);
+
+  // And the writes it exists for still register.
+  assert.deepEqual(writeTargets('echo hi > out.txt'), ['out.txt']);
+  assert.deepEqual(writeTargets('echo hi >> out.txt'), ['out.txt']);
+  assert.deepEqual(writeTargets('cmd 2>&1 | tail'), []);
 });
 
 test('lock tests writes a lock the write guard honors, and clear removes it', () => {

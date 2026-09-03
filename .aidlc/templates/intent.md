@@ -1,10 +1,11 @@
+---
+status: draft
+---
 # Intent: {{slug}}
 
 - **Date:** {{date}}
-- **Opened at:** {{timestamp}}
 - **Author:**
-- **Status:** draft <!-- draft | accepted | closed -->
-- **Source:** <conversation, ticket URL, or ../incident/{{slug}}.md>
+- **Source:** <conversation, ticket URL, or a control-band breach>
 
 ## Problem
 

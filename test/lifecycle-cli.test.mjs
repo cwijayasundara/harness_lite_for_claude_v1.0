@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { A, C, BIN } from './_paths.mjs';
-import { sealContract } from '../.aidlc/lib/contract.mjs';
 
 const run = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
 
@@ -22,32 +21,89 @@ test('new rejects path traversal and non-canonical artifact slugs', () => {
   const root = repo();
   try {
     for (const slug of ['../escape', '/absolute', 'Uppercase', 'two words', 'a'.repeat(64)]) {
-      const result = run(root, 'new', 'intent', slug);
+      const result = run(root, 'new', slug);
       assert.equal(result.status, 2, slug);
       assert.match(result.stderr, /slug must be/);
     }
     assert.equal(existsSync(path.join(root, 'escape.md')), false);
-    assert.equal(run(root, 'new', 'intent', 'safe-change').status, 0);
+    assert.equal(run(root, 'new', 'safe-change').status, 0);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('status fails when intent acceptance has not entered git history', () => {
+// lean-v2 B4. One approval verb, and the two rules that make an approval mean something: it is
+// recorded against a body that is in git history, and the gates are ordered.
+//
+// The contract chain spent four commands and four commits on this — accept, seal --scope spec,
+// seal --scope plan, evidence — with a commit forced between each. The gates are the same; the
+// ceremony is not.
+test('approve refuses an uncommitted artifact, and refuses a plan before its spec', () => {
   const root = repo();
+  const commit = (m) => {
+    spawnSync('git', ['add', '-A'], { cwd: root });
+    spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', m], { cwd: root });
+  };
   try {
-    // A spec approval standing on an intent acceptance that never entered git history.
-    // validateContract checks the ref *says* accepted; only history says anyone can see it.
-    assert.equal(run(root, 'contract', 'new', 'uncommitted-gate').status, 0);
-    const ref = path.join(root, '.aidlc/artifacts/intent-refs/uncommitted-gate.json');
-    const value = JSON.parse(readFileSync(ref, 'utf8'));
-    value.decision = { status: 'accepted', decided_by: 'test', decided_at: '2026-08-24T00:00:00.000Z' };
-    value.snapshot_digest = `sha256:${'a'.repeat(64)}`;
-    value.source = { ...value.source, revision: 'deadbeef' };
-    writeFileSync(ref, JSON.stringify(value, null, 2) + '\n');
-    const contract = path.join(root, '.aidlc/artifacts/contracts/uncommitted-gate.md');
-    sealContract(contract, 'spec');
-    const result = run(root, 'status', 'uncommitted-gate');
-    assert.equal(result.status, 1, result.stdout + result.stderr);
-    assert.match(result.stdout, /acceptance is not committed/);
+    assert.equal(run(root, 'new', 'gate-order').status, 0);
+    for (const kind of ['intent', 'spec', 'plan', 'review']) {
+      assert.ok(existsSync(path.join(root, '.aidlc/artifacts/gate-order', `${kind}.md`)), `${kind}.md not created`);
+    }
+
+    // Uncommitted: an approval of a working copy is an approval of something no reviewer can read.
+    const early = run(root, 'approve', 'gate-order', 'spec', '--by', 'tester');
+    assert.equal(early.status, 1);
+    assert.match(early.stderr, /commit .*spec\.md before approving/);
+
+    commit('draft gate-order');
+
+    // Ordered: a plan approved before its spec is a plan approved against nothing.
+    const outOfOrder = run(root, 'approve', 'gate-order', 'plan', '--by', 'tester');
+    assert.equal(outOfOrder.status, 1);
+    assert.match(outOfOrder.stderr, /approve the spec before the plan/);
+
+    // Only the two gates are approvable.
+    assert.equal(run(root, 'approve', 'gate-order', 'intent', '--by', 'tester').status, 2);
+
+    assert.equal(run(root, 'approve', 'gate-order', 'spec', '--by', 'tester').status, 0);
+    commit('spec approved');
+    assert.equal(run(root, 'approve', 'gate-order', 'plan', '--by', 'tester').status, 0);
+    commit('plan approved');
+
+    const front = readFileSync(path.join(root, '.aidlc/artifacts/gate-order/plan.md'), 'utf8');
+    assert.match(front, /^status: approved$/m);
+    assert.match(front, /^by: tester$/m);
+    assert.match(front, /^digest: sha256:[a-f0-9]{64}$/m);
+
+    assert.match(run(root, 'status', 'gate-order').stdout, /approved\s+approved/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// The third state. An approved artifact whose body has since changed is not a draft and is not
+// approved, and saying so out loud is the point — the alternative is a gate that quietly still
+// reads as passed while the text under it moved.
+test('editing an approved artifact reports a stale approval', () => {
+  const root = repo();
+  const commit = (m) => {
+    spawnSync('git', ['add', '-A'], { cwd: root });
+    spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', m], { cwd: root });
+  };
+  try {
+    assert.equal(run(root, 'new', 'drifted').status, 0);
+    commit('draft drifted');
+    assert.equal(run(root, 'approve', 'drifted', 'spec', '--by', 'tester').status, 0);
+    commit('spec approved');
+
+    const spec = path.join(root, '.aidlc/artifacts/drifted/spec.md');
+    writeFileSync(spec, readFileSync(spec, 'utf8') + '\nAdded after approval.\n');
+
+    const result = run(root, 'status', 'drifted');
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stdout, /stale-approval/);
+    assert.match(result.stdout, /changed after it was approved/);
+
+    // And a plan cannot be approved on top of a spec that moved.
+    const blocked = run(root, 'approve', 'drifted', 'plan', '--by', 'tester');
+    assert.equal(blocked.status, 1);
+    assert.match(blocked.stderr, /re-approve it first/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
