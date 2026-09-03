@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/one-eval-number.json
 - **Story ref:** none
 - **Risk:** low
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:18384cd3892e2ad6a6790f6f5e71728a157b084bf3efcdbab130fc2e3576482b
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
