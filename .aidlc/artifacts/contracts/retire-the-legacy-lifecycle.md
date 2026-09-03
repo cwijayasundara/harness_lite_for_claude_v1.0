@@ -5,10 +5,10 @@
 - **Intent ref:** ../intent-refs/retire-the-legacy-lifecycle.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** approved
-- **Spec approval digest:** sha256:797d3f333b6c180198d2abd615b5f394ed641da79ac955a714fe9b45a60c083f
-- **Plan status:** approved
-- **Plan approval digest:** sha256:56c8bbfc9462bbf155f3096f974a6a71f6b3bf1cf9ab1eae7f5377293f2216b8
+- **Spec status:** draft
+- **Spec approval digest:** pending
+- **Plan status:** draft
+- **Plan approval digest:** pending
 
 ## Outcome
 
@@ -18,9 +18,16 @@ One artifact model, and `harness status` exits 0 for a repository whose contract
 
 ### B1
 
-Given this repository, whose eight changes all went through the contract chain,
+Given this repository, whose changes all went through the contract chain,
 When `harness status` runs,
-Then it exits 0 and prints no `spec` or `plan` next-stage row.
+Then the output carries no `spec` or `plan` next-stage row and no legacy integrity error, and the
+only causes of a non-zero exit are real findings.
+
+Originally this said "exits 0", which conflated two claims: that the legacy lifecycle is gone, and
+that this repository is healthy. They are different. `status` currently exits 1 because
+`p0-unblock-the-loop`'s review elapsed 46 hours against a 24-hour `review_hours` limit — a true
+breach, correctly reported. Raising the limit to reach zero would be moving a threshold to change
+a verdict, which is the thing this harness exists to prevent.
 
 ### B2
 
@@ -154,7 +161,7 @@ inside the diff is what keeps it reviewable, not a second contract.
 
 | Behaviour | Test or evidence |
 |---|---|
-| B1 | `harness status` on this repository exits 0 |
+| B1 | `harness status` on this repository: no legacy block, and the only non-zero cause is a real SLA breach |
 | B2 | `test/indicators.test.mjs` — a completed chain reports an SLA verdict |
 | B3 | `test/lifecycle-cli.test.mjs` — the incident SLA test, unchanged |
 | B4 | `test/lifecycle-cli.test.mjs` — an incident with no intent is INVALID and exits non-zero |
