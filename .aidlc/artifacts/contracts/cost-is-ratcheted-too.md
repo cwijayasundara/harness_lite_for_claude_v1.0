@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/cost-is-ratcheted-too.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:ce913a0f74f87ccb4ddf92ec76184430c789d4a56e14634468e4cf9d0521c55b
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
