@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/the-suite-total-is-ratcheted.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:fd0704e17f4bdcf32a0ba6793e04ff7b7119ce7db413fce880615eacfb174276
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
