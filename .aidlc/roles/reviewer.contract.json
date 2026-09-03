@@ -1,7 +1,0 @@
-{
-  "agent": "reviewer",
-  "may_spawn": false,
-  "may_write": false,
-  "tools": ["Read", "Grep", "Glob"],
-  "why": "A reviewer that can edit the diff it reviewed has reviewed its own work."
-}

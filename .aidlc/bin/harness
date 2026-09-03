@@ -22,7 +22,7 @@ import * as evalGate from '../lib/eval-gate.mjs';
 
 const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
 import * as artifacts from '../lib/artifacts.mjs';
-import { renderClaudeHooks, renderClaudeInstructions } from '../lib/projection.mjs';
+import { renderClaudeHooks, renderClaudeInstructions, renderModel } from '../lib/projection.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PLUGIN_ROOT = path.dirname(HERE);
@@ -172,6 +172,21 @@ async function main() {
       }
 
       writeFileSync(L.claudeMd, claudeMdNext);
+
+      // lean-v2 B7. The generator/evaluator split is two model ids in [models], rendered into the
+      // two files that carry it. Written here rather than by hand so the registry stays the one
+      // place either id is stated.
+      try {
+        const models = loadConfig(root).models;
+        for (const [file, model, extra] of [
+          [path.join(HERE, 'skills', 'implement', 'SKILL.md'), models.generator, { context: 'fork' }],
+          [path.join(HERE, 'roles', 'evaluator.md'), models.evaluator, { isolation: 'worktree' }],
+        ]) {
+          if (!existsSync(file)) continue;
+          const next = renderModel(readFileSync(file, 'utf8'), model, extra);
+          if (next !== readFileSync(file, 'utf8')) writeFileSync(file, next);
+        }
+      } catch { /* a project without [models] keeps whatever the plugin shipped */ }
       // A project declares the harness; it never contains one. Copying the sensors in and
       // leaving the guides to a second, invisible install step is what produced projects that
       // ran every check with no guide loaded and no way to notice.

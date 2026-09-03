@@ -42,8 +42,23 @@ exclude = ["node_modules", ".venv", "dist", ".git", "__pycache__", "fixtures"]
 [budget]
 max_findings = 20
 
+# The generator/evaluator split, as two model ids rather than a routing subsystem.
+#
+# lean-v2 cut 5 deleted 330 lines of policy resolution, handoff receipts and a provider adapter
+# that no contract's evidence had ever invoked. Claude Code frontmatter does the same job: the
+# `implement` skill runs on the generator in a forked context, the `evaluator` agent runs on the
+# evaluator in a worktree it did not write to. `harness init` renders both from here.
+#
+# Haiku generates on purpose. A harness that steers a cheap model to a passing eval is a stronger
+# harness than one that needs a frontier model to look good, and it makes the 22-task suite cheap
+# enough to run on every steering change. Judgment stays frontier: that is Fusion's own result,
+# and its own failure case is delegating the judgment itself.
+[models]
+generator = "claude-haiku-4-5-20251001"
+evaluator = "claude-opus-5"
+
 [limits]
-skills          = 10
+skills          = 7
 agents          = 3
 hooks           = 5
 hook_loc        = 600

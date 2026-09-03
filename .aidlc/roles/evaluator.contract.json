@@ -1,0 +1,7 @@
+{
+  "agent": "evaluator",
+  "may_spawn": false,
+  "may_write": false,
+  "tools": ["Read", "Grep", "Glob", "Bash"],
+  "why": "An evaluator that can edit the diff it evaluated has reviewed its own work. Bash so it can run the checks; no Write or Edit so it cannot make them pass."
+}

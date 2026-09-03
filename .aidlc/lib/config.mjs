@@ -44,7 +44,10 @@ export function loadConfig(root) {
     // "nothing to declare", which a boolean gate does not. The spread below means an explicit
     // false is still honoured — a default is what happens when nobody chose.
     guard: { protected_paths: [], deny_bash: [], require_contract: true, ...(raw.guard ?? {}) },
-    sla: { intent_hours: 8, design_hours: 24, planning_hours: 8, build_hours: 72, review_hours: 24, incident_to_intent_minutes: 60, ...(raw.sla ?? {}) },
+    // lean-v2 B7. Two model ids, rendered into the `implement` skill and the `evaluator` agent by
+    // `harness init`. Defaults rather than required, so a project that says nothing still gets a
+    // generator cheaper than its evaluator instead of one model doing both jobs.
+    models: { generator: 'claude-haiku-4-5-20251001', evaluator: 'claude-opus-5', ...(raw.models ?? {}) },
     layout: L,
   };
   return cfg;

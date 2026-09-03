@@ -311,3 +311,30 @@ test('no document states a budget number of its own', () => {
   }
   assert.deepEqual(wrong, [], `\n  ${wrong.join('\n  ')}`);
 });
+
+// lean-v2 B7. The generator/evaluator split, checked structurally rather than trusted.
+//
+// It used to be 330 lines of policy resolution, handoff receipts and a provider adapter that no
+// contract's evidence ever invoked — configuration describing a separation that never happened.
+// Frontmatter makes it real: a different model, a context it did not write in, and no tool that
+// could make the checks pass. This test is what stops the two ids quietly becoming one.
+test('the generator and the evaluator are different models, and only one of them can write', async () => {
+  const { parseToml } = await import('../.aidlc/lib/toml.mjs');
+  const models = parseToml(readFileSync(path.join(A, 'harness.toml'), 'utf8')).models ?? {};
+  assert.ok(models.generator && models.evaluator, '[models] must name a generator and an evaluator');
+  assert.notEqual(models.generator, models.evaluator,
+    'one model doing both jobs is not a separation of duties, whatever the config says');
+
+  const implement = frontmatter(path.join(A, 'skills/implement/SKILL.md'));
+  assert.equal(implement.model, models.generator, 'the implement skill must run on the generator');
+  assert.equal(implement.context, 'fork', 'the generator needs its own context, per the Fusion result');
+
+  const evaluator = frontmatter(path.join(A, 'roles/evaluator.md'));
+  assert.equal(evaluator.model, models.evaluator, 'the evaluator must run on the evaluator model');
+  assert.equal(evaluator.isolation, 'worktree', 'a fresh checkout it did not write to is the independence');
+  const tools = evaluator.tools.split(',').map((t) => t.trim());
+  assert.ok(tools.includes('Bash'), 'the evaluator must be able to run the checks');
+  for (const forbidden of ['Write', 'Edit', 'NotebookEdit']) {
+    assert.ok(!tools.includes(forbidden), `the evaluator must not be able to make the checks pass (${forbidden})`);
+  }
+});

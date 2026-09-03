@@ -8,7 +8,7 @@ import path from 'node:path';
 import { A, C, BIN } from './_paths.mjs';
 import { measure, RECORD } from '../.aidlc/checks/budget.mjs';
 
-const LIMITS = { skills: 10, agents: 3, hooks: 5, hook_loc: 600, claude_md_lines: 120 };
+const LIMITS = { skills: 7, agents: 3, hooks: 5, hook_loc: 600, claude_md_lines: 120 };
 
 // An installed project, measured the way a user's CI measures it: by running the harness that
 // was actually installed there. Importing `measure` directly would resolve the harness root to
@@ -44,7 +44,7 @@ test('an installed project measures the harness it was given', () => {
   try {
     const b = budgetOf(root);
     assert.equal(b.measured.hooks, 5, 'hook bindings');
-    assert.equal(b.measured.skills, 10, 'skills');
+    assert.equal(b.measured.skills, 7, 'skills');
     assert.equal(b.measured.agents, 3, 'agents');
     assert.ok(b.measured.hook_loc > 0, `hook_loc = ${b.measured.hook_loc}`);
     assert.equal(b.verdict, 'pass', 'a full harness in an empty project is exactly at budget');
@@ -59,7 +59,7 @@ test('init records what it shipped, and a self-install records nothing', () => {
   try {
     const record = path.join(root, '.aidlc', RECORD);
     assert.ok(existsSync(record), `${RECORD} was not written`);
-    assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).shipped, { skills: 10, agents: 3 });
+    assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).shipped, { skills: 7, agents: 3 });
     assert.equal(existsSync(path.join(A, RECORD)), false, 'a self-install must not record itself');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -71,10 +71,10 @@ test('a project inherits a spent budget, not an empty one', () => {
   try {
     mkdirSync(path.join(root, '.claude', 'skills', 'my-own-skill'), { recursive: true });
     const b = budgetOf(root);
-    assert.equal(b.measured.skills, 11);
+    assert.equal(b.measured.skills, 8);
     assert.equal(b.verdict, 'fail');
     assert.notEqual(b.status, 0, 'the stage must go red, not merely report');
-    assert.match(JSON.stringify(b.findings), /skills = 11, limit 10/);
+    assert.match(JSON.stringify(b.findings), /skills = 8, limit 7/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -90,7 +90,7 @@ test('a budget that cannot account for a surface is red, not green', () => {
     assert.match(JSON.stringify(b.findings), /skills/, 'the finding names the surface');
     const shim = path.join(root, '.aidlc', 'bin', 'harness');
     const doctor = spawnSync('bash', [shim, 'doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A } });
-    assert.match(doctor.stdout, /skills=\?\/10/, 'doctor must not print a confident zero either');
+    assert.match(doctor.stdout, /skills=\?\/7/, 'doctor must not print a confident zero either');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -117,7 +117,7 @@ test('re-running init refreshes the recorded inventory', () => {
     assert.equal(budgetOf(root).measured.skills, 1, 'the under-count should be believed first');
     const again = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
     assert.equal(again.status, 0, again.stderr);
-    assert.equal(budgetOf(root).measured.skills, 10);
+    assert.equal(budgetOf(root).measured.skills, 7);
     assert.equal(budgetOf(root).measured.agents, 3);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -129,7 +129,7 @@ test('the budget reads nothing outside the project', () => {
   const home = mkdtempSync(path.join(tmpdir(), 'empty-home-'));
   try {
     const b = budgetOf(root, { HOME: home, USERPROFILE: home });
-    assert.equal(b.measured.skills, 10);
+    assert.equal(b.measured.skills, 7);
     assert.equal(b.measured.agents, 3);
     assert.equal(b.measured.hooks, 5);
   } finally {
@@ -142,6 +142,6 @@ test('the budget reads nothing outside the project', () => {
 // the recorded half must never apply here, or this repository could stop counting its own.
 test('the self-install measures the harness itself, not a record', () => {
   const m = measure({ layout: { aidlc: A, claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
-  assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 10, agents: 3, hooks: 5 });
+  assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 7, agents: 3, hooks: 5 });
   assert.ok(m.hook_loc > 0, `hook_loc = ${m.hook_loc}`);
 });

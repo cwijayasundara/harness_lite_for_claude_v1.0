@@ -62,7 +62,7 @@ review_diff_max_bytes = 200000  # refuse to imply a complete AI review beyond th
 
 # Law 5. The build fails when exceeded. Raising a limit needs a why: line in the same commit.
 [limits]
-skills          = 10
+skills          = 7
 agents          = 3
 hooks           = 5
 hook_loc        = 600

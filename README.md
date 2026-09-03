@@ -128,7 +128,7 @@ gitignored.
 
 ### 6. Install the plugin — once per machine, not once per project
 
-The plugin supplies the 10 skills, the 3 subagents and the 5 hook bindings. `init` does **not**
+The plugin supplies the skills, the subagents and the hook bindings named in `[limits]`. `init` does **not**
 copy them into your project; it only records that your project wants them.
 
 ```bash
@@ -260,19 +260,18 @@ in your project.
 The design follows the [guides and sensors model of harness
 engineering](https://martinfowler.com/articles/harness-engineering.html):
 
-- **Guides** act before Claude works — `CLAUDE.md`, 10 focused skills, artifact templates, the
+- **Guides** act before Claude works — `CLAUDE.md`, a handful of focused skills, artifact templates, the
   code graph, and the explorer agent.
 - **Sensors** observe the result — tests, lint, types, secret and contract scope-drift checks, 5 hook
   bindings, and the reviewer and verifier agents.
 - **The ledger** records every sensor invocation, so controls that are noisy or never useful get
   deleted instead of accumulating.
 
-The budget is fixed at 10 skills, 3 agents, and 5 hooks, in `[limits]` of `.aidlc/harness.toml`
-and nowhere else. Adding one means deleting one; the commit stage enforces it.
+The budget is fixed in `[limits]` of `.aidlc/harness.toml` and nowhere else. Adding one means deleting one; the commit stage enforces it.
 
-Your project inherits that budget **spent, not empty**. The ten skills the harness ships are the
-ten, counted alongside any you add, against one ceiling — so your first skill is the eleventh and
-it goes red until something is deleted. Re-run `harness init --into .` after upgrading the
+Your project inherits that budget **spent, not empty**. The skills the harness ships are counted
+alongside any you add, against one ceiling — so your first skill goes red until something is
+deleted. Re-run `harness init --into .` after upgrading the
 harness, or the recorded half of that count goes stale.
 
 A control enters only with a failing eval or a defect recorded while building a real application

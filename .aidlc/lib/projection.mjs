@@ -30,6 +30,24 @@ export function renderClaudeHooks(policy, commandRoot = '${CLAUDE_PLUGIN_ROOT}')
   return { description: 'Generated Claude adapter projection of .aidlc/hooks/policy.json.', hooks };
 }
 
+// lean-v2 B7. The generator/evaluator split, written into frontmatter rather than resolved by a
+// routing subsystem. `models` is the `[models]` table; `text` is a SKILL.md or an agent .md.
+//
+// Rendered rather than hand-written because two files stating the same model id is two files that
+// can disagree, and Law 3 says delete one. The registry is the one.
+export function renderModel(text, model, extra = {}) {
+  const fields = { model, ...extra };
+  const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
+  if (!match) throw new Error('no frontmatter to render a model into');
+  let front = match[1];
+  for (const [key, value] of Object.entries(fields)) {
+    front = new RegExp(`^${key}:.*$`, 'm').test(front)
+      ? front.replace(new RegExp(`^${key}:.*$`, 'm'), `${key}: ${value}`)
+      : `${front}\n${key}: ${value}`;
+  }
+  return `---\n${front}\n---\n${text.slice(match[0].length)}`;
+}
+
 export function renderClaudeInstructions(source) {
   return `<!-- Generated from .aidlc/instructions.md; edit the canonical file and run harness init. -->\n${source.trim()}\n`;
 }
