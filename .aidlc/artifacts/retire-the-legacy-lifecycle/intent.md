@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 migrated_from: aidlc.contract/v1
 ---
 # Intent: retire-the-legacy-lifecycle

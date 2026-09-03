@@ -168,11 +168,17 @@ export function state(cfg, slug) {
   const plan = artifacts.plan;
   if (plan?.state === 'approved' && !ownedFiles(plan.body).length) issues.push('plan.md declares no files under "## Files"');
 
-  const next = !artifacts.intent ? 'intent'
-    : artifacts.spec?.state !== 'approved' ? 'spec approval'
-      : artifacts.plan?.state !== 'approved' ? 'plan approval'
-        : artifacts.review?.state === 'approved' || artifacts.review?.front.status === 'approved' ? 'merge'
-          : 'implement';
+  // `closed` is what a delivered change looks like afterwards. Without it the twenty-three
+  // changes this repository has already shipped sat on the board forever waiting for a spec
+  // approval nobody was going to give, and a board that is mostly noise is a board nobody reads.
+  const closed = artifacts.intent?.front.status === 'closed';
 
-  return { slug, next, issues, ok: issues.length === 0, artifacts };
+  const next = closed ? 'closed'
+    : !artifacts.intent ? 'intent'
+      : artifacts.spec?.state !== 'approved' ? 'spec approval'
+        : artifacts.plan?.state !== 'approved' ? 'plan approval'
+          : artifacts.review?.front.status === 'approved' ? 'merge'
+            : 'implement';
+
+  return { slug, next, closed, issues: closed ? [] : issues, ok: closed || issues.length === 0, artifacts };
 }

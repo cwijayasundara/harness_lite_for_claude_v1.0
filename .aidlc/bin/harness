@@ -140,7 +140,7 @@ async function main() {
     case 'init': {
       const root = path.resolve(flag('into', process.cwd()));
       const L = layout(root);
-      for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.intent, L.contracts, L.intentRefs, L.evidence, L.review, L.adr, L.state, path.join(L.artifacts, 'design')]) mkdirSync(d, { recursive: true });
+      for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.artifacts, L.state]) mkdirSync(d, { recursive: true });
       for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/gitignore', path.join(L.aidlc, '.gitignore')]]) {
         if (!existsSync(dst)) cpSync(path.join(HERE, src), dst);
       }
@@ -397,15 +397,19 @@ async function main() {
     case 'status': {
       const cfg = loadConfig(findRepoRoot());
       const requested = argv[1] && !argv[1].startsWith('--') ? argv[1] : null;
-      const rows = (requested ? [requested] : artifacts.slugs(cfg)).map((slug) => artifacts.state(cfg, slug));
+      const all = (requested ? [requested] : artifacts.slugs(cfg)).map((slug) => artifacts.state(cfg, slug));
+      // Closed changes are history. `--all` when you want the history.
+      const rows = requested || has('all') ? all : all.filter((r) => !r.closed);
+      const hidden = all.length - rows.length;
       if (has('json')) { console.log(JSON.stringify({ changes: rows }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
-      if (!rows.length) { console.log('changes  none'); return 0; }
+      if (!rows.length) { console.log(`changes  none open${hidden ? `  (${hidden} closed; --all to list)` : ''}`); return 0; }
       console.log('changes\n\n  change                         next                 spec       plan');
       for (const row of rows) {
         const mark = (kind) => row.artifacts[kind]?.state ?? 'absent';
         console.log(`  ${row.slug.padEnd(30)} ${row.next.padEnd(20)} ${mark('spec').padEnd(10)} ${mark('plan')}`);
       }
       for (const row of rows) for (const issue of row.issues) console.log(`  ERROR ${row.slug}: ${issue}`);
+      if (hidden) console.log(`\n  ${hidden} closed change(s) not listed; --all to see them`);
       return rows.some((r) => !r.ok) ? 1 : 0;
     }
 
