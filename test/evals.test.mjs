@@ -267,3 +267,33 @@ test('validate accepts a multi-step task and rejects a step without a prompt', (
   const p = validate(bad, FIXTURES).join('\n');
   assert.match(p, /must contain a prompt/);
 });
+
+// A key in .env used to produce "no Claude credentials found", which is a true statement about
+// process.env and a misleading one about what the person did. The move after a misleading
+// message is usually to paste the key somewhere worse.
+test('a key in .env is found, and an explicit one still wins', async () => {
+  const { loadDotEnv } = await import('../evals/run.mjs');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'dotenv-'));
+  const before = process.env.ANTHROPIC_API_KEY;
+  try {
+    fs.writeFileSync(path.join(root, '.env'), 'ANTHROPIC_API_KEY=from-file\nOTHER_THING=x\n');
+
+    delete process.env.ANTHROPIC_API_KEY;
+    assert.equal(loadDotEnv(root), true);
+    assert.equal(process.env.ANTHROPIC_API_KEY, 'from-file');
+
+    // An explicit environment variable is not silently replaced by a stale file.
+    process.env.ANTHROPIC_API_KEY = 'from-shell';
+    loadDotEnv(root);
+    assert.equal(process.env.ANTHROPIC_API_KEY, 'from-shell');
+
+    // No file is not an error; it is the ordinary case in CI, which passes a repository secret.
+    assert.equal(loadDotEnv(path.join(root, 'nope')), false);
+  } finally {
+    if (before === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = before;
+    delete process.env.OTHER_THING;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

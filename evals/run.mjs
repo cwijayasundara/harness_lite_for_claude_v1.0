@@ -58,6 +58,25 @@ export function promptCount(t) {
   return t.prompt ? 1 : 0;
 }
 
+// Node does not read `.env`. Someone who puts a key there and runs the suite gets "no Claude
+// credentials found", which is a true statement about `process.env` and a misleading one about
+// what they did — and the next move after a misleading message is usually to paste the key
+// somewhere worse. `process.loadEnvFile` is built in (Node 20.12+), so this stays zero-dependency.
+//
+// The file is gitignored and never read for its value here: this only makes the variable visible
+// to the CLI that performs the run. CI passes the same variable from a repository secret and has
+// no file at all.
+export function loadDotEnv(root, env = process.env) {
+  const file = path.join(root, '.env');
+  if (!existsSync(file) || typeof process.loadEnvFile !== 'function') return false;
+  // An already-set variable wins: an explicit `ANTHROPIC_API_KEY=... node evals/run.mjs` must not
+  // be silently overridden by a stale file.
+  const had = { ...env };
+  try { process.loadEnvFile(file); } catch { return false; }
+  for (const [k, v] of Object.entries(had)) if (v !== undefined) process.env[k] = v;
+  return true;
+}
+
 export function claudeAuthenticated(env = process.env, run = spawnSync) {
   if (env.ANTHROPIC_API_KEY || env.CLAUDE_CODE_OAUTH_TOKEN || env.ANTHROPIC_AUTH_TOKEN) return true;
   const result = run('claude', ['auth', 'status'], { encoding: 'utf8', env });
@@ -228,7 +247,9 @@ async function main() {
 
   // Claude may store OAuth credentials in an OS keychain rather than a repository-visible file.
   // Ask the CLI that will perform the run; environment tokens remain the non-interactive CI path.
+  const fromFile = loadDotEnv(PLUGIN_ROOT);
   const authed = claudeAuthenticated();
+  if (fromFile && authed) console.log('credentials: .env');
   if (!authed && !argv.includes('--force')) {
     if (argv.includes('--require-auth')) {
       console.error('Claude credentials are required for this eval run, but none were found.');
