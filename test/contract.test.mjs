@@ -130,14 +130,8 @@ test('evidence is emitted only for the exact approved contract digest', () => {
     assert.equal(run(root, 'contract', 'evidence', 'evidenced').status, 1, 'uncommitted plan approval cannot emit evidence');
     commit(root, 'approve plan');
     assert.match(run(root, 'contract', 'status', 'evidenced').stdout, /evidence/);
-    const prompt = run(root, 'contract', 'prompt', 'evidenced', '--provider', 'codex', '--role', 'execute');
-    assert.equal(prompt.status, 0, prompt.stderr);
-    const manifest = JSON.parse(readFileSync(path.join(root, '.aidlc/artifacts/prompts/evidenced-execute-codex.json'), 'utf8'));
-    assert.equal(manifest.schema, 'aidlc.prompt-manifest/v1');
-    assert.equal(manifest.model_resolution.model, 'claude-sonnet-5');
-    assert.match(manifest.model_resolution.policy_digest, /^sha256:/);
-    assert.equal(manifest.contract_digest, contractDigest(readFileSync(path.join(root, '.aidlc/artifacts/contracts/evidenced.md'), 'utf8'), 'plan'));
-    assert.equal(run(root, 'contract', 'prompt', 'evidenced', '--provider', 'codex', '--role', 'execute').status, 1, 'prompt receipts are not overwritten');
+    // lean-v2 cut 5 removed `contract prompt`: it rendered a model prompt manifest that
+    // nothing consumed, and its model resolution came from the deleted model-policy tree.
     assert.equal(run(root, 'contract', 'evidence', 'evidenced').status, 0);
     const contract = readFileSync(path.join(root, '.aidlc/artifacts/contracts/evidenced.md'), 'utf8');
     const evidence = JSON.parse(readFileSync(path.join(root, '.aidlc/artifacts/evidence/evidenced.json'), 'utf8'));

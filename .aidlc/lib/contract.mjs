@@ -246,15 +246,6 @@ export function contractState(root, file, evidenceFile = null) {
   return { stage: 'complete', ok: true, issues: [], behaviours: evidence.behaviours };
 }
 
-export function writePromptManifest(file, { changeId, contractFile, contractBody, role, provider, modelResolution }) {
-  if (!['execute', 'evaluate'].includes(role)) throw new Error('prompt role must be execute or evaluate');
-  if (!text(provider, 80)) throw new Error('prompt provider is required');
-  if (!modelResolution || !text(modelResolution.model, 200) || !text(modelResolution.policy_digest, 80)) throw new Error('prompt model resolution is required');
-  const contract_digest = contractDigest(contractBody, 'plan');
-  const prompt = `Role: ${role}\nContract: ${contractFile}\nContract digest: ${contract_digest}\nValidate the digest before work. ${role === 'evaluate' ? 'Use a fresh read-only context and return findings mapped to behaviour IDs.' : 'Implement only the approved scope and emit evidence mapped to behaviour IDs.'}`;
-  const value = { schema: 'aidlc.prompt-manifest/v1', change_id: changeId, contract_digest, role, provider, model_resolution: modelResolution, renderer: 'aidlc.prompt/v1', prompt_digest: snapshotDigest(prompt), prompt };
-  writeExclusive(file, JSON.stringify(value, null, 2) + '\n'); return value;
-}
 
 function markdownSection(body, name) {
   return body.match(new RegExp(`^## ${name}\\s*$([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'm'))?.[1]?.trim() ?? '';

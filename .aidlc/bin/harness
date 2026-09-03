@@ -27,10 +27,8 @@ import * as evalGate from '../lib/eval-gate.mjs';
 
 const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
 import { addWorktree } from '../lib/worktree.mjs';
-import { behaviourIds, contractState, decideIntentRef, isCommitted, renderLegacyContract, sealContract, snapshotDigest, validateContract, writeEvidence, writeIntentRef, writePromptManifest } from '../lib/contract.mjs';
-import { adapterNames, adapterInfo, diagnoseAgents, loadAgentManifest, renderAgentAdapter, renderClaudeHooks, renderClaudeInstructions, verifyAgentAdapter } from '../lib/agent-adapters.mjs';
-import { createHandoff, ingestEvaluation, loadModelPolicy, resolveModel, validateModelPolicy, writeHandoff, writeRunReceipt } from '../lib/model-policy.mjs';
-import { evaluationPrompt, invokeClaudeCode } from '../providers/claude-code.mjs';
+import { behaviourIds, contractState, decideIntentRef, isCommitted, renderLegacyContract, sealContract, snapshotDigest, validateContract, writeEvidence, writeIntentRef } from '../lib/contract.mjs';
+import { renderClaudeHooks, renderClaudeInstructions } from '../lib/projection.mjs';
 import { diagnose as diagnoseGauntlet, qualifyExperiment, renderGauntlet, runGauntlet } from '../lib/gauntlet.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -149,8 +147,8 @@ async function main() {
     case 'init': {
       const root = path.resolve(flag('into', process.cwd()));
       const L = layout(root);
-      for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.intent, L.contracts, L.intentRefs, L.evidence, L.handoffs, L.evaluations, L.modelRuns, L.review, L.adr, L.state, path.join(L.artifacts, 'design')]) mkdirSync(d, { recursive: true });
-      for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/model-policy.json', L.modelPolicy], ['templates/gitignore', path.join(L.aidlc, '.gitignore')]]) {
+      for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.intent, L.contracts, L.intentRefs, L.evidence, L.review, L.adr, L.state, path.join(L.artifacts, 'design')]) mkdirSync(d, { recursive: true });
+      for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/gitignore', path.join(L.aidlc, '.gitignore')]]) {
         if (!existsSync(dst)) cpSync(path.join(HERE, src), dst);
       }
       // Whether this is an install or a re-run. On a first install the project's existing
@@ -181,7 +179,6 @@ async function main() {
       }
 
       writeFileSync(L.claudeMd, claudeMdNext);
-      if (!existsSync(path.join(L.aidlc, 'agents.json'))) cpSync(path.join(HERE, 'templates', 'agents.json'), path.join(L.aidlc, 'agents.json'));
       // A project declares the harness; it never contains one. Copying the sensors in and
       // leaving the guides to a second, invisible install step is what produced projects that
       // ran every check with no guide loaded and no way to notice.
@@ -517,18 +514,6 @@ async function main() {
         else console.log(`${state.ok ? 'PASS' : 'FAIL'}  ${slug}  ${state.stage}${state.issues.length ? `\n${state.issues.map((issue) => `  - ${issue}`).join('\n')}` : ''}`);
         return state.ok ? 0 : 1;
       }
-      if (sub === 'prompt') {
-        const validation = validateContract(cfg.layout.root, file);
-        if (!validation.ok || validation.meta.plan_status !== 'approved' || !isCommitted(cfg.layout.root, file)) { console.error('a valid committed plan approval is required before rendering a prompt'); return 1; }
-        const role = String(flag('role', 'execute')); const provider = flag('provider');
-        if (typeof provider !== 'string') { console.error('usage: harness contract prompt <slug> --provider <agent> [--role execute|evaluate]'); return 2; }
-        const out = path.join(cfg.layout.prompts, `${slug}-${role}-${provider}.json`);
-        try {
-          const { policy } = loadModelPolicy(cfg.layout.root); const modelResolution = resolveModel(policy, role === 'evaluate' ? 'evaluate' : 'generate');
-          writePromptManifest(out, { changeId: slug, contractFile: path.relative(cfg.layout.root, file), contractBody: readFileSync(file, 'utf8'), role, provider, modelResolution });
-          console.log(out); return 0;
-        } catch (error) { console.error(error.message); return 1; }
-      }
       if (sub === 'seal') {
         const scope = String(flag('scope', 'spec')); const before = validateContract(cfg.layout.root, file);
         if (scope === 'spec' && before.intent?.decision?.status !== 'accepted') { console.error('intent must be accepted before sealing the spec'); return 1; }
@@ -548,104 +533,7 @@ async function main() {
         try { writeEvidence(out, slug, result.digests.plan, behaviourIds(readFileSync(file, 'utf8'))); console.log(out); return 0; }
         catch (error) { console.error(error.message); return 1; }
       }
-      console.error('usage: harness contract new|accept|validate|status|prompt|seal|evidence <slug> [--scope spec|plan]'); return 2;
-    }
-
-    case 'agents': {
-      const sub = argv[1];
-      if (sub === 'list') {
-        const values = adapterNames().map(adapterInfo);
-        if (has('json')) console.log(JSON.stringify(values, null, 2));
-        else for (const value of values) console.log(`${value.name}\t${value.capabilities.join(',')}`);
-        return 0;
-      }
-      const root = findRepoRoot();
-      let loaded;
-      try { loaded = loadAgentManifest(root); } catch (error) { console.error(error.message); return 1; }
-      if (sub === 'doctor') {
-        const result = diagnoseAgents(loaded.manifest);
-        if (has('json')) console.log(JSON.stringify(result, null, 2));
-        else {
-          for (const provider of result.providers) console.log(`${provider.missing.length ? 'FAIL' : 'PASS'}  ${provider.name}${provider.optional_missing.length ? `  optional unavailable: ${provider.optional_missing.join(', ')}` : ''}`);
-          for (const issue of result.issues) console.log(`FAIL  ${issue}`);
-        }
-        return result.ok ? 0 : 1;
-      }
-      const provider = argv[2];
-      if (!adapterInfo(provider)) { console.error('usage: harness agents render|verify <provider> [--into path]'); return 2; }
-      const target = path.resolve(String(flag('into', root)));
-      try {
-        if (sub === 'render') {
-          const files = renderAgentAdapter(provider, loaded.manifest, target, { force: has('force') });
-          if (has('json')) console.log(JSON.stringify({ provider, target, files }, null, 2)); else for (const file of files) console.log(file);
-          return 0;
-        }
-        if (sub === 'verify') {
-          const result = verifyAgentAdapter(provider, loaded.manifest, target);
-          if (has('json')) console.log(JSON.stringify(result, null, 2)); else console.log(result.ok ? `PASS  ${provider}` : `FAIL  ${provider}\n${result.mismatches.map((item) => `  - ${item}`).join('\n')}`);
-          return result.ok ? 0 : 1;
-        }
-      } catch (error) { console.error(error.message); return 1; }
-      console.error('usage: harness agents list|doctor|render|verify [provider] [--into path]'); return 2;
-    }
-
-    case 'models': {
-      const root = findRepoRoot(); const cfg = loadConfig(root); const sub = argv[1];
-      let loaded; try { loaded = loadModelPolicy(root); } catch (error) { console.error(error.message); return 1; }
-      if (sub === 'doctor') {
-        const issues = validateModelPolicy(loaded.policy);
-        if (has('json')) console.log(JSON.stringify({ ok: !issues.length, issues }, null, 2));
-        else console.log(issues.length ? `FAIL  model policy\n${issues.map((issue) => `  - ${issue}`).join('\n')}` : 'PASS  model policy');
-        return issues.length ? 1 : 0;
-      }
-      if (sub === 'resolve') {
-        try { const value = resolveModel(loaded.policy, String(argv[2] ?? '')); console.log(has('json') ? JSON.stringify(value, null, 2) : `${value.role}\t${value.provider}/${value.model}\t${value.effort}\t${value.policy_digest}`); return 0; }
-        catch (error) { console.error(error.message); return 1; }
-      }
-      if (sub === 'handoff') {
-        const slug = argv[2]; const from = String(flag('from', 'generate')); const to = String(flag('to', 'evaluate')); const invocation = flag('invocation'); const attempt = Number(flag('attempt', 1));
-        if (!validSlug(slug) || typeof invocation !== 'string' || !Number.isInteger(attempt) || attempt < 1) { console.error('usage: harness models handoff <slug> --from generate --to evaluate --invocation <id> [--attempt N]'); return 2; }
-        try {
-          const value = createHandoff(root, path.join(cfg.layout.contracts, `${slug}.md`), loaded.policy, { from, to, sourceInvocationId: invocation, attempt });
-          const file = path.join(cfg.layout.handoffs, `${slug}-${from}-${to}-a${attempt}.json`); writeHandoff(file, value); console.log(file); return 0;
-        } catch (error) { console.error(error.message); return 1; }
-      }
-      if (sub === 'invoke') {
-        const role = String(argv[2] ?? ''); const slug = argv[3]; const attempt = Number(flag('attempt', 1));
-        if (!validSlug(slug) || !Number.isInteger(attempt) || attempt < 1) { console.error('usage: harness models invoke <role> <slug> --prompt-file file | --attempt N'); return 2; }
-        try {
-          let resolution = resolveModel(loaded.policy, role); let prompt; let handoff = null;
-          if (role === 'evaluate') {
-            const handoffFile = path.join(cfg.layout.handoffs, `${slug}-generate-evaluate-a${attempt}.json`);
-            handoff = JSON.parse(readFileSync(handoffFile, 'utf8')); resolution = handoff.target;
-            if (resolution.policy_digest !== resolveModel(loaded.policy, 'evaluate').policy_digest) throw new Error('handoff model policy is stale');
-            prompt = evaluationPrompt(handoffFile);
-          } else {
-            const promptFile = flag('prompt-file'); if (typeof promptFile !== 'string') throw new Error(`${role} invocation requires --prompt-file`);
-            prompt = readFileSync(path.resolve(promptFile), 'utf8');
-          }
-          if (resolution.provider !== 'anthropic') throw new Error(`no invocation adapter configured for model provider ${resolution.provider}`);
-          const result = invokeClaudeCode({ resolution, prompt, cwd: root, readOnly: role === 'evaluate' || role === 'diagnose', structured: role === 'evaluate' });
-          const runFile = path.join(cfg.layout.modelRuns, `${slug}-${role}-a${attempt}.json`); writeRunReceipt(runFile, result.receipt);
-          if (result.receipt.status !== 'succeeded') { console.error(`${result.receipt.status}\n${runFile}`); return 1; }
-          if (role === 'evaluate') {
-            if (!result.output || typeof result.output !== 'object') throw new Error('evaluator returned no structured evaluation');
-            const evaluationFile = path.join(cfg.layout.evaluations, `${slug}-a${attempt}.json`); const receipt = ingestEvaluation(evaluationFile, result.output, handoff, readFileSync(path.join(cfg.layout.contracts, `${slug}.md`), 'utf8'), loaded.policy);
-            console.log(`${runFile}\n${evaluationFile}\n${receipt.decision.status}`); return receipt.decision.status === 'approved' ? 0 : 1;
-          }
-          console.log(`${runFile}\n${result.receipt.invocation_id}`); return 0;
-        } catch (error) { console.error(error.message); return 1; }
-      }
-      if (sub === 'ingest') {
-        const slug = argv[2]; const input = flag('file'); const attempt = Number(flag('attempt', 1));
-        if (!validSlug(slug) || typeof input !== 'string' || !Number.isInteger(attempt) || attempt < 1) { console.error('usage: harness models ingest <slug> --file evaluation.json [--attempt N]'); return 2; }
-        try {
-          const handoffFile = path.join(cfg.layout.handoffs, `${slug}-generate-evaluate-a${attempt}.json`);
-          const handoff = JSON.parse(readFileSync(handoffFile, 'utf8')); const contract = readFileSync(path.join(cfg.layout.contracts, `${slug}.md`), 'utf8'); const value = JSON.parse(readFileSync(path.resolve(input), 'utf8'));
-          const file = path.join(cfg.layout.evaluations, `${slug}-a${attempt}.json`); const receipt = ingestEvaluation(file, value, handoff, contract, loaded.policy); console.log(`${file}\n${receipt.decision.status}`); return receipt.decision.status === 'approved' ? 0 : 1;
-        } catch (error) { console.error(error.message); return 1; }
-      }
-      console.error('usage: harness models doctor|resolve <role>|handoff|invoke|ingest'); return 2;
+      console.error('usage: harness contract new|accept|validate|status|seal|evidence <slug> [--scope spec|plan]'); return 2;
     }
 
     case 'review': {
@@ -681,13 +569,8 @@ async function main() {
   harness gauntlet doctor|run      fail-closed behaviour/architecture/hardening/qa sensors
   harness gauntlet qualify --file experiment.json
   harness new intent|review|eval <slug>
-  harness contract new|accept|validate|status|prompt|seal|evidence <slug>
+  harness contract new|accept|validate|status|seal|evidence <slug>
   harness contract migrate <slug> [--write] | rollback-migration <slug>
-  harness agents list|doctor|render|verify [provider] [--into path]
-  harness models doctor|resolve <specify|generate|evaluate|diagnose>
-  harness models handoff <slug> --from <role> --to <role> --invocation <id>
-  harness models invoke <role> <slug> --prompt-file file | --attempt N
-  harness models ingest <slug> --file evaluation.json [--attempt N]
   harness lock tests [--pattern p] [--why text]
   harness lock clear
   harness worktree <slug>          git worktree for an independent contract slice
