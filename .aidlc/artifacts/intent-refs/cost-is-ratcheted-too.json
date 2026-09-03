@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/cost-is-ratcheted-too.md",
-    "revision": "pending",
+    "revision": "186a7a7",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-03T05:34:46.372Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:61a42c5a82fa8ed4e8c42e9a5d63313e136a358a4f6d889f20f9ca2d1f45b5a6"
 }
