@@ -103,7 +103,7 @@ When it ends, Then the ledger holds a row `{control: "invoke", role, model, ms}`
 **the evaluator writes the review**
 
 Given an approved plan and a diff on a branch,
-When the `review` skill runs,
+When the review step runs,
 Then it spawns `evaluator` in a fresh worktree, which writes
 `.aidlc/artifacts/<slug>/review.md` where each finding cites a `spec.md` behaviour id or a
 `REVIEW.md` pass and carries a severity; `changes-requested` returns to `implement` at most twice
@@ -133,16 +133,43 @@ in the approved plan's `## Files`. Each finding names the rule and the line.
 
 ### B11
 
-**the map is a guide with a drift sensor**
+**the graph is the first stop, and it cannot go stale quietly**
 
 Given `harness map`,
 When it runs,
-Then it writes `CODEBASE-MAP.md` at the repository root, at most 200 lines: purpose line,
-layer order, top hubs by in-degree with one-line roles, cycles, and "start here" for the three
-largest modules. Given the Stop hook, When the regenerated map differs from the committed one,
-Then the ledger records `map-drift: fail` with the diff summary and the hook returns the
-difference as context; the suite fails if the committed map is stale on the harness's own tree.
-Given SessionStart, Then two lines are injected: map age in commits and the top five hubs.
+Then it writes `CODEBASE-MAP.md` at the repository root, at most 200 lines: purpose line, layer
+order, top hubs by in-degree with a one-line role each, cycles, and "start here" for the three
+largest modules. It is generated, never hand-edited.
+
+Given the Stop hook,
+When the index no longer matches the tree, or the committed map differs from the regenerated one,
+Then the index is rebuilt and the ledger records `map-drift` with a verdict — `fail` when the
+committed map was wrong, `pass` when it was current. Today the index still answers `renderWiki`
+from a file deleted four commits ago and the only thing recording that is an empty marker file,
+so `graph-refresh` shows 57 invocations and zero fires: a control that can only pass.
+
+Given SessionStart,
+Then two lines are injected: map age in commits, and the top five hubs.
+
+Given a `Grep` or `Glob` call whose pattern is a bare symbol the index already knows,
+When the PreToolUse hook sees it,
+Then it allows the call and returns the graph answer as additional context, naming the query that
+would have answered it directly. Advisory, never blocking: the graph is a cache with a miss path
+(Law 7), and a guard that refuses a search is one people route around.
+
+Given `evals/bench/pack-bench.mjs`,
+When it runs in CI,
+Then recall stays at or above 90% and the token reduction at or above 90%, and the bench fails
+if either falls. Measured today at 90% recall and 96.5% reduction, 3,397 tokens against 97,995 —
+that is the number the graph is kept for, so it is the number that has to be defended.
+
+## Out of scope for B11
+
+A rendered wiki. `lib/wiki.mjs` produced per-cluster markdown pages for eleven days and no
+change's evidence ever cited one; `CODEBASE-MAP.md` is the one page a reader or a session
+actually opens. Q&A over the index, which is the agent's job. Anything hosted, badged or reached
+over MCP: an external service that refreshes only on someone else's schedule is a worse answer
+than a local index a Stop hook rebuilds.
 
 ### B12
 
