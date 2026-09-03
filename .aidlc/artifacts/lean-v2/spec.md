@@ -2,8 +2,8 @@
 status: approved
 migrated_from: sha256:b2cda61e9eef4be4b23d9b7af42607eb13a61babb75337958e574c3230406773
 by: cwijayasundara
-at: 2026-09-03T17:56:27.798Z
-digest: sha256:b9ab61227d8adab66525b9547a8366384732dafae22bce0393a4d2c300dd8af5
+at: 2026-09-03T18:19:53.704Z
+digest: sha256:36538d3eaeccb9a5bb948f701a8b9d4bb1abd9415dc98930a0abbae51ced74b3
 ---
 # Spec: lean-v2
 
