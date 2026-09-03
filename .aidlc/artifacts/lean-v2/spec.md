@@ -89,8 +89,8 @@ Then the write guard allows it. The prompt-prefix refusal applies only to `.clau
 
 **generator and evaluator by construction**
 
-Given `.aidlc/harness.toml` `[models] generator = "claude-haiku-4-5-20251001"` and
-`evaluator = "claude-opus-5"`,
+Given `.aidlc/harness.toml` `[models] generator = "claude-sonnet-5"`,
+`evaluator = "claude-opus-5"` and `evals = "claude-haiku-4-5-20251001"`,
 When `harness init` renders the Claude projection,
 Then `implement/SKILL.md` carries `model:` = generator and `context: fork`;
 `roles/evaluator.md` carries `model:` = evaluator, `tools: Read, Grep, Glob, Bash`,
@@ -151,8 +151,7 @@ Given SessionStart, Then two lines are injected: map age in commits and the top 
 Given a PR that touches `.claude/CLAUDE.md`, `.aidlc/skills/**`, `.aidlc/roles/**`,
 `.aidlc/hooks/**`, `.aidlc/templates/**` or `.aidlc/harness.toml`,
 When `evals.yml` runs with `ANTHROPIC_API_KEY`,
-Then the 20-task suite runs with the generator on Haiku 4.5 and the evaluator on Sonnet 5 under
-a spend cap of 5 USD per run, `harness evals gate` fails on any task in `expected.json` that
+Then the 20-task suite runs on `[models] evals`, Haiku 4.5, under a spend cap of 5 USD per run, `harness evals gate` fails on any task in `expected.json` that
 regressed, and the run's single result file replaces the committed one. Other PRs skip the job.
 
 ### B13
