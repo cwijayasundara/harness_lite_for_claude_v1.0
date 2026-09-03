@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/ci-is-green-without-a-key.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:ffd1c964b912bd7df6291aa1a13c9d1c463ef8df8239262e9a3d40f40e3202b4
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
