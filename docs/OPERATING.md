@@ -105,38 +105,27 @@ This checkout is one local plugin whose portable kernel lives under `.aidlc/`. T
 only. Do not add policy skills or extra agents under `.aidlc/skills` or `.aidlc/roles` —
 Law 5 is full. The kernel hook budget is also full (5/5); do not add a sixth kernel binding.
 
-### GitHub review adapter
+### Review
 
-`.github/workflows/claude-review.yml` runs on same-repository pull requests. It resolves exactly
-one changed contract, requires committed contract approvals and behaviour evidence, caps the diff, and gives Claude only
-read/search tools. Claude returns JSON under a schema; the harness validates paths, severities,
-line numbers, recommendation consistency, duplicates, and the five-nit cap before rendering and
-posting `review.md`. The result remains `draft`: only a human changes Gate 3 to `approved`.
+The `evaluator` agent writes `.aidlc/artifacts/<slug>/review.md`. It runs on the model named by
+`[models] evaluator`, in a worktree it did not write to, with Bash so it can run the checks and
+no Write or Edit so it cannot make them pass. Every finding cites a behaviour id from `spec.md`
+or a named pass from `.aidlc/policies/review.md`; a finding that cites nothing is an opinion.
 
-Repository setup requires `ANTHROPIC_API_KEY` (or replacing that input with one of the action's
-supported workload-identity providers). Fork PRs are deliberately excluded so untrusted content
-cannot reach repository secrets. Run `harness-protection.yml` with an administration-read token
-stored as `HARNESS_ADMIN_READ_TOKEN`; it verifies strict required checks, at least one approval,
-stale-review dismissal, last-push independence, and enforcement for administrators. It audits
-settings but never mutates them.
+A `changes-requested` review returns to `implement` at most twice. A third automated repair on
+the same finding is a loop, not a fix, and the human decides instead. The review artifact stays
+`draft`: only a human moves Gate 3, and only branch protection enforces it.
 
-Comment-fix is a **separate** workflow (`.github/workflows/claude-fix.yml`). Mention
-`@harness-fix` on a PR comment. The job may push commits. It must not approve or merge. Human
-Gate 3 still owns `review.md` Status.
+lean-v2 cut 8 removed the GitHub review adapter, the protection audit and five workflows. They
+were a second implementation of the passes above, gated behind a key the repository did not have,
+so they never ran. What replaces them is the agent plus branch protection, which is what the
+playbook asks for.
 
-Non-engineer intent uses `.github/ISSUE_TEMPLATE/intent.yml` and `harness-intent.yml`. Cowork or
-claude.ai should open that issue (GitHub connector), not a second artifact home. Claude Tag
-and Slack incidents use the same issue. Design mocks go in `.aidlc/artifacts/design/<slug>/`.
+`[guard].require_contract = true` makes product-file writes need a committed approved plan whose
+`## Files` section names the path. This is the default. Shell releases to a live environment
+without `HARNESS_RELEASE_APPROVAL` are denied by the bash hook.
 
-`[guard].require_contract = true` makes product-file writes need a committed approved contract
-that owns the path. This is the default. Production shell deploys without
-`HARNESS_RELEASE_APPROVAL` are denied by the existing bash hook.
-
-`harness lock tests --pattern tests/foo.py` is the test-integrity lock. `harness lock clear`
-releases it. `harness worktree <slug>` adds an isolated git worktree for a disjoint contract slice.
-`harness doctor --enterprise` prints the managed-settings checklist — git settings are not MDM.
-
-Auto-accept of edits is allowed only after a contract is fully approved, the blast radius is owned, and
+Auto-accept of edits is allowed only after a plan is approved, the blast radius is owned, and
 tests exist. It is not a harness mode.
 
 ## When a review finding keeps recurring

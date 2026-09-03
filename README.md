@@ -2,7 +2,7 @@
 
 A lean AIDLC harness for Claude Code. You describe what you want in plain English; Claude walks
 it through `intent → spec → plan → code → review`, stopping at three human approval gates, with
-deterministic checks (tests, lint, secrets, contract scope-drift) enforced by hooks.
+deterministic checks (tests, lint, secrets, plan scope-drift) enforced by hooks.
 
 Works with any language. Zero dependencies — no `npm install`, ever.
 
@@ -31,7 +31,7 @@ cd /path/to/your/project
 git init          # only if it isn't one already
 ```
 
-The harness reads git history for contract scope and status. Without a git repo, most commands
+The harness reads git history for approvals and scope. Without a git repo, most commands
 degrade or fail.
 
 ### 3. Install the harness into your project
@@ -49,7 +49,7 @@ This creates an agent-neutral control plane plus the Claude adapter declaration:
   policies/review.md    ← canonical review policy
   harness-install.json  ← generated; names the marketplace, plugin and exact commit
   bin/harness           ← generated shim; finds the harness and runs it
-  artifacts/            ← intent / spec / plan / review live here
+  artifacts/<slug>/     ← intent.md, spec.md, plan.md, review.md per change
   state/                ← local, gitignored
 .claude/
   CLAUDE.md             ← generated Claude projection; do not edit
@@ -171,7 +171,7 @@ Take docs/search-prd.md through the Lean AIDLC workflow as faster-search.
 ```
 
 Claude will investigate, ask you a few focused questions, and write
-`.aidlc/artifacts/intent/<slug>.md`. Then it stops and waits for you.
+`.aidlc/artifacts/<slug>/intent.md`. Then it stops and waits for you.
 
 ---
 
@@ -186,17 +186,23 @@ remember where you were.
 | spec | Numbered testable behaviours, out-of-scope | **Gate 1** — approve and commit |
 | plan | Exact files, order, risk, proof per behaviour | **Gate 2** — approve and commit |
 | implement | Red-green-refactor until stop checks pass | — |
-| review | Independent review against contract and evidence | **Gate 3** — review and merge the PR |
+| review | The evaluator agent reviews the diff against the spec | **Gate 3** — review and merge the PR |
 
-For the current artifact chain, set an intent to `accepted`; set a spec or plan to `approved`.
-Commit the decision, then tell Claude:
+Approve a gate with one command, after the artifact is committed:
+
+```bash
+.aidlc/bin/harness approve <slug> spec --by "your name"
+```
+
+Commit the approval, then tell Claude:
 
 ```text
 Approved. Continue the workflow.
 ```
 
-Intent acceptance is the intake decision. The three delivery gates are spec approval, plan
-approval, and PR merge. Everything else runs without waiting.
+The three gates are spec approval, plan approval, and PR merge. Everything else runs without
+waiting. Editing an approved spec or plan afterwards reports `stale-approval` and stops it
+governing anything, so a gate cannot quietly still read as passed while the text under it moved.
 
 ---
 
@@ -262,8 +268,8 @@ engineering](https://martinfowler.com/articles/harness-engineering.html):
 
 - **Guides** act before Claude works — `CLAUDE.md`, a handful of focused skills, artifact templates, the
   code graph, and the explorer agent.
-- **Sensors** observe the result — tests, lint, types, secret and contract scope-drift checks, 5 hook
-  bindings, and the reviewer and verifier agents.
+- **Sensors** observe the result — tests, lint, types, secret and plan scope-drift checks, the hook
+  bindings, and the evaluator and verifier agents.
 - **The ledger** records every sensor invocation, so controls that are noisy or never useful get
   deleted instead of accumulating.
 
