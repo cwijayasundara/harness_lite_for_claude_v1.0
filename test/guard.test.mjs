@@ -74,7 +74,8 @@ test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
     // And the repository's own files are still the prefix. `.aidlc/instructions.md` is on that
     // list because it is what `.claude/CLAUDE.md` is generated from: editing it and re-running
     // init invalidates the cache exactly as editing the generated file would.
-    for (const rel of ['.aidlc/harness.toml', '.claude/CLAUDE.md', '.claude/settings.json', '.aidlc/instructions.md']) {
+    // lean-v2 B6 removed `.aidlc/harness.toml` from this list: it is a registry, not prompt text.
+    for (const rel of ['.claude/CLAUDE.md', '.claude/settings.json', '.aidlc/instructions.md']) {
       assert.match(String(writeBlocked(rel, cfg)), /cached prompt prefix/, `stopped guarding ${rel}`);
     }
   } finally { f.cleanup(); }
@@ -206,6 +207,33 @@ test('require_contract permits only paths owned by a committed approved contract
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
     assert.match(writeBlocked('src/app/handlers.py', cfg), /outside every approved contract/);
     assert.equal(writeBlocked('.aidlc/artifacts/intent-refs/change.json', cfg), null);
+  } finally { s.cleanup(); }
+});
+
+// lean-v2 B6. `[guard].protected_paths` and `require_contract` were two answers to one question,
+// and they disagreed: `dormant-sensors-run-at-commit` named `evals/fixtures/_base/.aidlc/harness.toml`
+// in its sealed plan, the protected-path rule refused the write anyway, and the suite stayed red
+// until a human typed the line by hand. A protected path is protected from an *unplanned* write.
+// A human sealing a plan that names the exact path is the decision the rule exists to require.
+test('a protected path an approved committed contract names is writable', () => {
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const layout = { root: s.work, contracts: path.join(s.work, '.aidlc/artifacts/contracts'), state: path.join(s.work, '.aidlc/state') };
+    const cfg = { layout, guard: { require_contract: true, protected_paths: ['src/app', 'evals/fixtures'] } };
+
+    // Owned by the fixture's committed approved contract, and protected. The plan wins.
+    assert.equal(writeBlocked('src/app/text.py', cfg), null, 'refused a path the approved plan owns');
+
+    // Protected and owned by nothing: still refused, and the message says what would unblock it.
+    assert.match(String(writeBlocked('evals/fixtures/_base/x.toml', cfg)), /protected_paths/);
+
+    // Unowned and protected is refused by the protected-path rule, which is the narrower message.
+    assert.match(String(writeBlocked('src/app/handlers.py', cfg)), /protected_paths/);
+
+    // With nothing protected, the same path is refused by the ownership rule instead. Both rules
+    // still refuse it; ownership is what either of them yields to.
+    const unprotected = { layout, guard: { require_contract: true } };
+    assert.match(String(writeBlocked('src/app/handlers.py', unprotected)), /outside every approved contract/);
+    assert.equal(writeBlocked('src/app/text.py', unprotected), null);
   } finally { s.cleanup(); }
 });
 

@@ -58,17 +58,22 @@ export function layout(root = findRepoRoot()) {
 // Paths an agent may never write mid-session. Editing any of these invalidates the prompt
 // cache prefix for the rest of the session, which is the single most expensive silent
 // regression available. Ported from v6, where it was correct and non-obvious.
+// lean-v2 B6: `.aidlc/harness.toml` and `.aidlc/model-policy.json` left this list. They are
+// registries, not prompt text — neither is read into a session prefix — and guarding them here
+// made the agent unable to land its own sealed plan: `dormant-sensors-run-at-commit` owned
+// `.aidlc/harness.toml`, the guard refused the write anyway, and the suite stayed red until a
+// human typed two lines. A gate that sits inside the build loop is the one the playbook warns
+// about. Ownership by a committed approved contract now governs them, which is a human decision
+// recorded in git rather than a human keystroke at the end of every registry change.
 export const PREFIX_CACHE_PATHS = [
   '.claude/CLAUDE.md',
   '.claude/settings.json',
   '.claude/settings.local.json',
-  '.aidlc/harness.toml',
   // The canonical source `.claude/CLAUDE.md` is generated from. Editing it and re-running
   // `harness init` invalidates the cached prefix exactly as editing the generated file would —
   // which is the route a model took on 2026-09-02, respecting the letter of the guard while
   // defeating its purpose.
   '.aidlc/instructions.md',
-  '.aidlc/model-policy.json',
   '.mcp.json',
   'CLAUDE.md',
 ];

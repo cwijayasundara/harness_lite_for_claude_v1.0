@@ -41,8 +41,27 @@ export function writeBlocked(rel, cfg) {
       return `${p} is part of the cached prompt prefix. Editing it mid-session invalidates the prompt cache for every remaining turn. Ask the human to change it between sessions.`;
     }
   }
-  for (const p of cfg.guard?.protected_paths ?? []) {
-    if (norm === p || norm.startsWith(p.replace(/\/$/, '') + '/')) return `${p} is listed in harness.toml [guard].protected_paths.`;
+  // Ownership is read once and answered twice. The protected-path rule and the require_contract
+  // rule ask the same question of the same data, and asking it in two places was how they came to
+  // disagree: `[guard].protected_paths` refused a file that an approved committed contract owned.
+  const requireContract = cfg.guard?.require_contract ?? false;
+  const protectedPaths = cfg.guard?.protected_paths ?? [];
+  let scope = null;
+  const owned = () => {
+    if (!scope) { try { scope = contractScopeState(cfg); } catch { scope = { declared: [], parseError: true }; } }
+    return matchesDeclared(norm, scope.declared);
+  };
+
+  // lean-v2 B6. A protected path is protected from an unplanned write, not from a planned one.
+  // `evals/fixtures` exists so a fixture is never edited to make a test pass; a contract whose
+  // plan names the fixture, sealed by a human and committed, is the opposite of that — it is the
+  // human saying which fixture changes and why. Without this the agent could not land a change
+  // its own approved plan described, and the gate moved from the edge of the loop into the middle.
+  for (const p of protectedPaths) {
+    if (norm === p || norm.startsWith(p.replace(/\/$/, '') + '/')) {
+      if (owned()) break;
+      return `${p} is listed in harness.toml [guard].protected_paths. Only a committed approved contract that names this exact path may change it.`;
+    }
   }
   const lock = path.join(cfg.layout.state, 'test-lock.json');
   if (existsSync(lock)) {
@@ -53,10 +72,10 @@ export function writeBlocked(rel, cfg) {
       }
     } catch { /* a malformed lock must not block work */ }
   }
-  const requireContract = cfg.guard?.require_contract ?? false;
   if (requireContract && !artifactOrState(norm)) {
     try {
-      const { declared, parseError } = contractScopeState(cfg);
+      if (!scope) scope = contractScopeState(cfg);
+      const { declared, parseError } = scope;
       if (parseError && !declared.length) return null;
       if (!declared.length) return `${norm} needs a committed approved delivery contract before product files change. Create and approve the contract, or set [guard].require_contract = false.`;
       if (!matchesDeclared(norm, declared)) return `${norm} is outside every approved contract's Structure and ownership section.`;
