@@ -5,10 +5,10 @@
 - **Intent ref:** ../intent-refs/the-ledger-cannot-judge-a-deterrent.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** approved
-- **Spec approval digest:** sha256:7ee809ebb5a83acf4c69c53d6fba3546580f1d9aa374dd929f9f39b60f2d39d4
-- **Plan status:** approved
-- **Plan approval digest:** sha256:f6418e69d11d60679198de1730862ce0d991a0cda5fc7897af4c299fec0fb5b0
+- **Spec status:** draft
+- **Spec approval digest:** pending
+- **Plan status:** draft
+- **Plan approval digest:** pending
 
 ## Outcome
 
@@ -26,10 +26,14 @@ instructing a deletion.
 
 ### B2
 
-Given a control named by no stage,
+Given a control reachable from neither a stage nor a hook binding,
 When the audit runs,
 Then its verdict is `unwired` and the action is to wire it or remove it — not to wait for
 invocations that cannot arrive.
+
+A control reached only by a hook — `bash-guard`, `write-guard`, `graph-refresh` — is wired. The
+ledger sees it constantly; it simply is not named in `[stages]`. Judging it unwired would condemn
+the three most active controls in the repository.
 
 ### B3
 
