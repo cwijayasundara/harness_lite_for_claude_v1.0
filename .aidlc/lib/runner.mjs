@@ -12,7 +12,9 @@ import { resolveStage } from './config.mjs';
 import { normalize } from './normalize.mjs';
 import * as ledger from './ledger.mjs';
 
-const LOCAL_CHECKS = {
+// Exported so a test can resolve stage entries against the runner's own list rather than a
+// copy of it. Two lists that must agree is the shape of most defects in this repository.
+export const LOCAL_CHECKS = {
   secrets: () => import('../checks/secrets.mjs'),
   'scope-drift': () => import('../checks/scope-drift.mjs'),
   budget: () => import('../checks/budget.mjs'),

@@ -66,6 +66,54 @@ test('no skill sequences phases (Law 2)', () => {
   }
 });
 
+// no-name-points-at-nothing B1-B4. A stage entry naming a control with no implementation is a
+// check that silently never runs, which reads exactly like a check that passed. `plan-drift` had
+// no implementation since 303b58b and survived in evals/fixtures/_base — where it left contract
+// scope enforcement with no eval coverage and made contract-scope-honesty unfalsifiable — and
+// then in both examples, which are the two files a newcomer copies from.
+//
+// Configs are discovered, not listed: a test that only checks the files someone remembered to
+// list is the same class of thing as the defect it catches.
+test('every stage entry in every harness.toml resolves to something that runs', async () => {
+  const { LOCAL_CHECKS } = await import('../.aidlc/lib/runner.mjs');
+  const { VERBS } = await import('../.aidlc/lib/config.mjs');
+  const { parseToml } = await import('../.aidlc/lib/toml.mjs');
+
+  const configs = [];
+  const walk = (dir) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.name === '.git' || e.name === 'node_modules') continue;
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name === 'harness.toml') configs.push(p);
+    }
+  };
+  walk(ROOT);
+  assert.ok(configs.length >= 5, `expected to discover several harness.toml, found ${configs.length}`);
+
+  const resolvable = new Set([...Object.keys(LOCAL_CHECKS), ...VERBS]);
+  const dangling = [];
+  for (const file of configs) {
+    const stages = parseToml(readFileSync(file, 'utf8')).stages ?? {};
+    for (const [stage, entries] of Object.entries(stages)) {
+      for (const entry of entries ?? []) {
+        if (stages[entry] || resolvable.has(entry)) continue;
+        dangling.push(`${path.relative(ROOT, file)} [${stage}] names "${entry}", which is neither a stage, a local check, nor a capability verb`);
+      }
+    }
+  }
+  assert.deepEqual(dangling, [], `\n  ${dangling.join('\n  ')}`);
+});
+
+// B4. Making every name resolve must not flatten two examples into one — they demonstrate
+// different languages, and that difference is why there are two.
+test('the examples still differ from each other', () => {
+  const stages = (p) => readFileSync(path.join(ROOT, p, '.aidlc/harness.toml'), 'utf8')
+    .split('\n').find((l) => l.trim().startsWith('fast'));
+  assert.notEqual(stages('examples/scratch-py'), stages('examples/scratch-ts'),
+    'two examples that run identical stages are one example');
+});
+
 // ci-is-green-without-a-key B2/B4/B7. Every push turned the Actions tab red because six
 // workflows passed an ANTHROPIC_API_KEY this repository does not have, and none was gated. A
 // result that has never carried information is one nobody reads. This is the part that keeps the

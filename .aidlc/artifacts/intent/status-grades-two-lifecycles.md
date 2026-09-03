@@ -1,7 +1,14 @@
 # Intent: status-grades-two-lifecycles
 
-- **Status:** draft
+- **Status:** closed
 - **Author:** cwijayasundara
+
+## Resolution
+
+Closed by `retire-the-legacy-lifecycle`, which deleted the four-file walk this described and
+moved the incident loop and the stage SLA clocks onto the contract chain first. `harness status`
+no longer prints a spec or plan next-stage row, and its only non-zero exit cause is a real
+finding.
 
 ## Problem
 
