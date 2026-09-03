@@ -5,10 +5,10 @@
 - **Intent ref:** ../intent-refs/ci-is-green-without-a-key.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** approved
-- **Spec approval digest:** sha256:f01e755d20833b622e9abc0c656b45b54d722c705e076d7ca8dd0b49949251e4
-- **Plan status:** approved
-- **Plan approval digest:** sha256:fa8eebbc8bebec4ddc2ecc3f2d8afe5fa39e6f51ed18e812dd9f0982c0f80342
+- **Spec status:** draft
+- **Spec approval digest:** pending
+- **Plan status:** draft
+- **Plan approval digest:** pending
 
 ## Outcome
 
@@ -58,6 +58,17 @@ When the unit suite runs,
 Then they still hold: the review job stays read-only and cannot declare a gate approved, the fix
 job can push but cannot approve or merge, and the monitor and rehearse workflows still call no
 model.
+
+### B7
+
+Given `harness-intent.yml`,
+When an issue is labelled `intent` on a repository with no key,
+Then the job runs and produces a deterministic draft. Its model step already carries
+`if: secrets.ANTHROPIC_API_KEY != ''` with a key-free fallback, and the owner's 2026-08-24
+decision was that this half stays live. Gating the job would disable the one model-adjacent
+workflow that does useful work without a key — so it is the one file here left alone.
+
+The count in B2 is therefore five jobs, not six.
 
 ## Out of scope
 
@@ -112,7 +123,7 @@ repository.
 | `.github/workflows/claude-fix.yml` | job-level guard |
 | `.github/workflows/claude-review.yml` | job-level guard |
 | `.github/workflows/harness-diagnose.yml` | job-level guard |
-| `.github/workflows/harness-intent.yml` | job-level guard on the model job only |
+| `.github/workflows/harness-intent.yml` | **unchanged** — see B7 |
 | `.github/workflows/harness-triage.yml` | job-level guard |
 | `.github/workflows/harness.yml` | job-level guard on `evals`; `unit` and `cost` untouched |
 | `test/contracts.test.mjs` | B2, B4 and B6 |
@@ -147,3 +158,4 @@ repository.
 | B4 | `test/contracts.test.mjs` — a model-invoking job without the guard fails the suite |
 | B5 | suite and `baseline check` on a runner-like PATH: 212 tests 0 failures, ratchet exits 0 |
 | B6 | `test/contracts.test.mjs` and `test/playbook-pack.test.mjs`, unchanged |
+| B7 | `test/contracts.test.mjs` — the intent draft job is not gated, and its model step is |
