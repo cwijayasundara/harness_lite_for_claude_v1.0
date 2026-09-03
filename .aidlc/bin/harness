@@ -16,6 +16,7 @@ import * as graph from '../lib/graph.mjs';
 import * as baseline from '../lib/baseline.mjs';
 import { pack, renderPack } from '../lib/pack.mjs';
 import { refresh } from '../lib/refresh.mjs';
+import * as codemap from '../lib/map.mjs';
 import { measure, shipped, RECORD } from '../checks/budget.mjs';
 import { dispatch } from '../hooks/dispatch.mjs';
 import * as evalGate from '../lib/eval-gate.mjs';
@@ -348,6 +349,21 @@ async function main() {
       console.error('usage: harness graph build|refresh|query <callers|calls|hubs|cycles|changed-since> [arg]'); return 2;
     }
 
+    // B11. One generated page, so a session reads a ranked map instead of grepping for structure.
+    case 'map': {
+      const cfg = loadConfig(findRepoRoot());
+      const g = graph.ensure(cfg);
+      if (has('check')) {
+        const d = codemap.drift(cfg, g);
+        if (!d.drifted) { console.log(`PASS  ${codemap.MAP_FILE} matches the tree`); return 0; }
+        console.error(`FAIL  ${d.reason}${d.gone?.length ? `\n  gone:  ${d.gone.join(', ')}` : ''}${d.added?.length ? `\n  added: ${d.added.join(', ')}` : ''}\n  run: harness map`);
+        return 1;
+      }
+      const r = codemap.write(cfg, g);
+      console.log(`${path.relative(cfg.layout.root, r.file)}  ${r.lines} lines, ${Object.keys(g.modules).length} modules`);
+      return 0;
+    }
+
     case 'pack': {
       const cfg = loadConfig(findRepoRoot());
       const question = argv.slice(1).filter((x) => x !== '--budget' && x !== String(flag('budget'))).join(' ');
@@ -427,6 +443,7 @@ async function main() {
   harness ledger [audit] [--days 30]
   harness evals gate [--update]    grade the newest run against evals/expected.json
   harness baseline capture|check
+  harness map [--check]            write CODEBASE-MAP.md, or fail if it is stale
   harness graph build|refresh|query <question> [arg]
   harness pack <question>          budgeted graph context
   harness hook <event>             hook dispatch (stdin/stdout JSON)`);

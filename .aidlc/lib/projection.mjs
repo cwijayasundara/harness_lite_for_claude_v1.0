@@ -16,7 +16,11 @@ export function renderClaudeHooks(policy, commandRoot = '${CLAUDE_PLUGIN_ROOT}')
   if (policy?.schema !== 'aidlc.hook-policy/v1' || !Array.isArray(policy.bindings)) throw new Error('invalid aidlc.hook-policy/v1');
   const hooks = {};
   const eventNames = { 'session-start': 'SessionStart', 'pre-tool': 'PreToolUse', 'post-tool': 'PostToolUse', stop: 'Stop' };
-  const matchers = { write: 'Write|Edit|MultiEdit', shell: 'Bash' };
+  // `tools` is one binding covering every tool the pre-tool guard has an opinion about. It used
+  // to be two — `write` and `shell` — and adding a third for search would have been a sixth
+  // binding against a ceiling of five. Merging is the better answer anyway: one entry point per
+  // event, branching on tool name inside the dispatcher, which is what it already does per event.
+  const matchers = { write: 'Write|Edit|MultiEdit', shell: 'Bash', tools: 'Write|Edit|MultiEdit|Bash|Grep|Glob' };
   for (const binding of policy.bindings) {
     const event = eventNames[binding.event];
     if (!event || !binding.action || !Number.isInteger(binding.timeout)) throw new Error(`invalid hook binding: ${JSON.stringify(binding)}`);

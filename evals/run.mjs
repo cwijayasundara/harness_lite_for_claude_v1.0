@@ -241,12 +241,19 @@ async function main() {
   }
 
   const { claudeInvoker } = await import('./lib/invoker.mjs');
+  // B12. The model the suite drives, from the one registry that names it.
+  let evalModel = null;
+  try {
+    const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+    evalModel = loadConfig(PLUGIN_ROOT).models?.evals ?? null;
+  } catch { /* no registry: the CLI default is a defensible fallback */ }
+  if (evalModel) console.log(`model: ${evalModel}`);
   const baselineFile = path.join(HERE, 'baseline.json');
   const baseline = existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, 'utf8')) : {};
   const out = await runSuite({
     tasks, fixturesDir, baseline,
     harnessBin: path.join(PLUGIN_ROOT, '.aidlc', 'bin', 'harness'),
-    invoke: claudeInvoker({ pluginDir: PLUGIN_ROOT }),
+    invoke: claudeInvoker({ pluginDir: PLUGIN_ROOT, model: evalModel }),
     log: (m) => console.log(m),
   });
 

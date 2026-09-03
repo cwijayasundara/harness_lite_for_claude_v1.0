@@ -429,3 +429,56 @@ test('the ledger records which rule fired, and a human can call a fire wrong', a
     assert.equal(rows.every((r) => r.verdict === 'fail' || r.verdict === 'pass'), true);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+// lean-v2 B10. The anti-pattern every source on this names and nothing here caught: an agent
+// turning a red bar green by moving the bar. Fowler: "AI frequently increases thresholds rather
+// than refactors", and human review "should start from the exceptions AI created".
+test('tamper: a raised threshold, a bare suppression and a deleted test are each findings', async () => {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { execFileSync } = await import('node:child_process');
+  const { run } = await import('../.aidlc/checks/tamper.mjs');
+
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tamper-'));
+  const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'ignore' });
+  const cfg = { layout: { root, artifacts: path.join(root, '.aidlc/artifacts'), state: path.join(root, '.aidlc/state') }, guard: {} };
+  try {
+    git('init', '-q');
+    git('config', 'user.email', 'h@example.invalid');
+    git('config', 'user.name', 'H');
+    fs.mkdirSync(path.join(root, 'tests'), { recursive: true });
+    fs.writeFileSync(path.join(root, '.eslintrc.json'), '{\n  "max-lines": 200\n}\n');
+    fs.writeFileSync(path.join(root, 'tests/test_a.py'), 'def test_a():\n    assert True\n');
+    fs.writeFileSync(path.join(root, 'src.py'), 'x = 1\n');
+    git('add', '-A');
+    execFileSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'base'], { cwd: root, stdio: 'ignore' });
+
+    assert.equal((await run(cfg)).verdict, 'pass', 'a clean tree is not tampering');
+
+    // The bar moves to fit the code.
+    fs.writeFileSync(path.join(root, '.eslintrc.json'), '{\n  "max-lines": 500\n}\n');
+    // A suppression nobody can question.
+    fs.writeFileSync(path.join(root, 'src.py'), 'x = 1  # noqa\n');
+    // And the test that was failing simply goes.
+    fs.rmSync(path.join(root, 'tests/test_a.py'));
+
+    const result = await run(cfg);
+    assert.equal(result.verdict, 'fail');
+    const rules = result.findings.map((f) => f.rule).sort();
+    assert.deepEqual([...new Set(rules)], ['bare-suppression', 'deleted-test', 'raised-threshold']);
+    assert.match(result.findings.find((f) => f.rule === 'raised-threshold').message, /200 to 500/);
+
+    // A suppression with a why is a decision someone can disagree with, not an evasion.
+    fs.writeFileSync(path.join(root, 'src.py'), 'x = 1  # noqa  # why: vendored stub, upstream issue 412\n');
+    const excused = await run(cfg);
+    assert.equal(excused.findings.filter((f) => f.rule === 'bare-suppression').length, 0);
+
+    // And a suppression named inside a string literal is a mention. This rule found its own
+    // fixture on its first run against this repository, which is how it earned this line.
+    fs.writeFileSync(path.join(root, 'src.py'), 'sample = "x = 1  # noqa"\n');
+    const quoted = await run(cfg);
+    assert.equal(quoted.findings.filter((f) => f.rule === 'bare-suppression').length, 0,
+      'a suppression inside a string is a mention, not a suppression');
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});

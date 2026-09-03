@@ -39,11 +39,16 @@ jobs:
         env:
           HARNESS_HOME: ${{ github.workspace }}/.aidlc
 
+  # Law 9: the suite runs on any diff touching the steering surface — CLAUDE.md, a skill, a role,
+  # a hook, the registry. That trigger IS the governance model; it replaces certification tiers.
+  #
+  # lean-v2 B12. Three repairs. The path filter named `.aidlc/agents.json`, deleted in cut 4, and
+  # did not name `.aidlc/sensors/`, which is a steering surface now. The run had no model, so it
+  # could not use the cheap one. And it had no aggregate cap: per-task ceilings bound each task
+  # and nothing bounded the run.
   evals:
-    # Law 9: the suite runs on any diff touching the harness's own configuration.
-    # That trigger IS the governance model — it replaces certification and autonomy tiers.
     runs-on: ubuntu-latest
-    if: vars.HARNESS_MODEL_JOBS == 'enabled' && github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -52,8 +57,20 @@ jobs:
       - id: touched
         run: |
           git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep -E '^(\.aidlc/(harness\.toml|agents\.json|skills/|roles/|checks/|lib/|hooks/|templates/)|\.claude/(CLAUDE\.md|settings\.json)|evals/(tasks\.json|lib/|run\.mjs))' \
+            | grep -E '^(\.aidlc/(harness\.toml|skills/|roles/|checks/|sensors/|lib/|hooks/|templates/)|\.claude/(CLAUDE\.md|settings\.json)|evals/(tasks\.json|lib/|run\.mjs))' \
             && echo "run=true" >> "$GITHUB_OUTPUT" || echo "run=false" >> "$GITHUB_OUTPUT"
-      - if: steps.touched.outputs.run == 'true'
-        run: node evals/run.mjs --require-auth
+
+      # Without a key the job says so and stops. It does not pass quietly: a steering change that
+      # merged with no eval evidence is exactly what this exists to prevent, and a green tick that
+      # means "we did not look" is worse than a red one.
+      - if: steps.touched.outputs.run == 'true' && secrets.ANTHROPIC_API_KEY == ''
+        run: |
+          echo "::error::a steering surface changed and ANTHROPIC_API_KEY is not set — the eval suite cannot run"
+          exit 1
+
+      - if: steps.touched.outputs.run == 'true' && secrets.ANTHROPIC_API_KEY != ''
+        run: node evals/run.mjs --require-auth --max-suite-usd 5
         env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }
+
+      - if: steps.touched.outputs.run == 'true' && secrets.ANTHROPIC_API_KEY != ''
+        run: node .aidlc/bin/harness evals gate

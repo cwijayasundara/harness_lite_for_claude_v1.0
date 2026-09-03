@@ -2,10 +2,15 @@
 // assertion engine are unit-testable with no model, no key and no spend.
 import { spawnSync } from 'node:child_process';
 
-export function claudeInvoker({ pluginDir }) {
+// lean-v2 B12. `model` comes from `[models] evals` — Haiku 4.5 — and is cheap on purpose. What
+// the suite measures is whether the *harness* steers a model to the right answer; running a
+// frontier model here would flatter the guides and price the suite out of running on every
+// steering change, which is the one trigger Law 9 actually requires.
+export function claudeInvoker({ pluginDir, model = null }) {
   return function invoke({ prompt, cwd, timeoutMs, budgetUsd }) {
     const args = [
       '-p', prompt,
+      ...(model ? ['--model', model] : []),
       // Evals run against a disposable copy in mkdtemp, so permission prompts measure the CLI
       // rather than the guides. MEASURED: under `acceptEdits` the model's own skills told it to
       // run `.aidlc/bin/harness` and to write `.aidlc/artifacts/...`, and both were denied —

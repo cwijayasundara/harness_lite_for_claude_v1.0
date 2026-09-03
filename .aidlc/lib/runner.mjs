@@ -18,6 +18,7 @@ export const LOCAL_CHECKS = {
   secrets: () => import('../checks/secrets.mjs'),
   'scope-drift': () => import('../checks/scope-drift.mjs'),
   budget: () => import('../checks/budget.mjs'),
+  tamper: () => import('../checks/tamper.mjs'),
 };
 
 function interpolate(cmd, files, reportPath) {

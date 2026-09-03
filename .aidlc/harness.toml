@@ -24,7 +24,7 @@ fail_fast = true
 [stages]
 fast   = ["secrets"]
 stop   = ["fast", "test"]
-commit = ["stop", "scope-drift", "budget", "arch", "test_quality"]
+commit = ["stop", "scope-drift", "budget", "tamper", "arch", "test_quality"]
 drift  = []
 
 [sensors]

@@ -154,39 +154,22 @@ test('the examples still differ from each other', () => {
 // workflows passed an ANTHROPIC_API_KEY this repository does not have, and none was gated. A
 // result that has never carried information is one nobody reads. This is the part that keeps the
 // guarantee true: the next workflow someone adds cannot re-open the hole quietly.
-test('every model-invoking workflow job is gated behind the one switch', () => {
-  const SWITCH = "vars.HARNESS_MODEL_JOBS == 'enabled'";
-  const dir = path.join(ROOT, '.github/workflows');
-  // harness-intent's draft job is deliberately ungated: its model step carries its own secrets
-  // guard with a key-free fallback, and the deterministic intake must keep working without a key.
-  const INTENT = 'harness-intent.yml';
-  const offenders = [];
-  let gated = 0;
-
-  for (const name of readdirSync(dir).filter((f) => f.endsWith('.yml'))) {
-    const body = readFileSync(path.join(dir, name), 'utf8');
-    if (!/claude-code-action|ANTHROPIC_API_KEY/.test(body)) continue;
-
-    if (name === INTENT) {
-      // B7: the job runs, and only the model step is conditional on a key being present.
-      assert.doesNotMatch(body, new RegExp(SWITCH.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `${name}: the deterministic intake must not be gated off`);
-      assert.match(body, /if: \$\{\{ secrets\.ANTHROPIC_API_KEY != '' \}\}/, `${name}: the model step must guard itself`);
-      assert.match(body, /if: \$\{\{ secrets\.ANTHROPIC_API_KEY == '' \}\}/, `${name}: and there must be a key-free path`);
-      continue;
-    }
-    if (body.includes(SWITCH)) gated++; else offenders.push(name);
-  }
-
-  assert.deepEqual(offenders, [], `these jobs can invoke a model with no switch guarding them: ${offenders.join(', ')}`);
-  // lean-v2 cuts 2 and 3 removed the diagnose, monitor and rehearse workflows with the
-  // subsystems they drove. The floor exists so this test cannot pass by finding nothing at all;
-  // the invariant it guards is `offenders`, not the count.
-  assert.ok(gated >= 1, `expected at least one gated workflow, found ${gated}`);
+// lean-v2 B12. The gate is gone and the rule that replaces it is stricter, not looser.
+//
+// `vars.HARNESS_MODEL_JOBS` switched the eval job off wholesale, so a change to CLAUDE.md, a
+// skill or a hook could merge with no eval evidence and a green tick. A tick that means "we did
+// not look" is worse than a red one. Now the job always runs on a steering change, and a missing
+// key is an error rather than a silent skip.
+test('a steering change cannot merge without eval evidence', () => {
+  const workflow = readFileSync(path.join(ROOT, '.github', 'workflows', 'harness.yml'), 'utf8');
+  assert.doesNotMatch(workflow, /HARNESS_MODEL_JOBS/,
+    'a switch that turns the suite off is a switch that turns governance off');
+  assert.match(workflow, /::error::.*ANTHROPIC_API_KEY is not set/,
+    'no key on a steering change must fail the job, not skip it');
+  assert.match(workflow, /exit 1/);
+  assert.match(workflow, /harness evals gate/, 'running the suite is not grading it');
 });
 
-// B6, restated as a boundary: gating changes WHEN a job runs, never what it may do when it does.
-// unit and cost need no key and must keep running, or the repository has no CI rather than quiet
-// CI.
 test('the jobs that need no key are not gated', () => {
   const body = readFileSync(path.join(ROOT, '.github/workflows/harness.yml'), 'utf8');
   const jobs = body.split(/\n  (?=[a-z_-]+:\n)/);
@@ -200,7 +183,7 @@ test('the jobs that need no key are not gated', () => {
 
 test('CI model evals cover every steering surface and require authentication', () => {
   const workflow = readFileSync(path.join(ROOT, '.github', 'workflows', 'harness.yml'), 'utf8');
-  for (const surface of [String.raw`CLAUDE\.md`, String.raw`settings\.json`, String.raw`harness\.toml`, 'skills/', 'roles/', 'hooks/', 'templates/', 'evals/']) {
+  for (const surface of [String.raw`CLAUDE\.md`, String.raw`settings\.json`, String.raw`harness\.toml`, 'skills/', 'roles/', 'hooks/', 'sensors/', 'templates/', 'evals/']) {
     assert.ok(workflow.includes(surface), surface);
   }
   assert.match(workflow, /run\.mjs --require-auth/);

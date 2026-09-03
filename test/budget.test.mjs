@@ -8,7 +8,7 @@ import path from 'node:path';
 import { A, C, BIN } from './_paths.mjs';
 import { measure, RECORD } from '../.aidlc/checks/budget.mjs';
 
-const LIMITS = { skills: 7, agents: 3, hooks: 5, hook_loc: 600, claude_md_lines: 120 };
+const LIMITS = { skills: 7, agents: 3, hooks: 4, hook_loc: 600, claude_md_lines: 120 };
 
 // An installed project, measured the way a user's CI measures it: by running the harness that
 // was actually installed there. Importing `measure` directly would resolve the harness root to
@@ -43,7 +43,7 @@ test('an installed project measures the harness it was given', () => {
   const root = installed();
   try {
     const b = budgetOf(root);
-    assert.equal(b.measured.hooks, 5, 'hook bindings');
+    assert.equal(b.measured.hooks, 4, 'hook bindings');
     assert.equal(b.measured.skills, 7, 'skills');
     assert.equal(b.measured.agents, 3, 'agents');
     assert.ok(b.measured.hook_loc > 0, `hook_loc = ${b.measured.hook_loc}`);
@@ -131,7 +131,7 @@ test('the budget reads nothing outside the project', () => {
     const b = budgetOf(root, { HOME: home, USERPROFILE: home });
     assert.equal(b.measured.skills, 7);
     assert.equal(b.measured.agents, 3);
-    assert.equal(b.measured.hooks, 5);
+    assert.equal(b.measured.hooks, 4);
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(home, { recursive: true, force: true });
@@ -142,6 +142,6 @@ test('the budget reads nothing outside the project', () => {
 // the recorded half must never apply here, or this repository could stop counting its own.
 test('the self-install measures the harness itself, not a record', () => {
   const m = measure({ layout: { aidlc: A, claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
-  assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 7, agents: 3, hooks: 5 });
+  assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 7, agents: 3, hooks: 4 });
   assert.ok(m.hook_loc > 0, `hook_loc = ${m.hook_loc}`);
 });

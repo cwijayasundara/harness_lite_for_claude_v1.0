@@ -1,10 +1,27 @@
 {
   "schema": "aidlc.hook-policy/v1",
   "bindings": [
-    { "event": "session-start", "action": "session-start", "timeout": 10 },
-    { "event": "pre-tool", "matcher": "write", "action": "pre-write", "timeout": 10 },
-    { "event": "pre-tool", "matcher": "shell", "action": "pre-bash", "timeout": 10 },
-    { "event": "post-tool", "matcher": "write", "action": "post-write", "timeout": 120 },
-    { "event": "stop", "action": "stop", "timeout": 180 }
+    {
+      "event": "session-start",
+      "action": "session-start",
+      "timeout": 10
+    },
+    {
+      "event": "pre-tool",
+      "matcher": "tools",
+      "action": "pre-tool",
+      "timeout": 10
+    },
+    {
+      "event": "post-tool",
+      "matcher": "write",
+      "action": "post-write",
+      "timeout": 120
+    },
+    {
+      "event": "stop",
+      "action": "stop",
+      "timeout": 180
+    }
   ]
 }
