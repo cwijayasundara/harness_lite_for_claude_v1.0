@@ -4,13 +4,13 @@
   "source": {
     "provider": "git",
     "locator": ".aidlc/artifacts/intent/one-eval-number.md",
-    "revision": "pending",
+    "revision": "f054d5c",
     "authority": "git"
   },
   "decision": {
-    "status": "draft",
-    "decided_by": null,
-    "decided_at": null
+    "status": "accepted",
+    "decided_by": "cwijayasundara",
+    "decided_at": "2026-09-03T05:27:54.848Z"
   },
-  "snapshot_digest": "pending"
+  "snapshot_digest": "sha256:34914ee2139759c2dbe78d813a4fd928fb4ce172f907e461c4b6a9a2d261b8c2"
 }
