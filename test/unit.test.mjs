@@ -303,6 +303,56 @@ test('a new session rotates the run id, and HARNESS_RUN_ID still pins it', async
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+// the-ledger-cannot-judge-a-deterrent B1-B5. Asked for the first time with enough evidence to
+// answer, the audit said "DELETE budget" — a control that fires the instant a limit is crossed,
+// standing at its limit, which had never fired because nobody tried to add an eleventh skill.
+// Deleting it would remove the reason the limit was never crossed. Meanwhile arch and
+// test_quality, which no stage runs, were told to wait for invocations that cannot arrive.
+test('the audit separates a control that did not fire from one that did not run', async () => {
+  const { audit, wiredControls, KILL } = await import('../.aidlc/lib/ledger.mjs');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-deterrent-'));
+  const L = { state: root, ledger: path.join(root, 'ledger.jsonl'), runId: path.join(root, 'run-id') };
+  const rows = [];
+  const now = new Date().toISOString();
+  const push = (control, verdict, n) => { for (let i = 0; i < n; i++) rows.push({ ts: now, run: 'r', control, verdict, ms: 1, findings: 0 }); };
+  push('deterrent', 'pass', 60);                                  // wired, ran, never fired
+  push('offstage', 'pass', 3);                                    // no stage, no hook
+  push('flaky', 'errored', 30); push('flaky', 'pass', 30);        // 50% errors
+  push('useful', 'pass', 40); push('useful', 'fail', 20);         // 33% fire rate
+  push('young', 'pass', 5);                                       // wired, not enough evidence
+  fs.writeFileSync(L.ledger, rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
+
+  const staged = wiredControls({ stages: { fast: ['deterrent'], stop: ['fast', 'flaky', 'useful'], commit: ['stop', 'young'] } });
+  const a = audit(L, { staged });
+  const by = Object.fromEntries(a.controls.map((c) => [c.control, c.verdict]));
+
+  assert.equal(by.deterrent, 'never-fired', 'B1: ran often, never fired');
+  assert.match(a.controls.find((c) => c.control === 'deterrent').action, /read its why/, 'B1: asks rather than instructs');
+  assert.equal(by.offstage, 'unwired', 'B2: nothing runs it');
+  assert.equal(by.useful, 'earning-its-place', 'B4');
+  assert.equal(by.young, 'insufficient-data', 'B5: not yet, which differs from never');
+  assert.equal(by.flaky, 'unreliable');
+
+  // B3: the ledger only asserts what it can justify alone.
+  assert.deepEqual(a.deletions, ['flaky'], 'a working deterrent is not a delete candidate');
+  assert.deepEqual(a.decide.sort(), ['deterrent', 'offstage'], 'both need a human to read the why:');
+  assert.equal(KILL.min_sessions, 50, 'the thresholds were never the problem');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// A control reached only by a hook is wired. The ledger sees it constantly; it is simply not
+// named in [stages], and judging by stages alone condemned the three busiest controls.
+test('a control reached by a hook binding is wired, not unwired', async () => {
+  const { wiredControls } = await import('../.aidlc/lib/ledger.mjs');
+  const wired = wiredControls({ stages: { commit: ['secrets'] } });
+  for (const c of ['bash-guard', 'write-guard', 'graph-refresh']) assert.ok(wired.has(c), c);
+  assert.ok(wired.has('secrets'));
+  assert.ok(!wired.has('arch'));
+});
+
 test('ledger audit turns rows into decisions, and refuses a verdict without evidence', async () => {
   const { audit, KILL } = await import('../.aidlc/lib/ledger.mjs');
   const fs = await import('node:fs');
@@ -323,11 +373,14 @@ test('ledger audit turns rows into decisions, and refuses a verdict without evid
   const a = audit(L);
   const by = Object.fromEntries(a.controls.map((c) => [c.control, c.verdict]));
   assert.equal(by.useful, 'earning-its-place');
-  assert.equal(by.dead, 'candidate-for-deletion');
+  // Renamed: a zero-fire control may be a deterrent, so the audit asks instead of instructing.
+  assert.equal(by.dead, 'never-fired');
   assert.equal(by.flaky, 'unreliable');
   assert.equal(by.rare, 'rarely-fires');
   assert.equal(by.young, 'insufficient-data', 'a verdict without evidence is not a verdict');
-  assert.deepEqual(a.deletions.sort(), ['dead', 'flaky']);
+  // deletions now holds only what the ledger can justify alone; the rest needs a human.
+  assert.deepEqual(a.deletions, ['flaky']);
+  assert.deepEqual(a.decide, ['dead']);
   assert.equal(a.ready, false);
   assert.equal(KILL.min_sessions, 50);
   fs.rmSync(root, { recursive: true, force: true });

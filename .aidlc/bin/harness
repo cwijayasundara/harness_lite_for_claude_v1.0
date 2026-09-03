@@ -359,17 +359,20 @@ async function main() {
     }
 
     case 'ledger': {
-      const L = layout(findRepoRoot());
+      const root = findRepoRoot(); const L = layout(root);
+      // The audit cannot judge a control no stage runs, so tell it which ones a stage reaches.
+      let staged = null; try { staged = ledger.wiredControls(loadConfig(root)); } catch { /* no config: judge everything */ }
       const days = Number(flag('days', 30));
       if (argv[1] === 'audit') {
-        const a = ledger.audit(L, { days });
+        const a = ledger.audit(L, { days, staged });
         console.log(`ledger audit · ${a.rows} rows · ${a.runs} runs · last ${a.days}d`);
         console.log(`thresholds: fires on >=${a.thresholds.min_fire_rate * 100}% of invocations, errors on <${a.thresholds.max_error_rate * 100}%, after ${a.thresholds.min_sessions} invocations\n`);
         for (const c of a.controls) console.log(`  ${c.control.padEnd(16)} ${String(c.invocations).padStart(3)} inv  ${(c.fire_rate * 100).toFixed(1).padStart(5)}% fired  ${c.action}`);
-        console.log(a.deletions.length ? `\nDelete candidates: ${a.deletions.join(', ')}` : '\nNothing to delete this month. Some controls still lack the invocations for an honest verdict.');
+        console.log(a.deletions.length ? `\nDelete: ${a.deletions.join(', ')}` : '\nNothing the ledger can justify deleting on its own evidence.');
+        if (a.decide.length) console.log(`Decide:  ${a.decide.join(', ')} — read each why: before acting`);
         return 0;
       }
-      const r = ledger.report(L, { days });
+      const r = ledger.report(L, { days, staged });
       if (has('json')) { console.log(JSON.stringify(r, null, 2)); return 0; }
       console.log(`ledger  ${r.rows} rows  ${r.runs} runs  last ${r.days}d\n`);
       console.log('  control      invocations  fired   fire%   errs  avg-ms  verdict');

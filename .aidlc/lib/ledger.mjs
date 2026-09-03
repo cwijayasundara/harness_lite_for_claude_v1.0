@@ -59,7 +59,27 @@ export const KILL = {
 };
 
 // The subtractive half of the loop. This is the query that authorises deleting a control.
-export function report(L = layout(), { days = 30 } = {}) {
+// Controls reached by a hook binding rather than a stage. They are wired — the ledger sees them
+// more often than anything else — they are just not named in `[stages]`. Judging reachability by
+// stages alone condemned the three busiest controls in the repository.
+const HOOK_CONTROLS = ['bash-guard', 'write-guard', 'graph-refresh'];
+
+// What actually runs. A control reachable from neither a stage nor a hook never executes during a
+// check, so the ledger sees a stray invocation or two and advises "wait for fifty" forever.
+export function wiredControls(cfg) {
+  const stages = cfg?.stages ?? {};
+  const seen = new Set(HOOK_CONTROLS);
+  const walk = (name, depth = 0) => {
+    if (depth > 8) return;
+    for (const entry of stages[name] ?? []) {
+      if (stages[entry]) walk(entry, depth + 1); else seen.add(entry);
+    }
+  };
+  for (const name of Object.keys(stages)) walk(name);
+  return seen;
+}
+
+export function report(L = layout(), { days = 30, staged = null } = {}) {
   const since = Date.now() - days * 864e5;
   const rows = read(L).filter((r) => Date.parse(r.ts) >= since);
   const runs = new Set(rows.map((r) => r.run)).size;
@@ -79,24 +99,29 @@ export function report(L = layout(), { days = 30 } = {}) {
     ...c,
     fire_rate: c.invocations ? c.fired / c.invocations : 0,
     avg_ms: c.invocations ? Math.round(c.ms / c.invocations) : 0,
-    // Law 10 kill criterion, computed rather than argued about.
-    verdict: c.invocations < KILL.min_sessions ? 'insufficient-data'
-      : c.errored / c.invocations > KILL.max_error_rate ? 'unreliable'
-      : c.fired === 0 ? 'candidate-for-deletion'
-      : c.fired / c.invocations < KILL.min_fire_rate ? 'rarely-fires'
-      : 'earning-its-place',
+    // Law 10 kill criterion, computed rather than argued about — but only over what the ledger
+    // can actually see. It cannot see a control no stage runs, and it cannot tell a deterrent
+    // from a corpse: `budget` had 56 invocations and zero fires because the repository sat at
+    // exactly its limits and nobody tried to add an eleventh skill. Both look like "0% fired".
+    verdict: staged && !staged.has(c.control) ? 'unwired'
+      : c.invocations < KILL.min_sessions ? 'insufficient-data'
+        : c.errored / c.invocations > KILL.max_error_rate ? 'unreliable'
+          : c.fired === 0 ? 'never-fired'
+            : c.fired / c.invocations < KILL.min_fire_rate ? 'rarely-fires'
+              : 'earning-its-place',
   })).sort((a, b) => b.invocations - a.invocations);
   return { days, runs, rows: rows.length, controls };
 }
 
 // The monthly audit. Turns the ledger into a list of decisions a person can act on in minutes,
 // which is the only reason any of this instrumentation exists.
-export function audit(L = layout(), { days = 30 } = {}) {
-  const r = report(L, { days });
+export function audit(L = layout(), { days = 30, staged = null } = {}) {
+  const r = report(L, { days, staged });
   const action = {
     'earning-its-place': 'keep',
     'rarely-fires': 'review — does it catch anything the eval suite would miss?',
-    'candidate-for-deletion': 'DELETE — never fired; remove it and run the eval suite',
+    'never-fired': 'decide — a limit nobody crossed looks exactly like a control that checks nothing; read its why: before deleting it',
+    unwired: 'decide — no stage runs it, so the ledger cannot judge it: wire it into a stage or remove it',
     unreliable: 'FIX OR DELETE — errors too often to be trusted',
     'insufficient-data': `wait — ${KILL.min_sessions} invocations needed`,
   };
@@ -105,8 +130,13 @@ export function audit(L = layout(), { days = 30 } = {}) {
     ...r,
     thresholds: KILL,
     controls,
-    // The one number the audit exists to produce.
-    deletions: controls.filter((c) => c.verdict === 'candidate-for-deletion' || c.verdict === 'unreliable').map((c) => c.control),
+    // What the ledger can justify removing on its own evidence, and nothing else. It used to put
+    // every zero-fire control here; asked for the first time with enough evidence to answer, it
+    // named `budget` — a deterrent standing at its limit — and deleting it would have removed the
+    // reason the limit was never crossed.
+    deletions: controls.filter((c) => c.verdict === 'unreliable').map((c) => c.control),
+    // Real questions, for a person holding the control's `why:`.
+    decide: controls.filter((c) => c.verdict === 'never-fired' || c.verdict === 'unwired').map((c) => c.control),
     ready: r.controls.every((c) => c.verdict !== 'insufficient-data'),
   };
 }
