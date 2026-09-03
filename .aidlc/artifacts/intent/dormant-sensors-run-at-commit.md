@@ -3,7 +3,7 @@
 - **Date:** 2026-09-03
 - **Opened at:** 2026-09-03T07:59:57.255Z
 - **Author:** cwijayasundara
-- **Status:** draft <!-- draft | accepted | closed -->
+- **Status:** approved
 - **Source:** conversation — the ledger's `decide` list
 
 ## Problem
