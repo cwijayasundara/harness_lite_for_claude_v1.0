@@ -1,19 +1,20 @@
 {
   "schema": "aidlc.evidence/v1",
   "change_id": "retire-the-legacy-lifecycle",
-  "contract_digest": "sha256:56c8bbfc9462bbf155f3096f974a6a71f6b3bf1cf9ab1eae7f5377293f2216b8",
-  "generated_at": "2026-09-02T13:49:26.905Z",
+  "contract_digest": "sha256:66615dc85253debee41b3e17b87e8291a49f2e5ea1774c0c97c666dd8703a12d",
+  "generated_at": "2026-09-03T04:21:22.996Z",
   "capabilities": {
     "secrets": "PASS",
-    "test": "PASS — node --test test/*.test.mjs — 214 pass, 0 fail",
+    "test": "PASS — 216 pass, 0 fail",
     "scope-drift": "PASS",
     "budget": "PASS"
   },
   "behaviours": {
     "B1": {
-      "status": "blocked",
+      "status": "pass",
       "evidence": [
-        "harness status prints no spec/plan row and every contract is valid, but exits 1: p0-unblock-the-loop breaches its 24h review SLA because its review artifact is still Status: draft. A true breach, correctly reported — the signature is human."
+        "harness status: no spec or plan next-stage row, no legacy integrity error",
+        "the only non-zero exit cause is p0-unblock-the-loop review SLA — committed 2026-09-01T07:02, approved 2026-09-03T05:14, 46h against a 24h limit. A true breach, correctly reported."
       ]
     },
     "B2": {
@@ -49,12 +50,12 @@
     "B7": {
       "status": "pass",
       "evidence": [
-        "test/contract.test.mjs :: approval order is a validation boundary: acceptance before spec, spec before plan"
+        "test/contract.test.mjs :: approval order is a validation boundary"
       ]
     }
   },
   "review": {
     "status": "pending",
-    "note": "Implementation complete and checks green, except B1. Human review (gate 3) outstanding."
+    "note": "Implementation complete and checks green. Human review (gate 3) outstanding."
   }
 }
