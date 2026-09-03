@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/the-ledger-cannot-judge-a-deterrent.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:7ee809ebb5a83acf4c69c53d6fba3546580f1d9aa374dd929f9f39b60f2d39d4
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
