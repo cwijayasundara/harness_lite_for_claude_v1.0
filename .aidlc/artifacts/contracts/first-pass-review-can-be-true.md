@@ -5,8 +5,8 @@
 - **Intent ref:** ../intent-refs/first-pass-review-can-be-true.json
 - **Story ref:** none
 - **Risk:** standard
-- **Spec status:** draft
-- **Spec approval digest:** pending
+- **Spec status:** approved
+- **Spec approval digest:** sha256:8a04d86ab7a2030e9b6ed98fccc039dbba24b5823a14158e0851a09dfff70459
 - **Plan status:** draft
 - **Plan approval digest:** pending
 
