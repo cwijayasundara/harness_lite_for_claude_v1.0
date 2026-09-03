@@ -3,9 +3,12 @@
 // last graded run; the score on the status board never moved, because an aggregate cannot see a
 // substitution. This grades task by task, and it fails closed.
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
-import { widestResults } from './indicators.mjs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { loadResults, verdicts } from './indicators.mjs';
+
+// Re-exported, not redefined: callers keep one entry point and there stays one implementation of
+// which results count.
+export { loadResults };
 
 export const RECORD_SCHEMA = 'aidlc.eval-expectation/v1';
 
@@ -19,10 +22,6 @@ export function readRecord(file) {
   if (body?.schema !== RECORD_SCHEMA) throw new Error(`${file}: schema must be ${RECORD_SCHEMA}`);
   if (!body.tasks || typeof body.tasks !== 'object') throw new Error(`${file}: tasks must be an object`);
   return body;
-}
-
-export function verdicts(results) {
-  return new Map((results?.results ?? []).map((r) => [r.id, r.verdict]));
 }
 
 // Everything that is not "the recorded set graded exactly as recorded, or better" is a finding.
@@ -82,44 +81,6 @@ export function writeRecord(file, record) {
   return file;
 }
 
-// The widest run is the base, and later narrow runs correct individual tasks within it.
-//
-// Without this, a task that ends `inconclusive` can only be repaired by re-running all
-// twenty-two — about thirteen dollars to fix one, because a one-task results file loses the
-// widest-run tie-break and is ignored. That bit twice on 2026-09-02.
-//
-// A narrow run may only *correct* ids the base already graded, never introduce new ones: the
-// graded set is set by a full run, so a smoke run cannot quietly become the baseline. Results
-// filenames are ISO timestamps, so sorting by name is sorting by time, and only files after the
-// base are considered — an overlay moves forward or not at all.
-export function loadResults(dir) {
-  const base = widestResults(dir);
-  if (!base) return null;
-
-  const merged = verdicts(base.body);
-  const sources = [base.source];
-  for (const name of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
-    if (name <= base.source) continue;
-    let body;
-    try { body = JSON.parse(readFileSync(path.join(dir, name), 'utf8')); } catch { continue; }
-    let corrected = false;
-    for (const [id, verdict] of verdicts(body)) {
-      if (!merged.has(id) || merged.get(id) === verdict) continue;
-      merged.set(id, verdict);
-      corrected = true;
-    }
-    if (corrected) sources.push(name);
-  }
-
-  const results = [...merged].map(([id, verdict]) => ({ id, verdict }));
-  return {
-    ...base.body,
-    results,
-    summary: { ...(base.body.summary ?? {}), total: results.length, pass: results.filter((r) => r.verdict === 'pass').length },
-    source: base.source,
-    sources,
-  };
-}
 
 export function render(result) {
   const lines = [];

@@ -34,10 +34,65 @@ export function widestResults(dir) {
   return widest[widest.length - 1];
 }
 
+
+// id -> verdict, from a results file. Shared so the board and the gate cannot drift apart about
+// what a run said.
+export function verdicts(results) {
+  return new Map((results?.results ?? []).map((r) => [r.id, r.verdict]));
+}
+
+// The widest run is the base, and later narrow runs correct individual tasks within it.
+//
+// Without this, a task that ends `inconclusive` can only be repaired by re-running all
+// twenty-two — about thirteen dollars to fix one, because a one-task results file loses the
+// widest-run tie-break and is ignored. That bit twice on 2026-09-02.
+//
+// A narrow run may only *correct* ids the base already graded, never introduce new ones: the
+// graded set is set by a full run, so a smoke run cannot quietly become the baseline. Results
+// filenames are ISO timestamps, so sorting by name is sorting by time, and only files after the
+// base are considered — an overlay moves forward or not at all.
+export function loadResults(dir) {
+  const base = widestResults(dir);
+  if (!base) return null;
+
+  const merged = verdicts(base.body);
+  const sources = [base.source];
+  for (const name of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
+    if (name <= base.source) continue;
+    let body;
+    try { body = JSON.parse(readFileSync(path.join(dir, name), 'utf8')); } catch { continue; }
+    let corrected = false;
+    for (const [id, verdict] of verdicts(body)) {
+      if (!merged.has(id) || merged.get(id) === verdict) continue;
+      merged.set(id, verdict);
+      corrected = true;
+    }
+    if (corrected) sources.push(name);
+  }
+
+  const results = [...merged].map(([id, verdict]) => ({ id, verdict }));
+  // A run that recorded a summary but no per-task detail is still a run. Recomputing from an
+  // absent `results` array would report 0/0 for every older results file, which is how this
+  // reader first broke the status board it was meant to fix.
+  if (!results.length) return { ...base.body, results, source: base.source, sources };
+  return {
+    ...base.body,
+    results,
+    summary: { ...(base.body.summary ?? {}), total: results.length, pass: results.filter((r) => r.verdict === 'pass').length },
+    source: base.source,
+    sources,
+  };
+}
+
 function latestEval(dir) {
-  const w = widestResults(dir);
-  if (!w) return { source: null, pass: null, total: null, rate: null };
-  return { source: w.source, pass: w.pass, total: w.total, rate: Math.round((w.pass / w.total) * 1000) / 1000 };
+  // The same reading the gate uses: the widest run, corrected by any later narrow runs. The board
+  // used to read the widest run alone, so it said 18/22 while the gate said 22/22 — one quantity,
+  // two answers, which teaches people to trust neither.
+  const merged = loadResults(dir);
+  if (!merged) return { source: null, pass: null, total: null, rate: null };
+  const total = merged.summary.total;
+  const pass = merged.summary.pass;
+  return { source: merged.source, sources: merged.sources, pass, total, rate: Math.round((pass / total) * 1000) / 1000 };
 }
 
 // Fed by `contract-chain.rows()`, not by `lifecycle()`. The indicators are a governance

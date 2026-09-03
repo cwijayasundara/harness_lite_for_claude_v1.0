@@ -180,6 +180,39 @@ test('a lone widest run behaves exactly as before, with one source', () => {
   } finally { f.cleanup(); }
 });
 
+// one-eval-number B1/B3/B4/B5. The board read the widest run alone while the gate overlaid later
+// narrow runs, so status said 18/22 and the gate said 22/22 — one quantity, two answers. A board
+// that disagrees with its gate teaches people to trust neither, and the board is what gets read
+// first.
+test('the board and the gate read the results the same way', async () => {
+  const indicators = await import('../.aidlc/lib/indicators.mjs');
+  const evalGate = await import('../.aidlc/lib/eval-gate.mjs');
+  // B5: one implementation. The gate re-exports the indicator's reader rather than owning a copy.
+  assert.equal(evalGate.loadResults, indicators.loadResults, 'two readers will agree today and drift tomorrow');
+
+  const f = results_dir({
+    '2026-09-02T04.json': { a: 'pass', b: 'fail', c: 'pass' },
+    '2026-09-02T09.json': { b: 'pass' },
+  }); try {
+    // B1: the correction reaches both.
+    const merged = indicators.loadResults(f.dir);
+    assert.equal(merged.summary.pass, 3, 'the later run repaired b');
+    assert.deepEqual(indicators.verdicts(merged).get('b'), 'pass');
+
+    // B3: a narrower later run corrects verdicts; it does not become the score.
+    assert.equal(merged.summary.total, 3, 'the widest run still sets the denominator');
+  } finally { f.cleanup(); }
+});
+
+test('with no results the board reads unmeasured', async () => {
+  const { loadResults } = await import('../.aidlc/lib/indicators.mjs');
+  const f = tmp(); try {
+    assert.equal(loadResults(f.dir), null, 'absent directory');
+    mkdirSync(f.dir, { recursive: true });
+    assert.equal(loadResults(f.dir), null, 'empty directory');
+  } finally { f.cleanup(); }
+});
+
 test('readRecord rejects a file with the wrong schema', () => {
   const f = tmp(); try {
     mkdirSync(f.root, { recursive: true });
