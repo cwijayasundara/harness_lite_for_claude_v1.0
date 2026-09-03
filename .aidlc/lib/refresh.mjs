@@ -6,7 +6,6 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import * as graph from './graph.mjs';
-import { renderWiki } from './wiki.mjs';
 import * as ledger from './ledger.mjs';
 
 const LOCK_TTL_MS = 60_000;
@@ -59,7 +58,6 @@ export function refresh(cfg, { force = false } = {}) {
       ? graph.build(cfg, { only: dirty, previous })
       : graph.build(cfg);
     graph.save(cfg, g);
-    renderWiki(cfg, g);
     try { writeFileSync(stampPath(cfg), ''); } catch { /* fail open */ }
     ledger.append({ stage: 'stop', control: 'graph-refresh', verdict: 'pass', ms: Date.now() - started, findings: 0, changed_files: dirty.length }, cfg.layout);
     return { modules: Object.keys(g.modules).length, dirty: dirty.length, incremental: g !== previous && dirty.length > 0, ms: Date.now() - started };
@@ -68,10 +66,6 @@ export function refresh(cfg, { force = false } = {}) {
     // downstream went on trusting a map that had stopped moving.
     const now = new Date().toISOString();
     try { writeFileSync(stampPath(cfg), now); } catch { /* fail open */ }
-    try {
-      const g = graph.load(cfg);
-      if (g) renderWiki(cfg, g, { stale: now });
-    } catch { /* fail open */ }
     ledger.errored('graph-refresh', 'stop', e.message, cfg.layout);
     return { error: e.message, staleSince: now };
   } finally {

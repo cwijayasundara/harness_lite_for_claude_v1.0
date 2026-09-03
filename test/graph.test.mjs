@@ -127,26 +127,6 @@ test('pack: a miss tells the caller to grep instead of implying absence', async 
   } finally { s.cleanup(); }
 });
 
-test('wiki: deterministic, and stale is stamped where a reader will see it', async () => {
-  const { renderWiki } = await import('../.aidlc/lib/wiki.mjs');
-  const { readFileSync: rf, mkdirSync: mk } = await import('node:fs');
-  const s = stage(FIXTURES, 'graph-app');
-  try {
-    const cfg = { ...CFG, layout: { root: s.work, state: path.join(s.work, '.aidlc/state') } };
-    mk(cfg.layout.state, { recursive: true });
-    const g = build(cfg);
-    const a = renderWiki(cfg, g);
-    const first = rf(path.join(a.dir, 'INDEX.md'), 'utf8');
-    const second = (renderWiki(cfg, g), rf(path.join(a.dir, 'INDEX.md'), 'utf8'));
-    assert.equal(first, second, 'same graph must render byte-identical output');
-    assert.match(first, /src\/app\/models\.py/);
-    assert.match(first, /cycle_a\.py.*cycle_b\.py/);
-
-    renderWiki(cfg, g, { stale: '2026-08-23T00:00:00Z' });
-    assert.match(rf(path.join(a.dir, 'INDEX.md'), 'utf8'), /^> \*\*STALE since 2026-08-23/m);
-  } finally { s.cleanup(); }
-});
-
 test('refresh: builds on a cold clone rather than returning quietly', async () => {
   const { refresh } = await import('../.aidlc/lib/refresh.mjs');
   const { existsSync: ex, mkdirSync: mk, appendFileSync: af } = await import('node:fs');
@@ -165,7 +145,8 @@ test('refresh: builds on a cold clone rather than returning quietly', async () =
     const r = refresh(cfg);
     assert.ok(r.modules > 0, `expected a build, got ${JSON.stringify(r)}`);
     assert.ok(ex(cfg.layout.graph));
-    assert.ok(ex(path.join(state, 'wiki', 'INDEX.md')));
+    // lean-v2 cut 9 removed the rendered wiki. `harness map` writes one CODEBASE-MAP.md with a
+    // drift sensor behind it (B11); until then the graph is the artifact refresh produces.
     assert.equal(readFileSync(cfg.layout.graphDirty, 'utf8'), '', 'the dirty list is drained');
     assert.equal(refresh(cfg).skipped, 'clean', 'a second pass with nothing dirty does no work');
   } finally { s.cleanup(); }

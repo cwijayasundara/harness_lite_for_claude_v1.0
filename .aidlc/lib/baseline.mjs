@@ -11,7 +11,6 @@
 import { readFileSync, existsSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { estimateTokens, pack } from './pack.mjs';
-import { renderWiki } from './wiki.mjs';
 import * as graph from './graph.mjs';
 import { query } from './graph.mjs';
 import { check, render } from './runner.mjs';
@@ -19,7 +18,7 @@ import { measure as budget } from '../checks/budget.mjs';
 
 // Metrics where LOWER is better; a rise beyond tolerance is a regression.
 export const RATCHETED = [
-  'claude_md_tokens', 'session_context_tokens', 'check_stop_tokens', 'wiki_index_tokens', 'pack_tokens_p50',
+  'claude_md_tokens', 'session_context_tokens', 'check_stop_tokens', 'pack_tokens_p50',
 ];
 
 const fileTokens = (p) => (existsSync(p) ? estimateTokens(readFileSync(p, 'utf8')) : 0);
@@ -49,10 +48,6 @@ export async function capture(cfg) {
   // what the map skill will actually cost in this repo.
   // Hubs first; in a repo with no intra-project imports (small, or a flat script tree) there
   // are none, and a metric that silently reads 0 is worse than one that reads something honest.
-  // Render before measuring: an unbuilt wiki reads as 0 tokens, which is absence dressed up
-  // as an improvement.
-  try { renderWiki(cfg, g); } catch { /* the metric degrades to 0, which compare() treats as no history */ }
-
   const hubs = query(g, 'hubs', null, { limit: 5 }).map((h) => h.module);
   const sources = hubs.length ? hubs
     : Object.entries(g.modules).sort((a, b) => b[1].symbols.length - a[1].symbols.length).slice(0, 5).map(([m]) => m);
@@ -66,7 +61,6 @@ export async function capture(cfg) {
     claude_md_tokens: fileTokens(cfg.layout.claudeMd),
     session_context_tokens: estimateTokens(sessionContext),
     check_stop_tokens: estimateTokens(rendered),
-    wiki_index_tokens: fileTokens(path.join(cfg.layout.state, 'wiki', 'INDEX.md')),
     pack_tokens_p50: p50,
     pack_samples: terms.length,
     graph_modules: Object.keys(g.modules).length,

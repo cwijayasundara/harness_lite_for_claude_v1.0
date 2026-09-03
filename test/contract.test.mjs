@@ -216,25 +216,3 @@ test('the comparative contract fixture is a valid approved contract', () => {
   assert.equal(result.meta.plan_status, 'approved');
 });
 
-test('legacy migration is dry by default and rolls back only untouched generated files', () => {
-  const root = repo();
-  try {
-    const artifacts = path.join(root, '.aidlc/artifacts');
-    mkdirSync(path.join(artifacts, 'spec'), { recursive: true });
-    mkdirSync(path.join(artifacts, 'plan'), { recursive: true });
-    writeFileSync(path.join(artifacts, 'intent/migrate-me.md'), '# Intent\n\n- **Status:** accepted\n\n## Proposed outcome\n\nNames support hyphens.\n');
-    writeFileSync(path.join(artifacts, 'spec/migrate-me.md'), '# Spec\n\n- **Status:** approved\n\n## Behaviour\n\n1. Hyphenated names are capitalised.\n');
-    writeFileSync(path.join(artifacts, 'plan/migrate-me.md'), '# Plan\n\n- **Status:** approved\n\n## Files\n\n```\nsrc/text.py\ntests/test_text.py\n```\n\n## Order of work\n\n1. Add the test.\n2. Implement the change.\n');
-    commit(root, 'legacy chain');
-    assert.equal(run(root, 'contract', 'migrate', 'migrate-me').status, 0);
-    assert.equal(existsSync(path.join(artifacts, 'contracts/migrate-me.md')), false);
-    assert.equal(run(root, 'contract', 'migrate', 'migrate-me', '--write').status, 0);
-    const contract = readFileSync(path.join(artifacts, 'contracts/migrate-me.md'), 'utf8');
-    assert.match(contract, /Names support hyphens/);
-    assert.match(contract, /`src\/text\.py`/);
-    assert.equal(run(root, 'contract', 'validate', 'migrate-me').status, 0);
-    assert.equal(run(root, 'contract', 'rollback-migration', 'migrate-me').status, 0);
-    assert.equal(existsSync(path.join(artifacts, 'contracts/migrate-me.md')), false);
-    assert.equal(existsSync(path.join(artifacts, 'intent/migrate-me.md')), true, 'legacy source survives rollback');
-  } finally { rmSync(root, { recursive: true, force: true }); }
-});

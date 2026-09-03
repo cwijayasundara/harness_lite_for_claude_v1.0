@@ -78,20 +78,6 @@ export async function runOne(cfg, verb, files) {
   }
 }
 
-// The gauntlet supplies explicit controls rather than inventing parallel stages. Keeping this
-// primitive here preserves one command executor, normalizer, timeout and ledger schema.
-export async function runControls(cfg, controls, { files = [], write = true } = {}) {
-  const results = [];
-  for (const control of controls) results.push(await runOne(cfg, control, files));
-  if (write) {
-    for (const r of results) ledger.append({
-      stage: 'gauntlet', control: r.control, verdict: r.verdict, ms: r.ms,
-      findings: (r.findings ?? []).length, changed_files: files.length,
-      ...(r.error ? { error: String(r.error).slice(0, 400) } : {}),
-    }, cfg.layout);
-  }
-  return results;
-}
 
 export async function check(cfg, { stage = 'fast', files = [], write = true, all = false } = {}) {
   const verbs = resolveStage(cfg, stage);

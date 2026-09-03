@@ -25,7 +25,8 @@ appends a row — no sampling, no opt-in telemetry stack, no configuration. A co
 errors is recorded as `errored`, never silently as a pass.
 
 ### Law 5 — Hard budgets, enforced by a test *(enforced: `test/budget.test.mjs`)*
-≤12 skills · ≤3 agents · ≤5 hook bindings · ≤600 LOC of hook code · ≤120 lines of CLAUDE.md.
+The numbers live in `[limits]` of `.aidlc/harness.toml` and are stated nowhere else, so no
+document can disagree with the test.
 The build fails when exceeded. You cannot argue with a red test; you must delete something.
 Raising a limit requires a `why:` line and a ledger query showing the existing ones fire.
 
@@ -45,8 +46,8 @@ pauses inside the build loop destroy the parallelism that makes agents worth run
 belong at the edges, not in the middle.
 
 ### Law 9 — Evals before controls *(enforced: CI)*
-Twenty golden tasks with deterministic assertions and per-task budgets exist before skill #13
-or hook #6. Every production incident becomes a permanent eval. The suite runs on any diff
+Twenty golden tasks with deterministic assertions and per-task budgets exist before the next
+skill or hook. Every production incident becomes a permanent eval. The suite runs on any diff
 touching the harness's own configuration.
 
 ### Law 10 — Every control carries its defect

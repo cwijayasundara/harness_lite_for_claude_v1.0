@@ -128,7 +128,7 @@ gitignored.
 
 ### 6. Install the plugin — once per machine, not once per project
 
-The plugin supplies the 12 skills, the 3 subagents and the 5 hook bindings. `init` does **not**
+The plugin supplies the 10 skills, the 3 subagents and the 5 hook bindings. `init` does **not**
 copy them into your project; it only records that your project wants them.
 
 ```bash
@@ -198,10 +198,6 @@ Approved. Continue the workflow.
 Intent acceptance is the intake decision. The three delivery gates are spec approval, plan
 approval, and PR merge. Everything else runs without waiting.
 
-The production-ready, opt-in delivery-contract path is documented in
-[`docs/CONTRACTS.md`](docs/CONTRACTS.md). It remains non-default until comparative evals authorize
-Phase 2 adoption.
-
 ---
 
 ## What runs automatically
@@ -264,29 +260,33 @@ in your project.
 The design follows the [guides and sensors model of harness
 engineering](https://martinfowler.com/articles/harness-engineering.html):
 
-- **Guides** act before Claude works — `CLAUDE.md`, 12 focused skills, artifact templates, the
+- **Guides** act before Claude works — `CLAUDE.md`, 10 focused skills, artifact templates, the
   code graph, and the explorer agent.
 - **Sensors** observe the result — tests, lint, types, secret and contract scope-drift checks, 5 hook
   bindings, and the reviewer and verifier agents.
 - **The ledger** records every sensor invocation, so controls that are noisy or never useful get
   deleted instead of accumulating.
 
-The budget is deliberately fixed at 12 skills, 3 agents, and 5 hooks. Adding one means deleting
-one; CI enforces it.
+The budget is fixed at 10 skills, 3 agents, and 5 hooks, in `[limits]` of `.aidlc/harness.toml`
+and nowhere else. Adding one means deleting one; the commit stage enforces it.
 
-Your project inherits that budget **spent, not empty**. The twelve skills the harness ships are
-the twelve, counted alongside any you add, against one ceiling — so your first skill is the
-thirteenth and it goes red until something is deleted. Re-run `harness init --into .` after
-upgrading the harness, or the recorded half of that count goes stale.
+Your project inherits that budget **spent, not empty**. The ten skills the harness ships are the
+ten, counted alongside any you add, against one ceiling — so your first skill is the eleventh and
+it goes red until something is deleted. Re-run `harness init --into .` after upgrading the
+harness, or the recorded half of that count goes stale.
 
-Plan, Design, Build, and Test run entirely locally. Deploy and Maintain expose adapter contracts
-but ship empty — you supply your own deployment, rollback, and metric sources.
+A control enters only with a failing eval or a defect recorded while building a real application
+through the harness. Law 11 in the constitution says why.
+
+Plan, Design, Build, and Test run locally. Deploy and Maintain are yours: the harness ships one
+worked example, `examples/maintain/band-to-intent.mjs`, which turns a control-band breach into an
+intent, and no deployment code at all.
 
 ---
 
 ## Further reading
 
-- [Operating the harness](docs/OPERATING.md) — review, deployment, monitoring, deletion audits
+- [Operating the harness](docs/OPERATING.md) — review, adapter seams, deletion audits
 - [Build plan](docs/BUILD-PLAN.md) — design decisions and evidence
 - [Constitution](docs/CONSTITUTION.md) — the rules the harness enforces on itself
 
@@ -296,15 +296,6 @@ but ship empty — you supply your own deployment, rollback, and metric sources.
 node --test test/*.test.mjs
 node evals/run.mjs --dry
 ```
-
-Release sensor ownership is checked separately from the fast edit loop:
-
-```sh
-node .aidlc/bin/harness gauntlet doctor
-node .aidlc/bin/harness gauntlet run --changed
-```
-
-Profiles and project wiring are documented in [docs/SENSOR-GAUNTLET.md](docs/SENSOR-GAUNTLET.md).
 
 Worked examples: [`examples/scratch-py`](examples/scratch-py),
 [`examples/scratch-ts`](examples/scratch-ts).

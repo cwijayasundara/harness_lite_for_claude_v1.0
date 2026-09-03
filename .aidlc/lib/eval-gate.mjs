@@ -3,32 +3,58 @@
 // last graded run; the score on the status board never moved, because an aggregate cannot see a
 // substitution. This grades task by task, and it fails closed.
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { loadResults, verdicts } from './indicators.mjs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 
-// Re-exported, not redefined: callers keep one entry point and there stays one implementation of
-// which results count.
-export { loadResults };
+// The newest full run, and nothing else.
+//
+// lean-v2 cut 10 removed the overlay this replaced: a widest-run base that later narrow runs
+// corrected task by task, with per-file provenance and an ordering rule. It existed so one
+// inconclusive task could be re-graded for a dollar instead of thirteen. That is a real saving
+// and it cost four contracts in two days, 150 lines and the largest test file in the repository,
+// to grade a 22-task suite that CI did not run. With CI running the suite on every steering
+// change, the cheap repair is to run it again.
+//
+// A full run is one that graded every task the record expects. A three-task smoke cannot become
+// the baseline, which is the one property the overlay had that had to survive.
+export function loadResults(dir, expectedIds = null) {
+  if (!existsSync(dir)) return null;
+  const runs = [];
+  for (const name of readdirSync(dir).filter((f) => f.endsWith('.json'))) {
+    try {
+      const body = JSON.parse(readFileSync(path.join(dir, name), 'utf8'));
+      const results = body.results ?? [];
+      if (!results.length) continue;
+      runs.push({ source: name, body, ids: new Set(results.map((r) => r.id)) });
+    } catch { /* skip unreadable result files */ }
+  }
+  if (!runs.length) return null;
+  // Filenames are ISO timestamps, so sorting by name is sorting by time.
+  runs.sort((a, b) => a.source.localeCompare(b.source));
+  const full = expectedIds
+    ? runs.filter((r) => [...expectedIds].every((id) => r.ids.has(id)))
+    : runs.filter((r) => r.ids.size === Math.max(...runs.map((x) => x.ids.size)));
+  const chosen = (full.length ? full : runs)[Math.max(full.length, runs.length) - 1] ?? runs[runs.length - 1];
+  return { ...chosen.body, source: chosen.source, sources: [chosen.source] };
+}
+
+// id -> verdict, from a results file. Shared so the board and the gate cannot drift apart about
+// what a run said.
+export function verdicts(results) {
+  return new Map((results?.results ?? []).map((r) => [r.id, r.verdict]));
+}
 
 export const RECORD_SCHEMA = 'aidlc.eval-expectation/v2';
 const RECORD_SCHEMA_V1 = 'aidlc.eval-expectation/v1';
 
-// How far a task may drift before it is a finding. Wide on purpose: identical work has been
-// measured between 0.858 and 1.208, and a bound inside the noise fires on nothing real and gets
-// ignored — which is worse than no bound. The floor it multiplies only ever falls, so this
-// tolerates noise without tolerating a trend.
-export const COST_TOLERANCE = 1.5;
-
-// The aggregate bound. Independent per-task variation cancels, so the suite total is far quieter
-// than any single task: like-for-like full runs measured $12.31 and $13.40, 9% apart, against a
-// 40% spread within one task. That is what lets this be tight enough to see creep the per-task
-// bound cannot — twenty-two tasks each growing 40% is a suite half again as expensive with every
-// task individually innocent.
+// lean-v2 cut 10 removed the per-task and suite cost ratchets. They compared each run against a
+// recorded floor with a 1.5x per-task and 1.25x aggregate tolerance, and cost four contracts in
+// two days to tune. The tolerances were wide because the measurements were noisy, and a bound
+// inside the noise fires on nothing real. The replacement is one number a human set: a spend cap
+// per CI run, which fails the job rather than negotiating with a floor.
 //
-// Two comparable runs is thin evidence. 25% allowed against 9% observed leaves room for a third
-// run to be worse than both without crying wolf; revisit with more data, not with taste.
-export const SUITE_COST_TOLERANCE = 1.25;
-
+// Per-task `usd` is still recorded by run.mjs and still written into the record, because cost per
+// feature by model is what the example app has to report. It is data now, not a gate.
 const totalOf = (results) => (results ?? []).reduce((sum, r) => sum + (r.usd ?? 0), 0) || null;
 
 // A v1 entry is a bare verdict string; a v2 entry is { verdict, usd }. Reading both means an
@@ -51,48 +77,29 @@ export function readRecord(file) {
 // Missing and unrecorded are findings rather than warnings on purpose: a task renamed without
 // being re-recorded is invisible to any check that only walks the intersection.
 export function gate(results, record) {
-  if (!results) return { ok: false, reason: 'no eval results found — run `node evals/run.mjs` first', regressed: [], improved: [], missing: [], unrecorded: [], costly: [], suite: null };
-  if (!record) return { ok: false, reason: 'no expectation record — run `harness evals gate --update` after a full run', regressed: [], improved: [], missing: [], unrecorded: [], costly: [], suite: null };
+  if (!results) return { ok: false, reason: 'no eval results found — run `node evals/run.mjs` first', regressed: [], improved: [], missing: [], unrecorded: [] };
+  if (!record) return { ok: false, reason: 'no expectation record — run `harness evals gate --update` after a full run', regressed: [], improved: [], missing: [], unrecorded: [] };
 
   const graded = verdicts(results);
-  const spend = new Map((results.results ?? []).map((r) => [r.id, r.usd]));
   const regressed = [];
   const improved = [];
   const missing = [];
-  const costly = [];
 
   for (const [id, expected] of Object.entries(record.tasks)) {
     if (!graded.has(id)) { missing.push(id); continue; }
     const actual = graded.get(id);
-    const { verdict, usd: floor } = entry(expected);
+    const { verdict } = entry(expected);
     if (passed(verdict) && !passed(actual)) regressed.push({ id, expected: verdict, actual });
     else if (!passed(verdict) && passed(actual)) improved.push({ id, expected: verdict, actual });
-
-    // Cost is not a verdict. A task that behaves correctly and costs too much has one problem,
-    // and the report says which.
-    const observed = spend.get(id);
-    if (floor != null && observed != null && observed > floor * COST_TOLERANCE) {
-      costly.push({ id, floor, observed, tolerance: COST_TOLERANCE });
-    }
   }
   const unrecorded = [...graded.keys()].filter((id) => !(id in record.tasks));
 
-  // Only comparable sets get a total. If the graded set differs from the record the gate has
-  // already failed, and the intersection of two sets is not the suite.
-  let suite = null;
-  if (!missing.length && !unrecorded.length && record.usd_total != null) {
-    const observed = totalOf(results.results);
-    if (observed != null && observed > record.usd_total * SUITE_COST_TOLERANCE) {
-      suite = { floor: record.usd_total, observed, tolerance: SUITE_COST_TOLERANCE };
-    }
-  }
-
   return {
-    ok: !regressed.length && !missing.length && !unrecorded.length && !costly.length && !suite,
+    ok: !regressed.length && !missing.length && !unrecorded.length,
     reason: null,
     source: results.source ?? null,
     sources: results.sources ?? (results.source ? [results.source] : []),
-    regressed, improved, missing, unrecorded, costly, suite,
+    regressed, improved, missing, unrecorded,
   };
 }
 
@@ -112,22 +119,14 @@ export function update(record, results, { commit = null, at = new Date().toISOSt
   const lowered = Object.entries(previous).filter(([id, expected]) => passed(entry(expected).verdict) && !passed(graded.get(id)));
   if (lowered.length) throw new Error(`refusing to lower ${lowered.map(([id]) => id).join(', ')} — the record only moves fail -> pass`);
 
-  // The cost floor falls only. Recording the latest observed figure would let a floor climb step
-  // by step: every stage of budget-forces-deletion's rise from 0.184 to 0.991 was small against
-  // the one before it, and a floor that follows the last run cannot see a trend.
+  // usd is recorded, not ratcheted: the newest observation, so a reader can see what a run costs
+  // per task and per model. The gate no longer compares it against anything.
   const spend = new Map((results.results ?? []).map((r) => [r.id, r.usd]));
   const tasks = {};
   for (const id of [...graded.keys()].sort()) {
-    const was = entry(previous[id]).usd;
-    const now = spend.get(id) ?? null;
-    const usd = was == null ? now : now == null ? was : Math.min(was, now);
-    tasks[id] = { verdict: graded.get(id), usd };
+    tasks[id] = { verdict: graded.get(id), usd: spend.get(id) ?? entry(previous[id]).usd };
   }
-  // `sources` oldest first, so a reader can see which run supplied a corrected verdict. A record
-  // assembled from several runs without saying so would be worse than one that is merely stale.
-  const wasTotal = record?.usd_total ?? null;
-  const nowTotal = totalOf(results.results);
-  const usd_total = wasTotal == null ? nowTotal : nowTotal == null ? wasTotal : Math.min(wasTotal, nowTotal);
+  const usd_total = totalOf(results.results) ?? record?.usd_total ?? null;
 
   return { schema: RECORD_SCHEMA, recorded_at: at, usd_total, source: results.source ?? null, sources: results.sources ?? (results.source ? [results.source] : []), commit, tasks };
 }
@@ -145,9 +144,7 @@ export function render(result) {
   for (const r of result.regressed) lines.push(`  REGRESSED   ${r.id}  recorded ${r.expected}, now ${r.actual}`);
   for (const id of result.missing) lines.push(`  MISSING     ${id}  recorded but not graded in this run`);
   for (const id of result.unrecorded) lines.push(`  UNRECORDED  ${id}  graded but absent from the record`);
-  if (result.suite) lines.push(`  SUITE COST  ${result.suite.observed.toFixed(2)} against a floor of ${result.suite.floor.toFixed(2)} (over ${result.suite.tolerance}x) — no single task tripped; the suite crept`);
-  for (const c of result.costly ?? []) lines.push(`  COSTLY      ${c.id}  ${c.observed.toFixed(3)} against a floor of ${c.floor.toFixed(3)} (over ${c.tolerance}x) — behaviour is fine, the price is not`);
   for (const r of result.improved) lines.push(`  improved    ${r.id}  recorded ${r.expected}, now ${r.actual} — rerun with --update to hold it`);
-  lines.push(result.ok ? 'PASS  evals  no task lost ground' : (result.regressed.length || result.missing.length || result.unrecorded.length) ? 'FAIL  evals  the record and this run disagree' : 'FAIL  evals  every task behaved, but the suite got more expensive');
+  lines.push(result.ok ? 'PASS  evals  no task lost ground' : 'FAIL  evals  the record and this run disagree');
   return lines;
 }

@@ -219,13 +219,3 @@ export function clearLock(cfg) {
 
 
 
-export function enterpriseChecklist(cfg) {
-  const items = [
-    { id: 'managed-settings', ok: false, detail: 'Managed settings must be pushed from the admin console or MDM. Git .claude/settings.json is bypassable.' },
-    { id: 'production-approval', ok: cfg.deployment?.production_requires_approval !== false, detail: '[deployment].production_requires_approval must stay true.' },
-    { id: 'require-contract', ok: true, detail: `[guard].require_contract is ${cfg.guard?.require_contract ? 'on' : 'off'}. Keep it on so product files need a committed approved contract.` },
-    { id: 'review-policy', ok: existsSync(cfg.layout.reviewPolicy), detail: '.aidlc/policies/review.md is the review policy the packet prepends.' },
-    { id: 'monitoring', ok: Array.isArray(cfg.monitoring?.collect) && cfg.monitoring.collect.length > 0, detail: Array.isArray(cfg.monitoring?.collect) && cfg.monitoring.collect.length ? `[monitoring].collect is ${cfg.monitoring.collect.join(' ')}` : '[monitoring].collect is empty — detect no-ops until a collector is configured.' },
-  ];
-  return items;
-}

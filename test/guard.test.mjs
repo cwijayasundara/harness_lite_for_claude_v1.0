@@ -283,16 +283,3 @@ test('lock tests writes a lock the write guard honors, and clear removes it', ()
   } finally { f.cleanup(); }
 });
 
-test('harness lock tests / lock clear round-trips through the CLI', () => {
-  const f = tmp('guard-cli-'); try {
-    spawnSync('git', ['init', '-q'], { cwd: f.root });
-    writeFileSync(path.join(f.layout.aidlc, 'harness.toml'), '[project]\nname = "t"\n');
-    const locked = spawnSync(process.execPath, [BIN, 'lock', 'tests', '--pattern', 'tests/'], { cwd: f.root, encoding: 'utf8' });
-    assert.equal(locked.status, 0, locked.stderr);
-    const body = JSON.parse(readFileSync(path.join(f.layout.state, 'test-lock.json'), 'utf8'));
-    assert.deepEqual(body.patterns, ['tests/']);
-    const cleared = spawnSync(process.execPath, [BIN, 'lock', 'clear'], { cwd: f.root, encoding: 'utf8' });
-    assert.equal(cleared.status, 0, cleared.stderr);
-    assert.equal(existsSync(path.join(f.layout.state, 'test-lock.json')), false);
-  } finally { f.cleanup(); }
-});

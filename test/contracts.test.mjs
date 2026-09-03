@@ -198,16 +198,6 @@ test('the jobs that need no key are not gated', () => {
   }
 });
 
-test('Claude PR review is read-only and cannot declare the human gate approved', () => {
-  const workflow = readFileSync(path.join(ROOT, '.github/workflows/claude-review.yml'), 'utf8');
-  assert.match(workflow, /contents: read/);
-  assert.doesNotMatch(workflow, /contents: write/);
-  assert.match(workflow, /--disallowedTools [^\n]*Write,Edit/);
-  const adapter = readFileSync(path.join(A, 'lib/review-adapter.mjs'), 'utf8');
-  assert.match(adapter, /Status:\*\* draft/);
-  assert.match(adapter, /human reviewer owns Gate 3/);
-});
-
 test('CI model evals cover every steering surface and require authentication', () => {
   const workflow = readFileSync(path.join(ROOT, '.github', 'workflows', 'harness.yml'), 'utf8');
   for (const surface of [String.raw`CLAUDE\.md`, String.raw`settings\.json`, String.raw`harness\.toml`, 'skills/', 'roles/', 'hooks/', 'templates/', 'evals/']) {

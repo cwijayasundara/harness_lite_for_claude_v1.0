@@ -16,20 +16,13 @@ import * as graph from '../lib/graph.mjs';
 import * as baseline from '../lib/baseline.mjs';
 import { pack, renderPack } from '../lib/pack.mjs';
 import { refresh } from '../lib/refresh.mjs';
-import { renderWiki } from '../lib/wiki.mjs';
 import { measure, shipped, RECORD } from '../checks/budget.mjs';
 import { dispatch } from '../hooks/dispatch.mjs';
-import { selectSlug, packet as reviewPacket, writeReview, checkProtection } from '../lib/review-adapter.mjs';
-import { playbookIndicators, renderPlaybook } from '../lib/indicators.mjs';
-import * as contractChain from '../lib/contract-chain.mjs';
-import { lockTests, clearLock, enterpriseChecklist } from '../lib/guard.mjs';
 import * as evalGate from '../lib/eval-gate.mjs';
 
 const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
-import { addWorktree } from '../lib/worktree.mjs';
-import { behaviourIds, contractState, decideIntentRef, isCommitted, renderLegacyContract, sealContract, snapshotDigest, validateContract, writeEvidence, writeIntentRef } from '../lib/contract.mjs';
+import { behaviourIds, contractState, decideIntentRef, isCommitted, sealContract, validateContract, writeEvidence, writeIntentRef } from '../lib/contract.mjs';
 import { renderClaudeHooks, renderClaudeInstructions } from '../lib/projection.mjs';
-import { diagnose as diagnoseGauntlet, qualifyExperiment, renderGauntlet, runGauntlet } from '../lib/gauntlet.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PLUGIN_ROOT = path.dirname(HERE);
@@ -233,12 +226,6 @@ async function main() {
           console.log(`plugins   ${plugins.map((p) => p.name).join(', ') || '(none)'}`);
         } catch { /* marketplace is advisory */ }
       }
-      if (has('enterprise')) {
-        console.log('\nenterprise checklist (git settings are not managed settings)');
-        for (const item of enterpriseChecklist(cfg)) {
-          console.log(`  ${item.ok ? 'ok  ' : 'need'}  ${item.id}  ${item.detail}`);
-        }
-      }
       return 0;
     }
 
@@ -251,39 +238,6 @@ async function main() {
       else console.log(render(report, cfg.layout));
       return report.ok ? 0 : 1;
     }
-
-    case 'gauntlet': {
-      const cfg = loadConfig(findRepoRoot()); const sub = argv[1];
-      if (sub === 'doctor') {
-        const result = diagnoseGauntlet(cfg);
-        if (has('json')) console.log(JSON.stringify(result, null, 2));
-        else {
-          for (const profile of result.profiles) console.log(`${profile.ok ? 'PASS' : 'FAIL'}  ${profile.name.padEnd(14)} ${profile.live.join(', ') || profile.issues.join(', ')}`);
-          for (const issue of result.issues) console.log(`FAIL  ${issue}`);
-        }
-        return result.ok ? 0 : 1;
-      }
-      if (sub === 'run') {
-        const files = has('changed') ? changedFiles(cfg.layout.root) : [];
-        const profiles = typeof flag('profiles') === 'string' ? String(flag('profiles')).split(',').filter(Boolean) : undefined;
-        const report = await runGauntlet(cfg, { files, profiles });
-        console.log(has('json') ? JSON.stringify(report, null, 2) : renderGauntlet(report));
-        return report.ok ? 0 : 1;
-      }
-      if (sub === 'qualify') {
-        const file = flag('file');
-        if (typeof file !== 'string') { console.error('usage: harness gauntlet qualify --file experiment.json'); return 2; }
-        const result = qualifyExperiment(JSON.parse(readFileSync(path.resolve(file), 'utf8')));
-        if (has('json')) console.log(JSON.stringify(result, null, 2));
-        else {
-          for (const profile of result.profiles) console.log(`${profile.verdict === 'earning-its-place' ? 'PASS' : 'FAIL'}  ${profile.profile.padEnd(14)} ${profile.unique_catches} unique / ${profile.catches} catches`);
-          for (const issue of result.issues) console.log(`FAIL  ${issue}`);
-        }
-        return result.ok ? 0 : 1;
-      }
-      console.error('usage: harness gauntlet doctor|run|qualify [--file experiment.json]'); return 2;
-    }
-
 
     case 'evals': {
       if (argv[1] !== 'gate') { console.error('usage: harness evals gate [--update]'); return 2; }
@@ -368,7 +322,7 @@ async function main() {
     case 'graph': {
       const cfg = loadConfig(findRepoRoot());
       const sub = argv[1];
-      if (sub === 'build') { const g = graph.build(cfg); graph.save(cfg, g); renderWiki(cfg, g); console.log(`graph built: ${Object.keys(g.modules).length} modules`); return 0; }
+      if (sub === 'build') { const g = graph.build(cfg); graph.save(cfg, g); console.log(`graph built: ${Object.keys(g.modules).length} modules`); return 0; }
       if (sub === 'refresh') { console.log(JSON.stringify(refresh(cfg, { force: has('force') }), null, 2)); return 0; }
       if (sub === 'query') {
         const question = argv[2]; const arg = argv[3];
@@ -377,12 +331,6 @@ async function main() {
         return 0;
       }
       console.error('usage: harness graph build|refresh|query <callers|calls|hubs|cycles|changed-since> [arg]'); return 2;
-    }
-
-    case 'wiki': {
-      const cfg = loadConfig(findRepoRoot());
-      const r = renderWiki(cfg, graph.ensure(cfg));
-      console.log(`wiki rendered: ${r.pages} pages in ${r.dir}`); return 0;
     }
 
     case 'pack': {
@@ -412,44 +360,20 @@ async function main() {
       writeFileSync(dst, tpl); console.log(dst); return 0;
     }
 
-    case 'lock': {
-      const cfg = loadConfig(findRepoRoot());
-      if (argv[1] === 'clear') { console.log(clearLock(cfg)); return 0; }
-      if (argv[1] !== 'tests') { console.error('usage: harness lock tests [--pattern tests/] [--why "bug fix in progress"]\n       harness lock clear'); return 2; }
-      const pattern = typeof flag('pattern') === 'string' ? flag('pattern') : 'tests';
-      const why = typeof flag('why') === 'string' ? flag('why') : 'bug fix in progress';
-      console.log(lockTests(cfg, { patterns: [pattern], why })); return 0;
-    }
-
-    case 'worktree': {
-      const slug = argv[1];
-      if (!validSlug(slug)) { console.error('usage: harness worktree <slug>'); return 2; }
-      const cfg = loadConfig(findRepoRoot());
-      const result = addWorktree(cfg.layout.root, slug);
-      console.log(`${result.branch}\n${result.dest}`); return 0;
-    }
-
     case 'status': {
       const cfg = loadConfig(findRepoRoot());
       const requested = argv[1] && !argv[1].startsWith('--') ? argv[1] : null;
       // One artifact model. The pre-contract intent -> spec -> plan -> review walk is gone; the
       // chain's own rows carry the stage clocks that used to hang off it.
-      const chainRows = contractChain.rows(cfg, requested);
-      const slaOf = new Map(chainRows.map((r) => [r.id, r.sla.verdict]));
-      const chainIssuesOf = new Map(chainRows.map((r) => [r.id, r.issues]));
       const contractNames = requested ? [`${requested}.md`] : existsSync(cfg.layout.contracts) ? readdirSync(cfg.layout.contracts).filter((name) => name.endsWith('.md')).sort() : [];
       const contractRows = contractNames.filter((name) => existsSync(path.join(cfg.layout.contracts, name))).map((name) => {
         const slug = name.slice(0, -3); return { slug, ...contractState(cfg.layout.root, path.join(cfg.layout.contracts, name), path.join(cfg.layout.evidence, `${slug}.json`)) };
       });
-      const playbook = playbookIndicators(cfg, chainRows);
       const rendered = contractRows.length
-        ? `contracts\n\n  change                         next-stage           integrity  SLA\n${contractRows.map((row) => `  ${row.slug.padEnd(30)} ${row.stage.padEnd(20)} ${((row.ok && !(chainIssuesOf.get(row.slug) ?? []).length) ? 'valid' : 'INVALID').padEnd(9)} ${slaOf.get(row.slug) ?? 'unmeasured'}`).join('\n')}\n${contractRows.flatMap((row) => [...(row.issues ?? []), ...(chainIssuesOf.get(row.slug) ?? [])].map((issue) => `  ERROR ${row.slug}: ${issue}`)).join('\n')}\n`
+        ? `contracts\n\n  change                         next-stage           integrity\n${contractRows.map((row) => `  ${row.slug.padEnd(30)} ${row.stage.padEnd(20)} ${row.ok ? 'valid' : 'INVALID'}`).join('\n')}\n${contractRows.flatMap((row) => (row.issues ?? []).map((issue) => `  ERROR ${row.slug}: ${issue}`)).join('\n')}\n`
         : 'contracts  no contracts\n';
-      console.log(has('json')
-        ? JSON.stringify({ changes: chainRows.map((r) => ({ slug: r.id, sla: r.sla })), contracts: contractRows, playbook }, null, 2)
-        : rendered + renderPlaybook(playbook));
-      return contractRows.some((row) => !row.ok)
-        || chainRows.some((r) => r.issues.length || r.sla.verdict === 'breached') ? 1 : 0;
+      console.log(has('json') ? JSON.stringify({ contracts: contractRows }, null, 2) : rendered);
+      return contractRows.some((row) => !row.ok) ? 1 : 0;
     }
 
     case 'contract': {
@@ -468,38 +392,6 @@ async function main() {
       if (!validSlug(slug)) { console.error('usage: harness contract new|accept|validate|seal|evidence <slug>'); return 2; }
       const file = path.join(cfg.layout.contracts, `${slug}.md`);
       const migrationFile = path.join(cfg.layout.migrations, `${slug}.json`);
-      if (sub === 'migrate') {
-        const legacy = Object.fromEntries(['intent', 'spec', 'plan'].map((kind) => [kind, path.join(cfg.layout[kind], `${slug}.md`)]));
-        const missing = Object.entries(legacy).filter(([, value]) => !existsSync(value)).map(([kind]) => kind);
-        if (missing.length) { console.error(`migration requires legacy ${missing.join(', ')} artifacts`); return 1; }
-        const ref = path.join(cfg.layout.intentRefs, `${slug}.json`);
-        if (existsSync(file) || existsSync(ref) || existsSync(migrationFile)) { console.error(`migration output already exists for ${slug}`); return 1; }
-        if (!has('write')) { console.log(`DRY-RUN  ${slug}\n  create ${path.relative(cfg.layout.root, ref)}\n  create ${path.relative(cfg.layout.root, file)}\n  preserve legacy intent/spec/plan`); return 0; }
-        let revision = 'pending';
-        try { revision = execSync('git rev-parse HEAD', { cwd: cfg.layout.root, encoding: 'utf8' }).trim(); } catch { /* remains pending */ }
-        writeIntentRef(ref, { id: slug, provider: 'git', locator: path.relative(cfg.layout.root, legacy.intent), revision, authority: 'git' });
-        try {
-          const template = readFileSync(path.join(HERE, 'templates', 'contract.md'), 'utf8').replaceAll('{{slug}}', slug);
-          const body = renderLegacyContract(template, Object.fromEntries(Object.entries(legacy).map(([kind, value]) => [kind, readFileSync(value, 'utf8')])));
-          mkdirSync(cfg.layout.contracts, { recursive: true }); writeFileSync(file, body, { flag: 'wx' });
-          const receipt = { schema: 'aidlc.migration/v1', change_id: slug, created: {
-            [path.relative(cfg.layout.root, ref)]: snapshotDigest(readFileSync(ref, 'utf8')),
-            [path.relative(cfg.layout.root, file)]: snapshotDigest(body),
-          } };
-          mkdirSync(cfg.layout.migrations, { recursive: true }); writeFileSync(migrationFile, JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx' });
-          console.log(`${file}\n${ref}\n${migrationFile}`); return 0;
-        } catch (error) { rmSync(ref, { force: true }); rmSync(file, { force: true }); rmSync(migrationFile, { force: true }); console.error(error.message); return 1; }
-      }
-      if (sub === 'rollback-migration') {
-        if (!existsSync(migrationFile)) { console.error(`migration receipt not found: ${migrationFile}`); return 1; }
-        const receipt = JSON.parse(readFileSync(migrationFile, 'utf8'));
-        for (const [rel, digest] of Object.entries(receipt.created ?? {})) {
-          const target = path.join(cfg.layout.root, rel);
-          if (!existsSync(target) || snapshotDigest(readFileSync(target, 'utf8')) !== digest) { console.error(`refusing rollback: migrated file changed or is missing: ${rel}`); return 1; }
-        }
-        for (const rel of Object.keys(receipt.created)) rmSync(path.join(cfg.layout.root, rel));
-        rmSync(migrationFile); console.log(`rolled back migration ${slug}; legacy artifacts were preserved`); return 0;
-      }
       if (sub === 'new') {
         const ref = path.join(cfg.layout.intentRefs, `${slug}.json`);
         if (existsSync(file) || existsSync(ref)) { console.error(`contract or intent ref already exists for ${slug}`); return 2; }
@@ -555,52 +447,21 @@ async function main() {
       console.error('usage: harness contract new|accept|validate|status|seal|evidence <slug> [--scope spec|plan]'); return 2;
     }
 
-    case 'review': {
-      const cfg = loadConfig(findRepoRoot()); const sub = argv[1];
-      if ((sub === 'select' || sub === 'packet') && !flag('base')) { console.error('review requires --base <git-ref>'); return 2; }
-      if (sub === 'select') { console.log(selectSlug(cfg.layout.root, String(flag('base')), String(flag('head', 'HEAD')))); return 0; }
-      if (sub === 'packet') { const slug = argv[2]; if (!validSlug(slug)) { console.error('invalid review slug'); return 2; } console.log(reviewPacket(cfg, slug, String(flag('base')), String(flag('head', 'HEAD')))); return 0; }
-      if (sub === 'ingest') {
-        const slug = argv[2]; if (!validSlug(slug)) { console.error('invalid review slug'); return 2; }
-        const file = flag('file'); const raw = file ? readFileSync(path.resolve(String(file)), 'utf8') : process.env.HARNESS_REVIEW_JSON;
-        if (!raw) { console.error('review JSON required via --file or HARNESS_REVIEW_JSON'); return 2; }
-        const result = writeReview(cfg, slug, JSON.parse(raw), { reviewer: process.env.GITHUB_ACTOR, commit: process.env.GITHUB_SHA, pull_request: process.env.HARNESS_PULL_REQUEST });
-        console.log(result.file); return result.recommendation === 'approve' ? 0 : 1;
-      }
-      console.error('usage: harness review select|packet|ingest'); return 2;
-    }
-
-    case 'github': {
-      if (argv[1] !== 'protection-check' || !flag('file')) { console.error('usage: harness github protection-check --file protection.json [--required-check harness]'); return 2; }
-      const value = JSON.parse(readFileSync(path.resolve(String(flag('file'))), 'utf8')); const result = checkProtection(value, String(flag('required-check', 'harness')));
-      if (has('json')) console.log(JSON.stringify(result, null, 2)); else console.log(result.ok ? 'branch protection: PASS' : `branch protection: FAIL\n${result.failures.map((f) => `  - ${f}`).join('\n')}`);
-      return result.ok ? 0 : 1;
-    }
-
     case 'hook': return dispatch(argv[1]);
 
     default:
       console.log(`harness — the lean SDLC harness
 
   harness init [--into DIR]        create .aidlc/ plus selected provider projections
-  harness doctor [--enterprise]    capability verbs, budget, enterprise checklist
+  harness doctor                   capability verbs and budget
   harness check --stage <s>        run a stage   (--changed  --all  --json)
-  harness gauntlet doctor|run      fail-closed behaviour/architecture/hardening/qa sensors
-  harness gauntlet qualify --file experiment.json
   harness new intent|review|eval <slug>
   harness contract new|accept|validate|status|seal|evidence <slug>
-  harness contract migrate <slug> [--write] | rollback-migration <slug>
-  harness lock tests [--pattern p] [--why text]
-  harness lock clear
-  harness worktree <slug>          git worktree for an independent contract slice
-  harness status [slug] [--json]  artifact progress, SLA, playbook indicators
-  harness review select|packet|ingest
-  harness github protection-check --file protection.json
+  harness status [slug] [--json]  contract stage and integrity
   harness ledger [audit] [--days 30]
   harness evals gate [--update]    grade the newest run against evals/expected.json
   harness baseline capture|check
   harness graph build|refresh|query <question> [arg]
-  harness wiki                     render the codebase map
   harness pack <question>          budgeted graph context
   harness hook <event>             hook dispatch (stdin/stdout JSON)`);
       return cmd ? 2 : 0;

@@ -1,11 +1,14 @@
 # Build plan — claude_harness_lean_v1
 
-> **Historical baseline:** this records the original Claude-first build. The provider-neutral
-> layout and current implementation sequence are authoritative in
-> [`COMPANY-V1-IMPLEMENTATION-PLAN.md`](COMPANY-V1-IMPLEMENTATION-PLAN.md).
+> **Historical baseline.** This records the original build and the reasoning behind it. Where it
+> and the repository disagree, the repository is right: lean-v2 removed the work-item, release,
+> monitoring, multi-agent-adapter, model-role, gauntlet, indicator and overlay subsystems this
+> plan describes, along with the three overlapping plan documents that described them. What
+> survives here is the design argument, which is still the best account of why the kernel is
+> shaped the way it is.
 
 > A lean, language-agnostic SDLC harness for Claude Code, built from the v6 post-mortem
-> (`docs/analysis.html`) and aligned to Anthropic's AI-native SDLC playbook.
+> and aligned to Anthropic's AI-native SDLC playbook.
 >
 > **Scope of v1:** automated governance for Plan, Design, Build, and Test, plus provider-neutral,
 > tested adapter seams for Deploy and Maintain. Deploy has review evidence, production approval,
@@ -50,7 +53,7 @@ commits a file the next stage reads, and git is the audit trail.
 | **3. Build** — plan mode, CLAUDE.md, subagents | `plan` + `implement` skills, 5 hooks, 3 agents | **Gate 2** — plan approved |
 | **4. Test** — evals woven through | `harness check` stages + `evals/tasks.json` in CI; `harness status` reports pass rate | — |
 | **5. Deploy** — PR review, hooks as gates | `review` skill → `.aidlc/artifacts/review/<slug>.md`; CI + merge protection are the gate; `handoff` opens the next draft PR | **Gate 3** — review approved / PR merged |
-| **6. Maintain** — bands → `intent.md` | `harness monitor detect` (scheduled) writes incident + intent; collector is project-owned | service owner triage |
+| **6. Maintain** — bands → `intent.md` | `examples/maintain/band-to-intent.mjs`, project-owned | service owner triage |
 
 This table distinguishes a **core implementation** from an **adapter contract**. Stages 1–4 run
 inside the repository today. Stages 5–6 have schemas, validation, and gates, but only become
@@ -88,7 +91,7 @@ not another permanent harness control; the plan's file ownership must be disjoin
 |---|---|---|
 | Approval-gate hooks during Build | Gates only at spec, plan, merge | An approval pause inside the build loop destroys the parallelism agents are for. The playbook says this itself; v6 ignored it and built five autonomy modes. |
 | Managed settings, OSCAL, certification | Template + `harness doctor --enterprise` | Enforcement is MDM/admin console, never git `settings.json`. |
-| `bands.yaml` anomaly detection → `intent.md` | `harness monitor detect` with 1σ/2σ/3σ tiers | Detection stays model-free. 2σ diagnoses; 3σ writes intent and may rollback staging. |
+| `bands.yaml` anomaly detection → `intent.md` | a fifty-line example script with 1σ/2σ/3σ tiers | Detection stays model-free. The harness kernel holds no monitoring code; a project owns the loop. |
 | Skills up to 500 lines / 5k words | 130-line hard stop, ~80-line target | Empirically better triggering. v6's skills averaged 268 lines and its two conductors were effectively 1,000 and 1,850. |
 | Repo-root `docs/` for artefacts | Artefacts under `.aidlc/artifacts/`; everything that is not the harness at the repo root | The artefact chain stays under `.claude/` — one place an agent looks. But `.claude/` is the harness, so the things that *exercise* it (`test/` `evals/` `examples/`) and the prose *about* it (`docs/`) sit beside it, not inside it. |
 
@@ -99,7 +102,7 @@ not another permanent harness control; the plan's file ownership must be disjoin
 ```
 claude_harness_lean_v1/
 ├─ README.md
-├─ docs/                             CONSTITUTION.md · BUILD-PLAN.md · handbook.html · analysis.html
+├─ docs/                             CONSTITUTION.md · BUILD-PLAN.md · OPERATING.md
 ├─ test/                             node:test, zero deps, runs on a cold clone
 ├─ evals/                            tasks.json (20) + fixtures + bench
 ├─ examples/scratch-py/              the proving ground
@@ -109,7 +112,7 @@ claude_harness_lean_v1/
    ├─ lib/                           toml · config · paths · normalize · ledger · runner
    ├─ checks/                        secrets · plan-drift · budget      (built-in sensors)
    ├─ hooks/                         dispatch.mjs + hooks.json          (5 bindings)
-   ├─ skills/                        12 skills, median 33 lines
+   ├─ skills/                        10 skills, median 33 lines
    ├─ agents/                        3 agents + 3 .contract.json
    ├─ templates/                     harness.toml · CLAUDE.md · intent/spec/plan
    ├─ artifacts/                     intent · spec · plan · review · incident
@@ -189,7 +192,7 @@ rounded up to green** — a suite that rounds is a suite that has stopped detect
 - **Exit criterion:** the suite is green, and the budget test goes red when a thirteenth skill is
   deliberately added.
 - **Evidence:** 29 unit tests green on a cold clone; `run.mjs --dry` → *20 tasks valid, $15.75
-  ceiling*; the `at-skill-limit` fixture passes `--stage commit` at 12 skills and fails at 13 with
+  ceiling*; the `at-skill-limit` fixture passes `--stage commit` at the limit and fails one over, with
   *"delete one before adding another"*. A fixture-sanity test asserts `clean-app` is genuinely
   green and `buggy-calc`/`broken-suite` genuinely red — a fixture that is not actually broken
   silently passes every task written against it.
