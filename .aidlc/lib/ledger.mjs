@@ -79,6 +79,27 @@ export function wiredControls(cfg) {
   return seen;
 }
 
+// B9. Mark the most recent unflagged fires of a rule as false blocks. Rewriting a ledger line is
+// not something to do casually, so this only ever sets the flag a human asked for, never a
+// verdict, a timestamp or a rule — the record of what fired stays exactly as the guard wrote it.
+export function flag(L = layout(), { rule, run = null, value = true } = {}) {
+  if (!existsSync(L.ledger)) return 0;
+  const lines = readFileSync(L.ledger, 'utf8').split('\n');
+  let marked = 0;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (!lines[i]) continue;
+    let row; try { row = JSON.parse(lines[i]); } catch { continue; }
+    if (row.rule !== rule || row.verdict !== 'fail') continue;
+    if (run && row.run !== run) continue;
+    if (row.false === value) continue;
+    lines[i] = JSON.stringify({ ...row, false: value });
+    marked++;
+    if (!run) break; // no --run: the one just recorded, which is the one the human just hit
+  }
+  if (marked) writeFileSync(L.ledger, lines.join('\n'));
+  return marked;
+}
+
 export function report(L = layout(), { days = 30, staged = null } = {}) {
   const since = Date.now() - days * 864e5;
   const rows = read(L).filter((r) => Date.parse(r.ts) >= since);
@@ -93,10 +114,25 @@ export function report(L = layout(), { days = 30, staged = null } = {}) {
     if (r.verdict === 'skipped') c.skipped++;
     c.findings += r.findings ?? 0;
     c.ms += r.ms ?? 0;
+    // lean-v2 B9. Which rule fired, and how often a human called that fire wrong. A control's
+    // fire rate says how busy it is; only this says whether being busy was useful. `bash-guard`
+    // stood at 275 denials with no way to separate a caught mistake from a refusal to write a
+    // commit message, and its verdict — "17.7% fired, keep" — was a guess in both directions.
+    if (r.verdict === 'fail' && r.rule) {
+      const rules = (c.rules ??= new Map());
+      const entry = rules.get(r.rule) ?? { rule: r.rule, fired: 0, false: 0 };
+      entry.fired++;
+      if (r.false === true) entry.false++;
+      rules.set(r.rule, entry);
+    }
     by.set(k, c);
   }
   const controls = [...by.values()].map((c) => ({
     ...c,
+    // A rule whose fires are more than half called false is noise wearing a control's badge.
+    rules: [...(c.rules?.values() ?? [])]
+      .map((entry) => ({ ...entry, noisy: entry.fired >= 3 && entry.false / entry.fired > 0.5 }))
+      .sort((a, b) => b.fired - a.fired),
     fire_rate: c.invocations ? c.fired / c.invocations : 0,
     avg_ms: c.invocations ? Math.round(c.ms / c.invocations) : 0,
     // Law 10 kill criterion, computed rather than argued about — but only over what the ledger
@@ -137,6 +173,10 @@ export function audit(L = layout(), { days = 30, staged = null } = {}) {
     deletions: controls.filter((c) => c.verdict === 'unreliable').map((c) => c.control),
     // Real questions, for a person holding the control's `why:`.
     decide: controls.filter((c) => c.verdict === 'never-fired' || c.verdict === 'unwired').map((c) => c.control),
+    // B9: rules a human has called wrong more often than right. Not a deletion — a rule that
+    // blocks the wrong thing usually needs narrowing, which is what happened to the four rules
+    // repaired so far. But it is a question the ledger could not previously ask at all.
+    noisy: controls.flatMap((c) => (c.rules ?? []).filter((r) => r.noisy).map((r) => `${c.control}/${r.rule}`)),
     ready: r.controls.every((c) => c.verdict !== 'insufficient-data'),
   };
 }

@@ -13,7 +13,7 @@ import { check, render } from '../lib/runner.mjs';
 import * as ledger from '../lib/ledger.mjs';
 import { measure } from '../checks/budget.mjs';
 import { refresh, staleSince } from '../lib/refresh.mjs';
-import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked } from '../lib/guard.mjs';
+import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
 
 // In an installed project `.aidlc/bin/harness` is a bash shim; in this repository it is the
 // executable itself, and `bash` on it dies with a shell syntax error. The banner printed the
@@ -39,12 +39,12 @@ const deny = (reason) => {
 };
 
 const DESTRUCTIVE = [
-  [/\brm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*[rR][a-zA-Z]*\s+\/(?!\w)/, 'rm -rf on an absolute root path'],
-  [/\bgit\s+push\b.*(--force(?!-with-lease)|-f\b)/, 'git push --force (use --force-with-lease)'],
-  [/\bgit\s+reset\s+--hard\b/, 'git reset --hard discards uncommitted work'],
-  [/\bgit\s+checkout\s+--\s+\./, 'git checkout -- . discards uncommitted work'],
-  [/\bchmod\s+-R\s+777\b/, 'chmod -R 777'],
-  [/\bcurl\b[^|]*\|\s*(ba)?sh\b/, 'piping a download straight into a shell'],
+  [/\brm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*[rR][a-zA-Z]*\s+\/(?!\w)/, 'rm -rf on an absolute root path', 'rm-root'],
+  [/\bgit\s+push\b.*(--force(?!-with-lease)|-f\b)/, 'git push --force (use --force-with-lease)', 'git-force-push'],
+  [/\bgit\s+reset\s+--hard\b/, 'git reset --hard discards uncommitted work', 'git-reset-hard'],
+  [/\bgit\s+checkout\s+--\s+\./, 'git checkout -- . discards uncommitted work', 'git-checkout-dot'],
+  [/\bchmod\s+-R\s+777\b/, 'chmod -R 777', 'chmod-777'],
+  [/\bcurl\b[^|]*\|\s*(ba)?sh\b/, 'piping a download straight into a shell', 'curl-pipe-shell'],
   // `init` refuses to rewrite a cached-prefix file and says to make the change between sessions.
   // `--force` is the human's way past that. On 2026-09-02 the agent read the refusal, named the
   // cache miss it would cause, and forced anyway — an escape hatch anyone may take is not an
@@ -53,7 +53,7 @@ const DESTRUCTIVE = [
   // Anchored to a command position, so it matches an invocation rather than a mention. The first
   // version matched the string anywhere in the command and refused a script that merely quoted
   // the rule while writing this contract's own evidence.
-  [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+init\b[^|;&]*--force\b/, 'forcing init rewrites the cached prompt prefix mid-session'],
+  [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+init\b[^|;&]*--force\b/, 'forcing init rewrites the cached prompt prefix mid-session', 'init-force'],
 ];
 
 export async function dispatch(event) {
@@ -99,15 +99,30 @@ export async function dispatch(event) {
 
       case 'pre-bash': {
         const cmd = input.tool_input?.command ?? '';
-        for (const [re, why] of [...DESTRUCTIVE, ...(cfg.guard.deny_bash ?? []).map((p) => [new RegExp(p), `denied by harness.toml [guard].deny_bash: ${p}`])]) {
-          if (re.test(cmd)) { ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(`${why}. If this is genuinely required, ask the human to run it.`); }
+        // lean-v2 B9. Every fire names the rule that fired it. Without this the audit reads
+        // "bash-guard, 275 denials, 17.7% fired, keep" and cannot tell a caught mistake from a
+        // false block — so the verdict is a guess, and OPERATING.md's weekly question "did
+        // anything block you that should not have" has no data source. A rule id is the smallest
+        // thing that makes the row answerable.
+        const fired = (rule, message) => {
+          ledger.append({ stage: 'pre-bash', control: 'bash-guard', rule, verdict: 'fail', ms: 0, findings: 1 }, cfg.layout);
+          return deny(message);
+        };
+        // Heredoc bodies are input to a program, not commands. A script that *writes* a rule
+        // into a file is not a script that runs it: writing the rule ids below was refused by
+        // the `git push --force` rule for quoting it, the fourth false block of that shape in
+        // one session. Quoted spans are deliberately left in place here — `bash -c "..."` is a
+        // real invocation — so a commit message naming a destructive command is still refused.
+        const scannable = commandText(cmd, { quotes: false });
+        for (const [re, why, rule] of [...DESTRUCTIVE, ...(cfg.guard.deny_bash ?? []).map((p) => [new RegExp(p), `denied by harness.toml [guard].deny_bash: ${p}`, `deny_bash:${p}`])]) {
+          if (re.test(scannable)) return fired(rule ?? 'destructive', `${why}. If this is genuinely required, ask the human to run it.`);
         }
         const prod = productionDenied(cmd, process.env);
-        if (prod) { ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(prod); }
+        if (prod) return fired('release-authorization', prod);
         const planned = bashContractBlocked(cmd, cfg);
-        if (planned) { ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(planned); }
+        if (planned) return fired('contract-scope', planned);
         const p = bashTouchesProtected(cmd, PREFIX_CACHE_PATHS);
-        if (p) { ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(`this command writes to ${p} through the shell, which bypasses the write guard. Same rule applies: not mid-session.`); }
+        if (p) return fired('prompt-prefix', `this command writes to ${p} through the shell, which bypasses the write guard. Same rule applies: not mid-session.`);
         ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
         return 0;
       }

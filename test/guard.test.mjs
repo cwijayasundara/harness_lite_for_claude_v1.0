@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { C, BIN } from './_paths.mjs';
-import { writeBlocked, productionDenied, lockTests, clearLock, bashTouchesProtected, bashContractBlocked } from '../.aidlc/lib/guard.mjs';
+import { writeBlocked, productionDenied, lockTests, clearLock, bashTouchesProtected, bashContractBlocked, writeTargets } from '../.aidlc/lib/guard.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 
 
@@ -245,11 +245,30 @@ test('a malformed contract fails closed for product writes', () => {
   } finally { f.cleanup(); }
 });
 
-test('production deploy without an approval identifier is denied', () => {
-  assert.match(productionDenied('deploy --env production', {}), /release authorization/);
+test('a release to a live environment without an approval identifier is denied', () => {
+  assert.match(productionDenied('deploy --env production', {}), /needs an authorization/);
   assert.equal(productionDenied('deploy --env production', { HARNESS_RELEASE_APPROVAL: 'CAB-1' }), null);
   assert.equal(productionDenied('make test', {}), null);
-  assert.match(productionDenied('harness deploy deploy production', {}), /release authorization/);
+  assert.match(productionDenied('kubectl apply -f prod/app.yaml', {}), /needs an authorization/);
+  assert.match(productionDenied('cd infra && helm upgrade prod ./chart', {}), /needs an authorization/);
+});
+
+// lean-v2 B9. The rule fired four times in one session against commands that only named it: a
+// script whose heredoc quoted a test assertion, a commit message describing the subsystem being
+// removed, a note recording those two, and the edit adding rule ids to the destructive list.
+// None was a release. A guard people learn to route around protects nothing, and until the
+// ledger carried a rule id nothing could tell these apart from a real catch.
+test('naming a rule is not invoking it', () => {
+  const heredoc = "cat > note.md <<'EOF'\nwe removed the deploy port and its production rollback\nEOF";
+  assert.equal(productionDenied(heredoc, {}), null, 'refused a heredoc body that only described a release');
+  assert.equal(productionDenied('git commit -m "delete the deploy port and production receipts"', {}), null);
+
+  // And an invocation in either shape is still refused.
+  assert.ok(productionDenied('terraform apply -var env=production', {}));
+  assert.ok(productionDenied('echo start; deploy --target production', {}));
+
+  // Heredoc bodies are not write destinations either: the file after `>` is, and nothing inside.
+  assert.deepEqual(writeTargets("cat > real.txt <<'EOF'\nnot > a-target.txt\nEOF"), ['real.txt']);
 });
 
 test('lock tests writes a lock the write guard honors, and clear removes it', () => {

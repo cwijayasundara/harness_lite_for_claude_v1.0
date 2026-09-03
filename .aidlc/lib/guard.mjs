@@ -36,14 +36,10 @@ export function writeBlocked(rel, cfg) {
   // `.aidlc/harness.toml` in this session's prompt prefix is the one at the root. The suffix
   // match also caught every nested copy — it refused an edit to
   // `evals/fixtures/_base/.aidlc/harness.toml`, a fixture that is never read into any prompt.
-  for (const p of PREFIX_CACHE_PATHS) {
-    if (norm === p) {
-      return `${p} is part of the cached prompt prefix. Editing it mid-session invalidates the prompt cache for every remaining turn. Ask the human to change it between sessions.`;
-    }
-  }
-  // Ownership is read once and answered twice. The protected-path rule and the require_contract
-  // rule ask the same question of the same data, and asking it in two places was how they came to
-  // disagree: `[guard].protected_paths` refused a file that an approved committed contract owned.
+  // Ownership is read once and answered three times. The prompt-prefix rule, the protected-path
+  // rule and the require_contract rule were three answers to one question — may this file change
+  // — and they disagreed, because only the third could hear a human. One rule now: a path named
+  // by a committed approved contract is a path a human decided to change.
   const requireContract = cfg.guard?.require_contract ?? false;
   const protectedPaths = cfg.guard?.protected_paths ?? [];
   let scope = null;
@@ -51,6 +47,21 @@ export function writeBlocked(rel, cfg) {
     if (!scope) { try { scope = contractScopeState(cfg); } catch { scope = { declared: [], parseError: true }; } }
     return matchesDeclared(norm, scope.declared);
   };
+
+  // lean-v2 B6, completed. The refusal below is a cost control, not a safety one: rewriting a
+  // prefix file mid-session invalidates the prompt cache for the remaining turns. That is worth
+  // refusing a casual edit for, and not worth refusing a sealed plan for — `lean-v2` names both
+  // `.aidlc/instructions.md` and `.claude/CLAUDE.md` under its Structure and ownership because
+  // they list verbs the same plan deletes, and instructions that name commands which no longer
+  // exist are a defect in every future session, not just this one.
+  //
+  // Unowned, it still refuses, because the ordinary case is a mid-session edit nobody planned.
+  for (const p of PREFIX_CACHE_PATHS) {
+    if (norm === p) {
+      if (owned()) break;
+      return `${p} is part of the cached prompt prefix. Editing it mid-session invalidates the prompt cache for every remaining turn. Ask the human to change it between sessions, or name it in an approved contract.`;
+    }
+  }
 
   // lean-v2 B6. A protected path is protected from an unplanned write, not from a planned one.
   // `evals/fixtures` exists so a fixture is never edited to make a test pass; a contract whose
@@ -84,14 +95,36 @@ export function writeBlocked(rel, cfg) {
   return null;
 }
 
-const PRODUCTION = /\b(production|prod)\b/i;
-const DEPLOY = /\b(deploy|terraform\s+apply|kubectl\s+apply|helm\s+upgrade|harness\s+deploy)\b/i;
+// lean-v2 B9. A mention is not an invocation.
+//
+// `commandText` drops the parts of a command line that are data rather than instructions:
+// heredoc bodies and quoted spans. The rule below fired three times in one session against
+// commands that only *named* it — a script whose heredoc quoted a test assertion, a commit
+// message describing the subsystem being removed, and the note recording the first two. All
+// three were false blocks, and the ledger could not say so, because a row recorded that the
+// guard fired and never what it matched.
+//
+// This is the defect the `harness init --force` rule in hooks/dispatch.mjs was already repaired
+// for, and it is the same fix: ask where the words sit, not whether they appear.
+// `quotes: false` keeps quoted spans, for rules where `bash -c "..."` is a real invocation.
+export function commandText(cmd, { quotes = true } = {}) {
+  const text = String(cmd ?? '')
+    // A heredoc body is input to a program, never a command. Removed first, so neither a verb
+    // nor a redirection inside the body can be read as either.
+    .replace(/<<-?\s*['"]?([A-Za-z_][A-Za-z0-9_]*)['"]?[\s\S]*?^\s*\1\s*$/gm, ' ');
+  return quotes ? text.replace(/'[^']*'/g, ' ').replace(/"[^"]*"/g, ' ') : text;
+}
+
+const TARGET_ENV = /\b(production|prod)\b/i;
+// Anchored to a command position. `harness deploy` left this list with the release port in
+// lean-v2 cut 2; what remains are the three tools that really do reach an environment.
+const RELEASE = /(^|[|;&]\s*)(\S*\bdeploy\b|terraform\s+apply|kubectl\s+apply|helm\s+upgrade)/i;
 
 export function productionDenied(cmd, env = process.env) {
-  const text = String(cmd ?? '');
-  if (!DEPLOY.test(text) || !PRODUCTION.test(text)) return null;
+  const text = commandText(cmd);
+  if (!RELEASE.test(text) || !TARGET_ENV.test(text)) return null;
   if (env?.HARNESS_RELEASE_APPROVAL) return null;
-  return 'Production deploys need a release authorization. Set HARNESS_RELEASE_APPROVAL or pass --approval to harness deploy.';
+  return 'A release to a live environment needs an authorization. Set HARNESS_RELEASE_APPROVAL, or ask the human to run it.';
 }
 
 // Write *destinations*, not the presence of a `>` somewhere in the string.
@@ -106,7 +139,9 @@ export function productionDenied(cmd, env = process.env) {
 // decision in docs/BUILD-PLAN.md Phase 3 applies here too. The trade is the one the spec states
 // — a write may slip through, a read is never blocked. It is a guard, not a permission system.
 export function writeTargets(cmd) {
-  const text = String(cmd ?? '');
+  // Heredoc bodies only. A quoted path is still a real destination, so quotes stay: dropping
+  // them here would hide `tee "some file.txt"` from the guard, which is the write it exists for.
+  const text = String(cmd ?? '').replace(/<<-?\s*['"]?([A-Za-z_][A-Za-z0-9_]*)['"]?[\s\S]*?^\s*\1\s*$/gm, ' ');
   const targets = [];
 
   // A redirection writes to what follows it, and to nothing else. `2>&1` names a descriptor

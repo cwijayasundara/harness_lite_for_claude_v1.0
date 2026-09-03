@@ -320,10 +320,29 @@ async function main() {
         const a = ledger.audit(L, { days, staged });
         console.log(`ledger audit · ${a.rows} rows · ${a.runs} runs · last ${a.days}d`);
         console.log(`thresholds: fires on >=${a.thresholds.min_fire_rate * 100}% of invocations, errors on <${a.thresholds.max_error_rate * 100}%, after ${a.thresholds.min_sessions} invocations\n`);
-        for (const c of a.controls) console.log(`  ${c.control.padEnd(16)} ${String(c.invocations).padStart(3)} inv  ${(c.fire_rate * 100).toFixed(1).padStart(5)}% fired  ${c.action}`);
+        for (const c of a.controls) {
+          console.log(`  ${c.control.padEnd(16)} ${String(c.invocations).padStart(3)} inv  ${(c.fire_rate * 100).toFixed(1).padStart(5)}% fired  ${c.action}`);
+          // B9: a fire rate says how busy a control is; only the per-rule split says whether
+          // being busy was useful.
+          for (const rule of c.rules ?? []) {
+            const flagged = rule.false ? `  ${rule.false} called false` : '';
+            console.log(`      ${rule.rule.padEnd(22)} ${String(rule.fired).padStart(3)} fired${flagged}${rule.noisy ? '  NOISY — fix the rule or delete it' : ''}`);
+          }
+        }
         console.log(a.deletions.length ? `\nDelete: ${a.deletions.join(', ')}` : '\nNothing the ledger can justify deleting on its own evidence.');
         if (a.decide.length) console.log(`Decide:  ${a.decide.join(', ')} — read each why: before acting`);
+        if (a.noisy.length) console.log(`Noisy:   ${a.noisy.join(', ')} — more than half of these fires were called false`);
         return 0;
+      }
+      // B9. The human's half of the record. A guard that blocked work it should not have is
+      // invisible to a ledger that only counts fires, and OPERATING.md's weekly question — "did
+      // anything block you that should not have" — had no data source at all before this.
+      if (argv[1] === 'flag') {
+        const rule = argv[2];
+        if (!rule) { console.error('usage: harness ledger flag <rule> [--run <id>] [--false]'); return 2; }
+        const marked = ledger.flag(L, { rule, run: flag('run'), value: !has('true') });
+        console.log(marked ? `flagged ${marked} row(s) of ${rule}` : `no unflagged ${rule} rows found`);
+        return marked ? 0 : 1;
       }
       const r = ledger.report(L, { days, staged });
       if (has('json')) { console.log(JSON.stringify(r, null, 2)); return 0; }

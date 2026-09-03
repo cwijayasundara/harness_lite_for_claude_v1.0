@@ -388,3 +388,44 @@ test('ledger audit turns rows into decisions, and refuses a verdict without evid
 
 
 
+
+// lean-v2 B9. Before this the ledger recorded that a guard fired and never what it matched, so
+// `bash-guard  1554 inv  17.7% fired  keep` was a guess: 275 denials with no way to separate a
+// caught mistake from a refusal to write a commit message. Four of the fires in the session that
+// added this were false blocks of one rule.
+test('the ledger records which rule fired, and a human can call a fire wrong', async () => {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const ledger = await import('../.aidlc/lib/ledger.mjs');
+
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-rule-'));
+  const state = path.join(root, '.aidlc/state');
+  fs.mkdirSync(state, { recursive: true });
+  const L = { root, state, ledger: path.join(state, 'ledger.jsonl'), runId: path.join(state, 'run-id') };
+  try {
+    for (let i = 0; i < 4; i++) ledger.append({ stage: 'pre-bash', control: 'bash-guard', rule: 'release-authorization', verdict: 'fail', ms: 0, findings: 1 }, L);
+    ledger.append({ stage: 'pre-bash', control: 'bash-guard', rule: 'rm-root', verdict: 'fail', ms: 0, findings: 1 }, L);
+    for (let i = 0; i < 60; i++) ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'pass', ms: 0, findings: 0 }, L);
+
+    const before = ledger.audit(L).controls.find((c) => c.control === 'bash-guard');
+    assert.deepEqual(before.rules.map((r) => [r.rule, r.fired, r.false]), [['release-authorization', 4, 0], ['rm-root', 1, 0]]);
+    assert.equal(before.rules.every((r) => !r.noisy), true, 'nothing is noisy until a human says so');
+
+    // Each call marks the most recent unflagged fire, which is the one the human just hit.
+    for (let i = 0; i < 3; i++) assert.equal(ledger.flag(L, { rule: 'release-authorization' }), 1);
+    assert.equal(ledger.flag(L, { rule: 'never-fired-here' }), 0, 'a rule with no fires cannot be flagged');
+
+    const after = ledger.audit(L);
+    const guard = after.controls.find((c) => c.control === 'bash-guard');
+    const rule = guard.rules.find((r) => r.rule === 'release-authorization');
+    assert.equal(rule.false, 3);
+    assert.equal(rule.noisy, true, 'more than half of its fires were called wrong');
+    assert.deepEqual(after.noisy, ['bash-guard/release-authorization']);
+
+    // Flagging changes the human's verdict on a fire. It never rewrites what the guard recorded.
+    const rows = fs.readFileSync(L.ledger, 'utf8').trim().split('\n').map(JSON.parse);
+    assert.equal(rows.filter((r) => r.rule === 'release-authorization').length, 4);
+    assert.equal(rows.every((r) => r.verdict === 'fail' || r.verdict === 'pass'), true);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
