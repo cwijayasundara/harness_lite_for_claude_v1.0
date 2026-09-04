@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-04T04:59:06.517Z
+digest: sha256:4513acf01382bedfec580a417ad020cc0fe5445ae253be5d92d8541e3b86e456
 ---
 # Spec: evolving-scope
 
