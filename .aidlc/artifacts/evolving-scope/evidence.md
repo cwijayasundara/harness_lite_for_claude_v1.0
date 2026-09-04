@@ -388,3 +388,39 @@ The `plan` skill's single example uses the pytest node-id form; no agent has rep
 The evaluator's finding 4 against `evolving-scope` — that B6's identifier clause is inert because
 nothing in this repository writes that shape — is now confirmed from the other direction: nothing
 an *agent* writes uses it either. Whatever B6 ends up asserting, it cannot assume that shape.
+
+---
+
+## F16 — the migration dropped every approval, and the harness's own history reads as unapproved
+
+**Component: `lean-v2`'s one-shot contract migration. Found while designing F14's check, not by a
+campaign run.**
+
+Twenty-three of this repository's twenty-seven change directories carry
+`migrated_from: sha256:...` in their `spec.md` frontmatter — the fingerprint of
+`scripts/migrate-contracts.mjs`, which `lean-v2` ran once and then deleted. Every one of them is
+`status: draft`.
+
+So of twenty-four changes with behaviours, exactly **three** read as `approved`: `lean-v2` itself,
+`evolving-scope`, and `campaigns-run-unattended` — the three approved by hand in the last few days.
+Every change that built this harness reads as though nobody ever approved it.
+
+Two consequences, and the second is the sharp one.
+
+The migration converted approved contracts into draft specs, silently. Whatever those changes were
+approved under, that record is gone; `migrated_from` preserves a digest of the old artifact and not
+the fact that a human signed it off.
+
+And every control that reads `status: approved` therefore inspects three changes out of
+twenty-four. `behavioursHaveTests` skips a non-approved spec by design — correctly, since a draft
+is not yet a promise the code must keep — so `evolving-scope` B6, which exists to find specs that
+have quietly become fiction, cannot see 87% of this repository's specs. The three violations it did
+find in `lean-v2` are the ones it could reach.
+
+This was found by running F14's proposed check across all twenty-four plans before writing its
+spec, which is the thing the intent's third open question asked for. The check reported zero
+behaviours with a missing Proof row — a clean result that turned out to mean almost nothing,
+because it had only been allowed to look at three changes.
+
+A check whose reach is silently 13% of what a reader would assume is worse than no check, and
+neither `--stage commit` nor the eval suite would ever have said so.
