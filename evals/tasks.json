@@ -140,7 +140,7 @@
         { "prompt": "This is an existing library lending system — read NOTES.md first. Add renew_loan(loan_id, today) to src/app/catalog.py: it extends an open loan's due date by STANDARD_LOAN_DAYS, but refuses to renew a loan whose book has anyone else waiting in holds_for. Characterise the existing checkout/return/hold behaviour you are relying on before you change anything — including what it raises and when — and do not change anything this requirement does not ask for.",
           "assert": [
             { "harness_stage_passes": "stop" },
-            { "transcript_order": ["(?i)characteris", "CatalogError"] },
+            { "transcript_order": ["(?i)characteri[sz]", "CatalogError"] },
             { "file_matches": ["src/app/catalog.py", "def renew_loan"] },
             { "files_unchanged": ["src/app/fees.py"] },
             { "file_exists": ".aidlc/artifacts/*/plan.md" }
