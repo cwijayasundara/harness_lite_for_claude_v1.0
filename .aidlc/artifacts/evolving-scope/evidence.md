@@ -430,3 +430,37 @@ because it had only been allowed to look at three changes.
 
 A check whose reach is silently 13% of what a reader would assume is worse than no check, and
 neither `--stage commit` nor the eval suite would ever have said so.
+
+---
+
+## F17 — `approve` accepts an unedited template
+
+**Component: `approve()` in `.aidlc/lib/artifacts.mjs`. Sibling of F14. Observed live, 2026-09-04.**
+
+`harness approve a-plan-proves-its-spec spec --by cwijayasundara` succeeded against a `spec.md` that
+was still the scaffold `harness new` writes:
+
+```
+## Outcome
+<The observable result, in the language of the affected user.>
+### B1
+Given ...  When ...  Then ...
+```
+
+It is now `status: approved` with a digest over placeholder text, and a human's name against it.
+
+Every precondition behaved correctly — the file was committed, no plan preceded its spec, the digest
+was computed honestly. Nothing checks that the artifact says anything. The template's own angle
+brackets and bare `Given ... When ... Then ...` are a machine-recognisable tell, and `harness new`
+wrote them, so the harness has everything it needs to notice.
+
+This is F14 one step earlier in the chain. F14: a plan may be approved without proving its spec's
+behaviours. F17: a spec may be approved without stating any. Both are the same absence — the gates
+verify the *state* of an artifact and never its *content* — and they should be decided together,
+probably by the same change.
+
+Worth recording how it happened, because the trigger generalises. The orchestrator asked for gate 1
+on a change whose intent was written and whose spec was not, and the human ran the command they were
+given. Neither party was careless; the harness let the mistake through in a place where it had the
+information to stop it. A gate that cannot tell a written artifact from an empty one puts the whole
+burden on whoever types the command.
