@@ -1,8 +1,8 @@
 ---
 status: approved
 by: cwijayasundara
-at: 2026-09-04T04:59:06.517Z
-digest: sha256:4513acf01382bedfec580a417ad020cc0fe5445ae253be5d92d8541e3b86e456
+at: 2026-09-04T05:31:20.225Z
+digest: sha256:81a9cade9b8c1bcc67c39203d9c44fdca0e90f876714848f5be1fd6bb0b6d738
 ---
 # Spec: evolving-scope
 
