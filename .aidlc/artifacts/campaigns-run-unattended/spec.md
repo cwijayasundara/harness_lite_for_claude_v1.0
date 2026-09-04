@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-04T10:23:01.400Z
+digest: sha256:85378879a77d92ee48509f5aee54627b0536ad945c2ba97992b0c602244d5e0e
 ---
 # Spec: campaigns-run-unattended
 
