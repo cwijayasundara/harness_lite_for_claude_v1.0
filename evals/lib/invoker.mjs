@@ -32,7 +32,15 @@ export function claudeInvoker({ pluginDir, model = null }) {
     // unconditionally, this reached all 22 single-prompt golden tasks too, several of them
     // artifact- or contract-shaped, with context the golden suite was never calibrated against.
     // A single-prompt task must run exactly as it does for a real, attended repository.
-    const env = { ...process.env, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}), ...(task?.steps ? { AIDLC_UNATTENDED: '1' } : {}) };
+    //
+    // Stripped, not merely not-added — review `419c0a4` (Blocking 2): `...process.env` is spread
+    // first, so an operator's own `AIDLC_UNATTENDED` survived a single-prompt task untouched.
+    // Setting it to `undefined` would not do it either — Node stringifies that to the child as
+    // `AIDLC_UNATTENDED=undefined`, which `approve()`'s `if (process.env.AIDLC_UNATTENDED)` still
+    // reads as set. `delete` is the only correct way to guarantee absence.
+    const env = { ...process.env, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}) };
+    if (task?.steps) env.AIDLC_UNATTENDED = '1';
+    else delete env.AIDLC_UNATTENDED;
     const r = spawnSync('claude', args, { cwd, env, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
     // A missing CLI is not a failed task — it is a broken harness, and twenty tasks failing
     // with empty transcripts is the least useful way to say so. Same lesson as exit 127 in the

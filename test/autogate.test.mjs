@@ -18,6 +18,11 @@ import { claudeInvoker } from '../evals/lib/invoker.mjs';
 
 const run = (root, env, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8', env });
 
+// review `419c0a4`: the attended stand-in. An operator with AIDLC_UNATTENDED exported would
+// otherwise falsify these tests' premise before their first assertion — the same strip the
+// invoker does in `evals/lib/invoker.mjs`.
+const attended = () => { const e = { ...process.env }; delete e.AIDLC_UNATTENDED; return e; };
+
 function repo() {
   const root = mkdtempSync(path.join(tmpdir(), 'harness-autogate-'));
   spawnSync('git', ['init', '-q'], { cwd: root });
@@ -49,7 +54,7 @@ test('B1: with AIDLC_UNATTENDED set, both gates approve with no --by and no huma
   const root = repo();
   try {
     // A real repository's session start is byte-identical to what it is today.
-    assert.doesNotMatch(sessionStart(root, process.env), /unattended|AIDLC_UNATTENDED/);
+    assert.doesNotMatch(sessionStart(root, attended()), /unattended|AIDLC_UNATTENDED/);
 
     const unattendedContext = sessionStart(root, { ...process.env, AIDLC_UNATTENDED: '1' });
     assert.match(unattendedContext, /no human/i);
@@ -109,13 +114,13 @@ test('B3: off by default, and a harness.toml asking for auto-approval changes no
     commit(root, 'draft no-backdoor, plus a harness.toml asking to be auto-approved');
 
     // No AIDLC_UNATTENDED in the environment: the human gate applies exactly as it does today.
-    const noApprover = run(root, process.env, 'approve', 'no-backdoor', 'spec');
+    const noApprover = run(root, attended(), 'approve', 'no-backdoor', 'spec');
     assert.equal(noApprover.status, 1);
     assert.match(noApprover.stderr, /an approval needs an approver/);
 
     // Supplying --by still works, and records exactly what was supplied — the file in the working
     // copy had no say over the identity, because it was never consulted.
-    const withApprover = run(root, process.env, 'approve', 'no-backdoor', 'spec', '--by', 'tester');
+    const withApprover = run(root, attended(), 'approve', 'no-backdoor', 'spec', '--by', 'tester');
     assert.equal(withApprover.status, 0, withApprover.stderr);
     const front = readFileSync(path.join(root, '.aidlc/artifacts/no-backdoor/spec.md'), 'utf8');
     assert.match(front, /^by: tester$/m);
@@ -206,6 +211,19 @@ test('B4 (invoker): AIDLC_UNATTENDED reaches a campaign step, and never a single
     // A campaign step: `task.steps` is present, as `evals/run.mjs` builds it.
     invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'campaign', steps: [{ prompt: 'x' }] }, step: 0 });
     assert.match(readFileSync(envLog, 'utf8'), /^AIDLC_UNATTENDED=1$/m);
+
+    // review `419c0a4` (Blocking 2): the runner must not merely not-add the variable — it must
+    // strip one it inherited. An operator with AIDLC_UNATTENDED already exported puts every
+    // single-prompt golden task right back where Blocking 1 had it.
+    const previousUnattended = process.env.AIDLC_UNATTENDED;
+    process.env.AIDLC_UNATTENDED = '1';
+    try {
+      invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'golden-task', prompt: 'x' } });
+      assert.doesNotMatch(readFileSync(envLog, 'utf8'), /^AIDLC_UNATTENDED=/m, 'inherited from the parent shell, a single-prompt task must still run attended');
+    } finally {
+      if (previousUnattended === undefined) delete process.env.AIDLC_UNATTENDED;
+      else process.env.AIDLC_UNATTENDED = previousUnattended;
+    }
   } finally { process.env.PATH = previousPath; rmSync(dir, { recursive: true, force: true }); }
 });
 
