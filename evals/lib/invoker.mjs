@@ -35,9 +35,10 @@ export function claudeInvoker({ pluginDir, model = null }) {
     //
     // Stripped, not merely not-added — review `419c0a4` (Blocking 2): `...process.env` is spread
     // first, so an operator's own `AIDLC_UNATTENDED` survived a single-prompt task untouched.
-    // Setting it to `undefined` would not do it either — Node stringifies that to the child as
-    // `AIDLC_UNATTENDED=undefined`, which `approve()`'s `if (process.env.AIDLC_UNATTENDED)` still
-    // reads as set. `delete` is the only correct way to guarantee absence.
+    // `delete` rather than assigning `undefined`: measured, Node omits an `undefined` value from
+    // the child's environment, so both happen to work today. `delete` says what is meant and does
+    // not rest on that detail — the earlier comment here claimed the assignment would arrive as
+    // the string `"undefined"`, which the confirming pass on `d668876` disproved.
     const env = { ...process.env, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}) };
     if (task?.steps) env.AIDLC_UNATTENDED = '1';
     else delete env.AIDLC_UNATTENDED;

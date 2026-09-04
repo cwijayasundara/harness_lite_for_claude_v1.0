@@ -200,3 +200,64 @@ OPERATING.md sentence and the code agree, and the cheaper direction of agreement
 
 This is the second changes-requested on this change. If the next repair is those three lines and
 that sentence, it is not a loop. If it turns into anything larger, it belongs to the human.
+
+## Confirming pass — Blocking 2 (commits `29fdfec`, `d668876`)
+
+Narrow re-check of the one Blocking left open by review `419c0a4`. Nothing else re-litigated.
+
+**1. The strip is correct — confirmed by execution.** `evals/lib/invoker.mjs:42-44` now spreads
+the base env, then sets or `delete`s. Driving the real `claudeInvoker` against a stub `claude`
+that dumps its own env, with `AIDLC_UNATTENDED=1` exported in the parent process:
+
+    parent= "1"
+    single-prompt child: []                        <- stripped
+    campaign child:      ["AIDLC_UNATTENDED=1"]    <- set
+    no-task child:       []                        <- stripped
+
+Also stripped when the parent exports it empty (`AIDLC_UNATTENDED=`), and the campaign step still
+receives `1` when the parent has it unset. The scoping key is unchanged (`task?.steps`), so B4's
+original distinction is intact.
+
+**2. The test is load-bearing — confirmed by mutation.** With `else delete env.AIDLC_UNATTENDED;`
+removed, `test/autogate.test.mjs` fails on exactly the intended assertion:
+
+    ✖ B4 (invoker): ... AssertionError: inherited from the parent shell, a single-prompt task
+      must still run attended
+    ℹ pass 6  ℹ fail 1
+
+Restored; 7/7 pass. The mutant is caught regardless of the operator's own shell, because the test
+sets and restores `process.env.AIDLC_UNATTENDED` itself rather than depending on ambient state.
+(Incidental, no action: the second mutant `env.AIDLC_UNATTENDED = undefined` also passes the
+suite — Node omits `undefined` env values from the child rather than stringifying them, so the
+comment at `invoker.mjs:38-40` overstates that specific hazard. `delete` is still the right call
+and the behaviour is correct; only the comment's reasoning is off.)
+
+**3. `docs/OPERATING.md` is now true.** The absolute claim "that is the only place it is set" is
+gone. What replaced it (lines 88-97) states the strip and its reason, keeps the accurate claim
+that no file in the staged working copy can turn the signal on, and names the residual risk in
+its own sentence: *"What that does not cover is a person running `harness approve` by hand in
+such a shell: the three readers below honour the variable wherever it is set, which is why a
+discarded `--by` is reported to stderr."* That is the exposure the code genuinely has, stated
+rather than hidden, and the stderr mitigation it leans on exists (`.aidlc/lib/artifacts.mjs:98-104`,
+`discardedBy`).
+
+**4. The attended tests are hermetic, and no assertion moved.** B1 and B3 changed only the second
+argument of three calls — `process.env` -> `attended()` (`test/autogate.test.mjs:24`, a spread
+with the variable deleted). Every assertion and expected value is byte-identical in the diff:
+B1's `doesNotMatch(..., /unattended|AIDLC_UNATTENDED/)`, B3's `status 1` +
+`/an approval needs an approver/`, `status 0` + `/^by: tester$/m`. Nothing weakened. Evidence
+that this was a real falsification rather than a cosmetic change: with `AIDLC_UNATTENDED=1`
+exported, the pre-repair files (`eb9a947`) fail B1, B3 and B4 (4 pass / 3 fail); the repaired
+files pass all 7 under the same polluted shell.
+
+Blocking 2: **confirmed discharged**. Nit 1 from `419c0a4` (the catch path records `unattended`
+but still omits `changed`) remains open by decision, queued as its own change.
+
+**approve**
+
+## Note on the incidental in item 2
+
+The comment was corrected rather than left standing. Measured directly: a child spawned with an
+`undefined` env value receives no such key, so the claim that it would arrive as the string
+`"undefined"` was wrong. `delete` remains correct and is kept; the comment now says why without
+resting on a hazard that does not exist.
