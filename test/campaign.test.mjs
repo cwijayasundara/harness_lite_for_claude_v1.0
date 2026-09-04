@@ -82,13 +82,18 @@ test('CHECKS registers modified_not_replaced and it reads ctx.work', () => {
   } finally { d.cleanup(); }
 });
 
-function artifact(root, slug, { specStatus = 'approved', behaviours, planStatus = 'approved', proofRows }) {
+// The `path::identifier` shape is real — it's the pytest node-id convention
+// evals/fixtures/contract-planned's plan.md actually uses — but it lives in ONE backtick span,
+// not two. `` `path`::`id` `` (two spans either side of a bare "::") is not a shape anything in
+// this repository writes; it was invented for the first version of these tests and is fixed here.
+function artifact(root, slug, { specStatus = 'approved', behaviours, planStatus = 'approved', proofRows, evidenceRows = [] }) {
   const dir = path.join(root, '.aidlc/artifacts', slug);
   mkdirSync(dir, { recursive: true });
   const specBody = behaviours.map((b) => `### ${b}\n\nGiven, when, then.\n`).join('\n');
   writeFileSync(path.join(dir, 'spec.md'), `---\nstatus: ${specStatus}\n---\n# Spec: ${slug}\n\n## Observable behaviours\n\n${specBody}`);
-  const table = proofRows.map(([b, file, id]) => `| ${b} | \`${file}\`::\`${id}\` |`).join('\n');
-  writeFileSync(path.join(dir, 'plan.md'), `---\nstatus: ${planStatus}\n---\n# Plan: ${slug}\n\n## Proof\n\n| Behaviour | Test |\n|---|---|\n${table}\n`);
+  const testRows = proofRows.map(([b, file, id]) => `| ${b} | \`${file}::${id}\` |`);
+  const table = [...testRows, ...evidenceRows.map(([b, text]) => `| ${b} | ${text} |`)].join('\n');
+  writeFileSync(path.join(dir, 'plan.md'), `---\nstatus: ${planStatus}\n---\n# Plan: ${slug}\n\n## Proof\n\n| Behaviour | Test or evidence |\n|---|---|\n${table}\n`);
 }
 
 // B6. A behaviour without a Proof row naming a test is exactly a spec that has quietly become
@@ -104,7 +109,7 @@ test('behavioursHaveTests fires on an approved spec whose B2 no test names', () 
     });
     const r = behavioursHaveTests(d.root);
     assert.equal(r.ok, false);
-    assert.match(r.violations.join(';'), /ledger B2: plan\.md's Proof table names no test/);
+    assert.match(r.violations.join(';'), /ledger B2: plan\.md's Proof table names no row/);
   } finally { d.cleanup(); }
 });
 
@@ -139,6 +144,52 @@ test('behavioursHaveTests does not fire on a behaviour retired on purpose', () =
     });
     const r = behavioursHaveTests(d.root);
     assert.equal(r.ok, true, r.violations.join('; '));
+  } finally { d.cleanup(); }
+});
+
+// Amended B6: the plan skill explicitly permits a Proof row to name runtime evidence rather
+// than a test ("manual check is only honest when the thing genuinely cannot be automated"), and
+// this change's own plan does exactly that for five behaviours. A row like that is unverifiable,
+// not a violation — the mechanical check has nothing to run.
+test('behavioursHaveTests reports a runtime-evidence row as unverifiable, and does not fire on it', () => {
+  const d = dir();
+  try {
+    artifact(d.root, 'ledger', {
+      behaviours: ['B1'],
+      proofRows: [],
+      evidenceRows: [['B1', 'the `campaign-ledger` run recorded in `evidence.md`, three sprints, stop stage green after each']],
+    });
+    const r = behavioursHaveTests(d.root);
+    assert.equal(r.ok, true, r.violations.join('; '));
+    assert.deepEqual(r.violations, []);
+    assert.deepEqual(r.unverifiable, ['ledger B1']);
+  } finally { d.cleanup(); }
+});
+
+// Regression for the defect team-lead found: run behavioursHaveTests against rows written in
+// this repository's actual house style — a backtick-quoted test file followed by free prose,
+// and evidence rows that name no test file at all — and confirm none of it is misread as a
+// violation. Rows lifted verbatim from .aidlc/artifacts/evolving-scope/plan.md itself.
+test('behavioursHaveTests does not fire on this repository\'s real Proof-row house style', () => {
+  const d = dir();
+  try {
+    mkdirSync(path.join(d.root, 'test'), { recursive: true });
+    writeFileSync(path.join(d.root, 'test/campaign.test.mjs'), 'test that actually exists\n');
+    artifact(d.root, 'evolving-scope', {
+      behaviours: ['B1', 'B3', 'B9', 'B10'],
+      proofRows: [],
+      evidenceRows: [
+        ['B1', '`test/campaign.test.mjs` — "a multi-step task runs each step against one working copy" via `runSuite` with a fake invoker'],
+        ['B3', 'the `campaign-ledger` run recorded in `evidence.md`, three sprints, stop stage green after each'],
+        ['B9', 'a step given a 0.01 USD ceiling records `inconclusive`, asserted in `test/campaign.test.mjs`'],
+        ['B10', '`.aidlc/artifacts/evolving-scope/evidence.md` exists and every entry names a component'],
+      ],
+    });
+    const r = behavioursHaveTests(d.root);
+    assert.equal(r.ok, true, r.violations.join('; '));
+    assert.deepEqual(r.violations, []);
+    // B1 and B9 both name the real test file and resolve; B3 and B10 name no test file at all.
+    assert.deepEqual(r.unverifiable.sort(), ['evolving-scope B10', 'evolving-scope B3'].sort());
   } finally { d.cleanup(); }
 });
 

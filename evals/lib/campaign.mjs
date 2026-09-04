@@ -49,30 +49,47 @@ function frontmatterStatus(text) {
   return s ? s[1] : null;
 }
 
-// A Proof row is `| B<n> | <path>::<identifier> |` — the shape every plan.md in this repo
-// already writes it in (see .aidlc/artifacts/*/plan.md). A row in a different shape is not one
-// this check can verify and is skipped rather than guessed at.
+// One row per behaviour, evidence text verbatim (backticks and all — testRowIn below needs them
+// to tell a quoted path from surrounding prose).
 function parseProofRows(planText) {
   const rows = new Map();
   for (const line of planText.split('\n')) {
     const m = line.match(/^\|\s*(B\d+)\s*\|\s*(.+?)\s*\|\s*$/);
-    if (!m) continue;
-    const evidence = m[2].replace(/`/g, '');
-    const pair = evidence.match(/([^\s|]+)::([^\s|]+)/);
-    if (pair) rows.set(m[1], { file: pair[1], identifier: pair[2] });
+    if (m) rows.set(m[1], m[2]);
   }
   return rows;
 }
 
-// B6. Every `### B<n>` in every approved spec must trace to a test through its plan's Proof
-// table, and the file that table names must actually contain the identifier it claims. A spec
-// that has quietly become fiction — a behaviour nobody proves any more — is the defect this
-// whole change exists to find. A behaviour retired on purpose is retired by removing it from
-// spec.md, so it is simply absent from the loop below and never fires.
+// A file this check can go verify: a backtick-quoted path whose basename looks like a test file
+// (`test_*.py`, `*.test.mjs`, `*_test.go`, ...), the pytest node-id form `path::name` included.
+// This is deliberately narrow. The plan skill's own example, and the one real place in this
+// repository that follows it (evals/fixtures/contract-planned/.../plan.md), both write the
+// path and its identifier inside one backtick span, joined by `::`; this repository's own 24
+// plans instead backtick-quote a test *file* and describe the test in prose after it. Neither
+// shape says "this identifier — not the file, the specific string — is what must survive," so
+// only the file's existence is checked when there is no explicit `::`.
+const TEST_FILE = /(^|\/)(test[_.][^/]+\.(mjs|cjs|js|ts|tsx|py|go|rb|java)|[^/]+\.test\.(mjs|cjs|js|ts|tsx)|[^/]+_test\.(py|go|rb))$/i;
+
+function testRowIn(evidenceText) {
+  for (const span of evidenceText.matchAll(/`([^`]+)`/g)) {
+    const [candidate, identifier] = span[1].split('::');
+    if (TEST_FILE.test(candidate)) return { file: candidate, identifier: identifier || null };
+  }
+  return null;
+}
+
+// B6, amended: a spec that has quietly become fiction is checkable without a model only for the
+// mechanical part — a behaviour with no Proof row at all, or a row that names a test file that
+// no longer exists or no longer contains the identifier it explicitly claimed. The plan skill
+// permits a row to name runtime evidence instead of a test ("manual check is only honest when
+// the thing genuinely cannot be automated"), and this change's own plan does exactly that for
+// five behaviours — such a row is reported unverifiable, never a violation. A behaviour retired
+// on purpose is retired by removing it from spec.md, so it is simply absent from the loop below.
 export function behavioursHaveTests(dir) {
   const violations = [];
+  const unverifiable = [];
   const artifactsRoot = path.join(dir, '.aidlc', 'artifacts');
-  if (!existsSync(artifactsRoot)) return { ok: true, violations };
+  if (!existsSync(artifactsRoot)) return { ok: true, violations, unverifiable };
   for (const slug of readdirSync(artifactsRoot)) {
     const specPath = path.join(artifactsRoot, slug, 'spec.md');
     const planPath = path.join(artifactsRoot, slug, 'plan.md');
@@ -83,16 +100,18 @@ export function behavioursHaveTests(dir) {
     if (!behaviours.length) continue;
     const proof = parseProofRows(readFileSync(planPath, 'utf8'));
     for (const b of behaviours) {
-      const row = proof.get(b);
-      if (!row) { violations.push(`${slug} ${b}: plan.md's Proof table names no test`); continue; }
+      const evidence = proof.get(b);
+      if (evidence === undefined) { violations.push(`${slug} ${b}: plan.md's Proof table names no row`); continue; }
+      const row = testRowIn(evidence);
+      if (!row) { unverifiable.push(`${slug} ${b}`); continue; }
       const testFile = path.join(dir, row.file);
       if (!existsSync(testFile)) { violations.push(`${slug} ${b}: proof file "${row.file}" does not exist`); continue; }
-      if (!readFileSync(testFile, 'utf8').includes(row.identifier)) {
+      if (row.identifier && !readFileSync(testFile, 'utf8').includes(row.identifier)) {
         violations.push(`${slug} ${b}: "${row.file}" no longer contains "${row.identifier}"`);
       }
     }
   }
-  return { ok: violations.length === 0, violations };
+  return { ok: violations.length === 0, violations, unverifiable };
 }
 
 // B4. An agent that deletes the inconvenient test and writes a fresh one passes a naive suite —
