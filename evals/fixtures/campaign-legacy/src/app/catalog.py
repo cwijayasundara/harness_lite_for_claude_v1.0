@@ -131,17 +131,13 @@ class Catalog:
 
     def cancel_hold(self, isbn: str, member_id: str) -> None:
         before = len(self._holds)
-        self._holds = [
-            h for h in self._holds if not (h.isbn == isbn and h.member_id == member_id)
-        ]
+        self._holds = [h for h in self._holds if not (h.isbn == isbn and h.member_id == member_id)]
         if len(self._holds) == before:
             raise CatalogError(f"{member_id} holds no place in line for {isbn}")
 
     def holds_for(self, isbn: str) -> list[Hold]:
         """Everyone waiting for a copy of `isbn`, in request order."""
-        return sorted(
-            (h for h in self._holds if h.isbn == isbn), key=lambda h: h.requested
-        )
+        return sorted((h for h in self._holds if h.isbn == isbn), key=lambda h: h.requested)
 
     def next_hold(self, isbn: str) -> Optional[Hold]:
         """Whoever is first in line for `isbn`, if anyone is waiting."""

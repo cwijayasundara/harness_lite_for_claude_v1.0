@@ -3,11 +3,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { unseenRequirements, modifiedNotReplaced, behavioursHaveTests } from '../evals/lib/campaign.mjs';
 import { evaluate, KNOWN } from '../evals/lib/assertions.mjs';
 import { runSuite } from '../evals/run.mjs';
+import { stage } from '../evals/lib/stage.mjs';
 import { A, ROOT } from './_paths.mjs';
 
 const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
@@ -16,6 +18,22 @@ const HARNESS = path.join(A, 'bin', 'harness');
 function dir() {
   const root = mkdtempSync(path.join(tmpdir(), 'campaign-'));
   return { root, cleanup: () => rmSync(root, { recursive: true, force: true }) };
+}
+
+// Every step of both campaigns opens with { "harness_stage_passes": "stop" }, and `runAttempt`
+// breaks the step loop on the first failing assertion — so a fixture that cannot pass its own
+// first assertion terminates the campaign at step 0 and produces no evidence for anything past
+// it. This is the reproduction the review used: the real repo's harness binary (not the shim
+// written into the staged copy, which is a shell script) against a freshly staged, untouched
+// fixture — sprint 0, before any model runs.
+for (const fixture of ['campaign-ledger', 'campaign-legacy']) {
+  test(`${fixture} passes harness check --stage stop as staged, before any sprint runs`, () => {
+    const s = stage(FIXTURES, fixture);
+    try {
+      const r = spawnSync('node', [HARNESS, 'check', '--stage', 'stop'], { cwd: s.work, encoding: 'utf8' });
+      assert.equal(r.status, 0, r.stdout + r.stderr);
+    } finally { s.cleanup(); }
+  });
 }
 
 // B2. A later sprint's requirement must not be reachable before its own step runs. Asserted
@@ -129,6 +147,45 @@ test('behavioursHaveTests does not fire on a test that legitimately moved', () =
   } finally { d.cleanup(); }
 });
 
+// Important 9: widened beyond `test_*`/`*.test.*` — `.spec.` (jest/jasmine), `_spec.` (rspec),
+// and a directory-based convention where the file itself carries no test-shaped name at all.
+test('behavioursHaveTests resolves .spec files and directory-only test conventions, not just test_*/*.test.*', () => {
+  const d = dir();
+  try {
+    mkdirSync(path.join(d.root, 'src'), { recursive: true });
+    mkdirSync(path.join(d.root, 'spec'), { recursive: true });
+    writeFileSync(path.join(d.root, 'src/ledger.spec.ts'), "it('sums invoices', () => {});\n");
+    writeFileSync(path.join(d.root, 'src/ledger_spec.rb'), "it 'sums invoices' do end\n");
+    writeFileSync(path.join(d.root, 'spec/ledger.mjs'), "test('sums invoices', () => {});\n"); // directory convention, no test-shaped basename
+    artifact(d.root, 'ledger', {
+      behaviours: ['B1', 'B2', 'B3'],
+      proofRows: [
+        ['B1', 'src/ledger.spec.ts', "sums invoices"],
+        ['B2', 'src/ledger_spec.rb', "sums invoices"],
+        ['B3', 'spec/ledger.mjs', "sums invoices"],
+      ],
+    });
+    const r = behavioursHaveTests(d.root);
+    assert.equal(r.ok, true, r.violations.join('; '));
+    assert.deepEqual(r.unverifiable, [], 'all three should resolve as tests, not fall through to unverifiable');
+  } finally { d.cleanup(); }
+});
+
+// A genuinely unrecognised row still fails safe: unverifiable, never silently graded a pass.
+test('behavioursHaveTests reports a truly unrecognised row as unverifiable rather than guessing', () => {
+  const d = dir();
+  try {
+    artifact(d.root, 'ledger', {
+      behaviours: ['B1'],
+      proofRows: [],
+      evidenceRows: [['B1', 'see `docs/design-notes.md` for the reasoning']],
+    });
+    const r = behavioursHaveTests(d.root);
+    assert.equal(r.ok, true, r.violations.join('; '));
+    assert.deepEqual(r.unverifiable, ['ledger B1']);
+  } finally { d.cleanup(); }
+});
+
 // Negative case: a behaviour retired on purpose. Removed from spec.md, so the loop never visits
 // it — retiring a behaviour is not the defect this check exists to find.
 test('behavioursHaveTests does not fire on a behaviour retired on purpose', () => {
@@ -193,22 +250,65 @@ test('behavioursHaveTests does not fire on this repository\'s real Proof-row hou
   } finally { d.cleanup(); }
 });
 
-test('behavioursHaveTests ignores a spec that is not approved, and passes with no artifacts at all', () => {
+// `ok: true` alone does not distinguish "nothing to check" from "checked and clean" — `checked`
+// does. The pure function's `ok` is unchanged by this (a draft spec still isn't a promise the
+// code must keep), but a caller that cares whether anything was actually examined now can.
+test('behavioursHaveTests ignores a spec that is not approved, and passes with no artifacts at all — but reports checked: 0 either way', () => {
   const d = dir();
   try {
-    assert.equal(behavioursHaveTests(d.root).ok, true, 'no .aidlc/artifacts at all');
+    const empty = behavioursHaveTests(d.root);
+    assert.equal(empty.ok, true, 'no .aidlc/artifacts at all');
+    assert.equal(empty.checked, 0, 'nothing existed to check');
     artifact(d.root, 'draft-thing', { specStatus: 'draft', behaviours: ['B1'], proofRows: [] });
     const r = behavioursHaveTests(d.root);
     assert.equal(r.ok, true, 'a draft spec is not yet a promise the code must keep');
+    assert.equal(r.checked, 0, 'a draft spec contributes nothing to check either');
   } finally { d.cleanup(); }
 });
 
-test('CHECKS registers behaviours_have_tests and it reads ctx.work', () => {
+test('behavioursHaveTests counts what it actually examined', () => {
+  const d = dir();
+  try {
+    mkdirSync(path.join(d.root, 'tests'), { recursive: true });
+    writeFileSync(path.join(d.root, 'tests/test_ledger.js'), "test('test_b1_case', () => {});\n");
+    artifact(d.root, 'ledger', {
+      behaviours: ['B1'],
+      proofRows: [['B1', 'tests/test_ledger.js', 'test_b1_case']],
+    });
+    assert.equal(behavioursHaveTests(d.root).checked, 1);
+  } finally { d.cleanup(); }
+});
+
+test('CHECKS registers behaviours_have_tests, it reads ctx.work, and it surfaces unverifiable rows in the detail', () => {
   assert.ok(KNOWN.includes('behaviours_have_tests'));
   const d = dir();
   try {
+    mkdirSync(path.join(d.root, 'tests'), { recursive: true });
+    writeFileSync(path.join(d.root, 'tests/test_ledger.js'), "test('test_b1_case', () => {});\n");
+    artifact(d.root, 'ledger', {
+      behaviours: ['B1', 'B2'],
+      proofRows: [['B1', 'tests/test_ledger.js', 'test_b1_case']],
+      evidenceRows: [['B2', 'the `campaign-ledger` run recorded in `evidence.md`']],
+    });
     const [r] = evaluate({ work: d.root }, [{ behaviours_have_tests: true }]);
     assert.equal(r.pass, true, r.detail);
+    assert.match(r.detail, /unverifiable/, 'the unverifiable row is surfaced, not dropped');
+    assert.match(r.detail, /ledger B2/);
+  } finally { d.cleanup(); }
+});
+
+// Important 6, exactly as the review put it: a run in which the agent never got a spec approved
+// — the failure B8 is hunting — must not pass a step that expects artifacts to exist.
+test('behaviours_have_tests: true fails when nothing was checked, not passes vacuously', () => {
+  const d = dir();
+  try {
+    const [nothingAtAll] = evaluate({ work: d.root }, [{ behaviours_have_tests: true }]);
+    assert.equal(nothingAtAll.pass, false, 'no .aidlc/artifacts at all is not evidence a spec was approved');
+    assert.match(nothingAtAll.detail, /no approved behaviour found to check/);
+
+    artifact(d.root, 'draft-thing', { specStatus: 'draft', behaviours: ['B1'], proofRows: [] });
+    const [draftOnly] = evaluate({ work: d.root }, [{ behaviours_have_tests: true }]);
+    assert.equal(draftOnly.pass, false, 'an unapproved spec is not evidence either — B8 is exactly the case where approval never happened');
   } finally { d.cleanup(); }
 });
 

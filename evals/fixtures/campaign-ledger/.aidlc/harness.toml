@@ -4,16 +4,22 @@ name = "campaign-ledger"
 # Greenfield: sprint 1 has nothing to build on but this file. Node and TypeScript, not the
 # _base fixture's Python — a campaign fixture proves the harness holds for a project the harness
 # never shipped a language profile for by hand.
+#
+# The sprint-1 prompt says "plain Node.js with no external packages" (evals/tasks.json), and a
+# capability that shells out to npx contradicts that on a staged copy with no node_modules —
+# `--no-install` then refuses to fetch anything, and every task step opens with
+# `harness_stage_passes: stop`, so the campaign never got past step 0. fmt/lint/typecheck stay
+# empty for the same reason this repo's own harness.toml leaves `lint` empty: zero-dependency by
+# constitution, no tool to install. Empty is reported `skipped`, never `failed`. `node --test` is
+# the one capability that is actually zero-dependency, so it is the only one configured.
 [capabilities]
-fmt       = "npx --no-install prettier --check ."
-lint      = "npx --no-install eslint ."
-typecheck = "npx --no-install tsc --noEmit"
+fmt       = ""
+lint      = ""
+typecheck = ""
 test      = "node --test"
 
 [formats]
-lint      = "eslint"
-typecheck = "tsc"
-test      = "generic"
+test = "generic"
 
 [stages]
 fast   = ["fmt", "lint", "typecheck"]

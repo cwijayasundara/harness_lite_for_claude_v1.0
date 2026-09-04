@@ -7,7 +7,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { unseenRequirements, behavioursHaveTests, modifiedNotReplaced } from './campaign.mjs';
+import { unseenRequirements, behavioursHaveTests, modifiedNotReplaced, walk } from './campaign.mjs';
 
 // A deliberately small glob: `*` inside one path segment. Enough for
 // ".aidlc/artifacts/intent/*.md" and "tests/*.py", and small enough to have no bugs.
@@ -47,21 +47,6 @@ export function toRegExp(pattern) {
   if (pattern instanceof RegExp) return pattern;
   const m = String(pattern).match(/^\(\?([ims]+)\)([\s\S]*)$/);
   return m ? new RegExp(m[2], m[1]) : new RegExp(String(pattern));
-}
-
-const IGNORE = /(^|\/)(\.git|\.aidlc\/state|__pycache__|\.pytest_cache|\.ruff_cache)(\/|$)/;
-
-function walk(root, rel = '') {
-  const out = [];
-  const abs = path.join(root, rel);
-  if (!existsSync(abs)) return out;
-  for (const e of readdirSync(abs, { withFileTypes: true })) {
-    const r = rel ? `${rel}/${e.name}` : e.name;
-    if (IGNORE.test(r)) continue;
-    if (e.isDirectory()) out.push(...walk(root, r));
-    else out.push(r);
-  }
-  return out;
 }
 
 function diffTrees(a, b, scope = null) {
@@ -146,7 +131,16 @@ export const CHECKS = {
   },
   behaviours_have_tests(ctx, want) {
     const r = behavioursHaveTests(ctx.work);
-    return ok(r.ok === want, r.violations.join('; '));
+    // Distinguishes "nothing to check" (checked: 0) from "checked and clean" — a step that
+    // expects artifacts to exist must fail when there are none, the same way an empty suite is
+    // not a pass. `unverifiable` is surfaced here rather than dropped: it is the majority row
+    // shape in this repository's own plans, and a check that reports neither what it found wrong
+    // nor what it declined to check is a check nobody can act on.
+    const parts = [];
+    if (r.violations.length) parts.push(r.violations.join('; '));
+    if (r.unverifiable.length) parts.push(`unverifiable (names evidence, not a test): ${r.unverifiable.join(', ')}`);
+    if (r.checked === 0) parts.push('no approved behaviour found to check');
+    return ok((r.ok && r.checked > 0) === want, parts.join(' | '));
   },
   modified_not_replaced(ctx, { file, markers }) {
     const r = modifiedNotReplaced(ctx.work, file, markers);

@@ -23,8 +23,6 @@ def late_fee(due: date, returned: date) -> float:
     late = days_late(due, returned)
     if late == 0:
         return 0.0
-    # BUG: should be `late <= GRACE_DAYS`. As written, a book returned exactly on the last grace
-    # day already starts accruing a fee — one day earlier than the docstring promises.
     if late < GRACE_DAYS:
         return 0.0
     billable_days = late - GRACE_DAYS + 1
