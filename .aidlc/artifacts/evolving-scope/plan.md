@@ -17,13 +17,20 @@ that no later sprint's requirement is visible in the working copy yet (B2), that
 `### B<n>` in the copy has a test naming it (B6), and that a named file was modified rather than
 replaced (B4). These are file-and-text checks over the staged copy, deterministic, no model.
 
+The assertion context is `{ work, pristine, transcript, harness, usage, baseline }` and carries no
+task, so `unseenRequirements` cannot reach a later step's prompt by itself. It takes the text to
+look for as its assertion argument in `tasks.json`. The requirement is then written twice, in the
+step and in the earlier step's assertion, which is the price of keeping `CHECKS` pure functions of
+the working copy.
+
 Two campaign fixtures. `campaign-ledger` is an empty repository with the harness installed and
 nothing else, so sprint 1 is genuinely greenfield and sprint 2 is brownfield against sprint 1's
 own output. `campaign-legacy` is roughly 400 lines of working, untested, artifact-free code with
 one deliberate defect that no sprint asks about — an agent that fixes it on the way past has
 produced a diff nobody can review, and B7 fails.
 
-`evals/tasks.json` gains the two campaign tasks with per-step budgets.
+`evals/tasks.json` gains the two campaign tasks, each with a `budgetUsd` the runner
+applies to every step.
 
 Rejected: a separate campaign runner. The steps path exists, is tested by the unit suite through
 `runSuite` with a fake invoker, and a second runner would be a second thing that can disagree
@@ -40,6 +47,7 @@ have to hold all of them.
 ## Files
 
 - `evals/lib/campaign.mjs`
+- `evals/lib/assertions.mjs`
 - `evals/fixtures/campaign-ledger/`
 - `evals/fixtures/campaign-legacy/`
 - `evals/tasks.json`
@@ -64,7 +72,9 @@ have to hold all of them.
 5. `evals/fixtures/campaign-legacy/` — the untested codebase, its one undiscussed defect, and a
    `README` that describes what it does and says nothing about what it should become.
 6. `evals/tasks.json` — `campaign-ledger` with three steps and `campaign-legacy` with two, each
-   step carrying `budgetUsd` and its own assertions.
+   step carrying its own assertions. The task's `budgetUsd` is already the per-step ceiling:
+   `runAttempt` passes it to every invocation and the suite cap multiplies it by `promptCount`.
+   A step-level field would be a second way to say the same thing.
 7. Run both. Record every failure in `.aidlc/artifacts/evolving-scope/evidence.md` with the
    behaviour it broke and the component responsible.
 8. `docs/OPERATING.md` — one section: what a campaign is, when to run it, what it costs, and that
