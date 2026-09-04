@@ -30,10 +30,25 @@ only way that is not true is if the value is unreachable from the caller. Every 
 stays exactly where it is: committed-first, plan-after-spec, the body digest, `stale-approval`.
 That is B5, and it is why the branch goes at the identity and not at the top of the function.
 
-`harness status` gains one line when the variable is set, naming the two commands. CLAUDE.md
-already tells the agent to run `harness status` and resume the first incomplete stage, so this
-reaches the agent through a path it already walks. Nothing else about the agent's instructions
-changes, and no skill changes at all.
+The notice reaches the agent through the `SessionStart` hook, beside the `contract:` line that
+`dispatch.mjs` already injects. **This replaces a first attempt that was measured wrong and is
+recorded as `evidence.md` F6**: the notice was put in `harness status`, on the reasoning that
+CLAUDE.md tells the agent to run `harness status` and resume the first incomplete stage. The agent
+never ran it — it began writing immediately, and the re-run halted at gate 1 exactly as before with
+`unattended: []` in the results. A channel that requires the agent to already be following the
+workflow cannot be the channel that tells it what the workflow is.
+
+`SessionStart` is the counter-example that settles it. It already pushes
+`contract: product file edits need a committed approved contract that owns the path`, and that is
+the guard `campaign-legacy`'s agent actually hit in F2 — so context pushed at session start
+demonstrably lands, while context available on request does not. In an unattended run it gains two
+lines: that the run has no human and the agent approves its own gates, and the artifact layout with
+`harness new <slug>`, which `evidence.md` F7 records the agent guessing wrong twice.
+
+The `harness status` line stays. It is cheap, it is correct, and an agent that does run `status`
+should be told. It is simply not sufficient on its own, which is the whole of F6.
+
+No skill changes, and no per-task instructions.
 
 `evals/run.mjs` scans each step's working copy for artifacts stamped `unattended-eval-run` and
 prints them, and puts the list in the results JSON. That is B7: a mechanism that substitutes for a
@@ -56,6 +71,7 @@ person to write a campaign has to remember it.
 
 - `.aidlc/lib/artifacts.mjs`
 - `.aidlc/bin/harness`
+- `.aidlc/hooks/dispatch.mjs`
 - `evals/lib/invoker.mjs`
 - `evals/run.mjs`
 - `test/autogate.test.mjs`
@@ -72,7 +88,12 @@ person to write a campaign has to remember it.
    only.
 3. `test/autogate.test.mjs` again — uncommitted still refused, plan-before-spec still refused,
    digest still written, `stale-approval` still fires, all with the variable set. B5.
-4. `.aidlc/bin/harness` — the `status` line, shown only when the variable is set.
+4. `.aidlc/bin/harness` — the `status` line, shown only when the variable is set. Done, kept.
+4b. `.aidlc/hooks/dispatch.mjs` — in the `session-start` action, beside the existing `contract:`
+   line, two lines when `AIDLC_UNATTENDED` is set: that the run is unattended and the agent
+   approves its own gates, and that a change is `harness new <slug>` producing
+   `.aidlc/artifacts/<slug>/{intent,spec,plan}.md`. No new hook binding — the ceiling is full at
+   4 of 5 and the budget is not a number to raise; this is content in a binding that already fires.
 5. `evals/lib/invoker.mjs` — set `AIDLC_UNATTENDED` in the spawn env next to `HARNESS_HOME`.
 6. `evals/run.mjs` — collect and report auto-approvals per step, into stdout and the results JSON.
 7. `docs/OPERATING.md` — one paragraph in the campaigns section: what the variable does, that it is
@@ -84,7 +105,7 @@ person to write a campaign has to remember it.
 
 | Behaviour | Test or evidence |
 |---|---|
-| B1 | `test/autogate.test.mjs` — an approval succeeds with the variable set and no human |
+| B1 | `test/autogate.test.mjs` — an approval succeeds with the variable set and no human; and the `session-start` action emits the unattended notice only when the variable is set |
 | B2 | `test/autogate.test.mjs` — `--by cwijayasundara` still records `unattended-eval-run` |
 | B3 | `test/autogate.test.mjs` — a working copy whose `harness.toml` asks for auto-approval is still refused |
 | B4 | the existing suite unchanged: `test/lifecycle-cli.test.mjs`, `test/guard.test.mjs`, `test/scope-drift.test.mjs` pass untouched |

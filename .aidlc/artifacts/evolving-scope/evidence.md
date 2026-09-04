@@ -140,3 +140,48 @@ B4, B5 and B6 have no campaign evidence: `campaign-ledger` never reached sprint 
 unproved for the same reason. B1, B2 and B9 remain proved only by `test/campaign.test.mjs`, not by
 a completed campaign. Until F1 is resolved, no campaign can reach sprint 2, and that single finding
 gates every other question this change set out to ask.
+
+---
+
+## Second run, 2026-09-04, after `campaigns-run-unattended` (commit `2b9e3c9`)
+
+`campaign-ledger` re-run: fail at sprint 1 again, 49 seconds, $0.0645. Running total $1.32.
+
+## F6 — the auto-approval mechanism was never reached
+
+**Breaks `campaigns-run-unattended` B1, B6. Component: that change's own plan, not its code.**
+
+`AIDLC_UNATTENDED` was set, `approve()` would have forced the identity, and `unattended` in the
+results JSON is `[]` because nothing ever called `approve`. The agent wrote an intent and stopped:
+
+> Do you accept this intent? If yes, I'll create the spec.
+
+The plan delivered the "you may approve your own gates" notice through `harness status`, reasoning
+that CLAUDE.md instructs the agent to run `harness status` and resume the first incomplete stage.
+The agent never ran it. It began writing immediately.
+
+The mechanism is correct and unreachable. `harness status` speaks only when spoken to, and this
+agent does not ask. A channel that requires the agent to already be following the workflow cannot
+be the channel that tells it what the workflow is.
+
+The `SessionStart` hook is the counter-example that proves the point: it already injects
+`contract: product file edits need a committed approved contract that owns the path`, and that is
+the guard `campaign-legacy`'s agent actually hit in F2. Context pushed at session start reaches the
+agent; context available on request does not.
+
+## F7 — the agent does not know where artifacts live, and nothing tells it in time
+
+**Breaks B3, B8. Component: `SessionStart` context, or the skills.**
+
+Two runs, two different wrong paths, neither the harness's layout, and `harness new` never invoked:
+
+- run 1: `.claude/artifacts/intent.md` — denied by the write guard.
+- run 2: `.aidlc/artifacts/intent/intent.md` — a fabricated slug named `intent`.
+
+The correct shape is `.aidlc/artifacts/<slug>/intent.md`, created by `harness new <slug>`. The
+agent guessed twice and never asked. As with F6, the information exists — in CLAUDE.md, in the
+`intent` skill — and reaches the agent only if it goes looking before it starts.
+
+This compounds F2 and F3. An agent that writes artifacts to a path the guard does not recognise
+gets refused, and a refusal it cannot act on is what sent the legacy agent looking for
+`require_contract` to switch off.
