@@ -562,3 +562,28 @@ It also reframes F16. Three findings now — F16, F18, F19 — are all the same 
 migrated the artifact model correctly and nothing downstream of the artifact model was re-checked.
 The approvals, the golden tasks, and the budgets each assumed a shape that had changed underneath
 them. None was a defect in the migration; all three are the absence of a step after it.
+
+---
+
+## F20 — the example app cannot pass `--stage stop` before its first line of code
+
+**Component: `dunning`'s install. Found on 2026-09-04 while starting the integration run.**
+
+```
+FAIL  typecheck  error TS18003: No inputs were found in config file '.../dunning/tsconfig.json'.
+                 Specified 'include' paths were '["src/**/*.ts","test/**/*.ts"]'
+SKIP  test       (not run — typecheck failed first)
+```
+
+`harness init --into` produced a repository whose own `stop` stage fails until source exists, so an
+agent starting F1 cannot establish a green baseline before it works, and cannot tell its own first
+failure from the one that was already there.
+
+This is the same defect the evaluator found in `campaign-ledger` — a fixture that could not pass its
+own first assertion, where every campaign step opens with `harness_stage_passes: stop`. It was
+caught there by review before any model ran, and it was live in the real example app the whole time.
+A campaign fixture predicting a real project's failure is the campaigns doing what they were built
+for.
+
+It resolves itself once any `.ts` file exists, which is why it survived: nobody runs `stop` on an
+empty repository twice.
