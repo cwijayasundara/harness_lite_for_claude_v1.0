@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-04T17:24:21.220Z
+digest: sha256:e35c3b4efd92b4390d33434327b72f7678e6017c860180ee4f6a37dae90a3b2b
 ---
 # Spec: a-plan-proves-its-spec
 

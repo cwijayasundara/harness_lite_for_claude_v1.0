@@ -435,7 +435,8 @@ neither `--stage commit` nor the eval suite would ever have said so.
 
 ## F17 — `approve` accepts an unedited template
 
-**Component: `approve()` in `.aidlc/lib/artifacts.mjs`. Sibling of F14. Observed live, 2026-09-04.**
+**Component: `approve()` in `.aidlc/lib/artifacts.mjs`. Sibling of F14. Observed live twice within
+ten minutes, 2026-09-04.**
 
 `harness approve a-plan-proves-its-spec spec --by cwijayasundara` succeeded against a `spec.md` that
 was still the scaffold `harness new` writes:
@@ -464,3 +465,34 @@ on a change whose intent was written and whose spec was not, and the human ran t
 given. Neither party was careless; the harness let the mistake through in a place where it had the
 information to stop it. A gate that cannot tell a written artifact from an empty one puts the whole
 burden on whoever types the command.
+
+### F17, second occurrence — and it reaches ownership
+
+`harness approve a-spec-can-be-superseded plan --by cwijayasundara`, ten minutes after the first,
+against the unedited plan template. It is now approved with:
+
+```
+## Files
+
+<Every path this change may touch, in backticks, one per line. `scope-drift` and the write guard
+read this section and nothing else: a path not named here cannot be written.>
+
+- `path/to/file`
+```
+
+`## Files` is the ownership declaration — the only thing `scope-drift` and the write guard read. So
+a committed, approved contract now owns a literal path called `path/to/file`. Harmless because
+nothing is named `path/to/file`; the point is that the gate could not tell. A template whose
+placeholder happened to be a real path would have granted write access to it, and the approving
+human would have seen the same success line either way.
+
+That moves F17 out of tidiness and into the same category as the write guard itself. F14 is a plan
+that promises nothing. F17 is a spec that says nothing, and — at the plan gate — a contract that
+owns whatever the template's example happens to name.
+
+**Both occurrences were triggered the same way**, and the mechanism is worth recording because it is
+not carelessness. The orchestrator printed the approval command in a copy-paste block while saying
+in prose that the artifact was not written yet. The block is what gets run. Whatever else is true of
+the humans and agents involved, the gate had the information to refuse both times and did not: the
+templates are written by `harness new`, from files the harness ships, and their markers are
+machine-recognisable. A control that depends on nobody making an ordinary mistake is not a control.
