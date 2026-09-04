@@ -7,6 +7,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
+import { unseenRequirements, behavioursHaveTests, modifiedNotReplaced } from './campaign.mjs';
 
 // A deliberately small glob: `*` inside one path segment. Enough for
 // ".aidlc/artifacts/intent/*.md" and "tests/*.py", and small enough to have no bugs.
@@ -137,6 +138,19 @@ export const CHECKS = {
     const actual = ctx.usage?.[metric];
     if (actual == null) return ok(false, `invoker reported no ${metric}`);
     return ok(actual <= base * tolerance, `${metric} ${actual} vs baseline ${base} x${tolerance}`);
+  },
+  // Campaign checks. Thin adapters over the pure functions in campaign.mjs — see there for why.
+  unseen_requirements(ctx, needles) {
+    const r = unseenRequirements(ctx.work, needles);
+    return ok(r.ok, r.violations.join('; '));
+  },
+  behaviours_have_tests(ctx, want) {
+    const r = behavioursHaveTests(ctx.work);
+    return ok(r.ok === want, r.violations.join('; '));
+  },
+  modified_not_replaced(ctx, { file, markers }) {
+    const r = modifiedNotReplaced(ctx.work, file, markers);
+    return ok(r.ok, r.violations.join('; '));
   },
 };
 

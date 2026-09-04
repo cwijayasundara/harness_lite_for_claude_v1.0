@@ -1,0 +1,21 @@
+[project]
+name = "campaign-ledger"
+
+# Greenfield: sprint 1 has nothing to build on but this file. Node and TypeScript, not the
+# _base fixture's Python — a campaign fixture proves the harness holds for a project the harness
+# never shipped a language profile for by hand.
+[capabilities]
+fmt       = "npx --no-install prettier --check ."
+lint      = "npx --no-install eslint ."
+typecheck = "npx --no-install tsc --noEmit"
+test      = "node --test"
+
+[formats]
+lint      = "eslint"
+typecheck = "tsc"
+test      = "generic"
+
+[stages]
+fast   = ["fmt", "lint", "typecheck"]
+stop   = ["fast", "test"]
+commit = ["stop", "secrets", "scope-drift", "budget", "tamper", "arch", "test_quality"]

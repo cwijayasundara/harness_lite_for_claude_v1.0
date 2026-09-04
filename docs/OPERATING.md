@@ -61,6 +61,30 @@ It applies the kill criteria and prints a decision per control:
 regresses it was not doing anything. That is the whole argument for having built the eval suite
 first, and it is the mechanism v6 never had — which is why v6 could only grow.
 
+## Campaigns — before a release, not a per-change gate
+
+The 22-task suite grades one prompt against one fixture. A campaign grades the harness across a
+product's whole arc: `evals/tasks.json` tasks with a `steps` array run several sprints against
+the *same* staged working copy, in order, so later sprints inherit what earlier ones built —
+including their mistakes. Two ship with the harness:
+
+- `campaign-ledger` — greenfield. Three sprints build an invoicing ledger from nothing, and the
+  third contradicts the first on purpose, to see whether the contradiction gets surfaced or
+  silently absorbed.
+- `campaign-legacy` — brownfield. Two sprints add features to an untested, artifact-free
+  codebase with one known defect that neither sprint asks about, to see whether the harness makes
+  the first product write possible and whether the agent tidies on the way past.
+
+Run them with `node evals/run.mjs --id campaign-ledger` or `--id campaign-legacy`. Each is one
+multi-turn build, not one prompt — a single run costs several dollars and several minutes, which
+is why they are not in `--stage commit` and CI does not run them on every push. Run a campaign
+before a release, or whenever a change touches how the harness carries context or approvals
+across a plan boundary — the two things a single-prompt task cannot exercise at all.
+
+A failure here is a harness defect, not a task to patch in place: record it as its own intent
+under Law 11, the same as any other defect found by building something rather than by reasoning
+about it. Fixing it is a separate change with its own gates.
+
 ## When something goes wrong in production
 
 1. Run `harness new incident <slug>` and record the deterministic signal, impact, and mitigation.

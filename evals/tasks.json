@@ -101,6 +101,60 @@
         { "file_matches": [".aidlc/artifacts/contracts/family-sort-key.md", "## Structure and ownership[\\s\\S]*`[^`]+\\.py`"] },
         { "files_unchanged": ["src/app/text.py"] }
       ]
+    },
+
+    { "id": "campaign-ledger", "fixture": "campaign-ledger", "budgetUsd": 4, "timeoutMs": 900000,
+      "$why": "evolving-scope B1/B2/B3/B4/B5/B6/B9. Three sprints against one working copy, in one dollar-per-CI-run campaign, not the per-change gate. See docs/OPERATING.md.",
+      "steps": [
+        { "prompt": "Build a minimal invoicing ledger, in plain Node.js with no external packages. In src/ledger.mjs, export addCustomer(name), addInvoice(customerId, amountCents, dueDate), and outstandingBalance(customerId) — the sum of that customer's unpaid invoice amounts. In tests/ledger.test.mjs, using node:test, include a test named test_outstanding_balance_sums_invoices and a test named test_add_invoice_requires_known_customer. Follow the harness workflow: write an intent, get an approved spec (Gate 1) with numbered behaviours, get an approved plan (Gate 2) whose ## Files names exactly what you touch, then implement with a red-green test loop, and finish with harness check --stage stop green. You have everything you need — do not ask questions.",
+          "assert": [
+            { "harness_stage_passes": "stop" },
+            { "file_exists": ".aidlc/artifacts/*/spec.md" },
+            { "file_matches": ["tests/ledger.test.mjs", "test_outstanding_balance_sums_invoices"] },
+            { "file_matches": ["tests/ledger.test.mjs", "test_add_invoice_requires_known_customer"] },
+            { "unseen_requirements": ["can be partially paid", "must never appear as overdue"] }
+          ]
+        },
+        { "prompt": "Extend the ledger: an invoice can be partially paid. Add recordPayment(invoiceId, amountCents) to src/ledger.mjs, reducing that invoice's outstanding amount, and update outstandingBalance(customerId) so it reflects partial payments. Add a test named test_partial_payment_reduces_balance to tests/ledger.test.mjs. Sprint 1's tests must still describe real behaviour — keep them passing. Follow the harness workflow again for this change: its own approved spec and plan.",
+          "assert": [
+            { "harness_stage_passes": "stop" },
+            { "modified_not_replaced": { "file": "tests/ledger.test.mjs", "markers": ["test_outstanding_balance_sums_invoices", "test_add_invoice_requires_known_customer"] } },
+            { "file_matches": ["tests/ledger.test.mjs", "test_partial_payment_reduces_balance"] },
+            { "unseen_requirements": ["must never appear as overdue"] }
+          ]
+        },
+        { "prompt": "A paid invoice must never appear as overdue, even when its due date is in the past — this contradicts sprint 1's implicit rule that any invoice past its due date is overdue. Add isOverdue(invoiceId) to src/ledger.mjs: it returns false once an invoice's outstanding balance reaches zero, regardless of due date, and true otherwise for a past-due invoice. Before writing code, say which earlier behaviour this supersedes and how sprint 1's spec now reflects that.",
+          "assert": [
+            { "harness_stage_passes": "stop" },
+            { "transcript_matches": "(?i)(supersed|contradict)" },
+            { "file_matches": ["src/ledger.mjs", "isOverdue"] },
+            { "behaviours_have_tests": true }
+          ]
+        }
+      ]
+    },
+
+    { "id": "campaign-legacy", "fixture": "campaign-legacy", "budgetUsd": 2.5, "timeoutMs": 900000,
+      "$why": "evolving-scope B7/B8. Brownfield adoption: the first product write needs an approved plan (require_contract), and the campaign's one deliberate defect must survive both sprints untouched.",
+      "steps": [
+        { "prompt": "This is an existing library lending system — read NOTES.md first. Add renew_loan(loan_id, today) to src/app/catalog.py: it extends an open loan's due date by STANDARD_LOAN_DAYS, but refuses to renew a loan whose book has anyone else waiting in holds_for. Characterise the existing checkout/return/hold behaviour you are relying on before you change anything, and do not change anything this requirement does not ask for.",
+          "assert": [
+            { "harness_stage_passes": "stop" },
+            { "transcript_matches": "(?i)characteris" },
+            { "file_matches": ["src/app/catalog.py", "def renew_loan"] },
+            { "files_unchanged": ["src/app/fees.py"] },
+            { "file_exists": ".aidlc/artifacts/*/plan.md" }
+          ]
+        },
+        { "prompt": "Add member_report(member_id, today) to src/app/reports.py, returning a list of that member's currently open loans together with whether each book has any hold waiting on it. Do not change fee calculation.",
+          "assert": [
+            { "harness_stage_passes": "stop" },
+            { "files_unchanged": ["src/app/fees.py"] },
+            { "behaviours_have_tests": true },
+            { "file_matches": ["src/app/reports.py", "def member_report"] }
+          ]
+        }
+      ]
     }
   ]
 }

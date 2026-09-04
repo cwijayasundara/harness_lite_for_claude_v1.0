@@ -62,9 +62,12 @@ suggests. What is specified is that silence fails.
 
 Given any completed campaign,
 When `campaign.mjs` reads every approved spec in the working copy,
-Then every `### B<n>` in every approved spec has a test that exercises it, and every test file
-traces to a behaviour. A spec that has quietly become fiction is the defect this whole change
-exists to find, and it is checkable without a model.
+Then every `### B<n>` in every approved spec has a Proof row, and every row that resolves to a
+test names one that still exists and still contains the identifier it claims. A row that names
+runtime evidence rather than a test is reported as *unverifiable* and is not a violation: the
+plan skill permits such a row and this change's own plan uses one for five behaviours. A missing
+row is a violation, because a behaviour nobody proves is the fiction this whole change exists to
+find. What is checkable without a model is the mechanical part, and B6 claims only that part.
 
 ### B7 — brownfield adoption
 
