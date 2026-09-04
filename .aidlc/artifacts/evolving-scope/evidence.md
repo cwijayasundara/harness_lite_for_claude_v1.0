@@ -332,3 +332,59 @@ The same needle exists in an unrelated golden task at `evals/tasks.json:69`,
 outside what this run was measuring, and `campaign-legacy` B7 exists precisely to penalise an agent
 that tidies on the way past. Fixing it in this commit would make the diff unreviewable in exactly
 the way B7 describes. It is its own one-line change.
+
+---
+
+## Fifth run, 2026-09-04 — `campaign-legacy` with the needle widened
+
+$0.845, six minutes, **sprint 2 reached**. Four unattended approvals across two slugs
+(`renew-loan`, `member-report`). Sprint 1 passed every assertion including the characterisation
+one. Running total $3.35.
+
+## F14 — an approved plan can omit the proof for every behaviour its spec claims
+
+**`evolving-scope` B6 fires, correctly. Component: `approve()`, which does not check a plan against
+its spec.**
+
+Sprint 2's failure, in full:
+
+```
+member-report B1: plan.md's Proof table names no row
+member-report B2: plan.md's Proof table names no row
+member-report B3: plan.md's Proof table names no row
+member-report B4: plan.md's Proof table names no row
+```
+
+The agent wrote a spec with four behaviours and a plan with no Proof row for any of them, then had
+both approved. `.aidlc/skills/plan/SKILL.md` is explicit — "One row per behaviour in the spec,
+naming the test that will prove it. Every `B<n>` in the spec appears exactly once" — and nothing
+enforces it. `approve()` checks that the artifact is committed, that a plan follows an approved
+spec, and that the digest is recorded. It never reads the spec's behaviours while approving the
+plan that is supposed to prove them.
+
+So the gate passed a plan that promises nothing, and the defect surfaced two steps later through an
+eval assertion. In a real repository there is no such assertion, and the change would merge.
+
+This is the cleanest harness defect the campaigns have produced. Unlike F9 it needs no new concept —
+the data is present on both sides, the comparison is mechanical, and `behavioursHaveTests` in
+`evals/lib/campaign.mjs` is already most of the implementation. It belongs in `approve()`, or in
+`--stage commit`, and its own change decides which.
+
+Note what this is not: the campaign did not fail because the harness broke. It failed because the
+harness's own check found agent output that does not meet the standard the skills state. A campaign
+whose verdict is `fail` for that reason is working. That distinction matters for `expected.json` —
+recording this task as expected-pass would require the agent to be reliably better than it is, and
+recording it as expected-fail would bake in a defect that F14 will fix.
+
+## F15 — the evidence-row shape recurs, unprompted, in every plan an agent writes
+
+**Confirms F11 on a second fixture.**
+
+The same run reports `unverifiable (names evidence, not a test): renew-loan B1, renew-loan B2,
+renew-loan B3, renew-loan B4`. Across two campaigns, two fixtures and five slugs, every plan an
+agent wrote unprompted proves its behaviours with prose rather than a resolvable test reference.
+
+The `plan` skill's single example uses the pytest node-id form; no agent has reproduced it once.
+The evaluator's finding 4 against `evolving-scope` — that B6's identifier clause is inert because
+nothing in this repository writes that shape — is now confirmed from the other direction: nothing
+an *agent* writes uses it either. Whatever B6 ends up asserting, it cannot assume that shape.
