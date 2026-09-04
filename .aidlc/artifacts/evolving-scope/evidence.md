@@ -391,10 +391,16 @@ an *agent* writes uses it either. Whatever B6 ends up asserting, it cannot assum
 
 ---
 
-## F16 — the migration dropped every approval, and the harness's own history reads as unapproved
+## F16 — every control keyed on `status: approved` sees three changes out of twenty-four
 
-**Component: `lean-v2`'s one-shot contract migration. Found while designing F14's check, not by a
-campaign run.**
+**Component: the interaction between `lean-v2`'s migration and every later `approved` check. Found
+while designing F14's check, not by a campaign run.**
+
+**Corrected 2026-09-04.** This was first written as "the migration dropped every approval", implying
+an accident. It was not. `lean-v2`'s spec says so twice — line 76, "digests carried into frontmatter
+as `migrated_from`, and no approval is invented", and line 214. Dropping them was deliberate and it
+was right: inventing an approval nobody gave is worse than leaving a draft. The finding is the
+consequence, which nothing anticipated.
 
 Twenty-three of this repository's twenty-seven change directories carry
 `migrated_from: sha256:...` in their `spec.md` frontmatter — the fingerprint of
@@ -407,9 +413,9 @@ Every change that built this harness reads as though nobody ever approved it.
 
 Two consequences, and the second is the sharp one.
 
-The migration converted approved contracts into draft specs, silently. Whatever those changes were
-approved under, that record is gone; `migrated_from` preserves a digest of the old artifact and not
-the fact that a human signed it off.
+The migration converted approved contracts into draft specs by design. `migrated_from` preserves a
+digest of the old artifact and deliberately not the fact that a human signed it off, because the
+old artifact was a different shape and the new one had never been read by anyone.
 
 And every control that reads `status: approved` therefore inspects three changes out of
 twenty-four. `behavioursHaveTests` skips a non-approved spec by design — correctly, since a draft
