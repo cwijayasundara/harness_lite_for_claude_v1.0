@@ -87,9 +87,16 @@ about it. Fixing it is a separate change with its own gates.
 
 **A campaign runs with no human present, so it cannot obey the human gate — it is given a
 different, visibly marked one.** `evals/lib/invoker.mjs` sets `AIDLC_UNATTENDED` on the `claude`
-process it spawns for a campaign step only, never for a single-prompt golden task; that is the
-only place it is set, so no file inside the staged working copy can turn it on. Three places read
-it, and nothing else: `approve()`, which forces `by: unattended-eval-run` regardless of what
+process it spawns for a campaign step only, and *deletes* it from the child's environment for a
+single-prompt golden task — stripped rather than merely not-added, so an operator who happens to
+have `AIDLC_UNATTENDED` exported in their own shell cannot leak it into the golden suite. No file
+inside the staged working copy can turn it on either; the signal only ever comes from the runner.
+What that does not cover is a person running `harness approve` by hand in such a shell: the three
+readers below honour the variable wherever it is set, which is why a discarded `--by` is reported
+to stderr.
+
+Three places read it, and nothing else: `approve()`, which forces `by: unattended-eval-run`
+regardless of what
 `--by` was given while every other precondition — committed-first, plan-after-spec, the body
 digest, `stale-approval` — still applies exactly as it does today; the `SessionStart` hook, which
 tells the agent it may approve its own gates and where `harness new <slug>` writes; and
