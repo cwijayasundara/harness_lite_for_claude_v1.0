@@ -24,7 +24,10 @@ export function claudeInvoker({ pluginDir, model = null }) {
       ...(pluginDir ? ['--plugin-dir', pluginDir] : []),
       ...(budgetUsd ? ['--max-budget-usd', String(budgetUsd)] : []),
     ];
-    const env = pluginDir ? { ...process.env, HARNESS_HOME: pluginDir } : process.env;
+    // campaigns-run-unattended B3. The signal a staged working copy can never produce: set here,
+    // by the runner, on the `claude` process's own env — never read from `harness.toml` or any
+    // path under `cwd`. See `.aidlc/lib/artifacts.mjs` `approve()`.
+    const env = { ...process.env, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}), AIDLC_UNATTENDED: '1' };
     const r = spawnSync('claude', args, { cwd, env, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
     // A missing CLI is not a failed task — it is a broken harness, and twenty tasks failing
     // with empty transcripts is the least useful way to say so. Same lesson as exit 127 in the

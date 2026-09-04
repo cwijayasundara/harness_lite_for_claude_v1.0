@@ -418,7 +418,14 @@ async function main() {
       const rows = requested || has('all') ? all : all.filter((r) => !r.closed);
       const hidden = all.length - rows.length;
       if (has('json')) { console.log(JSON.stringify({ changes: rows }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
-      if (!rows.length) { console.log(`changes  none open${hidden ? `  (${hidden} closed; --all to list)` : ''}`); return 0; }
+      // campaigns-run-unattended B1. Reaches the agent because CLAUDE.md already tells it to run
+      // `harness status` and resume the first incomplete stage — no skill changes, no new
+      // instruction path. Named only when the runner set the variable; a real repository never
+      // sees this line.
+      const unattendedNote = process.env.AIDLC_UNATTENDED
+        ? 'AIDLC_UNATTENDED is set — approve both gates yourself: `harness approve <slug> spec` then `harness approve <slug> plan` (omit --by; the identity is forced to unattended-eval-run regardless).'
+        : null;
+      if (!rows.length) { console.log(`changes  none open${hidden ? `  (${hidden} closed; --all to list)` : ''}`); if (unattendedNote) console.log(unattendedNote); return 0; }
       console.log('changes\n\n  change                         next                 spec       plan');
       for (const row of rows) {
         const mark = (kind) => row.artifacts[kind]?.state ?? 'absent';
@@ -426,6 +433,7 @@ async function main() {
       }
       for (const row of rows) for (const issue of row.issues) console.log(`  ERROR ${row.slug}: ${issue}`);
       if (hidden) console.log(`\n  ${hidden} closed change(s) not listed; --all to see them`);
+      if (unattendedNote) console.log(`\n${unattendedNote}`);
       return rows.some((r) => !r.ok) ? 1 : 0;
     }
 

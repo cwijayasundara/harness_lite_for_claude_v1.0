@@ -86,6 +86,15 @@ export function create(cfg, slug, templates) {
 // demanded a commit before the next, four commits for one decision.
 export function approve(cfg, slug, kind, { by, at = new Date().toISOString() } = {}) {
   if (!GATED.includes(kind)) throw new Error(`only ${GATED.join(' and ')} are approved; ${kind} is not a gate`);
+
+  // Unattended eval runs. The identity is forced, not defaulted — an agent that can choose its
+  // own approver name can write a person's, and a campaign result must never be readable as
+  // evidence that someone looked. The signal comes from `process.env`, set by the runner that
+  // staged the copy, and nothing else: `evidence.md` F2 records an agent that rewrote
+  // `harness.toml` to disable `require_contract`, and a switch that same agent could have written
+  // inside the working copy would be the same defect wearing a different hat. This check runs
+  // before the "needs an approver" guard below, so the working copy never gets a vote either way.
+  if (process.env.AIDLC_UNATTENDED) by = 'unattended-eval-run';
   if (!by) throw new Error('an approval needs an approver: --by <identity>');
 
   const target = file(cfg, slug, kind);

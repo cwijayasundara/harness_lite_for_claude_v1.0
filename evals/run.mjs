@@ -5,13 +5,14 @@
 // so `runSuite` is exercised in the unit suite with a fake and no spend. That seam is the
 // reason the numbers this prints can be trusted.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { evaluate, KNOWN, toRegExp } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
 import { stage } from './lib/stage.mjs';
+import { parse } from '../.aidlc/lib/artifacts.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.dirname(HERE);
@@ -34,6 +35,25 @@ function changedFilesIn(work, pristine) {
   const b = walk(work);
   const changed = b.filter((f) => !a.has(f) || _st(path.join(work, f)).mtimeMs > _st(path.join(pristine, f)).mtimeMs);
   return changed.slice(0, 40);
+}
+
+// B7. A mechanism that silently substitutes for a human should be the loudest thing in the log,
+// not a detail in a tmpdir about to be deleted. Reads the same frontmatter `approve()` writes —
+// `by: unattended-eval-run` — from the staged working copy before it is cleaned up.
+function unattendedApprovals(work) {
+  const artifactsDir = path.join(work, '.aidlc', 'artifacts');
+  if (!existsSync(artifactsDir)) return [];
+  const found = [];
+  for (const entry of _rd(artifactsDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    for (const kind of ['spec', 'plan']) {
+      const file = path.join(artifactsDir, entry.name, `${kind}.md`);
+      if (!existsSync(file)) continue;
+      const { front } = parse(readFileSync(file, 'utf8'));
+      if (front.by === 'unattended-eval-run') found.push(`${entry.name}/${kind}.md`);
+    }
+  }
+  return found;
 }
 
 export function loadTasks(file = path.join(HERE, 'tasks.json')) {
@@ -196,6 +216,8 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
           // Kept for failures only, and capped, so the results file stays readable.
           transcript: pass ? undefined : String(out.transcript ?? '').slice(0, 20000),
           changed: changedFilesIn(s.work, s.pristine),
+          // B7: read before the working copy is cleaned up below.
+          unattended: unattendedApprovals(s.work),
         });
       } catch (e) {
         if (e.fatal) { s.cleanup(); throw e; }
@@ -213,6 +235,7 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
       verdict: ungraded === runs.length ? 'inconclusive'
         : passed === runs.length ? 'pass' : passed === 0 ? 'fail' : 'flaky',
       usd: runs.reduce((n, r) => n + (r.usage.usd ?? 0), 0),
+      unattended: [...new Set(runs.flatMap((r) => r.unattended ?? []))],
       runs,
     });
   }
@@ -287,6 +310,11 @@ async function main() {
   writeFileSync(path.join(dir, `${stamp}.json`), JSON.stringify(out, null, 2));
 
   console.log(`\n${out.summary.pass} pass · ${out.summary.flaky} flaky · ${out.summary.fail} fail · ${out.summary.inconclusive} inconclusive · $${out.summary.usd}`);
+  // B7. A mechanism that substitutes for a human should be the loudest thing in the log, not a
+  // detail in a tmpdir that is about to be deleted.
+  for (const r of out.results.filter((r) => r.unattended?.length)) {
+    console.log(`  UNATTENDED APPROVAL  ${r.id}  ${r.unattended.join(', ')}`);
+  }
   for (const r of out.results.filter((r) => r.verdict !== 'pass')) {
     console.log(`\n${r.verdict.toUpperCase()}  ${r.id}  (${r.passed}/${r.repeats})`);
     for (const run of r.runs) {
