@@ -31,12 +31,31 @@ const commit = (root, m) => {
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', m], { cwd: root });
 };
 
+// evidence.md F6: the first attempt put the notice in `harness status`, reasoning that CLAUDE.md
+// tells the agent to run it. The agent never ran it. `SessionStart` is the channel that pushes
+// context whether or not the agent goes looking — proven by the `contract:` line already there.
+function sessionStart(root, env) {
+  const r = spawnSync(process.execPath, [BIN, 'hook', 'session-start'], { cwd: root, encoding: 'utf8', env, input: JSON.stringify({ cwd: root }) });
+  assert.equal(r.status, 0, r.stderr);
+  return JSON.parse(r.stdout).hookSpecificOutput.additionalContext;
+}
+
 // B1. A campaign step writes intent, spec and plan, commits them, and approves them with no
 // human present. Both gates, not just the spec — auto-approving only gate 1 would just move the
-// halt to gate 2.
+// halt to gate 2. And the agent has to be told this before it starts, not on request: F6 is what
+// happens when the notice sits somewhere the agent has no reason to look.
 test('B1: with AIDLC_UNATTENDED set, both gates approve with no --by and no human', () => {
   const root = repo();
   try {
+    // A real repository's session start is byte-identical to what it is today.
+    assert.doesNotMatch(sessionStart(root, process.env), /unattended|AIDLC_UNATTENDED/);
+
+    const unattendedContext = sessionStart(root, { ...process.env, AIDLC_UNATTENDED: '1' });
+    assert.match(unattendedContext, /no human/i);
+    assert.match(unattendedContext, /harness approve/);
+    assert.match(unattendedContext, /harness new <slug>/);
+    assert.match(unattendedContext, /\.aidlc\/artifacts\/<slug>\//);
+
     assert.equal(run(root, process.env, 'new', 'unattended-demo').status, 0);
     commit(root, 'draft unattended-demo');
     const unattended = { ...process.env, AIDLC_UNATTENDED: '1' };

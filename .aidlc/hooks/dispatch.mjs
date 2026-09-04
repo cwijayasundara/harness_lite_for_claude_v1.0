@@ -159,6 +159,16 @@ export async function dispatch(event) {
         } catch { /* no index yet: the map line would be noise, not help */ }
         if (cfg.guard?.require_contract) lines.push('contract: product file edits need a committed approved contract that owns the path');
         else lines.push('contract: scope enforcement is off; set [guard].require_contract = true for product repositories');
+
+        // campaigns-run-unattended B1. evidence.md F6: a notice that only speaks when asked
+        // (`harness status`) never reached an agent that began writing immediately. SessionStart
+        // pushes context whether or not the agent goes looking — the `contract:` line above is
+        // the proof, since it is the guard `campaign-legacy`'s agent actually hit. Two lines,
+        // only when the runner set the variable; a real repository never sees either one.
+        if (process.env.AIDLC_UNATTENDED) {
+          lines.push('unattended: this run has no human — approve your own gates with `harness approve <slug> spec` then `harness approve <slug> plan` (omit --by; the identity is forced regardless)');
+          lines.push('new change: `harness new <slug>` creates .aidlc/artifacts/<slug>/{intent,spec,plan}.md — never write an artifact anywhere else');
+        }
         process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: lines.join('\n') } }));
         return 0;
       }
