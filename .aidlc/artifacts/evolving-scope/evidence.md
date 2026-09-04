@@ -185,3 +185,93 @@ agent guessed twice and never asked. As with F6, the information exists — in C
 This compounds F2 and F3. An agent that writes artifacts to a path the guard does not recognise
 gets refused, and a refusal it cannot act on is what sent the legacy agent looking for
 `require_contract` to switch off.
+
+---
+
+## Third run, 2026-09-04, after the SessionStart delivery (commit `1ace6a8`)
+
+`campaign-ledger`: **sprint 3 executed**. $0.948, 9 minutes. Four unattended approvals across two
+slugs — `ledger/spec.md`, `ledger/plan.md`, `partial-payments/spec.md`, `partial-payments/plan.md`.
+Twelve of thirteen assertions passed. Running total across all campaign runs: $2.27.
+
+`campaigns-run-unattended` B6 holds, and F1 and F6 are closed. F7 is closed by the same two lines:
+the agent ran `harness new`, wrote artifacts to `.aidlc/artifacts/<slug>/`, and guessed no paths.
+Sprints 1 and 2 passed every assertion. What follows is what the campaign then found.
+
+## F8 — B4 holds. The harness does the thing it was built to do
+
+**`evolving-scope` B4 passes. Recorded because a suite that only records failures is a suite
+nobody trusts when it passes.**
+
+Sprint 2 could not add partial payments without changing sprint 1's invoice model. It edited
+sprint 1's test file in place: `modified_not_replaced` passed, with both
+`test_outstanding_balance_sums_invoices` and `test_add_invoice_requires_known_customer` still
+present, and `harness check --stage stop` green afterwards. An agent that had deleted the
+inconvenient test and written a fresh one would have passed a naive suite and failed this.
+
+This is the first hard evidence that the harness holds across sprints rather than within one, and
+it is the only claim in this entire change that anything has actually proved.
+
+## F9 — a contradiction is analysed, then absorbed. Nothing records it
+
+**Breaks `evolving-scope` B5. Component: the artifact model — there is no way to express
+supersession.**
+
+Sprint 3's requirement contradicts a behaviour approved in sprint 1. The agent engaged with it. Its
+closing message opens:
+
+> **Sprint 1 (ledger) Spec Behaviors Affected:**
+> **B2: Add invoice to known customer** — This behavior now needs to be understood with the
+> clarification that recording a due date doesn't automatically create an "overdue" status.
+
+and continues:
+
+> The implicit understanding of "due date" evolves from "a date after which an invoice is overdue"
+> to "a reference date whose meaning depends on payment status."
+
+So it identified the affected behaviour and named its id. Then two things did not happen.
+
+It never called the contradiction a contradiction. "Evolves", "clarification", "implicit
+understanding" — the vocabulary of reconciliation, not of conflict. `transcript_order` failed on
+`(?i)(supersed|contradict)`, and while that assertion grades vocabulary (see F4), here the
+vocabulary is the finding: a requirement that reverses an approved behaviour was written up as a
+refinement of it.
+
+And **sprint 1's spec was never amended**. It still says `status: approved` and still describes
+behaviour the code no longer has. The agent wrote a paragraph explaining how sprint 1's spec "now
+reflects" the change — into a summary that is deleted with the tmpdir. The harness gave it nowhere
+else to put that, because there is nowhere: no `supersedes:` link, no amendment verb, no accumulated
+product spec. The `evolving-scope` intent predicted this exactly, and declined to guess at the fix
+before seeing it. This is the run that was supposed to decide, and it has: the gap is real, and it
+is a gap in the artifact model rather than in the agent.
+
+## F10 — sprint 3 produced no change of its own, and the guard was satisfied
+
+**Breaks `evolving-scope` B3. Component: `## Files` ownership across sprints.**
+
+B3 requires "one slug directory per sprint each with an approved plan whose `## Files` names what
+that sprint actually changed". Sprint 3 created none. Only `ledger` and `partial-payments` were
+ever approved, and `isOverdue` was added to `src/ledger.mjs` under sprint 2's contract, which
+already owned that path.
+
+The write guard was correct: an approved committed plan owned the file. But a sprint that adds a
+new behaviour to a product is a change, and it got none — no intent, no spec, no plan, no record
+that it happened. Ownership of a path is not the same as authority to do anything to it, and today
+the harness cannot tell those apart.
+
+This is the sharper form of F3 from the first run. There the question was whether a guard gap let
+code through; here the guard worked exactly as designed and the outcome is the same — product
+behaviour changed with no contract describing it.
+
+## F11 — the agent's own plans prove behaviours with evidence, not tests
+
+**`evolving-scope` B6 passed, and what it reported is the finding.**
+
+`behaviours_have_tests` returned no violations and a long `unverifiable` list: `ledger B1`,
+`ledger B2`, `ledger B3`, `ledger B4` and more, every one a Proof row naming evidence rather than a
+resolvable test. So an agent left to itself, following the `plan` skill, writes exactly the row
+shape that this change's own check cannot verify — the shape the evaluator's finding 4 flagged as
+making B6's identifier clause inert.
+
+That the check reported it rather than silently dropping it is the evaluator's finding 5 fix
+working. That there was so much to report is the argument for taking finding 4 seriously.
