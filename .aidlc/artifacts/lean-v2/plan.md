@@ -156,13 +156,13 @@ Sprints 3 to 5 — the example app (sibling repo `dunning`, 2 to 3 weeks)
 | B1 | `test/contracts.test.mjs` "every kernel module is reachable from an entrypoint or a stage" |
 | B2 | `test/contracts.test.mjs` "the cut is complete": asserts the absence list and the eight verbs; `git ls-files` in the PR 11 evidence |
 | B3 | `test/budget.test.mjs` "no prose states a budget other than harness.toml" |
-| B4 | `test/artifacts.test.mjs`: new, approve, refuse-uncommitted, refuse-plan-before-spec, stale-approval |
+| B4 | `test/lifecycle-cli.test.mjs` — `new` rejects traversal and non-canonical slugs; `approve` refuses an uncommitted artifact and a plan before its spec; editing an approved artifact reports `stale-approval` |
 | B5 | `test/scope-drift.test.mjs` reads `## Files` from a fixture plan; migration test on a copied contract |
 | B6 | `test/guard.test.mjs`: owned registry file allowed; prefix file refused mid-session only |
 | B7 | `test/contracts.test.mjs`: generator and evaluator models differ; evaluator has no Write/Edit; ledger `invoke` row in `test/unit.test.mjs` |
-| B8 | `test/review.test.mjs` with a fake evaluator: findings cite ids; repair loop stops at two |
+| B8 | `test/contracts.test.mjs` — the generator and the evaluator are different models and only one of them can write. The two-repair limit is prose in `.aidlc/roles/evaluator.md`, enforced by whoever orchestrates and by no test; recorded here as unproven rather than claimed |
 | B9 | `test/unit.test.mjs` ledger rows carry `rule`; `ledger flag`; audit lists `noisy` |
-| B10 | `test/tamper.test.mjs`: raised threshold, bare suppression, deleted test, each named; allowed with `why:` and with plan listing |
+| B10 | `test/unit.test.mjs` — `tamper: a raised threshold, a bare suppression and a deleted test are each findings` |
 | B11 | `test/graph.test.mjs`: map under 200 lines; drift fails when a hub file is deleted; committed `CODEBASE-MAP.md` matches regeneration on the harness tree |
 | B12 | `evals.yml` run link in the PR evidence; `harness evals gate` red on a seeded regression fixture |
 | B13 | `dunning` repository: 8 slug directories with approved artifacts and review.md; `harness status` output pasted per sprint into `.aidlc/artifacts/lean-v2/evidence` |

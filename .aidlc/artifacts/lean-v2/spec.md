@@ -100,14 +100,21 @@ When it ends, Then the ledger holds a row `{control: "invoke", role, model, ms}`
 
 ### B8
 
-**the evaluator writes the review**
+**the evaluator produces the review; it cannot write it**
 
 Given an approved plan and a diff on a branch,
 When the review step runs,
-Then it spawns `evaluator` in a fresh worktree, which writes
-`.aidlc/artifacts/<slug>/review.md` where each finding cites a `spec.md` behaviour id or a
-`REVIEW.md` pass and carries a severity; `changes-requested` returns to `implement` at most twice
-before the human is asked; the evaluator's session never runs `Write` or `Edit`.
+Then `evaluator` runs in a fresh worktree it did not write to, with Bash and without `Write` or
+`Edit`, and returns findings that each cite a `spec.md` behaviour id or a `REVIEW.md` pass and
+carry a severity. The caller writes `.aidlc/artifacts/<slug>/review.md` from what it returns.
+`changes-requested` returns to `implement` at most twice before the human decides.
+
+**Corrected 2026-09-04.** This behaviour previously required the evaluator to write `review.md` and,
+four lines later, that its session never run `Write` — while line 97 of this same spec requires a
+test that fails if the evaluator gains `Write`, and `evaluator.contract.json` sets
+`may_write: false`. Both clauses could not hold. The design is right and the sentence was wrong: an
+evaluator that can write is one that can make the diff pass. Observed three times on 2026-09-04,
+where the evaluator produced complete reviews and the caller wrote each file.
 
 ### B9
 
