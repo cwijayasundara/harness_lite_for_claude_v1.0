@@ -34,9 +34,17 @@ across two campaigns, two fixtures and five slugs, **every** plan an agent wrote
 Proof rows that name prose rather than a resolvable test. F14 is the same weakness one step
 further along: rows that are not merely unverifiable but absent.
 
+**Added 2026-09-04, after F17.** The same absence exists one step earlier: `approve` accepted a
+`spec.md` that was still the unedited scaffold `harness new` writes — angle-bracket placeholders and
+a bare `Given ... When ... Then ...` — and stamped a human's name and a digest on it. Every
+precondition behaved correctly. Nothing checks that an artifact says anything. F14 is a plan
+approved without proving its spec's behaviours; F17 is a spec approved without stating any. The
+gates verify an artifact's *state* and never its *content*, and one change should close both.
+
 ## Proposed outcome
 
-A plan cannot be approved while a behaviour in its spec has no proof row.
+A plan cannot be approved while a behaviour in its spec has no proof row, and neither a spec nor a
+plan can be approved while it is still the template.
 
 The check is mechanical and the data is already on both sides: `### B<n>` headings in `spec.md`,
 a Proof table in `plan.md`. `evals/lib/campaign.mjs`'s `behavioursHaveTests` is most of the
