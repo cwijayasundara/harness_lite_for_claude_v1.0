@@ -1,170 +1,202 @@
 ---
 reviewer: evaluator (claude-opus-5)
-commit: 1ace6a8
+commit: eb9a947
+supersedes: 1ace6a8
 at: 2026-09-04
 ---
-# Review: campaigns-run-unattended
+# Review: campaigns-run-unattended (re-review of the repair)
 
-Scope: commits `2b9e3c9` and `1ace6a8` across `.aidlc/lib/artifacts.mjs`, `.aidlc/bin/harness`,
-`.aidlc/hooks/dispatch.mjs`, `evals/lib/invoker.mjs`, `evals/run.mjs`, `test/autogate.test.mjs`
-and `docs/OPERATING.md`, against the approved spec.
+Scope: the repair commit `eb9a947` against the review of `1ace6a8`. This pass judges whether the
+repair discharges the prior findings, and whether it introduced anything new. The parts already
+cleared last time — the placement of the forced-identity branch, the staged working copy's
+inability to set the variable, and the argument against a token or signed nonce — are unchanged
+and are not re-litigated here.
 
-The one control override in this diff is the whole of it: `approve()` now substitutes for a human
-at both gates when an environment variable is set. Every finding below is about the blast radius
-of that switch rather than about the switch itself, which is well built.
+Not re-run: `harness check --stage commit`, reported green on this commit. This review adds
+nothing it already catches. What follows was verified by execution against a checkout of
+`eb9a947`, including two mutations to establish that the new tests fail when the defect returns.
 
-Not re-run here: `harness check --stage commit`, reported green on this commit. This review adds
-nothing it already catches.
+## Prior findings
+
+### Blocking 1 — `AIDLC_UNATTENDED` set for all 24 eval tasks — **resolved (see Blocking 2)**
+
+`claudeInvoker` now destructures `task` and sets the variable only under `task?.steps`. Both call
+sites in `evals/run.mjs` pass it: `runAttempt` sends `task: t` on the single-prompt branch and
+`task: t, step: idx` on the campaign branch. `evals/run.mjs:310` is the only production caller of
+`claudeInvoker`; the remaining callers are in `test/invoker.test.mjs`, which passes no `task` and
+therefore correctly gets no variable.
+
+The new test is real, and this was the point of the finding. It puts a stub `claude` on `PATH`
+that dumps its own environment, then calls the actual `claudeInvoker` — not a fake standing in for
+it. Mutation check: reverting `invoker.mjs` to the unconditional
+`AIDLC_UNATTENDED: '1'` fails `B4 (invoker)` and nothing else in the file. The old B7 test's fake,
+which set the variable itself and claimed to do so "exactly as invoker.mjs will", is no longer the
+only thing standing between this seam and a regression.
+
+What the repair does not cover is an inherited variable, which is Blocking 2 below. The runner no
+longer *introduces* the defect; it can still *pass it through*.
+
+### Important 2 — a run that throws loses its auto-approval record — **resolved**
+
+The catch path now pushes `unattended: unattendedApprovals(s.work)`, read before `finally` deletes
+the copy. `important-2` exercises it end to end: the fake invoke runs `harness new`, commits,
+approves through the real CLI with the variable set, then throws, and the test asserts both
+`results[0].unattended` and `results[0].runs[0].unattended`. Mutation check: removing the field
+from the catch push fails that test alone.
+
+On the `e.fatal` re-throw path — `if (e.fatal) { s.cleanup(); throw e; }` — the record is still
+lost, and I am satisfied that is correct as it stands. A fatal is a broken harness (`notInstalled`,
+or an auth error matched in the transcript), and it aborts `runSuite` entirely: `main()` never
+reaches `writeFileSync` and no results file is produced at all. The defect Important 2 named was a
+*silently wrong* record — `unattended: []` reading as "approved nothing". The fatal path produces
+no record to be wrong, and fails loudly. Different failure, already loud, out of scope. It is
+worth knowing that an auth expiry at campaign step 3, after a self-approval at step 1, discards the
+whole run including that approval; that is pre-existing behaviour this change does not worsen.
+
+### Important 3 — the identity is overridden silently — **resolved**
+
+`approve()` captures `suppliedBy` before the substitution and returns
+`discardedBy = suppliedBy && suppliedBy !== by ? suppliedBy : null`. Checked against every input
+shape:
+
+- no `--by`, variable set — `suppliedBy` is `null`, `discardedBy` is `null`. Correct: nothing was
+  discarded, and the campaign path prints nothing.
+- `--by` given, variable unset — `by` is never reassigned, so `suppliedBy === by` and `discardedBy`
+  is `null`. Correct.
+- `--by cwijayasundara`, variable set — `discardedBy` is `cwijayasundara`. Correct.
+- `--by unattended-eval-run`, variable set — `null`. Correct; the caller asked for what it got.
+
+The return shape is additive and `.aidlc/bin/harness:407` is the only caller of `approve()`, so
+nothing breaks. The stderr line fires before the success line on stdout, so a caller reading only
+stdout still sees plain success — that is the right trade, since stderr is where a warning belongs
+and the file remains the record of last resort. B2's test now asserts both `/discarded/` and
+`/cwijayasundara/` on stderr.
+
+### Nit 1 — the hard-coded artifacts path — **resolved, and better than asked**
+
+I asked for the copy's config or a recorded assumption. `layout(work).artifacts` is stronger than
+either, because `layout()` in `.aidlc/lib/paths.mjs` takes only a root and computes the rest —
+`loadConfig` sets `layout: L` from the same function with no `[layout]` merge. So
+`cfg.layout.artifacts` and `layout(work).artifacts` are the same expression evaluated on different
+roots, and the divergence my nit imagined cannot open. The nit's premise was wrong; the fix removes
+the duplication anyway.
+
+### Nit 2 — the notice maintained twice — **resolved**
+
+`UNATTENDED_APPROVE_NOTICE` is exported from `.aidlc/lib/artifacts.mjs` and consumed by both
+`harness status` and the `SessionStart` action. Both readings are grammatical, and B1's assertions
+(`/no human/i`, `/harness approve/`) still hold against the shared wording.
+
+### Nit 3 — nothing tested the real invoker's env — **resolved**
+
+Same test as Blocking 1, mutation-verified. This was the seam and it is now covered.
+
+### Nit 4 — OPERATING.md claimed one reader — **resolved, with one new inaccuracy**
+
+The paragraph now names all three read sites, and `grep` confirms there are exactly three:
+`approve()`, `.aidlc/hooks/dispatch.mjs:170`, and `.aidlc/bin/harness:430`. It also documents the
+discarded-`--by` warning. The count is right. A different sentence in the same paragraph is now
+wrong — see Blocking 2.
 
 ## Blocking
 
-### 1. `AIDLC_UNATTENDED` is set for all 24 eval tasks, not the 2 campaigns — B4
+### 2. An inherited `AIDLC_UNATTENDED` still reaches all 22 golden tasks, and the docs say it cannot — B4
 
-`evals/lib/invoker.mjs` sets the variable unconditionally:
-
-```js
-const env = { ...process.env, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}), AIDLC_UNATTENDED: '1' };
-```
-
-`claudeInvoker` returns `invoke({ prompt, cwd, timeoutMs, budgetUsd })` — it does not destructure
-`task` or `step`, although `evals/run.mjs` passes both (`invoke({ ..., task: t })` for a single
-prompt, `invoke({ ..., task: t, step: idx })` for a campaign step). Nothing distinguishes a
-campaign from a golden task at the point the variable is set.
-
-The notice therefore reaches every task. `evals/lib/stage.mjs` runs `harness init --into work` for
-every fixture; `init` writes `.claude/settings.json` from `projectSettings()`, which renders the
-`session-start` binding in `.aidlc/hooks/policy.json`. So all 24 staged copies fire the hook, and
-all 24 now receive two lines the golden suite has never been graded with:
-
-- `unattended: this run has no human — approve your own gates with ...`
-- `new change: harness new <slug> ... never write an artifact anywhere else`
-
-B4 says: "Given the 22 single-prompt golden tasks ... their behaviour is unchanged. None of them
-reaches a gate today, and **none of them may start**." This change does not merely risk one
-starting — it instructs all 22 that they may. Eight are artifact- or contract-shaped
-(`contract-owned-scope`, `contract-alignment`, `contract-scope-honesty`, `contract-is-testable`,
-`contract-names-owned-files`, `successor-contract-links-first`, `scope-refusal`,
-`intent-not-solution`). `scope-refusal` grades whether the agent refuses and says so; it now runs
-with injected context telling it that it approves its own gates. That is a counter-instruction
-pointed at the exact behaviour being measured, and `harness evals gate` grades the result against
-an `evals/expected.json` calibrated without it.
-
-The suite could not have caught this. B4's proof is "the existing tests pass unchanged", and none
-of `test/lifecycle-cli.test.mjs`, `test/guard.test.mjs` or `test/scope-drift.test.mjs` runs a model
-or touches `claudeInvoker`. The change is invisible to `--stage stop` and `--stage commit` by
-construction, which is why it needs saying here.
-
-Required: scope the variable to campaign steps. `task` is already in the argument object, so this
-is `invoke({ prompt, cwd, timeoutMs, budgetUsd, task })` and setting `AIDLC_UNATTENDED` only when
-`task?.steps` is present, with a test asserting a single-prompt task's spawn env does not carry it.
-If suite-wide is genuinely intended, that is an amendment to B4 and belongs to the human, together
-with a recalibration of `expected.json` — it is not a detail to settle in the invoker.
-
-## Important
-
-### 2. A run that throws loses its auto-approval record — B7, Bugs
-
-In `evals/run.mjs` the success path records the list:
+`evals/lib/invoker.mjs` builds the child environment as:
 
 ```js
-changed: changedFilesIn(s.work, s.pristine),
-unattended: unattendedApprovals(s.work),
+const env = { ...process.env, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}), ...(task?.steps ? { AIDLC_UNATTENDED: '1' } : {}) };
 ```
 
-The catch path does not:
+The conditional governs only what the runner *adds*. `...process.env` is spread first and nothing
+removes the variable, so if the operator's own environment carries `AIDLC_UNATTENDED`, every
+single-prompt task is spawned with it and Blocking 1 returns in full — the `SessionStart` hook
+fires in all 24 staged copies and the eight artifact- and contract-shaped tasks, `scope-refusal`
+among them, are graded against an `expected.json` calibrated without that context.
 
-```js
-} catch (e) {
-  if (e.fatal) { s.cleanup(); throw e; }
-  runs.push({ attempt: i + 1, pass: false, assertions: [{ name: 'harness', pass: false, detail: e.message }], usage: {} });
-} finally { if (!s.cleaned) s.cleanup(); }
+This is not hypothetical reasoning about the code. Running the unit suite with the variable
+exported:
+
+```
+AIDLC_UNATTENDED=1 node --test test/autogate.test.mjs
+✖ B1  ✖ B3  ✖ B4 (invoker)      3 fail
 ```
 
-A campaign that approves its own gates in sprint 1 and then throws in sprint 3 has its working copy
-deleted by the `finally` with no record of the approval anywhere. That is precisely the case B7
-exists for: "the auto-approvals are visible there, not only in the staged copy that is about to be
-deleted." The aggregate's `r.unattended ?? []` keeps this from crashing, so it fails silently and
-reports `unattended: []` — indistinguishable from a run that approved nothing.
+`B4 (invoker)`'s own assertion — "a single-prompt task must run exactly as it does for a real,
+attended repository" — is false in that environment.
 
-This is not a corner case for campaigns specifically. `evolving-scope`'s own review records both
-campaigns terminating at step 0; the failing run is the normal one so far, and it is the run whose
-approvals go unrecorded.
+Two things make this blocking rather than a nit, given how much less likely it is than the
+original:
 
-Fix: compute the list once before the `finally` and attach it to both pushes.
+1. **The diff asserts in prose that it cannot happen.** `docs/OPERATING.md` now reads: "sets
+   `AIDLC_UNATTENDED` on the `claude` process it spawns for a campaign step only, never for a
+   single-prompt golden task; that is the only place it is set". That is the operator's map of a
+   control that stands in for a human gate, and the sentence states an absolute I can falsify in
+   one command. The previous, vaguer text was less accurate and less wrong. A false guarantee in
+   this paragraph is worse than no guarantee.
+2. **This commit already accepts the premise.** Important 3's fix exists because the variable
+   plausibly leaks into a person's environment — "exported in a shell to reproduce a campaign,
+   inherited by a CI job, or held by a nested process under a campaign". The change cannot hold
+   that the leak is real enough to warrant a stderr warning inside `approve()` and simultaneously
+   that the same leak reaching `evals/run.mjs` needs no handling. B2 got mitigation; B4 got prose.
 
-### 3. The identity is overridden silently — B2, Security
+The mitigating facts, stated so the fix is sized correctly and not over-built: the probability is
+operator-conditional, `CLAUDE.md` requires `--stage stop` before any completion claim, and that
+suite fails loudly in exactly the polluted shell. The exposure is detected. It is not closed.
 
-`approve()` replaces `by` with no signal, and the CLI prints only success:
-
-```js
-console.log(`${kind} approved  ${result.digest}\n${path.relative(cfg.layout.root, result.file)}\ncommit this approval before continuing`);
-```
-
-A person who runs `harness approve <slug> spec --by cwijayasundara` with the variable leaked into
-their environment — exported in a shell to reproduce a campaign, inherited by a CI job, or held by
-a nested process under a campaign — is told the approval succeeded and never told their identity
-was discarded. B2's rationale is that a campaign result must never read as evidence that someone
-looked; a person's real approval recorded as a machine's is the same defect facing the other way,
-and it is the shape the leak actually takes.
-
-The plan's rejection of a token or signed nonce is sound and I am not asking for one. An agent with
-Bash can set any variable inside its own process, and a real repository has no runner to set a
-token at all, so the token defeats nothing the plain variable does not — the reasoning holds.
-
-But the stated mitigation is that "the approval is stamped and visible", and today it is visible
-only in the file, after the fact. It is not visible at the moment of substitution, to the one person
-in a position to notice something is wrong. A single line to stderr when the identity is forced —
-naming the discarded `--by` — costs nothing and is the difference between a residual risk that is
-documented and one that is mitigated.
+Required, and this is the whole of it: strip rather than merely not-add — build the base env, then
+`env.AIDLC_UNATTENDED = '1'` when `task?.steps` and `delete env.AIDLC_UNATTENDED` otherwise (a
+spread of `undefined` will not do it; Node stringifies it). Then extend the existing test to run
+the single-prompt case with the variable present in the parent env, which is the assertion that
+would have caught this. And correct the OPERATING.md sentence to describe what the code then
+actually guarantees. If the human judges the inherited case genuinely out of scope, the honest
+alternative is to soften that sentence — but leaving it claiming an absolute is not one of the
+options.
 
 ## Nits
 
-1. **B7** — `unattendedApprovals` hard-codes `path.join(work, '.aidlc', 'artifacts')` while
-   `approve()` writes to `cfg.layout.artifacts`. No fixture overrides `[layout]` today, so it is
-   correct now and returns `[]` silently the day one does. Read the copy's config, or record the
-   assumption in the comment.
-2. **B1** — the notice is now maintained twice, in `.aidlc/bin/harness` and
-   `.aidlc/hooks/dispatch.mjs`, already with different wording ("the identity is forced to
-   unattended-eval-run regardless" against "the identity is forced regardless"). Keeping the
-   `status` line is the right call — F6 showed it insufficient, not wrong, and it is free — but two
-   hand-copied versions of one instruction drift. One exported constant.
-3. **B4** — the B7 test's fake invoker sets `AIDLC_UNATTENDED` itself and comments that it does so
-   "exactly as `evals/lib/invoker.mjs` will in a real run once it sets the same variable". Nothing
-   tests the real invoker's env. That comment marks the exact seam Blocking 1 slipped through.
-4. **B3** — `docs/OPERATING.md` says "`approve()` reads it and nothing else". True of `approve()`,
-   but the variable is read in three places now: `approve()`, the `session-start` action, and
-   `harness status`. This paragraph is the operator's map of a control that stands in for a human
-   gate; it should name all three.
+1. **B7, Important 2** — the catch push gained `unattended` but still omits
+   `changed: changedFilesIn(s.work, s.pristine)`. The argument the repair added for `unattended`
+   applies to `changed` word for word: the working copy is about to be deleted by `finally`, and
+   `changed` is the field that distinguishes "did nothing" from "wrote it somewhere else" on
+   precisely the run that failed. Pre-existing, and now the odd one out in a push whose comment
+   explains why it reads before cleanup.
+2. **B4** — the new test mutates `process.env.PATH` and restores it in `finally`. Correct as
+   written, but it makes the test order-sensitive to anything running concurrently in-process;
+   `node --test` runs files in separate processes today, so this is a note, not a problem.
 
-## Examined and clear
+## Examined and clear in the repair
 
-- **The placement of the forced-identity branch is right.** It sits after the `GATED.includes(kind)`
-  throw and before `if (!by)`, and every remaining precondition — existence, plan-after-spec,
-  `stale-approval`, `isCommitted`, `bodyDigest` — runs after it and unchanged. No caller can reach
-  `approve()` with a different identity while the variable is set: `by` is a local parameter
-  overwritten before first use, and the single CLI path passes `{ by: typeof by === 'string' ? by : null }`.
-  B5's test exercises all four preconditions with the variable set. This is B2 and B5 correctly met.
-- **Nothing inside a staged working copy can set the variable.** `stage()` copies files and runs
-  `git`; it sources no shell profile, and the spawn env is assembled by the runner from
-  `process.env`. B3's test plants the `[unattended] enabled = true` switch in `harness.toml` — the
-  literal shape of `evidence.md` F2 — and shows it changes nothing in either direction. This is the
-  strongest part of the change.
-- **The `process.env` spread in the invoker.** For the previously-falsy `pluginDir` caller, a spread
-  is an own-enumerable string copy of the same values, so nothing observable changes on POSIX beyond
-  the added variable. (Windows loses case-insensitive lookup; the runner shells out to `git`,
-  `claude` and POSIX paths throughout, so this is not live.) The behaviour change for existing
-  callers is Blocking 1, not the spread.
-- `readdirSync` was dropped from the plain `node:fs` import; the file uses only the `_rd` alias,
-  including in the new function. No dangling reference.
+- **The `dispatch.mjs` import direction is sound.** The concern would be a fast-path hook taking on
+  load cost or a new import-time failure mode. Neither applies: `dispatch.mjs` already imports
+  `./lib/guard.mjs`, and `guard.mjs` imports `governingPlans` from `../lib/artifacts.mjs`, so
+  `artifacts.mjs` was in the hook's module graph before this commit. `artifacts.mjs` imports only
+  `node:` builtins and declares only functions and constants — no top-level work, nothing that can
+  throw at import. The new import adds a name, not a dependency, and moves the shared string to the
+  side that owns `approve()`, which is where the wording's meaning lives.
+- **No residue of the unwound half-repair.** `59d1ff5` is not an ancestor of `eb9a947`
+  (`git merge-base --is-ancestor` returns false), and the diff `f8d95fa..eb9a947` is internally
+  consistent across all seven files: the shared constant is defined and both consumers read it, the
+  invoker's `task` parameter is destructured where it is used, and `discardedBy` is produced,
+  returned, consumed and asserted. Nothing in the tree is half-applied.
+- **Both new tests are load-bearing**, established by mutation rather than by reading them:
+  reverting the invoker's conditional fails `B4 (invoker)` alone; dropping `unattended` from the
+  catch push fails `important-2` alone. Neither test passes for a reason other than the behaviour
+  it names.
 
 ## Verdict
 
 **changes-requested.**
 
-Blocking 1 is the one that must move before this merges: the change is scoped to campaigns in the
-spec and to the whole suite in the code, and the difference is the golden suite's calibration.
-Important 2 and 3 are each a few lines and both restore a property the spec already claims — B7's
-visibility on the failing path, and B2's stamp being loud at the moment it is applied rather than
-only in the file afterwards.
+Every finding from the review of `1ace6a8` is discharged, and two of them — the invoker test and
+the `layout()` fix — are better than what I asked for. The repair is well made and the reasoning in
+its comments is accurate.
 
-B6 is not in question. Sprint 3 executed, and `evidence.md` records it.
+It returns for one clause. The scoping closed the path the runner opens and left the path the
+runner inherits, and then documented the pair as closed. That second half is why this is blocking
+rather than a nit: I am not asking for hardening against a hypothetical, I am asking that the
+OPERATING.md sentence and the code agree, and the cheaper direction of agreement is three lines in
+`invoker.mjs` plus one assertion in a test that already exists.
+
+This is the second changes-requested on this change. If the next repair is those three lines and
+that sentence, it is not a loop. If it turns into anything larger, it belongs to the human.
