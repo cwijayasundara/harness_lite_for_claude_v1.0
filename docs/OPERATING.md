@@ -87,13 +87,17 @@ about it. Fixing it is a separate change with its own gates.
 
 **A campaign runs with no human present, so it cannot obey the human gate — it is given a
 different, visibly marked one.** `evals/lib/invoker.mjs` sets `AIDLC_UNATTENDED` on the `claude`
-process it spawns for every campaign step; that is the only place it is set, and `approve()`
-reads it and nothing else, so no file inside the staged working copy can turn it on. While it is
-set, `harness approve <slug> spec|plan` records `by: unattended-eval-run` regardless of what
-`--by` was given, and every other precondition — committed-first, plan-after-spec, the body
-digest, `stale-approval` — still applies exactly as it does today. The results JSON of a campaign
-run lists every artifact approved this way. In a real repository `AIDLC_UNATTENDED` is never set
-by hand: an artifact stamped `unattended-eval-run` there means something went wrong.
+process it spawns for a campaign step only, never for a single-prompt golden task; that is the
+only place it is set, so no file inside the staged working copy can turn it on. Three places read
+it, and nothing else: `approve()`, which forces `by: unattended-eval-run` regardless of what
+`--by` was given while every other precondition — committed-first, plan-after-spec, the body
+digest, `stale-approval` — still applies exactly as it does today; the `SessionStart` hook, which
+tells the agent it may approve its own gates and where `harness new <slug>` writes; and
+`harness status`, which repeats the same notice for an agent that runs it. If a person's own
+`--by` reaches `approve()` while the variable is set, it is discarded and reported to stderr, not
+silently substituted. The results JSON of a campaign run lists every artifact approved this way.
+In a real repository `AIDLC_UNATTENDED` is never set by hand: an artifact stamped
+`unattended-eval-run` there means something went wrong.
 
 ## When something goes wrong in production
 

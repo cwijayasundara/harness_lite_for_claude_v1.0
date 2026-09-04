@@ -94,8 +94,14 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString() } =
   // `harness.toml` to disable `require_contract`, and a switch that same agent could have written
   // inside the working copy would be the same defect wearing a different hat. This check runs
   // before the "needs an approver" guard below, so the working copy never gets a vote either way.
+  const suppliedBy = by;
   if (process.env.AIDLC_UNATTENDED) by = 'unattended-eval-run';
   if (!by) throw new Error('an approval needs an approver: --by <identity>');
+  // review `1ace6a8` (Important 3): the substitution above is silent to the caller. A real
+  // person's `--by`, leaked into an environment that also carries `AIDLC_UNATTENDED`, must not be
+  // discarded with only success printed — the same defect B2 exists to prevent, the other way
+  // round. `discardedBy` is null unless a supplied identity was actually thrown away.
+  const discardedBy = suppliedBy && suppliedBy !== by ? suppliedBy : null;
 
   const target = file(cfg, slug, kind);
   if (!existsSync(target)) throw new Error(`not found: ${path.relative(cfg.layout.root, target)}`);
@@ -114,8 +120,15 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString() } =
   const text = readFileSync(target, 'utf8');
   const { front, body } = parse(text);
   replaceAtomic(target, render({ ...front, status: 'approved', by, at, digest: bodyDigest(text) }, body));
-  return { file: target, digest: bodyDigest(text) };
+  return { file: target, digest: bodyDigest(text), discardedBy };
 }
+
+// Shared verbatim between the two places an unattended run is told it may approve its own
+// gates — `harness status` and the `SessionStart` hook — so the instruction cannot drift into
+// two different wordings of the same thing (review `1ace6a8`, Nit 2).
+export const UNATTENDED_APPROVE_NOTICE =
+  'approve your own gates: `harness approve <slug> spec` then `harness approve <slug> plan` ' +
+  '(omit --by; the identity is forced to unattended-eval-run regardless)';
 
 export function read(cfg, slug, kind) {
   const target = file(cfg, slug, kind);

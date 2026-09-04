@@ -16,6 +16,7 @@ import { refresh, staleSince } from '../lib/refresh.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
 import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
+import { UNATTENDED_APPROVE_NOTICE } from '../lib/artifacts.mjs';
 
 // In an installed project `.aidlc/bin/harness` is a bash shim; in this repository it is the
 // executable itself, and `bash` on it dies with a shell syntax error. The banner printed the
@@ -164,9 +165,10 @@ export async function dispatch(event) {
         // (`harness status`) never reached an agent that began writing immediately. SessionStart
         // pushes context whether or not the agent goes looking — the `contract:` line above is
         // the proof, since it is the guard `campaign-legacy`'s agent actually hit. Two lines,
-        // only when the runner set the variable; a real repository never sees either one.
+        // only when the runner set the variable; a real repository never sees either one. Wording
+        // shared with `harness status` via `UNATTENDED_APPROVE_NOTICE` (review `1ace6a8`, Nit 2).
         if (process.env.AIDLC_UNATTENDED) {
-          lines.push('unattended: this run has no human — approve your own gates with `harness approve <slug> spec` then `harness approve <slug> plan` (omit --by; the identity is forced regardless)');
+          lines.push(`unattended: this run has no human — ${UNATTENDED_APPROVE_NOTICE}`);
           lines.push('new change: `harness new <slug>` creates .aidlc/artifacts/<slug>/{intent,spec,plan}.md — never write an artifact anywhere else');
         }
         process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: lines.join('\n') } }));

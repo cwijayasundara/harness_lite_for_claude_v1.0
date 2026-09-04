@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 // frontier model here would flatter the guides and price the suite out of running on every
 // steering change, which is the one trigger Law 9 actually requires.
 export function claudeInvoker({ pluginDir, model = null }) {
-  return function invoke({ prompt, cwd, timeoutMs, budgetUsd }) {
+  return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task }) {
     const args = [
       '-p', prompt,
       ...(model ? ['--model', model] : []),
@@ -24,10 +24,15 @@ export function claudeInvoker({ pluginDir, model = null }) {
       ...(pluginDir ? ['--plugin-dir', pluginDir] : []),
       ...(budgetUsd ? ['--max-budget-usd', String(budgetUsd)] : []),
     ];
-    // campaigns-run-unattended B3. The signal a staged working copy can never produce: set here,
-    // by the runner, on the `claude` process's own env — never read from `harness.toml` or any
-    // path under `cwd`. See `.aidlc/lib/artifacts.mjs` `approve()`.
-    const env = { ...process.env, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}), AIDLC_UNATTENDED: '1' };
+    // campaigns-run-unattended B3, B4. The signal a staged working copy can never produce: set
+    // here, by the runner, on the `claude` process's own env — never read from `harness.toml` or
+    // any path under `cwd`. See `.aidlc/lib/artifacts.mjs` `approve()`.
+    //
+    // Scoped to a campaign step only (`task.steps` present) — review `1ace6a8` (Blocking 1): set
+    // unconditionally, this reached all 22 single-prompt golden tasks too, several of them
+    // artifact- or contract-shaped, with context the golden suite was never calibrated against.
+    // A single-prompt task must run exactly as it does for a real, attended repository.
+    const env = { ...process.env, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}), ...(task?.steps ? { AIDLC_UNATTENDED: '1' } : {}) };
     const r = spawnSync('claude', args, { cwd, env, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
     // A missing CLI is not a failed task — it is a broken harness, and twenty tasks failing
     // with empty transcripts is the least useful way to say so. Same lesson as exit 127 in the

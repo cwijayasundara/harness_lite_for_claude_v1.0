@@ -405,6 +405,9 @@ async function main() {
       if (!validSlug(slug) || !artifacts.GATED.includes(kind)) { console.error(`usage: harness approve <slug> ${artifacts.GATED.join('|')} --by <identity>`); return 2; }
       try {
         const result = artifacts.approve(cfg, slug, kind, { by: typeof by === 'string' ? by : null });
+        // review `1ace6a8` (Important 3): loud at the moment of substitution, not only in the
+        // file afterwards — a person whose --by got discarded must be told, not just a machine.
+        if (result.discardedBy) console.error(`AIDLC_UNATTENDED is set: your --by "${result.discardedBy}" was discarded — the identity is forced to unattended-eval-run`);
         console.log(`${kind} approved  ${result.digest}\n${path.relative(cfg.layout.root, result.file)}\ncommit this approval before continuing`);
         return 0;
       } catch (error) { console.error(error.message); return 1; }
@@ -421,9 +424,11 @@ async function main() {
       // campaigns-run-unattended B1. Reaches the agent because CLAUDE.md already tells it to run
       // `harness status` and resume the first incomplete stage — no skill changes, no new
       // instruction path. Named only when the runner set the variable; a real repository never
-      // sees this line.
+      // sees this line. Wording shared with the `SessionStart` hook via `UNATTENDED_APPROVE_NOTICE`
+      // (review `1ace6a8`, Nit 2) — that is the channel that actually reaches the agent (F6); this
+      // one is kept because it is cheap and correct for an agent that does run `status`.
       const unattendedNote = process.env.AIDLC_UNATTENDED
-        ? 'AIDLC_UNATTENDED is set — approve both gates yourself: `harness approve <slug> spec` then `harness approve <slug> plan` (omit --by; the identity is forced to unattended-eval-run regardless).'
+        ? `AIDLC_UNATTENDED is set — ${artifacts.UNATTENDED_APPROVE_NOTICE}.`
         : null;
       if (!rows.length) { console.log(`changes  none open${hidden ? `  (${hidden} closed; --all to list)` : ''}`); if (unattendedNote) console.log(unattendedNote); return 0; }
       console.log('changes\n\n  change                         next                 spec       plan');

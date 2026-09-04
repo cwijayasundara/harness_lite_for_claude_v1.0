@@ -13,6 +13,7 @@ import { evaluate, KNOWN, toRegExp } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
 import { stage } from './lib/stage.mjs';
 import { parse } from '../.aidlc/lib/artifacts.mjs';
+import { layout } from '../.aidlc/lib/paths.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.dirname(HERE);
@@ -41,7 +42,10 @@ function changedFilesIn(work, pristine) {
 // not a detail in a tmpdir about to be deleted. Reads the same frontmatter `approve()` writes —
 // `by: unattended-eval-run` — from the staged working copy before it is cleaned up.
 function unattendedApprovals(work) {
-  const artifactsDir = path.join(work, '.aidlc', 'artifacts');
+  // review `1ace6a8` (Nit 1): read the shared `layout()` rather than hard-coding the path, so
+  // this stays correct if the artifacts directory is ever computed differently there — the one
+  // function `approve()` itself resolves paths through (via `cfg.layout.artifacts`).
+  const artifactsDir = layout(work).artifacts;
   if (!existsSync(artifactsDir)) return [];
   const found = [];
   for (const entry of _rd(artifactsDir, { withFileTypes: true })) {
@@ -221,7 +225,13 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
         });
       } catch (e) {
         if (e.fatal) { s.cleanup(); throw e; }
-        runs.push({ attempt: i + 1, pass: false, assertions: [{ name: 'harness', pass: false, detail: e.message }], usage: {} });
+        // review `1ace6a8` (Important 2): a campaign that self-approves in an earlier sprint and
+        // then throws in a later one must still report what it approved — read before `finally`
+        // deletes the working copy, same as the success path above.
+        runs.push({
+          attempt: i + 1, pass: false, assertions: [{ name: 'harness', pass: false, detail: e.message }], usage: {},
+          unattended: unattendedApprovals(s.work),
+        });
       } finally { if (!s.cleaned) s.cleanup(); }
       const last = runs.at(-1);
       log(`  ${t.id} [${i + 1}/${t.repeats ?? 1}] ${last.pass ? 'pass' : last.incomplete ? `INCONCLUSIVE (${last.incomplete.reason})` : 'FAIL'}`);

@@ -7,13 +7,14 @@
 // so several tests here prove the working copy has no say over it at all.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { BIN } from './_paths.mjs';
 import { runSuite } from '../evals/run.mjs';
 import { FIXTURES } from '../evals/lib/stage.mjs';
+import { claudeInvoker } from '../evals/lib/invoker.mjs';
 
 const run = (root, env, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8', env });
 
@@ -87,6 +88,11 @@ test('B2: --by cwijayasundara is overridden — the recorded identity cannot be 
     const front = readFileSync(path.join(root, '.aidlc/artifacts/forced-identity/spec.md'), 'utf8');
     assert.match(front, /^by: unattended-eval-run$/m);
     assert.doesNotMatch(front, /cwijayasundara/);
+
+    // review `1ace6a8` (Important 3): loud at the moment of substitution, not only in the file
+    // afterwards — a person whose --by was discarded is told, not left to discover it later.
+    assert.match(result.stderr, /discarded/);
+    assert.match(result.stderr, /cwijayasundara/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -175,4 +181,54 @@ test('B7: the results JSON of a fake-invoker run lists the auto-approved artifac
   });
   assert.deepEqual(out.results[0].unattended, ['auto-demo/spec.md']);
   assert.deepEqual(out.results[0].runs[0].unattended, ['auto-demo/spec.md']);
+});
+
+// review `1ace6a8` (Blocking 1). Setting `AIDLC_UNATTENDED` unconditionally in `claudeInvoker`
+// reached all 24 eval tasks, not the 2 campaigns — 8 of the 22 golden tasks are artifact- or
+// contract-shaped, and one of them grades whether the agent refuses and says so. Scoped to a
+// campaign step by `task.steps`, which only a campaign task carries. A fake `claude` on PATH
+// dumps its own env so the real code path — not a fake invoker standing in for it — actually
+// runs; no model, no spend.
+test('B4 (invoker): AIDLC_UNATTENDED reaches a campaign step, and never a single-prompt task', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'stub-claude-'));
+  const envLog = path.join(dir, 'env.txt');
+  writeFileSync(path.join(dir, 'claude'), `#!/usr/bin/env bash\nenv > ${JSON.stringify(envLog)}\necho '{"result":"done","total_cost_usd":0}'\n`);
+  chmodSync(path.join(dir, 'claude'), 0o755);
+  const previousPath = process.env.PATH;
+  process.env.PATH = `${dir}:${previousPath}`;
+  try {
+    const invoke = claudeInvoker({});
+
+    // A single-prompt golden task: `task` carries no `steps`.
+    invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'golden-task', prompt: 'x' } });
+    assert.doesNotMatch(readFileSync(envLog, 'utf8'), /^AIDLC_UNATTENDED=/m, 'a single-prompt task must run exactly as it does for a real, attended repository');
+
+    // A campaign step: `task.steps` is present, as `evals/run.mjs` builds it.
+    invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'campaign', steps: [{ prompt: 'x' }] }, step: 0 });
+    assert.match(readFileSync(envLog, 'utf8'), /^AIDLC_UNATTENDED=1$/m);
+  } finally { process.env.PATH = previousPath; rmSync(dir, { recursive: true, force: true }); }
+});
+
+// review `1ace6a8` (Important 2). A campaign that self-approves in an earlier sprint and then
+// throws in a later one must still report what it approved — the working copy is about to be
+// deleted by `finally`, and the results JSON is the one place left to see it. `evolving-scope`'s
+// own review records both campaigns terminating at step 0: the failing run has been the normal
+// one throughout this change.
+test('important-2: a run that throws still reports what it approved before failing', async () => {
+  const invoke = ({ cwd }) => {
+    spawnSync(process.execPath, [BIN, 'new', 'partial-approve'], { cwd, encoding: 'utf8' });
+    commit(cwd, 'draft partial-approve');
+    const env = { ...process.env, AIDLC_UNATTENDED: '1' };
+    const approved = spawnSync(process.execPath, [BIN, 'approve', 'partial-approve', 'spec'], { cwd, encoding: 'utf8', env });
+    assert.equal(approved.status, 0, approved.stderr);
+    throw new Error('sprint 3 exploded');
+  };
+  const out = await runSuite({
+    tasks: [{ id: 'throws-after-approving', fixture: 'clean-app', prompt: 'x', repeats: 1, timeoutMs: 1000, budgetUsd: 1,
+      assert: [{ workdir_unchanged: false }] }],
+    invoke, fixturesDir: FIXTURES, harnessBin: BIN,
+  });
+  assert.equal(out.results[0].verdict, 'fail');
+  assert.deepEqual(out.results[0].unattended, ['partial-approve/spec.md']);
+  assert.deepEqual(out.results[0].runs[0].unattended, ['partial-approve/spec.md']);
 });
