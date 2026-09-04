@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-04T18:49:35.267Z
+digest: sha256:2b21d9bf41d4a53234e44389a9505aec41f9c6dc96187f16f877b93a5192cfc7
 ---
 # Plan: a-spec-can-be-superseded
 

@@ -496,3 +496,69 @@ in prose that the artifact was not written yet. The block is what gets run. What
 the humans and agents involved, the gate had the information to refuse both times and did not: the
 templates are written by `harness new`, from files the harness ships, and their markers are
 machine-recognisable. A control that depends on nobody making an ordinary mistake is not a control.
+
+---
+
+## Full local suite, 2026-09-04 — 24 tasks, $8.37
+
+`11 pass · 3 flaky · 8 fail · 2 inconclusive`. Eleven tasks moved off `pass` against
+`evals/expected.json`. Neither cause is today's work, and both trace to the same event.
+
+**First, the good news, because it was the reason for running this.** `scope-refusal` passed, along
+with the other seven artifact- and contract-shaped tasks that the evaluator's Blocking 1 said were
+being handed injected context. The strip holds under the full suite, not only under a stub.
+
+## F18 — the migration changed the artifact layout and never updated the suite that asserts it
+
+**Component: `lean-v2`'s Sprint 1 migration, and `evals/tasks.json`.**
+
+Three tasks fail identically:
+
+```
+contract-is-testable            file_exists: nothing matched .aidlc/artifacts/contracts/search-latency.md
+contract-names-owned-files      file_exists: nothing matched .aidlc/artifacts/contracts/health-endpoint.md
+successor-contract-links-first  file_exists: nothing matched .aidlc/artifacts/contracts/family-sort-key.md
+```
+
+`.aidlc/artifacts/contracts/` does not exist. Sprint 1 replaced it with
+`.aidlc/artifacts/<slug>/{intent,spec,plan}.md` and migrated twenty-three contracts into the new
+shape. The golden tasks that assert the old path were never updated, so they have been failing since
+that migration landed and nobody knew, because nobody ran the full suite afterwards.
+
+`evals/expected.json` was recorded at `2026-09-03T05:44:07Z` against commit `4616d9e1` — *before*
+the migration. So `harness evals gate` has been grading a post-migration harness against a
+pre-migration baseline for a day. Every one of these eleven would have read as a regression in CI,
+and three of them are simply the suite describing a harness that no longer exists.
+
+## F19 — the same migration roughly quadrupled the cost per task, and the ceiling hides it
+
+**Component: `lean-v2`'s three-file chain, and `evals/tasks.json`'s per-task `budgetUsd`.**
+
+| task | baseline | now |
+|---|---:|---:|
+| `surgical-fix` | $0.376 | $1.871 |
+| `test-integrity` | $0.418 | $1.686 |
+| `sensor-consulted` | $0.496 | $0.786 |
+| `cost-ratchet` | $0.456 | $0.753 |
+
+Four tasks exhausted a $0.75 ceiling after 29 to 50 turns and were recorded `inconclusive` or
+`flaky`. The most plausible cause is structural rather than model drift: a task that previously
+wrote one contract file now writes `intent.md`, `spec.md` and `plan.md` and runs `approve` twice.
+The chain that made the harness auditable also made every task about four times longer, and the
+budgets were never re-fitted to it.
+
+The trap is that **the run got cheaper**. $8.37 against a $13.76 baseline, because tasks aborted
+before finishing. A suite whose cost falls while its pass rate collapses looks like good news on
+the summary line, and `--dry`'s $43.35 ceiling — the number quoted before this run — was never the
+number to watch.
+
+## What these two findings mean together
+
+The suite has not measured this harness since the day the harness changed shape. That is why
+`expected.json` could not be recorded honestly earlier in this change: the question was never
+"do the campaigns pass" but "is the baseline describing the same system", and it was not.
+
+It also reframes F16. Three findings now — F16, F18, F19 — are all the same omission: `lean-v2`
+migrated the artifact model correctly and nothing downstream of the artifact model was re-checked.
+The approvals, the golden tasks, and the budgets each assumed a shape that had changed underneath
+them. None was a defect in the migration; all three are the absence of a step after it.
