@@ -328,6 +328,29 @@ export function supersededBy(cfg) {
   return map;
 }
 
+// B2 (the-suite-measures-this-harness): "is this a promise the code must keep" and "may a plan
+// be gated against it" are different questions, and the migration made them disagree. Twenty-
+// three specs carry `migrated_from` — the digest of a contract sealed under the previous model —
+// and no `status: approved`, because `lean-v2` deliberately invented no approval (its own spec,
+// twice: "digests carried into frontmatter as `migrated_from`, and no approval is invented").
+// Reading that as evidence of a prior sealed contract is reading the record; `approve()` staying
+// `status === 'approved'`-only is refusing to invent one. A promise is `state === 'approved'`
+// (not the raw frontmatter — a stale-approval spec's body changed since a human looked at it, and
+// the digest mismatch says so) or `migrated_from` present; a plain draft is neither.
+//
+// Enumerates `cfg.layout.artifacts` directly rather than through `slugs()`: `slugs()` requires an
+// `intent.md` alongside, which is a real property of every change `harness new` has ever
+// scaffolded but has nothing to do with whether a spec is a promise — this answers that question
+// from the spec alone.
+export function promiseSpecs(cfg) {
+  const root = cfg.layout.artifacts;
+  if (!existsSync(root)) return [];
+  return readdirSync(root, { withFileTypes: true })
+    .filter((e) => e.isDirectory())
+    .map((e) => read(cfg, e.name, 'spec'))
+    .filter((spec) => spec && (spec.state === 'approved' || Boolean(spec.front.migrated_from)));
+}
+
 export function slugs(cfg) {
   const root = cfg.layout.artifacts;
   if (!existsSync(root)) return [];

@@ -4,6 +4,7 @@
 // substitution. This grades task by task, and it fails closed.
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
 // The newest full run, and nothing else.
@@ -73,12 +74,43 @@ export function readRecord(file) {
   return body;
 }
 
+// B6 (the-suite-measures-this-harness). The commit at which `lean-v2` retired the single-file
+// contract for `.aidlc/artifacts/<slug>/{intent,spec,plan,review}.md` — the change that made
+// three golden tasks name a path the harness no longer writes (F18) and roughly quadrupled the
+// cost of every task that walks the chain (F19). `expected.json` was last recorded against
+// 4616d9e1, which predates it: grading today's harness against that record produced eleven line
+// items that read as regressions and were not. A record's `commit` was already written for
+// exactly this comparison; nothing read it until now.
+export const ARTIFACT_MODEL_COMMIT = '935372ebfbb17c471bdb9ed0fcbeefb563504535';
+
+function isAncestor(ancestor, ref, cwd) {
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', ancestor, ref], { cwd, stdio: 'ignore' });
+    return true;
+  } catch { return false; }
+}
+
+// True only when `commit` was recorded before ARTIFACT_MODEL_COMMIT landed and `head` (the run
+// under test) has it — a baseline that never merges it, or a `head` that also predates it, is
+// being compared honestly, whatever shape the harness is in.
+export function predatesArtifactModel(commit, { cwd = process.cwd(), head = 'HEAD' } = {}) {
+  if (!commit) return false;
+  return !isAncestor(ARTIFACT_MODEL_COMMIT, commit, cwd) && isAncestor(ARTIFACT_MODEL_COMMIT, head, cwd);
+}
+
 // Everything that is not "the recorded set graded exactly as recorded, or better" is a finding.
 // Missing and unrecorded are findings rather than warnings on purpose: a task renamed without
 // being re-recorded is invisible to any check that only walks the intersection.
-export function gate(results, record) {
+export function gate(results, record, opts = {}) {
   if (!results) return { ok: false, reason: 'no eval results found — run `node evals/run.mjs` first', regressed: [], improved: [], missing: [], unrecorded: [] };
   if (!record) return { ok: false, reason: 'no expectation record — run `harness evals gate --update` after a full run', regressed: [], improved: [], missing: [], unrecorded: [] };
+  if (predatesArtifactModel(record.commit, opts)) {
+    return {
+      ok: false,
+      reason: `${record.commit} predates the artifact-model change (${ARTIFACT_MODEL_COMMIT.slice(0, 7)}) — this baseline is not comparable to the harness at HEAD; run \`node evals/run.mjs\` and \`harness evals gate --update\` to re-record it`,
+      regressed: [], improved: [], missing: [], unrecorded: [],
+    };
+  }
 
   const graded = verdicts(results);
   const regressed = [];

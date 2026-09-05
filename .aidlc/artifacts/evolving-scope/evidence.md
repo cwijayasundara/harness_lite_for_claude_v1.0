@@ -748,3 +748,34 @@ naming a test file must name one that exists. Cheap, mechanical, and the parsers
 Worth stating plainly: an integration test that reports this is working. The campaign is grading
 whether the harness steers an agent to keep its own artifacts true, and it caught the harness not
 asking.
+
+---
+
+## F10, second instance — an unrelated change's contract authorised the write
+
+**Recorded 2026-09-05, in this repository rather than a campaign fixture.**
+
+`the-suite-measures-this-harness`'s plan named `.aidlc/checks/eval-gate.mjs` in `## Files`. That
+path does not exist — `.aidlc/checks/` holds the commit-stage checks, and `evals gate` lives at
+`.aidlc/lib/eval-gate.mjs`. The generator found the typo, edited the real file, and reported it
+afterwards rather than stopping, which is the lesser half of the rule.
+
+`scope-drift` passed. Not because the change owned the path, but because **`lean-v2`'s plan owns
+`.aidlc/lib/` broadly** — one line in a plan approved two days ago for an entirely different
+purpose. Ten approved plans in this repository name something under `.aidlc/lib/`.
+
+F10 recorded this shape from a campaign: sprint 3 changed product behaviour under sprint 2's
+contract because that contract owned `src/ledger.mjs`. Here it is again, with the twist that the
+authorising contract belongs to a change that finished days earlier and has nothing to do with the
+work. Ownership of a path is not authority to do anything to it, and `scope-drift` cannot presently
+tell the difference between the plan that intends a change and any plan that happens to name the
+directory.
+
+The plan's typo is corrected and the plan re-approved, so the record now says what happened. But
+note what would have happened with no typo at all: the same write, the same pass, and nothing to
+notice. `scope-drift` asks *is this path claimed?* when the useful question is *is this path claimed
+by the change being made?*
+
+That second question needs a notion of which change a diff belongs to, which the harness does not
+have. It is the same gap F10 named and it is worth one change of its own, not a guess bolted onto
+this one.

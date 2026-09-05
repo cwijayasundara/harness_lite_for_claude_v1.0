@@ -2,9 +2,9 @@
 // requirement was not reachable early (B2), that every approved behaviour still has a test
 // naming it (B6), and that a named file was edited rather than deleted and rewritten (B4).
 // File-and-text checks over a staged directory, deterministic, no model, no spend.
-import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
-import { behavioursOf, proofRowsOf, testRowIn } from '../../.aidlc/lib/artifacts.mjs';
+import { behavioursOf, proofRowsOf, testRowIn, promiseSpecs } from '../../.aidlc/lib/artifacts.mjs';
 
 // Shared with evals/lib/assertions.mjs's diffTrees, rather than each keeping its own copy that
 // can silently drift apart — this one added node_modules and assertions.mjs's did not, until it
@@ -53,13 +53,6 @@ export function unseenRequirements(dir, needles) {
   };
 }
 
-function frontmatterStatus(text) {
-  const m = text.match(/^---\n([\s\S]*?)\n---/);
-  if (!m) return null;
-  const s = m[1].match(/^status:\s*(\S+)/m);
-  return s ? s[1] : null;
-}
-
 // Test-file recognition (`looksLikeTestFile`/`testRowIn`) now lives in `.aidlc/lib/artifacts.mjs`,
 // alongside `behavioursOf`/`proofRowsOf`, so B7's commit-time check and this file share one
 // definition of "names a resolvable path" instead of two copies drifting apart.
@@ -82,25 +75,28 @@ export function behavioursHaveTests(dir) {
   let checked = 0;
   const artifactsRoot = path.join(dir, '.aidlc', 'artifacts');
   if (!existsSync(artifactsRoot)) return { ok: true, violations, unverifiable, checked };
-  for (const slug of readdirSync(artifactsRoot)) {
-    const specPath = path.join(artifactsRoot, slug, 'spec.md');
-    const planPath = path.join(artifactsRoot, slug, 'plan.md');
-    if (!existsSync(specPath) || !statSync(specPath).isFile() || !existsSync(planPath)) continue;
-    const specText = readFileSync(specPath, 'utf8');
-    if (frontmatterStatus(specText) !== 'approved') continue;
-    const behaviours = behavioursOf(specText);
+  // B2 (the-suite-measures-this-harness): reads `promiseSpecs()` — approved, or `migrated_from`
+  // present — rather than `status: approved` alone. Twenty-three specs carry `migrated_from` and
+  // no approval, because `lean-v2` deliberately invented none; they are promises the code must
+  // keep all the same, and this check's reach goes from three specs to all of them. Expect it to
+  // report far more than before — that is the point, not a regression to tune away.
+  const cfg = { layout: { root: dir, artifacts: artifactsRoot } };
+  for (const spec of promiseSpecs(cfg)) {
+    const planPath = path.join(artifactsRoot, spec.slug, 'plan.md');
+    if (!existsSync(planPath)) continue;
+    const behaviours = behavioursOf(spec.body);
     if (!behaviours.length) continue;
     const proof = proofRowsOf(readFileSync(planPath, 'utf8'));
     for (const b of behaviours) {
       checked++;
       const evidence = proof.get(b);
-      if (evidence === undefined) { violations.push(`${slug} ${b}: plan.md's Proof table names no row`); continue; }
+      if (evidence === undefined) { violations.push(`${spec.slug} ${b}: plan.md's Proof table names no row`); continue; }
       const row = testRowIn(evidence);
-      if (!row) { unverifiable.push(`${slug} ${b}`); continue; }
+      if (!row) { unverifiable.push(`${spec.slug} ${b}`); continue; }
       const testFile = path.join(dir, row.file);
-      if (!existsSync(testFile)) { violations.push(`${slug} ${b}: proof file "${row.file}" does not exist`); continue; }
+      if (!existsSync(testFile)) { violations.push(`${spec.slug} ${b}: proof file "${row.file}" does not exist`); continue; }
       if (row.identifier && !readFileSync(testFile, 'utf8').includes(row.identifier)) {
-        violations.push(`${slug} ${b}: "${row.file}" no longer contains "${row.identifier}"`);
+        violations.push(`${spec.slug} ${b}: "${row.file}" no longer contains "${row.identifier}"`);
       }
     }
   }

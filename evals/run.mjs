@@ -255,9 +255,21 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
     flaky: results.filter((r) => r.verdict === 'flaky').length,
     fail: results.filter((r) => r.verdict === 'fail').length,
     inconclusive: results.filter((r) => r.verdict === 'inconclusive').length,
+    // B5 (the-suite-measures-this-harness), F19: a task that burns through its ceiling on one of
+    // three repeats but passes the other two lands on `flaky`, not `inconclusive` — the abort is
+    // invisible to every count above. This counts the run, not the task's overall verdict, so
+    // "the run got cheaper" ($8.37 against a $13.76 baseline) cannot read as good news again
+    // while four tasks are exhausting their budget.
+    aborted: results.reduce((n, r) => n + r.runs.filter((run) => run.incomplete).length, 0),
     usd: Number(results.reduce((n, r) => n + r.usd, 0).toFixed(4)),
   };
   return { summary, results };
+}
+
+// The one line a run's summary is judged by. Pulled out so the abort count beside the cost is
+// unit-testable without spawning `claude` — B5's whole point is that this line is read on its own.
+export function summaryLine(summary) {
+  return `${summary.pass} pass · ${summary.flaky} flaky · ${summary.fail} fail · ${summary.inconclusive} inconclusive · ${summary.aborted} aborted · $${summary.usd}`;
 }
 
 async function main() {
@@ -319,7 +331,7 @@ async function main() {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   writeFileSync(path.join(dir, `${stamp}.json`), JSON.stringify(out, null, 2));
 
-  console.log(`\n${out.summary.pass} pass · ${out.summary.flaky} flaky · ${out.summary.fail} fail · ${out.summary.inconclusive} inconclusive · $${out.summary.usd}`);
+  console.log(`\n${summaryLine(out.summary)}`);
   // B7. A mechanism that substitutes for a human should be the loudest thing in the log, not a
   // detail in a tmpdir that is about to be deleted.
   for (const r of out.results.filter((r) => r.unattended?.length)) {

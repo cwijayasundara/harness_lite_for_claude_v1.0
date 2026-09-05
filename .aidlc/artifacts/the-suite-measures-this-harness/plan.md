@@ -43,7 +43,7 @@ migrated artifacts, changing their digests, and it says nothing `migrated_from` 
 - `evals/tasks.json`
 - `evals/run.mjs`
 - `evals/expected.json`
-- `.aidlc/checks/eval-gate.mjs`
+- `.aidlc/lib/eval-gate.mjs`
 - `test/suite-truth.test.mjs`
 - `.aidlc/artifacts/the-suite-measures-this-harness/`
 
@@ -57,8 +57,10 @@ migrated artifacts, changing their digests, and it says nothing `migrated_from` 
 4. `evals/tasks.json` — repoint the three tasks (B1), each checked against the chain first; and
    refit every `budgetUsd` from measured cost (B3).
 5. `test/suite-truth.test.mjs` and `evals/run.mjs` — B5: the summary line carries the abort count;
-   `.aidlc/checks/eval-gate.mjs` — B6: a baseline whose `commit` predates an artifact-model change
-   is reported as incomparable, not as regressions.
+   `.aidlc/lib/eval-gate.mjs` — B6: a baseline whose `commit` predates an artifact-model change
+   is reported as incomparable, not as regressions. (`## Files` first named
+   `.aidlc/checks/eval-gate.mjs`, which does not exist — `.aidlc/checks/` holds the commit-stage
+   checks, and `evals gate` lives in `.aidlc/lib/`. Corrected 2026-09-05.)
 6. Run the full suite. Separate the eleven moved tasks into stale assertion, budget, and real
    regression, and write that division into `.aidlc/artifacts/the-suite-measures-this-harness/`.
 7. `evals/expected.json` — re-recorded from that run, `commit` and `recorded_at` written by the
