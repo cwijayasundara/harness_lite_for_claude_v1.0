@@ -123,10 +123,10 @@
             { "unseen_requirements": ["must never appear as overdue"] }
           ]
         },
-        { "prompt": "A paid invoice must never appear as overdue, even when its due date is in the past — this contradicts sprint 1's implicit rule that any invoice past its due date is overdue. Add isOverdue(invoiceId) to src/ledger.mjs: it returns false once an invoice's outstanding balance reaches zero, regardless of due date, and true otherwise for a past-due invoice. Before writing code, open sprint 1's own spec.md, say which of its behaviour ids (the ### B<n> headings) this supersedes, and how sprint 1's spec now reflects that.",
+        { "prompt": "A paid invoice must never appear as overdue, even when its due date is in the past — this contradicts sprint 1's implicit rule that any invoice past its due date is overdue. Add isOverdue(invoiceId) to src/ledger.mjs: it returns false once an invoice's outstanding balance reaches zero, regardless of due date, and true otherwise for a past-due invoice. Before writing code, work out which earlier approved behaviour this contradicts and deal with that properly: an approved spec that describes behaviour the code no longer has is a spec nobody can trust. Sprint 1's spec is approved and is the record of what was promised, so do not rewrite it.",
           "assert": [
             { "harness_stage_passes": "stop" },
-            { "transcript_order": ["(?i)(supersed|contradict)", "B\\d+"] },
+            { "file_matches": [".aidlc/artifacts/*/spec.md", "(?m)^supersedes:\\s*\\S+#B\\d+"] },
             { "file_matches": ["src/ledger.mjs", "isOverdue"] },
             { "behaviours_have_tests": true }
           ]

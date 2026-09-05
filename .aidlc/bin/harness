@@ -423,7 +423,11 @@ async function main() {
       // Closed changes are history. `--all` when you want the history.
       const rows = requested || has('all') ? all : all.filter((r) => !r.closed);
       const hidden = all.length - rows.length;
-      if (has('json')) { console.log(JSON.stringify({ changes: rows }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
+      // B4: a reader can tell a behaviour was superseded without reading every change that came
+      // after it. Computed from every approved spec's `supersedes:` link, not filtered by
+      // `--all` — the superseded spec's own row can be closed while the fact still matters.
+      const superseded = [...artifacts.supersededBy(cfg)];
+      if (has('json')) { console.log(JSON.stringify({ changes: rows, superseded: Object.fromEntries(superseded) }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
       // campaigns-run-unattended B1. Reaches the agent because CLAUDE.md already tells it to run
       // `harness status` and resume the first incomplete stage — no skill changes, no new
       // instruction path. Named only when the runner set the variable; a real repository never
@@ -433,13 +437,19 @@ async function main() {
       const unattendedNote = process.env.AIDLC_UNATTENDED
         ? `AIDLC_UNATTENDED is set — ${artifacts.UNATTENDED_APPROVE_NOTICE}.`
         : null;
-      if (!rows.length) { console.log(`changes  none open${hidden ? `  (${hidden} closed; --all to list)` : ''}`); if (unattendedNote) console.log(unattendedNote); return 0; }
+      if (!rows.length) {
+        console.log(`changes  none open${hidden ? `  (${hidden} closed; --all to list)` : ''}`);
+        for (const [link, by] of superseded) console.log(`  SUPERSEDED ${link} — superseded by ${by.join(', ')}`);
+        if (unattendedNote) console.log(unattendedNote);
+        return 0;
+      }
       console.log('changes\n\n  change                         next                 spec       plan');
       for (const row of rows) {
         const mark = (kind) => row.artifacts[kind]?.state ?? 'absent';
         console.log(`  ${row.slug.padEnd(30)} ${row.next.padEnd(20)} ${mark('spec').padEnd(10)} ${mark('plan')}`);
       }
       for (const row of rows) for (const issue of row.issues) console.log(`  ERROR ${row.slug}: ${issue}`);
+      for (const [link, by] of superseded) console.log(`  SUPERSEDED ${link} — superseded by ${by.join(', ')}`);
       if (hidden) console.log(`\n  ${hidden} closed change(s) not listed; --all to see them`);
       if (unattendedNote) console.log(`\n${unattendedNote}`);
       return rows.some((r) => !r.ok) ? 1 : 0;

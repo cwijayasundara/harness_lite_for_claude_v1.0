@@ -16,7 +16,7 @@ import { refresh, staleSince } from '../lib/refresh.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
 import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
-import { UNATTENDED_APPROVE_NOTICE } from '../lib/artifacts.mjs';
+import { UNATTENDED_APPROVE_NOTICE, supersededBy } from '../lib/artifacts.mjs';
 
 // In an installed project `.aidlc/bin/harness` is a bash shim; in this repository it is the
 // executable itself, and `bash` on it dies with a shell syntax error. The banner printed the
@@ -160,6 +160,14 @@ export async function dispatch(event) {
         } catch { /* no index yet: the map line would be noise, not help */ }
         if (cfg.guard?.require_contract) lines.push('contract: product file edits need a committed approved contract that owns the path');
         else lines.push('contract: scope enforcement is off; set [guard].require_contract = true for product repositories');
+
+        // B4: the same reason F7's map line is here rather than only in `status` — a fact
+        // available on request does not reach an agent that begins working immediately (F6). A
+        // superseded behaviour's spec is never edited, so nothing else at session start would
+        // ever surface it.
+        try {
+          for (const [link, by] of supersededBy(cfg)) lines.push(`superseded: ${link} — superseded by ${by.join(', ')}`);
+        } catch { /* computed from artifacts already on disk; a read failure here is not fatal */ }
 
         // campaigns-run-unattended B1. evidence.md F6: a notice that only speaks when asked
         // (`harness status`) never reached an agent that began writing immediately. SessionStart

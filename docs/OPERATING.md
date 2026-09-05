@@ -137,6 +137,19 @@ no reason is refused, because the reason is the point. Neither check applies ret
 artifact approved before this existed stays approved when read; only a fresh `approve()` call
 enforces it.
 
+## A spec can be superseded
+
+A later change may reverse a behaviour an earlier approved spec claims. Rather than editing that
+spec — which would fire `stale-approval` and re-open a gate on a change that is already merged, for
+a fact discovered by someone else — the superseding spec records `supersedes: <slug>#<behaviour-id>`
+in its own frontmatter, checked at approval time the same way any other content is: the named slug
+must exist, its spec must be approved, and the named `### B<n>` must be in it. The superseded spec
+is never touched — its `status`, `by`, `at` and `digest` all stand, because it is evidence of what
+was actually promised, and a link only takes effect once the superseding spec is itself approved.
+`harness status` and `SessionStart` both name a superseded behaviour and what superseded it, so a
+reader (or an agent that has just started a session) can tell without reading every change that
+came after.
+
 ## Provider adapter boundary
 
 The core must not pretend to deploy or monitor a product. A production installation supplies:

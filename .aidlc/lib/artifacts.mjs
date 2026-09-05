@@ -132,7 +132,7 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), an
 
   // B1 and B2: content, not just state — after every precondition above, so an existing message
   // wins when both apply. `--anyway <reason>` (B4) proceeds anyway and leaves a record.
-  const issues = contentIssues(cfg, slug, kind, body, target);
+  const issues = contentIssues(cfg, slug, kind, front, body, target);
   if (issues.length && !anyway) throw new Error(issues.join('\n'));
 
   replaceAtomic(target, render({ ...front, status: 'approved', by, at, digest: bodyDigest(text), ...(anyway ? { approved_anyway: anyway } : {}) }, body));
@@ -227,7 +227,7 @@ export function templateMarkers(kind, body) {
 // legitimately name a test it has not written yet (`a-spec-can-be-superseded`'s plan names
 // `test/supersedes.test.mjs` before that change is built). Each message names the file, what is
 // missing, and the fix (B3).
-function contentIssues(cfg, slug, kind, body, target) {
+function contentIssues(cfg, slug, kind, front, body, target) {
   const rel = path.relative(cfg.layout.root, target);
   const issues = [];
   for (const marker of templateMarkers(kind, body)) {
@@ -245,7 +245,49 @@ function contentIssues(cfg, slug, kind, body, target) {
       }
     }
   }
+  // B2: a `supersedes:` link is a claim about another artifact, checked the moment it becomes
+  // true — the named slug must exist, its spec must be approved, and the named `### B<n>` must be
+  // in it. `no-name-points-at-nothing` is the same argument for the same reason: a link to a
+  // behaviour that does not exist is a typo pointing at nothing, and it fails rather than sitting
+  // silently wrong.
+  if (kind === 'spec') {
+    for (const link of supersedesLinks(front)) {
+      const m = /^([a-z0-9](?:[a-z0-9-]{0,62}))#(B\d+)$/.exec(link);
+      if (!m) { issues.push(`${rel}: supersedes: ${link} is not shaped <slug>#<behaviour-id> — fix it before approving.`); continue; }
+      const [, namedSlug, behaviourId] = m;
+      const named = read(cfg, namedSlug, 'spec');
+      if (!named) { issues.push(`${rel}: supersedes: ${link} names ${namedSlug}, which has no spec.md — fix it before approving.`); continue; }
+      if (named.state !== 'approved') { issues.push(`${rel}: supersedes: ${link} names a spec that is not approved (${named.state}) — approve ${namedSlug}/spec.md first.`); continue; }
+      if (!behavioursOf(named.body).includes(behaviourId)) {
+        issues.push(`${rel}: supersedes: ${link} names ${behaviourId}, which does not appear in ${namedSlug}/spec.md — fix it before approving.`);
+      }
+    }
+  }
   return issues;
+}
+
+// `supersedes: <slug>#<behaviour-id>` — comma-separated for more than one link, on one line of
+// frontmatter. Kept as a plain string in `front`, the same as every other frontmatter value; this
+// is the one place it is split.
+export function supersedesLinks(front) {
+  return (front?.supersedes ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+// Who points at what. Computed, never written — the same pattern `stale-approval` already is: a
+// superseded spec's own file never changes, so this walks every *other* spec looking for a link
+// back to it, rather than storing the fact on the file being pointed at. B5: a draft supersedes
+// nothing, so only an approved superseding spec counts.
+export function supersededBy(cfg) {
+  const map = new Map();
+  for (const slug of slugs(cfg)) {
+    const spec = read(cfg, slug, 'spec');
+    if (!spec || spec.state !== 'approved') continue;
+    for (const link of supersedesLinks(spec.front)) {
+      if (!map.has(link)) map.set(link, []);
+      map.get(link).push(slug);
+    }
+  }
+  return map;
 }
 
 export function slugs(cfg) {

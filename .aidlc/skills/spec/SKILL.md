@@ -33,6 +33,11 @@ ids, so renumbering breaks the chain.
 - **Safeguards.** Security, privacy, compatibility, performance and operational invariants the
   change must not break. Name the ones this change could plausibly break, not a checklist.
 - **Entities.** Only if the domain has words the reader would otherwise guess at.
+- **Supersedes.** If a behaviour here reverses one an earlier approved spec claims, say so instead
+  of writing around it: `supersedes: <slug>#<behaviour-id>` in this file's frontmatter,
+  comma-separated for more than one. The named spec is never edited — its approval, its digest,
+  its file all stand — and the link only takes effect once this spec is itself approved.
+  `harness status` and `SessionStart` name it from there.
 
 Structured prompt-driven development calls these Requirements, Entities, Approach, Structure,
 Operations, Norms and Safeguards. Four of those live here; Approach, Structure and Operations are
