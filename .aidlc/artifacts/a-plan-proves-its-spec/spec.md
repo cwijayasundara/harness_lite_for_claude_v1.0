@@ -80,6 +80,28 @@ When it is read,
 Then it stays approved. This check applies at the moment of approval, and re-approving is a human's
 decision, not a migration's.
 
+### B7 — a promise made at approval is checked when it comes due
+
+Given a change whose plan is approved,
+When `harness check --stage commit` runs,
+Then every Proof row that names a test file must name one that exists, and the check fails naming
+those that do not.
+
+**Added 2026-09-05, after `evidence.md` F25.** B2 asserts presence of a row and nothing more,
+deliberately, because a plan legitimately names a test it has not written yet. The campaign
+confirmed that reasoning and then showed its cost: `campaign-legacy`'s agent wrote a plan naming
+`tests/test_reports.py` for three behaviours, had it approved, and never created the file. Before
+this change the same campaign failed because the agent promised nothing; now it promises something
+and nothing checks the promise was kept.
+
+The asymmetry is the point. Approval is the wrong moment to ask — the answer is unknowable then.
+`--stage commit` on an approved change is the right one, because by then the answer exists. This
+behaviour is where B2's deferred question gets asked.
+
+Identifier resolution stays out of it: the file must exist, not the named test within it. That is
+the same bar `behavioursHaveTests` already applies, and F11 and F15 say no agent writes a row
+naming a resolvable identifier.
+
 ## Out of scope
 
 - **Requiring a proof row to name a resolvable test.** F11 and F15 say no agent writes that shape

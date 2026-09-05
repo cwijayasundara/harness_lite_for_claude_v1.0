@@ -51,6 +51,7 @@ and F16 is the change that decides what happens to them.
 - `.aidlc/bin/harness`
 - `evals/lib/campaign.mjs`
 - `test/gate-content.test.mjs`
+- `.aidlc/checks/scope-drift.mjs`
 - `test/lifecycle-cli.test.mjs`
 - `test/autogate.test.mjs`
 - `.aidlc/artifacts/a-plan-proves-its-spec/`
@@ -75,8 +76,12 @@ and F16 is the change that decides what happens to them.
 8. B5: run the check across every reachable artifact, record the result in
    `.aidlc/artifacts/a-plan-proves-its-spec/`, and edit nothing to make it pass.
 9. B6: a test that an artifact approved before this change still reads `approved`.
-10. `docs/OPERATING.md` — one paragraph: the two refusals, the override, and that neither applies
-    retroactively.
+10. `docs/OPERATING.md` — one paragraph: the two refusals, the override, that neither applies
+    retroactively, and B7's commit-time check.
+12. B7 — the commit-time half. For every change whose plan is approved, each Proof row naming a test
+    file must name one that exists. `proofRowsOf` and the test-file recognition already exist; the
+    check reports the change, the behaviour id and the missing path. It runs at `--stage commit`,
+    where the answer is knowable, and never at approval, where it is not.
 11. `test/lifecycle-cli.test.mjs` and `test/autogate.test.mjs` — eight fixtures build themselves with
     `harness new` and approve the result untouched, so B1 correctly refuses them. Give each fixture
     minimal real content before it is committed. **No assertion may change**: these tests exercise
@@ -93,3 +98,4 @@ and F16 is the change that decides what happens to them.
 | B4 | `test/gate-content.test.mjs` — `--anyway <reason>` records `approved_anyway:`; `--anyway` without a reason is refused |
 | B5 | the corpus run recorded in `.aidlc/artifacts/a-plan-proves-its-spec/`, with no artifact edited to pass |
 | B6 | `test/gate-content.test.mjs` — an artifact approved before the change still reads `approved` |
+| B7 | `test/gate-content.test.mjs` — an approved plan naming a test file that does not exist fails `--stage commit`, naming it; one naming a file that exists passes |
