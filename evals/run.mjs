@@ -157,6 +157,16 @@ function invokerFatal(out) {
   return null;
 }
 
+// A run the timeout killed before the model produced anything is ungraded, for the same reason an
+// exhausted one is: there is no run to grade. `evidence.md` F27 — `campaign-legacy` spent 900
+// seconds producing zero tokens and was recorded `fail` on assertions it never reached, which
+// accuses the agent of missing work it was never given the chance to do. A timeout *after* output
+// is still graded: partial work is work, and the transcript is there to read.
+const ungradable = (out) =>
+  out.timedOut && !(out.usage?.output_tokens > 0)
+    ? { reason: 'timed_out', detail: 'the timeout fired before the model produced any output' }
+    : null;
+
 async function runAttempt(t, invoke, s, harnessBin, baseline) {
   if (!t.steps) {
     const out = await invoke({ prompt: t.prompt, cwd: s.work, timeoutMs: t.timeoutMs, budgetUsd: t.budgetUsd, task: t });
@@ -164,7 +174,8 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
     if (fatal) throw fatal;
     // A run that never produced model output cannot be graded. Grading it anyway is how budget
     // exhaustion got reported as model failure twice on 2026-09-02.
-    if (out.incomplete) return { assertions: [], usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: '', incomplete: out.incomplete };
+    const stalled = out.incomplete ?? ungradable(out);
+    if (stalled) return { assertions: [], usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: '', incomplete: stalled };
     const ctx = { work: s.work, pristine: s.pristine, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
     return { assertions: evaluate(ctx, t.assert), usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: out.transcript ?? '', incomplete: null };
   }
@@ -187,7 +198,8 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
     };
     timedOut = timedOut || !!out.timedOut;
     // A step that ran out of budget stops the task, and the task is ungraded rather than failed.
-    if (out.incomplete) { incomplete = { ...out.incomplete, step: idx }; break; }
+    const stalled = out.incomplete ?? ungradable(out);
+    if (stalled) { incomplete = { ...stalled, step: idx }; break; }
     transcript = [transcript, out.transcript ?? ''].filter(Boolean).join('\n');
     const ctx = { work: s.work, pristine: s.pristine, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
     const stepAsserts = evaluate(ctx, step.assert ?? []);

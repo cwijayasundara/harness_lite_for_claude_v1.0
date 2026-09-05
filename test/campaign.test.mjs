@@ -390,3 +390,43 @@ test('CHECKS registers unseen_requirements and it reads ctx.work', () => {
     assert.equal(r.pass, true);
   } finally { d.cleanup(); }
 });
+
+// evidence.md F27. campaign-legacy spent 900 seconds producing zero tokens, was killed by the
+// timeout, and was recorded `fail` on two assertions its step never reached — accusing the agent
+// of missing a function it was never given the chance to write. `evolving-scope`'s safeguard is
+// explicit: a campaign that cannot reach a model is inconclusive, never a verdict it did not earn.
+test('a step the timeout killed before any output is inconclusive, not fail', async () => {
+  const out = await runSuite({
+    tasks: [{
+      id: 'stalled', fixture: 'clean-app', timeoutMs: 1, budgetUsd: 1, repeats: 1,
+      steps: [
+        { prompt: 'one', assert: [{ workdir_unchanged: true }] },
+        { prompt: 'two', assert: [{ workdir_unchanged: true }] },
+      ],
+    }],
+    // Step one answers normally; step two is killed with nothing to show for it.
+    invoke: async ({ step }) => (step === 0
+      ? { transcript: 'did the work', usage: { usd: 0.01, output_tokens: 40 } }
+      : { transcript: '', usage: { usd: 0, output_tokens: 0 }, timedOut: true }),
+    fixturesDir: FIXTURES, harnessBin: HARNESS,
+  });
+  assert.equal(out.results[0].verdict, 'inconclusive', 'a step that never ran is not a failure');
+  assert.equal(out.results[0].runs[0].incomplete.reason, 'timed_out');
+  assert.equal(out.results[0].runs[0].incomplete.step, 1, 'names the step that stalled');
+  assert.equal(out.summary.fail, 0);
+});
+
+// The other half, and the reason the guard is narrow: a timeout that arrives after the model has
+// worked is still graded. Partial work is work, and the transcript is there to read.
+test('a step that timed out after producing output is still graded', async () => {
+  const out = await runSuite({
+    tasks: [{
+      id: 'slow-but-real', fixture: 'clean-app', timeoutMs: 1, budgetUsd: 1, repeats: 1,
+      steps: [{ prompt: 'one', assert: [{ transcript_matches: 'ledger' }] }],
+    }],
+    invoke: async () => ({ transcript: 'wrote the ledger', usage: { usd: 0.2, output_tokens: 90 }, timedOut: true }),
+    fixturesDir: FIXTURES, harnessBin: HARNESS,
+  });
+  assert.equal(out.results[0].runs[0].incomplete, null);
+  assert.equal(out.results[0].verdict, 'pass');
+});
