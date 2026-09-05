@@ -94,3 +94,46 @@ apart from the re-baseline run.
 
 Steps 1 and 2 are what "the integration test completes in under thirty minutes" requires. Everything
 after is maintenance.
+
+---
+
+## Integration test, first run under the P1 fixes — 2026-09-05
+
+**10 minutes 39 seconds, $0.92, unattended.** The thirty-minute requirement is met with two thirds
+to spare.
+
+| campaign | result | cost |
+|---|---|---:|
+| `campaign-ledger` | fail at sprint 2 of 3 | $0.229 |
+| `campaign-legacy` | **pass**, both sprints | $0.689 |
+
+`campaign-legacy` passing is the first fully green campaign in the project. Two sprints, four
+artifacts self-approved, brownfield adoption from a repository with no artifacts, every assertion
+green — including `behaviours_have_tests`, which failed on the previous run and is the defect
+`a-plan-proves-its-spec` was built to fix. The content gate works end to end.
+
+## F23 — the unattended notice covers approvals, not questions
+
+**Component: `UNATTENDED_APPROVE_NOTICE` in `.aidlc/lib/artifacts.mjs`, surfaced at `SessionStart`.**
+
+`campaign-ledger` sprint 2 ended with:
+
+> Intent created. I have one clarifying question before we move to the spec: **Should
+> `recordPayment` allow overpayment?** ... What behavior makes sense for your use case?
+
+Sprint 1 passed everything. Sprint 2 kept `stop` green and left sprint 1's tests intact
+(`modified_not_replaced` passed), then stopped to ask a question nobody would answer, so
+`test_partial_payment_reduces_balance` was never written.
+
+This is F1 exactly — an agent waiting for a human who is not there — reached by a route the fix did
+not cover. The notice says the run has no human *and therefore the agent approves its own gates*.
+It does not say what to do about a genuine ambiguity in the requirement. Approval was the only
+human interaction anyone thought to name.
+
+The fix is one sentence in the same notice: there is no human to answer questions either, so decide,
+record the decision in the spec, and proceed. That is also better practice than asking — a recorded
+decision is reviewable and a question in a transcript is not.
+
+Worth noting what it is *not*. The agent did nothing wrong twice over: the question was a good one,
+and it declined to guess silently. Both are the behaviour you want from an agent that has a human.
+The harness simply never told it that it did not.
