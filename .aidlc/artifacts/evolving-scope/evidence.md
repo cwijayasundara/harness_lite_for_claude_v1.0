@@ -779,3 +779,52 @@ by the change being made?*
 That second question needs a notion of which change a diff belongs to, which the harness does not
 have. It is the same gap F10 named and it is worth one change of its own, not a guess bolted onto
 this one.
+
+---
+
+## 2026-09-05, `campaign-ledger` — B5 holds. Supersession is recorded
+
+Thirteen assertions, twelve green, $0.52. **Assertion 11 — the `supersedes:` link — passed.**
+
+Sprint 1 established `isOverdue(invoiceId)` as "true when the due date has passed" and had it
+approved. Sprint 3 reversed it. The agent found the contradiction, identified the behaviour by id,
+and wrote `supersedes: <slug>#B<n>` into its own spec's frontmatter without editing sprint 1's.
+
+`evolving-scope` B5 — "a contradiction is surfaced, not absorbed" — holds for the first time, and
+so does the claim the intent opened with: *"when sprint two supersedes a behaviour approved in
+sprint one, nothing records it."* Something records it now.
+
+Worth stating what it took, because the sequence is the lesson. B5 could not be measured until F24
+was fixed — the campaign had asserted a contradiction sprint 1 never created, and two agents
+correctly refused to invent one. The mechanism could not be reached until F6 and F7 put it where an
+agent would meet it. The run could not get past sprint 1 until F1 and F23 stopped it waiting for a
+human. Five findings stood between the question and its answer, and none of them was the thing the
+change set out to study.
+
+## F26 — the content gate refused sprint 3's plan, and the sprint continued anyway
+
+**Component: `require_contract` and `## Files` ownership. F10, third instance.**
+
+The unattended approvals for this run are `invoicing-ledger/spec.md`,
+`invoicing-ledger/plan.md`, `paid-invoice-never-overdue/spec.md`, `partial-payments/spec.md`,
+`partial-payments/plan.md`. Sprint 3's **plan is missing** — it was refused, correctly, by
+`a-plan-proves-its-spec` B2, because its spec claims B1–B4 and its Proof table names rows for only
+B1. `behaviours_have_tests` then reported exactly that at the end of the run.
+
+So the gate did its job. The sprint then wrote `isOverdue` into `src/ledger.mjs` anyway and finished
+with `stop` green.
+
+It could, because `partial-payments`'s approved plan owns `src/ledger.mjs`. `require_contract` asks
+whether *an* approved plan owns the path, and one did — sprint 2's. The change actually being made
+had no approved plan at all, and nothing noticed.
+
+This is the third instance of one gap. F10: sprint 3 changed product behaviour under sprint 2's
+contract. F10's second instance: a generator edited `.aidlc/lib/eval-gate.mjs` under `lean-v2`'s
+contract, two days after that change finished. Now: a plan refused at the gate, and the work
+proceeding under a different plan's ownership.
+
+The pattern is sharp enough to design against. Ownership answers *is this path claimed?* The
+question worth asking is *is this path claimed by the change being made?* — and the harness has no
+notion of which change a diff belongs to, so it cannot ask. Three instances, three different
+mechanisms, one missing concept. That earns its own change, and it is now the most valuable one
+left.
