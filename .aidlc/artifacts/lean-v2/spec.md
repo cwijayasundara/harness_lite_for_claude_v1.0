@@ -192,12 +192,31 @@ regressed, and the run's single result file replaces the committed one. Other PR
 
 **the example app goes through the harness**
 
-Given a sibling repository `dunning` created by `harness init --into`,
-When features F1 to F8 (below) are delivered over three sprints,
-Then each has the three artifacts approved by the owner, a review.md from the evaluator, and a
-ledger; `harness status` in that repository shows cost per feature by model; and the harness
-repository's next intent after this contract cites a defect or false block recorded in the
-`dunning` ledger.
+Given the campaign suite in `evals/`,
+When `campaign-ledger` (three sprints, greenfield becoming brownfield) and `campaign-legacy` (two
+sprints, brownfield adoption) run unattended,
+Then both complete inside thirty minutes for under five dollars, and the harness repository's next
+intent cites a defect recorded by that run.
+
+**Amended 2026-09-05, authorised by the owner.** This behaviour previously required eight features
+delivered in the `dunning` application over three sprints, each artifact approved by hand. Two
+things changed since it was written.
+
+The campaigns did not exist. They now do, and they are measured: `campaign-ledger` is three sprints
+in nine minutes for $0.95, `campaign-legacy` two sprints in six minutes for $0.85. Five sprints
+across a greenfield and a brownfield codebase, unattended, in fifteen minutes. That is the
+integration test this behaviour was reaching for, and `dunning` at eight features could not be run
+in an afternoon, let alone half an hour.
+
+And its purpose is already served. The clause that mattered was the last one — that the next control
+come from real work rather than self-inspection, which is Law 11 in behaviour form. Twenty-two
+findings now stand in `.aidlc/artifacts/evolving-scope/evidence.md`, every one from running the
+harness. `dunning` F1 contributed two of them and remains valuable as an application; it is no
+longer the gate.
+
+Approvals in a campaign are stamped `unattended-eval-run`, not a person's name, and that is
+deliberate: the artifacts record honestly that no human approved them. The owner's approval is of
+the *suite*, once, rather than of each artifact it produces.
 
 ## Out of scope
 
