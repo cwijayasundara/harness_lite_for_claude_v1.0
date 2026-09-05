@@ -1,8 +1,8 @@
 ---
 status: approved
 by: cwijayasundara
-at: 2026-09-04T17:24:21.220Z
-digest: sha256:e35c3b4efd92b4390d33434327b72f7678e6017c860180ee4f6a37dae90a3b2b
+at: 2026-09-05T04:14:16.842Z
+digest: sha256:705588f5714938d902df87495a87c1da7d0e4ac52103e0022e7f9fe2fd8628e0
 ---
 # Spec: a-plan-proves-its-spec
 
