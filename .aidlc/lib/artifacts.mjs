@@ -16,11 +16,17 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const KINDS = ['intent', 'spec', 'plan', 'review'];
 export const GATED = ['spec', 'plan'];
 
 const hash = (value) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+
+// Templates live one directory up from this file, wherever the harness that resolved this module
+// actually is — a checkout, or a plugin cache entry. Never a project's own `.aidlc/`, which only
+// ever holds `harness.toml`, the generated shim and the install record.
+const TEMPLATES_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'templates');
 
 // Frontmatter is a small fixed set of scalar keys. A YAML parser would be a dependency, and the
 // only shapes this has to read are the ones `approve` writes.
@@ -84,8 +90,12 @@ export function create(cfg, slug, templates) {
 // The one approval verb. It replaces `contract accept`, `contract seal --scope spec`,
 // `contract seal --scope plan` and `contract evidence` — four commands and, because each seal
 // demanded a commit before the next, four commits for one decision.
-export function approve(cfg, slug, kind, { by, at = new Date().toISOString() } = {}) {
+export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), anyway = null } = {}) {
   if (!GATED.includes(kind)) throw new Error(`only ${GATED.join(' and ')} are approved; ${kind} is not a gate`);
+  // B4: a flag with no reason is refused — the reason is the point, not the flag.
+  if (anyway !== null && anyway !== undefined && (typeof anyway !== 'string' || !anyway.trim())) {
+    throw new Error('--anyway needs a reason: --anyway "<why this is fine here>"');
+  }
 
   // Unattended eval runs. The identity is forced, not defaulted — an agent that can choose its
   // own approver name can write a person's, and a campaign result must never be readable as
@@ -119,7 +129,13 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString() } =
 
   const text = readFileSync(target, 'utf8');
   const { front, body } = parse(text);
-  replaceAtomic(target, render({ ...front, status: 'approved', by, at, digest: bodyDigest(text) }, body));
+
+  // B1 and B2: content, not just state — after every precondition above, so an existing message
+  // wins when both apply. `--anyway <reason>` (B4) proceeds anyway and leaves a record.
+  const issues = contentIssues(cfg, slug, kind, body, target);
+  if (issues.length && !anyway) throw new Error(issues.join('\n'));
+
+  replaceAtomic(target, render({ ...front, status: 'approved', by, at, digest: bodyDigest(text), ...(anyway ? { approved_anyway: anyway } : {}) }, body));
   return { file: target, digest: bodyDigest(text), discardedBy };
 }
 
@@ -156,8 +172,80 @@ export function ownedFiles(body) {
   return [...section.matchAll(/`([^`]+)`/g)].map((m) => m[1].trim()).filter(Boolean);
 }
 
-export function behaviourIds(body) {
+export function behavioursOf(body) {
   return [...body.matchAll(/^### (B\d+)\b/gm)].map((m) => m[1]);
+}
+
+// One row per behaviour, keyed by id, evidence text verbatim. The same parser
+// `evals/lib/campaign.mjs`'s `behavioursHaveTests` used to keep a private copy of — moved here so
+// `approve()` can reach it too, and so there is one parser instead of two silently drifting apart.
+export function proofRowsOf(planBody) {
+  const rows = new Map();
+  for (const line of planBody.split('\n')) {
+    const m = line.match(/^\|\s*(B\d+)\s*\|\s*(.+?)\s*\|\s*$/);
+    if (m) rows.set(m[1], m[2]);
+  }
+  return rows;
+}
+
+// The body of one `### <heading>` section — up to the next `##` or `###` heading, or the end of
+// the text. Shared by `templateMarkers` to compare a real behaviour against the scaffold's.
+function headingBody(text, heading) {
+  const re = new RegExp(`^### ${heading}\\b.*$([\\s\\S]*?)(?=^### |^## |(?![\\s\\S]))`, 'm');
+  return (re.exec(text)?.[1] ?? '').trim();
+}
+
+// B1: a template is not an artifact. Read from `.aidlc/templates/`, never hard-coded — `harness
+// new` writes those files, so this recognises its own output rather than guessing at prose, and a
+// template edited later cannot drift away from the checker (review `1ace6a8`, Nit 2, caught two
+// hand-copied strings doing exactly that inside one week). Two shapes: an angle-bracket
+// placeholder, verbatim, and a `### B<n>` whose body is still the scaffold's bare
+// `Given ... / When ... / Then ...`. Returns the markers actually found in `body`, so a caller can
+// name them in a refusal.
+export function templateMarkers(kind, body) {
+  const templatePath = path.join(TEMPLATES_DIR, `${kind}.md`);
+  if (!existsSync(templatePath)) return [];
+  const templateText = readFileSync(templatePath, 'utf8');
+  const found = [];
+  for (const placeholder of new Set([...templateText.matchAll(/<[^<>]+>/g)].map((m) => m[0]))) {
+    if (body.includes(placeholder)) found.push(placeholder);
+  }
+  const bareBehaviour = headingBody(templateText, 'B1');
+  if (bareBehaviour) {
+    for (const id of behavioursOf(body)) {
+      if (headingBody(body, id) === bareBehaviour) {
+        found.push(`### ${id} is still the scaffold's bare "${bareBehaviour.replace(/\n+/g, ' / ')}"`);
+      }
+    }
+  }
+  return found;
+}
+
+// B1 and B2, together: what an approval refuses about an artifact's *content*, as opposed to its
+// *state* above. Presence only for B2 — F11 and F15 record that every plan an agent has written
+// unprompted proves its behaviours with prose rather than a resolvable test, and a plan may
+// legitimately name a test it has not written yet (`a-spec-can-be-superseded`'s plan names
+// `test/supersedes.test.mjs` before that change is built). Each message names the file, what is
+// missing, and the fix (B3).
+function contentIssues(cfg, slug, kind, body, target) {
+  const rel = path.relative(cfg.layout.root, target);
+  const issues = [];
+  for (const marker of templateMarkers(kind, body)) {
+    issues.push(marker.startsWith('###')
+      ? `${rel}: ${marker} — replace it with the real behaviour before approving.`
+      : `${rel} still carries the scaffold's placeholder ${marker} — replace it with real content before approving.`);
+  }
+  if (kind === 'plan') {
+    const spec = read(cfg, slug, 'spec');
+    if (spec) {
+      const proof = proofRowsOf(body);
+      const missing = behavioursOf(spec.body).filter((id) => !proof.has(id));
+      if (missing.length) {
+        issues.push(`${rel}'s Proof table names no row for ${missing.join(', ')} — add one row per behaviour to its ## Proof table before approving.`);
+      }
+    }
+  }
+  return issues;
 }
 
 export function slugs(cfg) {

@@ -96,5 +96,17 @@ decision, not a migration's.
 - No new skill, no new hook binding. Skills are 7/7 and bindings 4/5.
 - The template markers must come from `.aidlc/templates/`, not be hand-copied into a checker. Two
   copies of the same string drift — review `1ace6a8` Nit 2 caught exactly that this week.
-- `test/lifecycle-cli.test.mjs`'s existing approval tests are the regression suite and must pass
-  unchanged, or the change has moved the gate rather than tightened it.
+- The existing approval tests are the regression suite, and **no assertion in them may change**. If
+  one has to be weakened, the gate has moved rather than tightened and the change is wrong.
+
+  **Amended 2026-09-05, during implementation.** This safeguard originally said those tests must
+  "pass unchanged", and named only `test/lifecycle-cli.test.mjs`. Implementing B1 showed both halves
+  to be wrong. Eight tests break — two there and six in `test/autogate.test.mjs`, which the spec
+  never mentioned — because every one of them builds its fixture with `harness new` and approves the
+  result *untouched*. They test state logic: uncommitted, plan-before-spec, `stale-approval`, and the
+  whole unattended mechanism. B1 refuses a bare scaffold, which is exactly what those fixtures are.
+
+  So the fixtures must gain content while every assertion stays identical. That is the line that
+  matters and it is the line this safeguard now draws. Note what the breakage says about F17: the
+  harness's own suite approves unedited scaffolds in eight places, which is why nobody noticed that
+  `approve` accepts them until a human approved one by hand.

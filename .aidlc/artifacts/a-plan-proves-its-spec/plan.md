@@ -51,6 +51,8 @@ and F16 is the change that decides what happens to them.
 - `.aidlc/bin/harness`
 - `evals/lib/campaign.mjs`
 - `test/gate-content.test.mjs`
+- `test/lifecycle-cli.test.mjs`
+- `test/autogate.test.mjs`
 - `.aidlc/artifacts/a-plan-proves-its-spec/`
 - `docs/OPERATING.md`
 
@@ -75,6 +77,11 @@ and F16 is the change that decides what happens to them.
 9. B6: a test that an artifact approved before this change still reads `approved`.
 10. `docs/OPERATING.md` — one paragraph: the two refusals, the override, and that neither applies
     retroactively.
+11. `test/lifecycle-cli.test.mjs` and `test/autogate.test.mjs` — eight fixtures build themselves with
+    `harness new` and approve the result untouched, so B1 correctly refuses them. Give each fixture
+    minimal real content before it is committed. **No assertion may change**: these tests exercise
+    state logic and must go on exercising exactly that. If making one pass needs its assertion
+    altered, stop — that would mean B1 is wrong, not the test.
 
 ## Proof
 

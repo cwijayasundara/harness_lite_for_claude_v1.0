@@ -402,9 +402,12 @@ async function main() {
       const cfg = loadConfig(findRepoRoot());
       const slug = argv[1]; const kind = argv[2];
       const by = flag('by', process.env.HARNESS_ACTOR);
-      if (!validSlug(slug) || !artifacts.GATED.includes(kind)) { console.error(`usage: harness approve <slug> ${artifacts.GATED.join('|')} --by <identity>`); return 2; }
+      // B4: `--anyway` with no value at all (boolean flag()) becomes '', not null, so
+      // artifacts.approve() sees an empty reason and refuses it rather than silently ignoring it.
+      const anyway = has('anyway') ? (typeof flag('anyway') === 'string' ? flag('anyway') : '') : null;
+      if (!validSlug(slug) || !artifacts.GATED.includes(kind)) { console.error(`usage: harness approve <slug> ${artifacts.GATED.join('|')} --by <identity> [--anyway <reason>]`); return 2; }
       try {
-        const result = artifacts.approve(cfg, slug, kind, { by: typeof by === 'string' ? by : null });
+        const result = artifacts.approve(cfg, slug, kind, { by: typeof by === 'string' ? by : null, anyway });
         // review `1ace6a8` (Important 3): loud at the moment of substitution, not only in the
         // file afterwards — a person whose --by got discarded must be told, not just a machine.
         if (result.discardedBy) console.error(`AIDLC_UNATTENDED is set: your --by "${result.discardedBy}" was discarded — the identity is forced to unattended-eval-run`);
