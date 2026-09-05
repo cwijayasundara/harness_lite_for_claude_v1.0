@@ -655,3 +655,47 @@ followed teaches people to stop reading its suggestions.
 
 `--stage stop` does not run `scope-drift`, so it never blocked the work — which is why it survived
 to be found by someone running the commit stage out of curiosity.
+
+---
+
+## F24 — the campaign asserts a contradiction its own sprint 1 never creates
+
+**Breaks `evolving-scope` B5, which has therefore never been testable. Component: `campaign-ledger`
+sprint 1's prompt in `evals/tasks.json`.**
+
+Sprint 3's prompt says the new requirement "contradicts sprint 1's implicit rule that any invoice
+past its due date is overdue". Sprint 1's prompt asks for `addCustomer`, `addInvoice` and
+`outstandingBalance`, and says nothing about overdue at all. The spec the agent wrote and had
+approved has four behaviours — add a customer, record an invoice, refuse an unknown customer, sum
+outstanding — and not one of them gives the due date any meaning.
+
+So there is no approved behaviour for sprint 3 to reverse. The contradiction lives in a sentence
+about the artifacts rather than in the artifacts.
+
+The agent got this right, and said so in its own words, having invented a `note:` frontmatter field
+to say it in:
+
+> Expands scope of ledger-core which marked "invoice aging" as out-of-scope. This is an intentional
+> scope expansion, **not a contradiction** of ledger-core's deliverables (B1-B4 remain unchanged).
+
+It declined to record a `supersedes:` link because there was nothing to supersede. That is the
+correct call, and it means B5 has been measuring nothing since the day it was written: the campaign
+was designed assuming sprint 1 would establish an overdue rule, and sprint 1 was never asked for one.
+
+Two things follow.
+
+**The fixture needs sprint 1 to actually claim the rule.** Its prompt must require something like
+"an invoice whose due date has passed is overdue", so sprint 3 genuinely reverses an approved
+behaviour and there is a real supersession to record or to miss.
+
+**F9 needs re-reading in this light.** The earlier run's agent called the same non-contradiction
+"evolves" and was marked down for reconciliation vocabulary. It was probably also right, for the
+same reason, and the finding overstated the case. What F9 correctly recorded is that the harness had
+nowhere to record a supersession; what it wrongly implied is that this agent should have recorded
+one. Corrected here rather than left standing.
+
+**The invented `note:` field is the useful signal.** The agent wanted to record a relationship
+between two changes and reached for an ad-hoc frontmatter key when the documented one did not fit
+its situation. That the instinct exists is evidence the mechanism is wanted; that it needed a field
+`supersedes:` does not cover suggests supersession is one case of something broader, which is worth
+knowing before designing more of it.
