@@ -699,3 +699,52 @@ between two changes and reached for an ad-hoc frontmatter key when the documente
 its situation. That the instinct exists is evidence the mechanism is wanted; that it needed a field
 `supersedes:` does not cover suggests supersession is one case of something broader, which is worth
 knowing before designing more of it.
+
+---
+
+## Integration test, 2026-09-05 — 17m02s, $1.66, both campaigns run every sprint
+
+`campaign-ledger` reached sprint 3 with **three slug directories and six self-approved artifacts**,
+one change per sprint. The previous run created no change for sprint 3 and wrote `isOverdue` under
+sprint 2's contract — F10. That is resolved, as is F23: no agent stopped to ask a question.
+
+Both campaigns still fail, and the two failures are different in kind.
+
+`campaign-ledger` fails only on the `supersedes:` assertion, which **F24 shows is unmeasurable** —
+sprint 1 never claims the rule sprint 3 is said to contradict. Not a defect in the harness or the
+agent; the fixture asserts a conflict it never creates.
+
+## F25 — a plan's promise is checked when it is made and never when it comes due
+
+**Component: the gap between `a-plan-proves-its-spec` B2 and implementation. Breaks
+`evolving-scope` B6.**
+
+`campaign-legacy` sprint 2 failed with:
+
+```
+member-report B1: proof file "tests/test_reports.py" does not exist
+member-report B2: proof file "tests/test_reports.py" does not exist
+member-report B3: proof file "tests/test_reports.py" does not exist
+```
+
+The agent wrote a plan naming `tests/test_reports.py` for three behaviours, had it approved, and
+never created the file.
+
+This is our own change one step from finished, and the campaign found the step. Before
+`a-plan-proves-its-spec`, the same campaign failed with "plan.md's Proof table names no row" — the
+agent promised nothing. Now the gate requires a row, so the agent promises something, and nothing
+checks the promise was kept. We converted *no promise* into *an unkept promise*, which is better —
+an unkept promise is detectable — and it is not yet the thing we wanted.
+
+The asymmetry is the finding. B2 deliberately asserts presence only at approval time, because a plan
+legitimately names a test it has not written yet. That reasoning is sound and this run confirms it:
+the file did not exist at approval and could not have. But nothing revisits the question at the
+moment the answer is knowable — when the change is complete and `--stage commit` runs.
+
+The fix belongs at commit, not at approval: for a change whose plan is approved, every Proof row
+naming a test file must name one that exists. Cheap, mechanical, and the parsers are already in
+`.aidlc/lib/artifacts.mjs`. It is the second half of a change that shipped with only its first.
+
+Worth stating plainly: an integration test that reports this is working. The campaign is grading
+whether the harness steers an agent to keep its own artifacts true, and it caught the harness not
+asking.
