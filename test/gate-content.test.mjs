@@ -5,7 +5,7 @@
 // claims.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -194,5 +194,48 @@ test('an artifact approved before this change still reads approved', () => {
     assert.doesNotMatch(result.stdout, /stale-approval/);
     const front = readFileSync(specPath(root, 'pre-existing'), 'utf8');
     assert.match(front, /^status: approved$/m);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// B7 (evidence.md F25). B2 asserts presence of a Proof row only, because a plan may legitimately
+// name a test it has not written yet. This is that promise checked at the moment the answer is
+// knowable — `check --stage commit` — never at approval.
+test('check --stage commit fails when an approved plan\'s proof row names a test file that does not exist', () => {
+  const root = repo();
+  try {
+    assert.equal(run(root, 'new', 'unkept-promise').status, 0);
+    writeFileSync(specPath(root, 'unkept-promise'), realSpec(['B1']));
+    writeFileSync(planPath(root, 'unkept-promise'), realPlan({ B1: '`test/unkept-promise.test.mjs` — the test this behaviour will be proved by' }));
+    commit(root, 'unkept-promise drafted');
+    assert.equal(run(root, 'approve', 'unkept-promise', 'spec', '--by', 'tester').status, 0);
+    commit(root, 'spec approved');
+    assert.equal(run(root, 'approve', 'unkept-promise', 'plan', '--by', 'tester').status, 0);
+    commit(root, 'plan approved');
+    assert.equal(existsSync(path.join(root, 'test/unkept-promise.test.mjs')), false, 'the promised test was never written');
+
+    const result = run(root, 'check', '--stage', 'commit');
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stdout, /unkept-promise/);
+    assert.match(result.stdout, /B1/);
+    assert.match(result.stdout, /test\/unkept-promise\.test\.mjs/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('check --stage commit passes once the promised test file exists', () => {
+  const root = repo();
+  try {
+    assert.equal(run(root, 'new', 'kept-promise').status, 0);
+    writeFileSync(specPath(root, 'kept-promise'), realSpec(['B1']));
+    writeFileSync(planPath(root, 'kept-promise'), realPlan({ B1: '`test/kept-promise.test.mjs` — the test this behaviour is proved by' }));
+    mkdirSync(path.join(root, 'test'), { recursive: true });
+    writeFileSync(path.join(root, 'test/kept-promise.test.mjs'), "import { test } from 'node:test';\ntest('kept-promise', () => {});\n");
+    commit(root, 'kept-promise drafted, with its test');
+    assert.equal(run(root, 'approve', 'kept-promise', 'spec', '--by', 'tester').status, 0);
+    commit(root, 'spec approved');
+    assert.equal(run(root, 'approve', 'kept-promise', 'plan', '--by', 'tester').status, 0);
+    commit(root, 'plan approved');
+
+    const result = run(root, 'check', '--stage', 'commit');
+    assert.equal(result.status, 0, result.stdout + result.stderr);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

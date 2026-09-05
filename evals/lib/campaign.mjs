@@ -4,7 +4,7 @@
 // File-and-text checks over a staged directory, deterministic, no model, no spend.
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
-import { behavioursOf, proofRowsOf } from '../../.aidlc/lib/artifacts.mjs';
+import { behavioursOf, proofRowsOf, testRowIn } from '../../.aidlc/lib/artifacts.mjs';
 
 // Shared with evals/lib/assertions.mjs's diffTrees, rather than each keeping its own copy that
 // can silently drift apart — this one added node_modules and assertions.mjs's did not, until it
@@ -60,45 +60,9 @@ function frontmatterStatus(text) {
   return s ? s[1] : null;
 }
 
-// A path this check can go verify: it looks like a test file either by basename convention
-// (`test_*.py`, `*.test.mjs`, `*.spec.ts`, `*_test.go`, `*_spec.rb`, `FooTest.java`,
-// `FooTests.cs`, `conftest.py`, ...) or by living directly under a directory conventionally named
-// for tests (`tests/`, `test/`, `spec/`, `specs/`, `__tests__/`) regardless of its own filename —
-// this repository's own Proof rows lean on the directory alone (`tests/test_app.py` reads as a
-// test because of `test_app.py`, but plenty of real-world projects would write `tests/ledger.mjs`
-// with no test-shaped basename at all. Widened as far as this check can defend without guessing
-// at conventions nobody around here has used; a path this still misses is not silently dropped —
-// it comes back as "unverifiable" (see below), and the CHECKS adapter surfaces that in the
-// assertion's detail, so an unrecognised row is visible rather than silently ungraded.
-const TEST_BASENAME = [
-  /^test[_.].+\.\w+$/i, // test_foo.py, test.foo.mjs
-  /\.(test|spec)\.\w+$/i, // foo.test.mjs, foo.spec.ts
-  /[_-](test|spec)s?\.\w+$/i, // foo_test.py, foo-spec.rb, foo_tests.py
-  /(Test|Tests)\.\w+$/, // FooTest.java, FooTests.cs — case-sensitive, that casing IS the convention
-  /^conftest\.py$/i,
-];
-const TEST_DIR_SEGMENT = /^(tests?|specs?|__tests__)$/i;
-
-function looksLikeTestFile(candidate) {
-  const parts = candidate.split('/');
-  const base = parts.pop() || '';
-  if (TEST_BASENAME.some((re) => re.test(base))) return true;
-  return parts.some((seg) => TEST_DIR_SEGMENT.test(seg));
-}
-
-// The plan skill's own example, and the one real place in this repository that follows it
-// (evals/fixtures/contract-planned/.../plan.md), write a path and its identifier inside one
-// backtick span, joined by `::`; this repository's own 24 plans instead backtick-quote a test
-// *file* and describe the test in prose after it. Neither shape says "this identifier — not the
-// file, the specific string — is what must survive," so only the file's existence is checked
-// when there is no explicit `::`.
-function testRowIn(evidenceText) {
-  for (const span of evidenceText.matchAll(/`([^`]+)`/g)) {
-    const [candidate, identifier] = span[1].split('::');
-    if (looksLikeTestFile(candidate)) return { file: candidate, identifier: identifier || null };
-  }
-  return null;
-}
+// Test-file recognition (`looksLikeTestFile`/`testRowIn`) now lives in `.aidlc/lib/artifacts.mjs`,
+// alongside `behavioursOf`/`proofRowsOf`, so B7's commit-time check and this file share one
+// definition of "names a resolvable path" instead of two copies drifting apart.
 
 // B6, amended: a spec that has quietly become fiction is checkable without a model only for the
 // mechanical part — a behaviour with no Proof row at all, or a row that names a test file that

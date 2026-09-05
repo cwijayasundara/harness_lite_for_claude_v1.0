@@ -5,8 +5,15 @@
 // called `## Structure and ownership`, and the plan's hand-written list was checked against a
 // diff the tooling could already compute — which is how ten of twenty-three contracts came to be
 // re-sealed for a missing line. One source now, in the artifact a human approved.
+//
+// a-plan-proves-its-spec B7 (evidence.md F25) lives here too: B2 checks, at approval, only that a
+// spec's behaviours each have a Proof row — a plan may legitimately name a test it has not
+// written yet. This is that promise checked at the only moment the answer is knowable, so it runs
+// unconditionally, not only when the current diff happens to touch a product file.
 
 import { execSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import * as artifacts from '../lib/artifacts.mjs';
 
 const git = (root, args) => execSync(`git ${args}`, { cwd: root, encoding: 'utf8' }).trim();
@@ -19,30 +26,58 @@ function changedFiles(root) {
 
 const under = (file, owned) => file === owned || file.startsWith(owned.replace(/\/$/, '') + '/');
 
+// B7: for every plan this repository's approval currently governs, each Proof row naming a test
+// file must name one that exists. Presence-only rows (B2's bar) and prose evidence are not this
+// check's business — `testRowIn` returns null for those, same as `behavioursHaveTests` already
+// relies on.
+function unkeptProof(cfg, plans) {
+  const findings = [];
+  for (const plan of plans) {
+    const body = artifacts.read(cfg, plan.slug, 'plan')?.body ?? '';
+    for (const [behaviour, evidence] of artifacts.proofRowsOf(body)) {
+      const row = artifacts.testRowIn(evidence);
+      if (!row || existsSync(path.join(cfg.layout.root, row.file))) continue;
+      findings.push({
+        file: `.aidlc/artifacts/${plan.slug}/plan.md`, line: 0, rule: 'unkept-proof',
+        message: `${behaviour}: proof row names "${row.file}", which does not exist`,
+        fix: `write ${row.file} with the test it promises, or correct the Proof row and re-approve the plan`,
+      });
+    }
+  }
+  return findings;
+}
+
 export async function run(cfg) {
   let changed = [];
   try { changed = changedFiles(cfg.layout.root); }
   catch { return { verdict: 'skipped', findings: [], note: 'not a git repo' }; }
 
+  const plans = artifacts.governingPlans(cfg);
+  const proofFindings = unkeptProof(cfg, plans);
+
   // The artifacts themselves are always writable. A gate you cannot draft is not a gate.
   const ignore = (f) => f.startsWith('.aidlc/artifacts/') || f.startsWith('.aidlc/state/');
   const product = changed.filter((f) => !ignore(f));
-  if (!product.length) return { verdict: 'pass', findings: [] };
+  if (!product.length) {
+    return proofFindings.length ? { verdict: 'fail', findings: proofFindings } : { verdict: 'pass', findings: [] };
+  }
 
   // Approved, committed, and unchanged since approval. An uncommitted approval is not an
   // auditable gate, and an approved plan whose body has since been edited is a stale approval —
   // `governingPlans` drops both, so a plan cannot widen its own scope after the fact.
-  const plans = artifacts.governingPlans(cfg);
   const owned = [...new Set(plans.flatMap((p) => p.owns))];
 
   if (!plans.length) {
     return {
       verdict: 'fail',
-      findings: product.map((f) => ({
-        file: f, line: 0, rule: 'no-approved-plan',
-        message: 'changed with no approved committed plan governing this repository',
-        fix: 'harness approve <slug> spec --by <you>, then plan, and commit each',
-      })),
+      findings: [
+        ...product.map((f) => ({
+          file: f, line: 0, rule: 'no-approved-plan',
+          message: 'changed with no approved committed plan governing this repository',
+          fix: 'harness approve <slug> spec --by <you>, then plan, and commit each',
+        })),
+        ...proofFindings,
+      ],
     };
   }
 
@@ -52,15 +87,18 @@ export async function run(cfg) {
     message: 'an approved plan declares no owned files',
     fix: 'list every path this change may touch, in backticks, under "## Files"',
   }));
-  if (empty.length) return { verdict: 'fail', findings: empty };
+  if (empty.length) return { verdict: 'fail', findings: [...empty, ...proofFindings] };
 
-  const findings = product
-    .filter((f) => !owned.some((d) => under(f, d)))
-    .map((f) => ({
-      file: f, line: 0, rule: 'scope-drift',
-      message: `changed but claimed by no approved plan (${plans.map((p) => p.slug).join(', ')})`,
-      fix: 'add the path to "## Files" and re-approve the plan, or revert the change',
-    }));
+  const findings = [
+    ...product
+      .filter((f) => !owned.some((d) => under(f, d)))
+      .map((f) => ({
+        file: f, line: 0, rule: 'scope-drift',
+        message: `changed but claimed by no approved plan (${plans.map((p) => p.slug).join(', ')})`,
+        fix: 'add the path to "## Files" and re-approve the plan, or revert the change',
+      })),
+    ...proofFindings,
+  ];
 
   return { verdict: findings.length ? 'fail' : 'pass', findings };
 }

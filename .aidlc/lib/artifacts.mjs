@@ -188,6 +188,44 @@ export function proofRowsOf(planBody) {
   return rows;
 }
 
+// A path a Proof row's evidence names that this check can go verify: it looks like a test file
+// either by basename convention (`test_*.py`, `*.test.mjs`, `*.spec.ts`, `*_test.go`,
+// `*_spec.rb`, `FooTest.java`, `FooTests.cs`, `conftest.py`, ...) or by living directly under a
+// directory conventionally named for tests (`tests/`, `test/`, `spec/`, `specs/`, `__tests__/`)
+// regardless of its own filename. Moved here from `evals/lib/campaign.mjs`, alongside
+// `behavioursOf`/`proofRowsOf` above, so B7's commit-time check and `behavioursHaveTests` share
+// one recognition instead of two copies drifting apart — review `1ace6a8` Nit 2 caught exactly
+// that mistake, twice, in one week.
+const TEST_BASENAME = [
+  /^test[_.].+\.\w+$/i, // test_foo.py, test.foo.mjs
+  /\.(test|spec)\.\w+$/i, // foo.test.mjs, foo.spec.ts
+  /[_-](test|spec)s?\.\w+$/i, // foo_test.py, foo-spec.rb, foo_tests.py
+  /(Test|Tests)\.\w+$/, // FooTest.java, FooTests.cs — case-sensitive, that casing IS the convention
+  /^conftest\.py$/i,
+];
+const TEST_DIR_SEGMENT = /^(tests?|specs?|__tests__)$/i;
+
+function looksLikeTestFile(candidate) {
+  const parts = candidate.split('/');
+  const base = parts.pop() || '';
+  if (TEST_BASENAME.some((re) => re.test(base))) return true;
+  return parts.some((seg) => TEST_DIR_SEGMENT.test(seg));
+}
+
+// The plan skill's own example, and the one real place in this repository that follows it
+// (evals/fixtures/contract-planned/.../plan.md), write a path and its identifier inside one
+// backtick span, joined by `::`; this repository's own plans instead backtick-quote a test
+// *file* and describe the test in prose after it. Neither shape says "this identifier — not the
+// file, the specific string — is what must survive," so only the file's existence is checked
+// when there is no explicit `::`.
+export function testRowIn(evidenceText) {
+  for (const span of evidenceText.matchAll(/`([^`]+)`/g)) {
+    const [candidate, identifier] = span[1].split('::');
+    if (looksLikeTestFile(candidate)) return { file: candidate, identifier: identifier || null };
+  }
+  return null;
+}
+
 // The body of one `### <heading>` section — up to the next `##` or `###` heading, or the end of
 // the text. Shared by `templateMarkers` to compare a real behaviour against the scaffold's.
 function headingBody(text, heading) {
