@@ -178,6 +178,10 @@ export async function dispatch(event) {
         if (process.env.AIDLC_UNATTENDED) {
           lines.push(`unattended: this run has no human — ${UNATTENDED_APPROVE_NOTICE}`);
           lines.push('new change: `harness new <slug>` creates .aidlc/artifacts/<slug>/{intent,spec,plan}.md — never write an artifact anywhere else');
+          // evidence.md F23. campaign-ledger sprint 2 ended on "I have one clarifying question
+          // before we move to the spec" and nobody answered. Approval was the only human
+          // interaction the notice named, and a question stalls a run exactly as a gate does.
+          lines.push('no questions: there is no human to answer one either — decide the ambiguity yourself, record the decision and why in your spec, and carry on. A recorded decision is reviewable; a question is not.');
         }
         process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: lines.join('\n') } }));
         return 0;
