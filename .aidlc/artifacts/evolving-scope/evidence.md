@@ -587,3 +587,71 @@ for.
 
 It resolves itself once any `.ts` file exists, which is why it survived: nobody runs `stop` on an
 empty repository twice.
+
+---
+
+## `dunning` F1, 2026-09-04 — the first Law 11 workload
+
+`customers-and-invoices` taken through the full chain unattended: both gates self-approved as
+`unattended-eval-run`, eight behaviours implemented one per commit under the red-green loop,
+`--stage stop` green (typecheck + 7 tests). Files exactly the plan's `## Files`, nothing else
+touched. This is the first time the harness has governed a non-harness application, which is the
+workload Law 11 names and `lean-v2` B13 specifies.
+
+**What the harness did well, recorded because refusals are the thing being measured.** `approve`
+printed "commit this approval before continuing" — refusal-shaped guidance that named the next
+action. `check --stage fast --changed` caught two genuine type errors (an unsound cast on a
+`RegExpExecArray`, and a broken cross-module type derivation), each naming file, line and TS code,
+each fixed in under a minute. `harness status` was accurate at every stage. The generator reported
+being tempted to route around exactly one thing and declined, correctly, because the file was not
+in its `## Files`.
+
+## F21 — the example app's scaffolding contradicts itself about module systems
+
+**Component: `dunning`'s hand-written `package.json` and `tsconfig.json`. NOT the harness.**
+
+`package.json` declares `"type": "commonjs"`. `tsconfig.json` sets `module` and `moduleResolution`
+to `nodenext`, plus `allowImportingTsExtensions`, `erasableSyntaxOnly` and `verbatimModuleSyntax` —
+options that only cohere under ESM. `allowImportingTsExtensions` is meaningless in CommonJS, and
+`erasableSyntaxOnly` forbids `import x = require()`, the one bridge TypeScript offers.
+
+The first `import` written in a `.ts` file failed at runtime with `Cannot use import statement
+outside a module` while `tsc` saw nothing wrong: Node's `--experimental-strip-types` erases type
+annotations and never transforms module syntax.
+
+**Attribution corrected.** The generator reported this as `harness init`'s output. It is not:
+`harness init` ships `gitignore`, `harness.toml` and the four artifact templates, and nothing else.
+`package.json` and `tsconfig.json` were hand-written when `dunning` was set up. A real trap, in the
+Law 11 workload, owned by the example app rather than the harness — and worth fixing before F2,
+since every later change hits the same wall.
+
+## F22 — `scope-drift` counts files nobody touched, and its remedy would be harmful
+
+**Component: `.aidlc/checks/scope-drift.mjs` and the `gitignore` template. Both harness.**
+
+```
+FAIL  scope-drift
+      .DS_Store         changed but claimed by no approved plan (customers-and-invoices)
+        -> add the path to "## Files" and re-approve the plan, or revert the change
+      .aidlc/.DS_Store  changed but claimed by no approved plan (customers-and-invoices)
+        -> add the path to "## Files" and re-approve the plan, or revert the change
+```
+
+Two parts.
+
+The `gitignore` that `harness init` writes does not cover `.DS_Store`, on the platform the harness
+is developed on. Every macOS repository it installs into acquires untracked OS artifacts that the
+harness then reports as drift.
+
+And `scope-drift` treats an untracked file as a change regardless of whether anything touched it
+this session. The generator never created those files; they predate its run.
+
+The remedy text is the part worth acting on. **"Add the path to `## Files` and re-approve the plan"
+is wrong advice here** — following it puts `.DS_Store` into a change's ownership declaration and
+sends a human to a gate to approve it. This is a third category alongside the two already recorded:
+F2 is a refusal that named no way forward, F12 is a refusal that named a working one, and F22 is a
+refusal that names a way forward which is harmful if taken. A guard whose suggestion should not be
+followed teaches people to stop reading its suggestions.
+
+`--stage stop` does not run `scope-drift`, so it never blocked the work — which is why it survived
+to be found by someone running the commit stage out of curiosity.
