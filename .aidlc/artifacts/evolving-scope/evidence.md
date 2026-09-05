@@ -828,3 +828,51 @@ question worth asking is *is this path claimed by the change being made?* — an
 notion of which change a diff belongs to, so it cannot ask. Three instances, three different
 mechanisms, one missing concept. That earns its own change, and it is now the most valuable one
 left.
+
+---
+
+## F27 — a timed-out step is graded, not recorded ungraded
+
+**Breaks `evolving-scope` B9. Component: `runAttempt` in `evals/run.mjs`.**
+
+`campaign-legacy`, 2026-09-05: 29 minutes, **$0.00, zero output tokens**, `timedOut: true`,
+`incomplete: null`, verdict `fail`. Its whole transcript is 544 characters of CLI warnings and no
+model output whatsoever.
+
+Sprint 1 had already written and approved `add-renew-loan`'s spec and plan, so the agent worked
+earlier in the run. This invocation produced nothing and was killed at the 900-second timeout. The
+runner then evaluated its assertions and recorded two failures — `characteri[sz]` not found, and
+`def renew_loan` missing — for a step that never executed.
+
+`runAttempt` already gets this right for the neighbouring case. A step that exhausts its budget sets
+`incomplete`, breaks the loop, and the task is recorded `inconclusive` rather than `fail`, with the
+comment: *"A run that never produced model output cannot be graded. Grading it anyway is how budget
+exhaustion got reported as model failure twice on 2026-09-02."* A timeout is the same sentence with
+a different cause, and `timedOut` is carried alongside `incomplete` without ever reaching that
+branch.
+
+B9 says a campaign that cannot reach a model is `inconclusive`, never `pass` — and the reason given
+is that the one thing worse than an untested harness is a suite reporting a verdict it did not earn.
+This reports `fail`, which is the same error facing the other way: it accuses the agent of missing a
+function it was never given the chance to write.
+
+The fix is one condition: treat a timed-out step with no output the way an exhausted one is treated.
+
+**Unexplained, and recorded rather than guessed at.** The transcript's only content is:
+
+```
+Ignoring 4 permissions.allow entries from .claude/settings.json: this workspace has not been
+trusted. Run Claude Code interactively here once and accept the trust dialog, or set
+projects[...].hasTrustDialogAccepted: true
+```
+
+Every staged copy is a fresh `mkdtemp` and none is trusted, so this warning is present in runs that
+work — `campaign-ledger` completed three sprints in the same session. It is a plausible cause of a
+CLI that starts and never proceeds, and it is not established. Reproducing it is the first task of
+whatever change takes F27.
+
+## The run in total
+
+`campaign-ledger` 10 minutes, `campaign-legacy` 29 minutes of which 15 was a timeout producing
+nothing. **39 minutes against a 30-minute budget, and the overrun is entirely the timeout.** The
+same pair ran in 17 minutes earlier the same night. Cost $0.52.
