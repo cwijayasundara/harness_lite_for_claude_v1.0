@@ -90,10 +90,19 @@ person to write a campaign has to remember it.
    digest still written, `stale-approval` still fires, all with the variable set. B5.
 4. `.aidlc/bin/harness` — the `status` line, shown only when the variable is set. Done, kept.
 4b. `.aidlc/hooks/dispatch.mjs` — in the `session-start` action, beside the existing `contract:`
-   line, two lines when `AIDLC_UNATTENDED` is set: that the run is unattended and the agent
-   approves its own gates, and that a change is `harness new <slug>` producing
-   `.aidlc/artifacts/<slug>/{intent,spec,plan}.md`. No new hook binding — the ceiling is full at
-   4 of 5 and the budget is not a number to raise; this is content in a binding that already fires.
+   line, three lines when `AIDLC_UNATTENDED` is set: that the run is unattended and the agent
+   approves its own gates; that a change is `harness new <slug>` producing
+   `.aidlc/artifacts/<slug>/{intent,spec,plan}.md`; and that there is no human to answer a question
+   either, so an ambiguity is decided, recorded in the spec, and carried on from. No new hook
+   binding — the ceiling is full at 4 of 5 and the budget is not a number to raise; this is content
+   in a binding that already fires.
+
+   **The third line added 2026-09-05, after `evidence.md` F23.** `campaign-ledger` sprint 2 ended
+   with "I have one clarifying question before we move to the spec: should `recordPayment` allow
+   overpayment?" and nobody answered. B1 says the agent proceeds; the notice only ever told it that
+   *approval* was its own to give. Approval was the one human interaction anyone thought to name,
+   and a question stalls a run exactly as a gate does. Recording the decision is also better than
+   asking it: a decision in a spec is reviewable, a question in a deleted transcript is not.
 5. `evals/lib/invoker.mjs` — set `AIDLC_UNATTENDED` in the spawn env next to `HARNESS_HOME`.
 6. `evals/run.mjs` — collect and report auto-approvals per step, into stdout and the results JSON.
 7. `docs/OPERATING.md` — one paragraph in the campaigns section: what the variable does, that it is
