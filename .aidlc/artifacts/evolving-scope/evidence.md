@@ -876,3 +876,45 @@ whatever change takes F27.
 `campaign-ledger` 10 minutes, `campaign-legacy` 29 minutes of which 15 was a timeout producing
 nothing. **39 minutes against a 30-minute budget, and the overrun is entirely the timeout.** The
 same pair ran in 17 minutes earlier the same night. Cost $0.52.
+
+---
+
+## The integration test, 2026-09-05 — B13's conditions met
+
+| campaign | result | wall clock | cost |
+|---|---|---:|---:|
+| `campaign-ledger` | 3 sprints, 12 of 13 assertions, **B5 holds** | 10m | $0.52 |
+| `campaign-legacy` | **pass**, 2 sprints, 0 aborted | 8m35s | $0.75 |
+
+**~18½ minutes, $1.27, unattended.** `lean-v2` B13 as amended asks that both complete inside thirty
+minutes for under five dollars, and that the harness repository's next intent cite a defect recorded
+by that run. All three hold: `a-diff-belongs-to-one-change` cites F26, which this run produced.
+
+`campaign-ledger`'s single failure is F26 itself — sprint 3's plan was correctly refused for naming
+a Proof row for one of four behaviours, and the sprint proceeded anyway under sprint 2's ownership.
+The campaign is reporting a real harness gap, which is the job.
+
+The earlier 39-minute run of the same pair was a 15-minute timeout that produced nothing, now
+recorded ungraded rather than failed (F27).
+
+## What the campaigns found, in the order it mattered
+
+Twenty-seven findings. The six that changed the harness most:
+
+- **F1** — the workflow's gates need a human and a campaign has none. Everything downstream was
+  blocked by this and nothing measured until it was fixed.
+- **F6, F7** — the fix existed and reached nobody. A notice that speaks only when asked never
+  reaches an agent that starts working immediately. `SessionStart` pushes; `harness status` waits.
+- **F14, F17** — the gates checked an artifact's state and never its content, so a plan proving
+  nothing and a spec saying nothing both passed. Two of the templates were approved by hand before
+  anyone noticed.
+- **F24** — the campaign asserted a contradiction its own sprint 1 never created. Two agents
+  independently refused to invent one and both were right; the finding that marked one of them down
+  was corrected.
+- **F26** — three instances of one missing concept: ownership answers *is this path claimed?* when
+  the question is *is it claimed by the change being made?*
+- **F27** — a run the timeout killed before any output was graded anyway. The red step showed the
+  unobserved case is a false green, which is worse than the unfair failure that revealed it.
+
+The shape across them: the harness's guidance was pull-based and agents do not pull; its gates
+checked form and not content; and its ownership model knows paths but not changes.
