@@ -124,6 +124,19 @@ so editing a file to say approved without committing it does not pass a gate. Un
 are reported `unmeasured` rather than assigned invented dates.
 Use `--json` for CI or a weekly report. These are flow SLAs, not estimates of coding effort.
 
+## A gate reads content too
+
+Every precondition above is about an artifact's *state* — committed, ordered, digest unchanged.
+`approve()` also reads what the artifact *says*: it refuses a `spec.md` or `plan.md` still
+carrying the scaffold `harness new` writes (an untouched placeholder, or a `### B<n>` behaviour
+that is still the bare `Given ... / When ... / Then ...`), and it refuses a plan whose Proof table
+is missing a row for a behaviour its spec claims — presence of a row, nothing stronger, since a
+plan may legitimately name a test it has not written yet. `--anyway "<reason>"` proceeds past
+either refusal and records `approved_anyway: <reason>` in the approval frontmatter; the flag with
+no reason is refused, because the reason is the point. Neither check applies retroactively — an
+artifact approved before this existed stays approved when read; only a fresh `approve()` call
+enforces it.
+
 ## Provider adapter boundary
 
 The core must not pretend to deploy or monitor a product. A production installation supplies:

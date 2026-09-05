@@ -17,6 +17,30 @@ function repo() {
   return root;
 }
 
+// a-plan-proves-its-spec B1: `approve` now refuses a `spec.md` or `plan.md` still carrying the
+// `harness new` scaffold. The tests below approve their fixtures to exercise *state* logic
+// (uncommitted, plan-before-spec, stale-approval) and must go on doing exactly that, so each
+// placeholder is swapped for the shortest fixture-shaped text that clears it — nothing here reads
+// as a real spec or plan on purpose.
+function deScaffold(text) {
+  return text
+    .replace('<The observable result, in the language of the affected user.>', 'Fixture content — this file exists to test approval state, not this text.')
+    .replace('Given ...\nWhen ...\nThen ...', 'Given this fixture exists\nWhen it is approved\nThen the approval succeeds')
+    .replace('<Explicit boundaries. What a reader might reasonably expect and will not get.>', 'Nothing — this is a fixture.')
+    .replace('<Security, privacy, compatibility, performance and operational invariants this must not break.>', 'None — this is a fixture.')
+    .replace('<The chosen approach, why, and at least one meaningful alternative not taken.>', 'Fixture content — no real approach; this file exists to test approval state.')
+    .replace(/<Every path this change may touch, in backticks, one per line\. `scope-drift` and the write guard\nread this section and nothing else: a path not named here cannot be written\.>/, 'Fixture content — no real files section needed here.')
+    .replace('<Ordered step naming an exact path.>', 'Fixture content — no real steps needed here.')
+    .replace('<named test or runtime evidence>', 'manual check: fixture only');
+}
+
+function deScaffoldArtifacts(root, slug, kinds) {
+  for (const kind of kinds) {
+    const target = path.join(root, '.aidlc/artifacts', slug, `${kind}.md`);
+    writeFileSync(target, deScaffold(readFileSync(target, 'utf8')));
+  }
+}
+
 test('new rejects path traversal and non-canonical artifact slugs', () => {
   const root = repo();
   try {
@@ -47,6 +71,7 @@ test('approve refuses an uncommitted artifact, and refuses a plan before its spe
     for (const kind of ['intent', 'spec', 'plan', 'review']) {
       assert.ok(existsSync(path.join(root, '.aidlc/artifacts/gate-order', `${kind}.md`)), `${kind}.md not created`);
     }
+    deScaffoldArtifacts(root, 'gate-order', ['spec', 'plan']);
 
     // Uncommitted: an approval of a working copy is an approval of something no reviewer can read.
     const early = run(root, 'approve', 'gate-order', 'spec', '--by', 'tester');
@@ -88,6 +113,7 @@ test('editing an approved artifact reports a stale approval', () => {
   };
   try {
     assert.equal(run(root, 'new', 'drifted').status, 0);
+    deScaffoldArtifacts(root, 'drifted', ['spec']);
     commit('draft drifted');
     assert.equal(run(root, 'approve', 'drifted', 'spec', '--by', 'tester').status, 0);
     commit('spec approved');

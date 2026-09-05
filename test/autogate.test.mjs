@@ -37,6 +37,29 @@ const commit = (root, m) => {
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', m], { cwd: root });
 };
 
+// a-plan-proves-its-spec B1: `approve` now refuses a `spec.md` or `plan.md` still carrying the
+// `harness new` scaffold. Every fixture below approves itself unattended to exercise that
+// *mechanism* — it must go on doing exactly that, so each placeholder is swapped for the shortest
+// fixture-shaped text that clears it. Nothing here reads as a real spec or plan on purpose.
+function deScaffold(text) {
+  return text
+    .replace('<The observable result, in the language of the affected user.>', 'Fixture content — this file exists to test the unattended mechanism, not this text.')
+    .replace('Given ...\nWhen ...\nThen ...', 'Given this fixture exists\nWhen it is approved\nThen the approval succeeds')
+    .replace('<Explicit boundaries. What a reader might reasonably expect and will not get.>', 'Nothing — this is a fixture.')
+    .replace('<Security, privacy, compatibility, performance and operational invariants this must not break.>', 'None — this is a fixture.')
+    .replace('<The chosen approach, why, and at least one meaningful alternative not taken.>', 'Fixture content — no real approach; this file exists to test the unattended mechanism.')
+    .replace(/<Every path this change may touch, in backticks, one per line\. `scope-drift` and the write guard\nread this section and nothing else: a path not named here cannot be written\.>/, 'Fixture content — no real files section needed here.')
+    .replace('<Ordered step naming an exact path.>', 'Fixture content — no real steps needed here.')
+    .replace('<named test or runtime evidence>', 'manual check: fixture only');
+}
+
+function deScaffoldArtifacts(root, slug, kinds) {
+  for (const kind of kinds) {
+    const target = path.join(root, '.aidlc/artifacts', slug, `${kind}.md`);
+    writeFileSync(target, deScaffold(readFileSync(target, 'utf8')));
+  }
+}
+
 // evidence.md F6: the first attempt put the notice in `harness status`, reasoning that CLAUDE.md
 // tells the agent to run it. The agent never ran it. `SessionStart` is the channel that pushes
 // context whether or not the agent goes looking — proven by the `contract:` line already there.
@@ -63,6 +86,7 @@ test('B1: with AIDLC_UNATTENDED set, both gates approve with no --by and no huma
     assert.match(unattendedContext, /\.aidlc\/artifacts\/<slug>\//);
 
     assert.equal(run(root, process.env, 'new', 'unattended-demo').status, 0);
+    deScaffoldArtifacts(root, 'unattended-demo', ['spec', 'plan']);
     commit(root, 'draft unattended-demo');
     const unattended = { ...process.env, AIDLC_UNATTENDED: '1' };
 
@@ -84,6 +108,7 @@ test('B2: --by cwijayasundara is overridden — the recorded identity cannot be 
   const root = repo();
   try {
     assert.equal(run(root, process.env, 'new', 'forced-identity').status, 0);
+    deScaffoldArtifacts(root, 'forced-identity', ['spec']);
     commit(root, 'draft forced-identity');
     const unattended = { ...process.env, AIDLC_UNATTENDED: '1' };
 
@@ -108,6 +133,7 @@ test('B3: off by default, and a harness.toml asking for auto-approval changes no
   const root = repo();
   try {
     assert.equal(run(root, process.env, 'new', 'no-backdoor').status, 0);
+    deScaffoldArtifacts(root, 'no-backdoor', ['spec']);
     // Plant the switch an agent inside the copy could write for itself.
     const toml = path.join(root, '.aidlc/harness.toml');
     writeFileSync(toml, `${readFileSync(toml, 'utf8')}\n[unattended]\nenabled = true\napprover = "cwijayasundara"\n`);
@@ -134,6 +160,7 @@ test('B5: uncommitted, plan-before-spec, digest and stale-approval all still hol
   const root = repo();
   try {
     assert.equal(run(root, process.env, 'new', 'still-gated').status, 0);
+    deScaffoldArtifacts(root, 'still-gated', ['spec']);
     const unattended = { ...process.env, AIDLC_UNATTENDED: '1' };
 
     // Uncommitted is still refused.
@@ -174,6 +201,7 @@ test('B7: the results JSON of a fake-invoker run lists the auto-approved artifac
   const invoke = ({ cwd }) => {
     const env = { ...process.env, AIDLC_UNATTENDED: '1' };
     spawnSync(process.execPath, [BIN, 'new', 'auto-demo'], { cwd, encoding: 'utf8' });
+    deScaffoldArtifacts(cwd, 'auto-demo', ['spec']);
     commit(cwd, 'draft auto-demo');
     const approved = spawnSync(process.execPath, [BIN, 'approve', 'auto-demo', 'spec'], { cwd, encoding: 'utf8', env });
     assert.equal(approved.status, 0, approved.stderr);
@@ -235,6 +263,7 @@ test('B4 (invoker): AIDLC_UNATTENDED reaches a campaign step, and never a single
 test('important-2: a run that throws still reports what it approved before failing', async () => {
   const invoke = ({ cwd }) => {
     spawnSync(process.execPath, [BIN, 'new', 'partial-approve'], { cwd, encoding: 'utf8' });
+    deScaffoldArtifacts(cwd, 'partial-approve', ['spec']);
     commit(cwd, 'draft partial-approve');
     const env = { ...process.env, AIDLC_UNATTENDED: '1' };
     const approved = spawnSync(process.execPath, [BIN, 'approve', 'partial-approve', 'spec'], { cwd, encoding: 'utf8', env });

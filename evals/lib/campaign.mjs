@@ -4,6 +4,7 @@
 // File-and-text checks over a staged directory, deterministic, no model, no spend.
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { behavioursOf, proofRowsOf } from '../../.aidlc/lib/artifacts.mjs';
 
 // Shared with evals/lib/assertions.mjs's diffTrees, rather than each keeping its own copy that
 // can silently drift apart — this one added node_modules and assertions.mjs's did not, until it
@@ -57,17 +58,6 @@ function frontmatterStatus(text) {
   if (!m) return null;
   const s = m[1].match(/^status:\s*(\S+)/m);
   return s ? s[1] : null;
-}
-
-// One row per behaviour, evidence text verbatim (backticks and all — testRowIn below needs them
-// to tell a quoted path from surrounding prose).
-function parseProofRows(planText) {
-  const rows = new Map();
-  for (const line of planText.split('\n')) {
-    const m = line.match(/^\|\s*(B\d+)\s*\|\s*(.+?)\s*\|\s*$/);
-    if (m) rows.set(m[1], m[2]);
-  }
-  return rows;
 }
 
 // A path this check can go verify: it looks like a test file either by basename convention
@@ -134,9 +124,9 @@ export function behavioursHaveTests(dir) {
     if (!existsSync(specPath) || !statSync(specPath).isFile() || !existsSync(planPath)) continue;
     const specText = readFileSync(specPath, 'utf8');
     if (frontmatterStatus(specText) !== 'approved') continue;
-    const behaviours = [...specText.matchAll(/^### (B\d+)\b/gm)].map((m) => m[1]);
+    const behaviours = behavioursOf(specText);
     if (!behaviours.length) continue;
-    const proof = parseProofRows(readFileSync(planPath, 'utf8'));
+    const proof = proofRowsOf(readFileSync(planPath, 'utf8'));
     for (const b of behaviours) {
       checked++;
       const evidence = proof.get(b);
