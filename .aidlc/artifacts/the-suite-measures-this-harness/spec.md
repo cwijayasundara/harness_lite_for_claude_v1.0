@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-05T05:07:01.992Z
+digest: sha256:1094d5916ee94e2e2ee997d00964bf49cfee5409001381449901b04602f52883
 ---
 # Spec: the-suite-measures-this-harness
 
