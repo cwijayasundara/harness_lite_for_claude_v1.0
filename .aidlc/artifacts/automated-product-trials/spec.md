@@ -1,7 +1,10 @@
 ---
-status: draft
+status: approved
 extends: correct-existing-mechanisms, close-the-harness
 supersedes: one-integration-test#B2, one-integration-test#B3, one-integration-test#B4, one-integration-test#B5, one-integration-test#B6, one-integration-test#B7, one-integration-test#B8
+by: cwijayasundara (conversation approval, recorded by Codex)
+at: 2026-09-06T20:22:20.515Z
+digest: sha256:50054c78e72d3329e1c909f6e92f626a0cb65fdc56176321856a8c6c71d9ca2e
 ---
 # Spec: automated-product-trials
 
