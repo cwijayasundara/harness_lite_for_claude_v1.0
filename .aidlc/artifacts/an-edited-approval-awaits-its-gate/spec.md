@@ -1,5 +1,9 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-06T07:24:15.427Z
+digest: sha256:eaa9f181d3914846ab3115309cdd32669d578abc3e2251be77fcfa048c1a6ee4
+approved_anyway: B7 of this spec fixes the <slug> marker that refuses it
 ---
 # Spec: an-edited-approval-awaits-its-gate
 

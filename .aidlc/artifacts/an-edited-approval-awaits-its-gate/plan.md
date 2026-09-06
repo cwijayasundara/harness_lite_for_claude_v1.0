@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-06T07:24:15.478Z
+digest: sha256:bd802ceb5e4b9e2de628b63990a633369042e28fdc15501073ec9f04bac0c942
 ---
 # Plan: an-edited-approval-awaits-its-gate
 
