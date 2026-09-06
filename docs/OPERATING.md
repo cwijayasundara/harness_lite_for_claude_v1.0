@@ -95,7 +95,11 @@ test and no artifact chain.
 
 Run it with `node evals/run.mjs --id campaign-ledger --require-auth`. It is one multi-turn build,
 not one prompt — bounded at a dollar and six minutes per sprint — which is why it is not in
-`--stage commit` and CI does not run it on every push. Run a campaign
+`--stage commit` and CI does not run it on every push. Under the runner's `AIDLC_UNATTENDED`, the
+Stop hook refuses — once per turn — to end a turn that leaves declared work ungated (an intent
+with no spec, a written spec unapproved, an edited approval), because a sprint once ended on
+"Does this intent match what you want?" with nobody there (`an-unattended-turn-does-not-end-on-a-question`).
+An attended session is never blocked. Run a campaign
 before a release, or whenever a change touches how the harness carries context or approvals
 across a plan boundary — the two things a single-prompt task cannot exercise at all.
 

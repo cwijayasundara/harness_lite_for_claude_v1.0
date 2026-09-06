@@ -62,7 +62,7 @@ export const KILL = {
 // Controls reached by a hook binding rather than a stage. They are wired — the ledger sees them
 // more often than anything else — they are just not named in `[stages]`. Judging reachability by
 // stages alone condemned the three busiest controls in the repository.
-const HOOK_CONTROLS = ['bash-guard', 'write-guard', 'map-drift'];
+const HOOK_CONTROLS = ['bash-guard', 'write-guard', 'map-drift', 'stop-guard'];
 
 // every-control-fires-or-goes B3. Rows that exist so a failure is visible, not so a verdict can
 // be reached: `graph-refresh` has no defect to fire on, and judging it produced a permanent

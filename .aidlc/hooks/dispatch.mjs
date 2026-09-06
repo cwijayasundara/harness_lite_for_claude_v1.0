@@ -16,7 +16,7 @@ import { refresh, staleSince } from '../lib/refresh.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
 import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
-import { UNATTENDED_APPROVE_NOTICE, supersededBy, currentLine } from '../lib/artifacts.mjs';
+import { UNATTENDED_APPROVE_NOTICE, supersededBy, currentLine, draftsAwaitingGate, awaitingGateRemedy } from '../lib/artifacts.mjs';
 
 // In an installed project `.aidlc/bin/harness` is a bash shim; in this repository it is the
 // executable itself, and `bash` on it dies with a shell syntax error. The banner printed the
@@ -223,6 +223,27 @@ export async function dispatch(event) {
         // SubagentStop fires once per teammate; re-indexing on each is the dominant per-turn
         // cost and is pure waste. The top-level Stop coalesces every edit into one pass.
         if (input.hook_event_name === 'SubagentStop') return 0;
+
+        // an-unattended-turn-does-not-end-on-a-question B3–B5. evidence F34: under the runner,
+        // the intent skill's "Stop. Ask the person" beat the notice's "there is no person", and
+        // sprint 5 ended on a question. Instruction does not steer against instruction; this
+        // does. Only with the runner's variable in *this* process's environment (an attended
+        // session is untouched), and only once per turn: `stop_hook_active` is the CLI's own
+        // signal that the turn is already continuing from a block, so a run cannot loop here.
+        if (process.env.AIDLC_UNATTENDED) {
+          let waiting = [];
+          try { waiting = draftsAwaitingGate(cfg); } catch { /* unreadable artifacts: let the turn end */ }
+          if (waiting.length) {
+            if (!input.stop_hook_active) {
+              ledger.append({ stage: 'stop', control: 'stop-guard', rule: 'work-awaits-gate', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout);
+              const reason = `This run is unattended: nobody will answer a question or accept an intent, and the turn cannot end here. ${awaitingGateRemedy(waiting[0])} Then finish the work and run the stop stage.`;
+              process.stdout.write(JSON.stringify({ decision: 'block', reason }));
+              return 0;
+            }
+            ledger.append({ stage: 'stop', control: 'stop-guard', rule: 'let-through', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
+          }
+        }
+
         if (!existsSync(cfg.layout.graphDirty)) return 0;
         const r = refresh(cfg);
         const report = await check(cfg, { stage: 'stop', files: [] });

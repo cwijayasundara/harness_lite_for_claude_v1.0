@@ -132,7 +132,10 @@ const SCAFFOLD_B1 = 'Given ...\nWhen ...\nThen ...';
 function draftSpec(root, slug, body) {
   const dir = path.join(root, '.aidlc/artifacts', slug);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(path.join(dir, 'intent.md'), `---\nstatus: draft\n---\n# Intent: ${slug}\n`);
+  // The scaffold intent, as `harness new` leaves it: a backlog item declares nothing
+  // (an-unattended-turn-does-not-end-on-a-question B2). A written intent would.
+  const scaffold = readFileSync(new URL('../.aidlc/templates/intent.md', import.meta.url), 'utf8').replaceAll('{{slug}}', slug);
+  writeFileSync(path.join(dir, 'intent.md'), scaffold);
   writeFileSync(path.join(dir, 'spec.md'), render({ status: 'draft' }, `# Spec: ${slug}\n\n## Observable behaviours\n\n### B1\n\n${body}\n`));
   commit(root, `${slug} drafted`);
 }
@@ -215,5 +218,27 @@ test('harness status and SessionStart name an edited approval and its gate', () 
     assert.match(status.stdout, /awaiting gate 1: sprint-2 \(spec edited after approval\)/);
     const hook = spawnSync(process.execPath, [BIN, 'hook', 'session-start'], { cwd: root, encoding: 'utf8', input: JSON.stringify({ cwd: root }) });
     assert.match(JSON.parse(hook.stdout).hookSpecificOutput.additionalContext, /awaiting gate 1: sprint-2 \(spec edited after approval\)/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// an-unattended-turn-does-not-end-on-a-question B1, B2. F34: sprint 5 wrote an intent, stopped
+// to ask, and nobody answered. A written intent with no spec yet is declared work; the scaffold
+// `harness new` leaves is not.
+test('a written intent with a scaffold spec awaits gate 1 as unwritten; a scaffold intent does not', async () => {
+  const { draftsAwaitingGate } = await import('../.aidlc/lib/artifacts.mjs');
+  const root = repo();
+  try {
+    assert.equal(spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' }).status, 0);
+    change(root, 'sprint-4', { specAt: '2026-09-02T00:00:00.000Z' });
+    assert.equal(spawnSync(process.execPath, [BIN, 'new', 'product-docs'], { cwd: root, encoding: 'utf8' }).status, 0);
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), [], 'a scaffold intent is a backlog item');
+    assert.deepEqual(governingPlans(cfg(root)).map((p) => p.slug), ['sprint-4']);
+
+    const intent = path.join(root, '.aidlc/artifacts/product-docs/intent.md');
+    writeFileSync(intent, '---\nstatus: draft\n---\n# Intent: product-docs\n\n## Problem\n\nNo customer-facing statement of what the ledger does.\n\n## Proposed outcome\n\ndocs/PRODUCT.md exists and is true of the code.\n');
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), [{ slug: 'product-docs', kind: 'spec', reason: 'unwritten' }]);
+    assert.deepEqual(governingPlans(cfg(root)), []);
+    const status = spawnSync(process.execPath, [BIN, 'status'], { cwd: root, encoding: 'utf8' });
+    assert.match(status.stdout, /awaiting gate 1: product-docs \(intent written, spec not yet\)/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

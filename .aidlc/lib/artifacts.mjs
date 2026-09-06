@@ -451,9 +451,16 @@ export function draftsAwaitingGate(cfg) {
   for (const slug of slugs(cfg)) {
     if (read(cfg, slug, 'intent')?.front.status === 'closed') continue;
     const spec = read(cfg, slug, 'spec');
-    if (!spec) continue;
+    // an-unattended-turn-does-not-end-on-a-question B1, B2 (F34): a written intent with no spec
+    // yet is declared work too — the sprint that wrote one and stopped to ask.
+    const intent = read(cfg, slug, 'intent');
+    const specWritten = spec && (spec.state !== 'draft' || !templateMarkers('spec', spec.body).length);
+    if (!specWritten) {
+      if (intent && !templateMarkers('intent', intent.body).length) waiting.push({ slug, kind: 'spec', reason: 'unwritten' });
+      continue;
+    }
     if (spec.state === 'stale-approval') { waiting.push({ slug, kind: 'spec', reason: 'stale' }); continue; }
-    if (spec.state === 'draft' && !templateMarkers('spec', spec.body).length) { waiting.push({ slug, kind: 'spec', reason: 'draft' }); continue; }
+    if (spec.state === 'draft') { waiting.push({ slug, kind: 'spec', reason: 'draft' }); continue; }
     const plan = read(cfg, slug, 'plan');
     if (plan?.state === 'stale-approval') waiting.push({ slug, kind: 'plan', reason: 'stale' });
   }
@@ -464,11 +471,16 @@ export function draftsAwaitingGate(cfg) {
 // and the two reporters.
 export function awaitingGateLine(entry) {
   const gate = entry.kind === 'plan' ? 2 : 1;
-  const what = entry.reason === 'stale' ? `${entry.kind} edited after approval` : 'spec written and not approved';
+  const what = entry.reason === 'stale' ? `${entry.kind} edited after approval`
+    : entry.reason === 'unwritten' ? 'intent written, spec not yet'
+      : 'spec written and not approved';
   return `awaiting gate ${gate}: ${entry.slug} (${what})`;
 }
 export function awaitingGateRemedy(entry) {
   const approve = `harness approve ${entry.slug} ${entry.kind} --by <you>`;
+  if (entry.reason === 'unwritten') {
+    return `the change "${entry.slug}" has a written intent and no spec yet. Write its spec, approve it (${approve}) and its plan, and commit; or close the change (status: closed in its intent.md).`;
+  }
   if (entry.reason === 'stale') {
     return `${entry.slug}/${entry.kind}.md was edited after it was approved. Re-approve it (${approve}) and commit, or restore the approved text; a reversal of an approved behaviour belongs in a new change with \`supersedes:\`, not in an edit to the old one.`;
   }

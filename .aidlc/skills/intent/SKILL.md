@@ -10,13 +10,15 @@ Its whole job is to be small enough that a human will actually read and approve 
 
 ## Do this
 
-1. `bash .aidlc/bin/harness new intent <slug>` — creates the file from the template.
+1. `bash .aidlc/bin/harness new <slug>` — creates `intent.md`, `spec.md` and `plan.md` from the templates.
 2. Interview the person. **One question at a time.** Wait for the answer before the next one.
 3. If a question can be answered by reading the codebase, read the codebase instead of asking.
 4. Fill the file. Leave `Open questions` populated — an intent with no open questions on the
    first pass usually means you did not push hard enough.
-5. Stop. Ask the person to accept it. After acceptance, create one delivery contract with
-   `harness contract new <slug>`; do not create separate spec or plan files.
+5. Stop. Ask the person to accept it. Under an unattended run there is no person: do not ask —
+   go straight on to `spec.md` in the same directory, record any decision you had to make there,
+   and approve your own gates as the session notice says. After acceptance, write `spec.md`,
+   then `plan.md`, in `.aidlc/artifacts/<slug>/`; there is no separate contract file.
 
 ## When the source is a PRD
 
