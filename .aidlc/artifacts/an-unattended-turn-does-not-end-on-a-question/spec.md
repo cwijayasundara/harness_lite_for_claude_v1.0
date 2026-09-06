@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 extends: one-integration-test, the-suite-measures-this-harness
+by: cwijayasundara
+at: 2026-09-06T08:14:07.640Z
+digest: sha256:4d397b7aa619daabd5cb909976895d9261e9c3fd0670e9e8be460517bc8841d6
 ---
 # Spec: an-unattended-turn-does-not-end-on-a-question
 

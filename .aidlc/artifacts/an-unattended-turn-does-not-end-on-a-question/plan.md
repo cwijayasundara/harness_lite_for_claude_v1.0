@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-06T08:14:07.695Z
+digest: sha256:2d0960f78367f284b42d0feb3717fe6de39aed4541a45c9dd9cd26e3fe1b680d
 ---
 # Plan: an-unattended-turn-does-not-end-on-a-question
 
