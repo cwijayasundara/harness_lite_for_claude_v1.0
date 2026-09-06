@@ -30,6 +30,8 @@ export function stage(fixturesDir, name) {
   git('config', 'user.name', 'eval');
   git('add', '-A');
   git('-c', 'commit.gpgsign=false', 'commit', '-qm', 'fixture');
-  cpSync(work, pristine, { recursive: true });
+  // The baseline compares source bytes, not repository internals. Copying .git adds mutable
+  // object/maintenance state and produced intermittent copy failures on the hosted runner.
+  cpSync(work, pristine, { recursive: true, filter: source => path.basename(source) !== '.git' });
   return { root, work, pristine, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }

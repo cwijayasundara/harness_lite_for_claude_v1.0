@@ -62,6 +62,7 @@ test('staging yields a git repo plus an untouched pristine copy', () => {
   const s = stage(FIXTURES, 'clean-app');
   try {
     assert.ok(existsSync(path.join(s.work, '.git')));
+    assert.equal(existsSync(path.join(s.pristine, '.git')), false, 'source baseline does not copy mutable Git metadata');
     assert.ok(existsSync(path.join(s.work, '.aidlc/harness.toml')), 'base was overlaid');
     assert.ok(existsSync(path.join(s.work, 'src/app/handlers.py')), 'fixture was overlaid');
     const ctx = { work: s.work, pristine: s.pristine, transcript: '' };

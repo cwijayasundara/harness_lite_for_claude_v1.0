@@ -203,7 +203,7 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
       if (step.gate) { approvals.decide(step.gate); continue; }
       if (step.implement) approvals.assertImplementation(step.implement);
       rmSync(previous, { recursive: true, force: true });
-      cpSync(s.work, previous, { recursive: true });
+      cpSync(s.work, previous, { recursive: true, filter: source => path.basename(source) !== '.git' });
       const out = await invoke({
         prompt: step.prompt, cwd: s.work, timeoutMs: t.timeoutMs, budgetUsd: t.budgetUsd, task: t, step: idx,
       });
