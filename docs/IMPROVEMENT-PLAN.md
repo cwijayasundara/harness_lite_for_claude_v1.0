@@ -115,7 +115,7 @@ after repeatable product evidence shows it necessary.
 |---|---|---|
 | A | Complete for item 1 | Honest execution/reporting, hosted CI and explicit read-only evaluator verified |
 | B | Implemented and tested | Daily guidance simplified; bounded comparison found no regression, but friction reduction remains unproven |
-| C | Pending | External product acceptance and two unattended campaigns |
+| C | Implemented and tested | Both live campaigns passed all 11 changes; private API/HTTP acceptance, failure recovery, saved-revision replay and hosted Docker checks passed |
 | D | Pending | Comparative model/graph trials and evidence-based pruning |
 
 First implementation slice: runner aggregation, malformed structured reports, full-run selection,
@@ -285,6 +285,41 @@ questions/stops in both variants: it demonstrates no regression, not fewer workf
 That empirical reduction criterion remains unproven. Detailed results, original grading, incomplete
 attempt and costs are recorded in `.aidlc/artifacts/simplify-daily-guidance/evidence.md`.
 Full product campaigns remain item 3.
+
+### Item 3 delivered, 2026-09-06
+
+The existing eval runner now supports `--products`, with separate product scenarios, restricted
+Docker mounts and private grading outside the agent and product processes. The driver supplies
+one requirement at a time, records explicitly simulated decisions through ordinary committed
+approvals, and retains every attempt with source, revisions, phase outputs and billing status.
+No production controls, roles, skills or budget limits were added.
+
+Both actual-CLI campaigns passed at `5df1a80`: five ledger changes and six service changes.
+The ledger exercised characterization before implementation, rejection/correction, stale approval,
+overdue-rule reversal, independent seeded-defect review and repair, storage extraction, external
+rename and current documentation. The service exercised HTTP creation/validation, a missing tool,
+persistence and restart, the title-limit change with old data, seeded parsing repair, and an
+unwritable-storage incident leading to a new intent and HTTP 503 without state corruption.
+
+The full run reported **2 pass, 0 fail, 0 inconclusive**, costing **USD 2.9209**. Two earlier
+calibrations failed and remain in the evidence; their reported combined cost was USD 0.5774.
+They exposed container Git trust/file visibility and generated-map scope handling. Deterministic
+HTTP tests additionally reproduced stale Docker Desktop data reads; fresh source and data mount
+identities resolve that issue. All eleven saved product revisions passed public checks and private
+acceptance again with verifier `7dbdc44`, including the corrected HTTP isolation.
+
+Seven deterministic Docker tests pass on macOS and GitHub Ubuntu: mount/write boundaries,
+private-data exclusion, no-op/faulty product rejection, approval evidence, incomplete-call billing,
+cleanup of timed-out public-test containers, and HTTP persistence/rule-change/storage-failure grading. Hosted unit, graph benchmark and cost
+checks also passed. Credential preflight fails closed for product trials; missing billing is
+unknown, and failed invocations reserve their spend allowance.
+
+Portable results and exact evidence locations are in `.aidlc/evals/product-summary.json`.
+Full private snapshots/transcripts remain in ignored `.aidlc/evals/products/`. These are one
+complete run per campaign, not a reliability-rate estimate. Approvals test the scripted protocol;
+deployment remains local and disposable. The separate whole-change evaluator timed out twice
+(180 and 480 seconds), with no verdict or reported billing. Those reviews remain incomplete,
+independently of the successful seeded product review; no whole-change evaluator approval is claimed.
 
 
 Item 2 delivery: local stop/commit checks, hosted unit/graph/Python checks and the actual-plugin

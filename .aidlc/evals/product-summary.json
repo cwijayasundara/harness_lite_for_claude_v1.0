@@ -1,0 +1,337 @@
+{
+  "item": 3,
+  "date": "2026-09-06",
+  "status": "implemented-and-tested",
+  "fullRun": ".aidlc/evals/products/2026-09-06T21-22-46-051Z.json",
+  "fullRunSummary": {
+    "total": 2,
+    "pass": 2,
+    "flaky": 0,
+    "fail": 0,
+    "inconclusive": 0,
+    "aborted": 0,
+    "usd": 2.9209
+  },
+  "models": {
+    "generator": "claude-sonnet-5",
+    "evaluator": "claude-opus-5",
+    "evals": "claude-haiku-4-5-20251001"
+  },
+  "campaigns": [
+    {
+      "id": "campaign-ledger",
+      "verdict": "pass",
+      "completedSteps": 5,
+      "totalSteps": 5,
+      "evidence": ".aidlc/evals/products/2026-09-06T21-08-18-626Z-campaign-ledger-1",
+      "harnessRevision": "5df1a80d82fa02569698dd019307ee544b72ad0e",
+      "candidateRevision": "4788c502a577d82926e426ad82fd037ffe555129",
+      "cli": "2.1.263 (Claude Code)",
+      "image": "sha256:3fa492e0e3ee643b0cdeec84124bc125de50aa5559129cfe6510f835ecd41465",
+      "reportedUsd": 1.50230865,
+      "billingComplete": true,
+      "modelCalls": 15,
+      "observedModels": [
+        "claude-sonnet-5",
+        "claude-haiku-4-5-20251001",
+        "claude-opus-5"
+      ],
+      "simulatedDecisions": 13,
+      "checks": [
+        {
+          "name": "ledger-api-level-1",
+          "pass": true,
+          "cases": 14
+        },
+        {
+          "name": "ledger-api-level-2",
+          "pass": true,
+          "cases": 25
+        },
+        {
+          "name": "ledger-api-level-3",
+          "pass": true,
+          "cases": 25
+        },
+        {
+          "name": "ledger-api-level-4",
+          "pass": true,
+          "cases": 25
+        },
+        {
+          "name": "ledger-api-level-5",
+          "pass": true,
+          "cases": 25
+        }
+      ],
+      "exercisedEvents": [
+        "ledger-api-level-0",
+        "actual-plugin-pause",
+        "characterization-tests-green",
+        "ledger-api-level-1",
+        "rejection-corrected",
+        "stale-approval-blocked",
+        "ledger-api-level-2",
+        "session-restart",
+        "ledger-api-level-3",
+        "independent-review",
+        "review-defect-repaired",
+        "ledger-api-level-4",
+        "external-file-rename",
+        "reproduced-product-failure",
+        "ledger-api-level-5"
+      ],
+      "replay": {
+        "verifierRevision": "7dbdc44e7925f291e5616aed04e555df643b5bcc",
+        "evidence": ".aidlc/evals/products/2026-09-06T21-08-18-626Z-campaign-ledger-1/current-verifier-replay.json",
+        "results": [
+          {
+            "slug": "ledger-characterize",
+            "revision": "87ad99bc3c64a0ea85644f45919629ee0b9a1dbb",
+            "publicCheck": "SKIP  fmt         0ms  (no \"fmt\" command in harness.toml)\nSKIP  lint        0ms  (no \"lint\" command in harness.toml)\nSKIP  typecheck   0ms  (no \"typecheck\" command in harness.toml)\nPASS  test        93ms\n",
+            "name": "ledger-api-level-1",
+            "pass": true,
+            "cases": 14
+          },
+          {
+            "slug": "ledger-payments",
+            "revision": "0f50275f0e61a3b3a8ebc63d5cdd35488bbdb894",
+            "publicCheck": "SKIP  fmt         0ms  (no \"fmt\" command in harness.toml)\nSKIP  lint        0ms  (no \"lint\" command in harness.toml)\nSKIP  typecheck   0ms  (no \"typecheck\" command in harness.toml)\nPASS  test        104ms\n",
+            "name": "ledger-api-level-2",
+            "pass": true,
+            "cases": 25
+          },
+          {
+            "slug": "ledger-overdue",
+            "revision": "7b5abf8a915ef8b100e4cf48d8403668879418f4",
+            "publicCheck": "SKIP  fmt         0ms  (no \"fmt\" command in harness.toml)\nSKIP  lint        0ms  (no \"lint\" command in harness.toml)\nSKIP  typecheck   0ms  (no \"typecheck\" command in harness.toml)\nPASS  test        113ms\n",
+            "name": "ledger-api-level-3",
+            "pass": true,
+            "cases": 25
+          },
+          {
+            "slug": "ledger-storage",
+            "revision": "c3bca388fd78b9f8445006dbb64153010cb4767b",
+            "publicCheck": "SKIP  fmt         0ms  (no \"fmt\" command in harness.toml)\nSKIP  lint        0ms  (no \"lint\" command in harness.toml)\nSKIP  typecheck   0ms  (no \"typecheck\" command in harness.toml)\nPASS  test        93ms\n",
+            "name": "ledger-api-level-4",
+            "pass": true,
+            "cases": 25
+          },
+          {
+            "slug": "ledger-description",
+            "revision": "4788c502a577d82926e426ad82fd037ffe555129",
+            "publicCheck": "SKIP  fmt         0ms  (no \"fmt\" command in harness.toml)\nSKIP  lint        0ms  (no \"lint\" command in harness.toml)\nSKIP  typecheck   0ms  (no \"typecheck\" command in harness.toml)\nPASS  test        95ms\n",
+            "name": "ledger-api-level-5",
+            "pass": true,
+            "cases": 25
+          }
+        ]
+      }
+    },
+    {
+      "id": "campaign-service",
+      "verdict": "pass",
+      "completedSteps": 6,
+      "totalSteps": 6,
+      "evidence": ".aidlc/evals/products/2026-09-06T21-15-36-413Z-campaign-service-1",
+      "harnessRevision": "5df1a80d82fa02569698dd019307ee544b72ad0e",
+      "candidateRevision": "ae5e4522bf436a3a9475f7dd413cbff3d7d70e38",
+      "cli": "2.1.263 (Claude Code)",
+      "image": "sha256:3fa492e0e3ee643b0cdeec84124bc125de50aa5559129cfe6510f835ecd41465",
+      "reportedUsd": 1.4185619,
+      "billingComplete": true,
+      "modelCalls": 12,
+      "observedModels": [
+        "claude-sonnet-5"
+      ],
+      "simulatedDecisions": 12,
+      "checks": [
+        {
+          "name": "service-http-level-1",
+          "pass": true,
+          "cases": 4
+        },
+        {
+          "name": "service-http-level-2",
+          "pass": true,
+          "cases": 14
+        },
+        {
+          "name": "service-http-level-3",
+          "pass": true,
+          "cases": 16
+        },
+        {
+          "name": "service-http-level-4",
+          "pass": true,
+          "cases": 16
+        },
+        {
+          "name": "service-http-level-5",
+          "pass": true,
+          "cases": 16
+        },
+        {
+          "name": "service-http-level-6",
+          "pass": true,
+          "cases": 19
+        }
+      ],
+      "exercisedEvents": [
+        "actual-plugin-pause",
+        "service-http-level-1",
+        "missing-tool-reproduced",
+        "service-http-level-2",
+        "session-restart",
+        "service-http-level-3",
+        "service-http-level-4",
+        "reproduced-product-failure",
+        "service-http-level-5",
+        "local-incident-observed",
+        "service-http-level-6"
+      ],
+      "replay": {
+        "verifierRevision": "7dbdc44e7925f291e5616aed04e555df643b5bcc",
+        "evidence": ".aidlc/evals/products/2026-09-06T21-15-36-413Z-campaign-service-1/current-verifier-replay.json",
+        "results": [
+          {
+            "slug": "service-create",
+            "revision": "ef824bacdfcc97c443c5c5ac8a285f331f4b63ab",
+            "publicCheck": "PASS  secrets     25ms\nPASS  test        91ms\n",
+            "name": "service-http-level-1",
+            "pass": true,
+            "cases": 4
+          },
+          {
+            "slug": "service-validate",
+            "revision": "b23c4694d18e9bf608498e5536575dd7ee3ef6b2",
+            "publicCheck": "PASS  secrets     48ms\nPASS  test        109ms\n",
+            "name": "service-http-level-2",
+            "pass": true,
+            "cases": 14
+          },
+          {
+            "slug": "service-persist",
+            "revision": "00af448937447a8a2b30f10bcd6fb9c703aee7d7",
+            "publicCheck": "PASS  secrets     19ms\nPASS  test        252ms\n",
+            "name": "service-http-level-3",
+            "pass": true,
+            "cases": 16
+          },
+          {
+            "slug": "service-limit",
+            "revision": "0697f93341657fd8fc30f1444e8c8e8c35c0c4c8",
+            "publicCheck": "PASS  secrets     15ms\nPASS  test        280ms\n",
+            "name": "service-http-level-4",
+            "pass": true,
+            "cases": 16
+          },
+          {
+            "slug": "service-repair",
+            "revision": "e90b2904b883c6249069966348242d3ece9bd5b0",
+            "publicCheck": "PASS  secrets     14ms\nPASS  test        289ms\n",
+            "name": "service-http-level-5",
+            "pass": true,
+            "cases": 16
+          },
+          {
+            "slug": "service-operate",
+            "revision": "ae5e4522bf436a3a9475f7dd413cbff3d7d70e38",
+            "publicCheck": "PASS  secrets     15ms\nPASS  test        382ms\n",
+            "name": "service-http-level-6",
+            "pass": true,
+            "cases": 19
+          }
+        ]
+      }
+    }
+  ],
+  "priorAttempts": [
+    {
+      "result": ".aidlc/evals/products/2026-09-06T20-33-39-903Z.json",
+      "calibration": true,
+      "summary": {
+        "total": 1,
+        "pass": 0,
+        "flaky": 0,
+        "fail": 1,
+        "inconclusive": 0,
+        "aborted": 0,
+        "usd": 0.2562
+      },
+      "evidence": [
+        ".aidlc/evals/products/2026-09-06T20-31-37-780Z-campaign-ledger-1"
+      ],
+      "failures": [
+        {
+          "name": "product-campaign",
+          "pass": false,
+          "detail": "Expected values to be strictly equal:\n+ actual - expected\n\n+ undefined\n- 1400\n"
+        }
+      ]
+    },
+    {
+      "result": ".aidlc/evals/products/2026-09-06T20-46-23-557Z.json",
+      "calibration": true,
+      "summary": {
+        "total": 1,
+        "pass": 0,
+        "flaky": 0,
+        "fail": 1,
+        "inconclusive": 0,
+        "aborted": 0,
+        "usd": 0.3212
+      },
+      "evidence": [
+        ".aidlc/evals/products/2026-09-06T20-44-15-380Z-campaign-ledger-1"
+      ],
+      "failures": [
+        {
+          "name": "product-campaign",
+          "pass": false,
+          "detail": "CODEBASE-MAP.md changed but the current change \"ledger-characterize\" does not name it in ## Files"
+        }
+      ]
+    }
+  ],
+  "totalReportedTrialUsd": 3.49829755,
+  "deterministicDocker": {
+    "tests": 7,
+    "passed": 7,
+    "platforms": [
+      "macOS Docker Desktop",
+      "GitHub Actions Ubuntu"
+    ],
+    "ci": "https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34062622771"
+  },
+  "review": {
+    "status": "incomplete",
+    "candidate": "7dbdc44e7925f291e5616aed04e555df643b5bcc",
+    "model": "claude-opus-5",
+    "attempts": [
+      {
+        "timeoutSeconds": 180,
+        "budgetUsd": 2,
+        "verdict": null,
+        "reportedUsd": null,
+        "error": "spawnSync claude ETIMEDOUT"
+      },
+      {
+        "timeoutSeconds": 480,
+        "budgetUsd": 2,
+        "verdict": null,
+        "reportedUsd": null,
+        "error": "spawnSync claude ETIMEDOUT"
+      }
+    ],
+    "disposition": ".aidlc/artifacts/automated-product-trials/review.md"
+  },
+  "limitations": [
+    "One complete run per campaign does not establish a statistical reliability rate.",
+    "Approvals are explicitly simulated and prove protocol, not human judgment.",
+    "Deployment is local and disposable; no production deployment was attempted.",
+    "Full private evidence is retained locally under ignored products/; this tracked summary contains portable replay results.",
+    "Total reported trial cost excludes whole-change evaluator attempts with unreported billing."
+  ],
+  "codeRevision": "12b77b9d75d8897098eecdfa54c3f44ebbd474f0"
+}

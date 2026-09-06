@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: automated-product-trials
 
