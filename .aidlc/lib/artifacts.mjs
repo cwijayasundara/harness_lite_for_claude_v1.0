@@ -308,6 +308,26 @@ function contentIssues(cfg, slug, kind, front, body, target) {
     for (const id of named) {
       issues.push(`${rel} names ${id} in its prose without linking it — add \`supersedes: ${id}\` to the frontmatter if this spec reverses that behaviour; if it is not a reversal, remove the id from the prose or refer to the behaviour by its title instead.`);
     }
+    // a-change-declares-its-relation B1–B4. F33: four campaign runs, four contradictions found
+    // and written into prose, no link — nothing ever asked. A spec approved beside other open
+    // approved specs declares its relation to each: `supersedes:` a behaviour of it, or
+    // `extends:` it. Presence only; whether `extends:` is true is the reviewer's question.
+    const related = new Set([
+      ...supersedesLinks(front).map((l) => l.split('#')[0]),
+      ...extendsLinks(front),
+    ]);
+    for (const ext of extendsLinks(front)) {
+      const other = read(cfg, ext, 'spec');
+      if (!other) { issues.push(`${rel}: extends: ${ext} names a change with no spec.md — fix it before approving.`); continue; }
+      if (other.state !== 'approved') issues.push(`${rel}: extends: ${ext} names a spec that is not approved (${other.state}) — approve ${ext}/spec.md first.`);
+    }
+    const unrelated = slugs(cfg).filter((other) =>
+      other !== slug && !related.has(other)
+      && read(cfg, other, 'intent')?.front.status !== 'closed'
+      && read(cfg, other, 'spec')?.state === 'approved');
+    if (unrelated.length) {
+      issues.push(`${rel} says nothing about the open change${unrelated.length > 1 ? 's' : ''} ${unrelated.join(', ')} — for each, add \`supersedes: ${unrelated[0]}#B<n>\` if a behaviour here reverses one it claims, or \`extends: ${unrelated[0]}\` if all its promises still hold.`);
+    }
     for (const link of supersedesLinks(front)) {
       const m = /^([a-z0-9](?:[a-z0-9-]{0,62}))#(B\d+)$/.exec(link);
       if (!m) { issues.push(`${rel}: supersedes: ${link} is not shaped <slug>#<behaviour-id> — fix it before approving.`); continue; }
@@ -328,6 +348,11 @@ function contentIssues(cfg, slug, kind, front, body, target) {
 // is the one place it is split.
 export function supersedesLinks(front) {
   return (front?.supersedes ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+// `extends: <slug>, <slug>` — the change whose promises all still hold under this one.
+export function extendsLinks(front) {
+  return (front?.extends ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 }
 
 // Who points at what. Computed, never written — the same pattern `stale-approval` already is: a

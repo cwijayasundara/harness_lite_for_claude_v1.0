@@ -39,6 +39,9 @@ ids, so renumbering breaks the chain.
   its file all stand — and the link only takes effect once this spec is itself approved.
   `harness status` and `SessionStart` name it from there. Naming an approved behaviour's id in
   the prose without the link is refused at approval: the field is the record, the prose is not.
+  And for every other open change whose spec is approved, say which it is — `supersedes:` a
+  behaviour of it, or `extends: <slug>` when all its promises still hold. Approval refuses a
+  spec that says neither.
 
 Structured prompt-driven development calls these Requirements, Entities, Approach, Structure,
 Operations, Norms and Safeguards. Four of those live here; Approach, Structure and Operations are

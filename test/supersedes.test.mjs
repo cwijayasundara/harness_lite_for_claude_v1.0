@@ -265,3 +265,74 @@ test('an id naming no approved behaviour is not this rule\'s business', () => {
     assert.equal(ok.status, 0, ok.stderr);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+// a-change-declares-its-relation B1–B4. one-integration-test F33: four runs, four contradictions
+// described in prose, no link. Nothing asked the question. Now gate 1 does: a spec approved
+// beside other open approved specs declares its relation to each — `supersedes:` a behaviour or
+// `extends:` the change — or the gate does not open.
+test('a spec beside an open approved change must declare supersedes: or extends: for it', () => {
+  const root = repo();
+  try {
+    assert.equal(run(root, 'new', 'ledger').status, 0);
+    writeFileSync(specPath(root, 'ledger'), realSpec(['B2']));
+    commit(root, 'ledger drafted');
+    assert.equal(run(root, 'approve', 'ledger', 'spec', '--by', 'tester').status, 0);
+    commit(root, 'ledger approved');
+
+    assert.equal(run(root, 'new', 'next').status, 0);
+    writeFileSync(specPath(root, 'next'), realSpec(['B1']));
+    commit(root, 'next drafted');
+    const refused = run(root, 'approve', 'next', 'spec', '--by', 'tester');
+    assert.equal(refused.status, 1);
+    assert.match(refused.stderr, /ledger/);
+    assert.match(refused.stderr, /supersedes: ledger#B<n>/);
+    assert.match(refused.stderr, /extends: ledger/);
+
+    // B2: extends: names a change that must exist and be approved.
+    writeFileSync(specPath(root, 'next'), realSpec(['B1'], { extends: 'nowhere' }));
+    commit(root, 'next extends a ghost');
+    const ghost = run(root, 'approve', 'next', 'spec', '--by', 'tester');
+    assert.equal(ghost.status, 1);
+    assert.match(ghost.stderr, /extends: nowhere/);
+
+    writeFileSync(specPath(root, 'next'), realSpec(['B1'], { extends: 'ledger' }));
+    commit(root, 'next extends ledger');
+    assert.equal(run(root, 'approve', 'next', 'spec', '--by', 'tester').status, 0);
+    commit(root, 'next approved');
+
+    // supersedes: alone satisfies the relation too.
+    assert.equal(run(root, 'new', 'reverses').status, 0);
+    writeFileSync(specPath(root, 'reverses'), realSpec(['B1'], { supersedes: 'ledger#B2', extends: 'next' }));
+    commit(root, 'reverses drafted');
+    const ok = run(root, 'approve', 'reverses', 'spec', '--by', 'tester');
+    assert.equal(ok.status, 0, ok.stderr);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a closed approved change needs no relation declared', () => {
+  const root = repo();
+  try {
+    assert.equal(run(root, 'new', 'ledger').status, 0);
+    writeFileSync(specPath(root, 'ledger'), realSpec(['B2']));
+    commit(root, 'ledger drafted');
+    assert.equal(run(root, 'approve', 'ledger', 'spec', '--by', 'tester').status, 0);
+    const intent = path.join(root, '.aidlc/artifacts/ledger/intent.md');
+    writeFileSync(intent, readFileSync(intent, 'utf8').replace('status: draft', 'status: closed'));
+    commit(root, 'ledger approved and closed');
+
+    assert.equal(run(root, 'new', 'next').status, 0);
+    writeFileSync(specPath(root, 'next'), realSpec(['B1']));
+    commit(root, 'next drafted');
+    const ok = run(root, 'approve', 'next', 'spec', '--by', 'tester');
+    assert.equal(ok.status, 0, ok.stderr);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// B5: the field is introduced where the agent writes. (Planned for test/gate-content.test.mjs;
+// that file is not in this change's ## Files, so the proof lives here.)
+test('the spec template and the spec skill both name extends: beside supersedes:', async () => {
+  const { A } = await import('./_paths.mjs');
+  const template = readFileSync(path.join(A, 'templates', 'spec.md'), 'utf8').split('\n---\n')[0];
+  assert.match(template, /extends:/);
+  assert.match(readFileSync(path.join(A, 'skills', 'spec', 'SKILL.md'), 'utf8'), /extends:/);
+});

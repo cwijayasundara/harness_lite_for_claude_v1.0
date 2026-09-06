@@ -168,7 +168,11 @@ was actually promised, and a link only takes effect once the superseding spec is
 reader (or an agent that has just started a session) can tell without reading every change that
 came after. And a spec whose prose names an approved behaviour by id (`<slug>#B<n>`) without
 linking it is refused at approval: an agent that has written the id has made the judgment, and
-the field is where the harness reads it (`a-named-behaviour-is-a-link`).
+the field is where the harness reads it (`a-named-behaviour-is-a-link`). And a spec approved
+beside other open approved specs must declare its relation to each — `supersedes:` a behaviour
+or `extends: <slug>` — so the question is asked at gate 1 rather than left for the agent to
+volunteer (`a-change-declares-its-relation`, after four campaign runs in which the reversal was
+described in prose every time and linked in none).
 
 ## Provider adapter boundary
 
