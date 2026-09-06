@@ -54,6 +54,9 @@ export function loadConfig(root) {
       evals: 'claude-haiku-4-5-20251001',
       ...(raw.models ?? {}),
     },
+    // every-control-fires-or-goes B1: control name -> the test that plants the defect its why:
+    // names. The audit reads it to tell a deterrent from a corpse; nothing else does.
+    deterrents: raw.deterrents ?? {},
     layout: L,
   };
   return cfg;

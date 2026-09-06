@@ -30,6 +30,12 @@ modules are not checked at all — a one-line table fix in `.aidlc/sensors/archi
 proven by `test/arch.test.mjs` running the sensor against the real kernel. Both refused by the
 guard until this plan is re-approved, which is `a-diff-belongs-to-one-change` doing its job.
 
+Amended a second time, 2026-09-06: B5's repair makes the Stop hook write `CODEBASE-MAP.md`, and
+`scope-drift` then reports the map as a product file no plan names — on the first commit after
+the fix, in this repository. The map is harness output, like `.aidlc/state/`, and no plan should
+have to claim it; `scope-drift` ignores it the way it ignores artifacts. One line in
+`.aidlc/checks/scope-drift.mjs`, proven by the existing scope-drift tests plus one case.
+
 Rejected: recording proof in plan `Proof` rows and having the audit read plans. The audit is a
 ledger question; plans are a change question; and `harness.toml` is the one registry that already
 names controls.
@@ -44,6 +50,7 @@ that errors must stay visible.
 - `.aidlc/sensors/architecture.mjs`
 - `.aidlc/lib/map.mjs`
 - `.aidlc/hooks/dispatch.mjs`
+- `.aidlc/checks/scope-drift.mjs`
 - `.aidlc/harness.toml`
 - `.aidlc/templates/harness.toml`
 - `.aidlc/bin/harness`

@@ -348,7 +348,9 @@ test('the audit separates a control that did not fire from one that did not run'
 test('a control reached by a hook binding is wired, not unwired', async () => {
   const { wiredControls } = await import('../.aidlc/lib/ledger.mjs');
   const wired = wiredControls({ stages: { commit: ['secrets'] } });
-  for (const c of ['bash-guard', 'write-guard', 'graph-refresh']) assert.ok(wired.has(c), c);
+  // every-control-fires-or-goes B3/B5: `graph-refresh` is telemetry and is no longer judged;
+  // `map-drift` is recorded at Stop and is the hook control in its place.
+  for (const c of ['bash-guard', 'write-guard', 'map-drift']) assert.ok(wired.has(c), c);
   assert.ok(wired.has('secrets'));
   assert.ok(!wired.has('arch'));
 });

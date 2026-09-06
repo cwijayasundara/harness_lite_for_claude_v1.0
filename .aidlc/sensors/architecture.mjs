@@ -25,7 +25,7 @@ function files(dir) {
 const LAYERS = [
   ['toml', 'paths', 'normalize'],
   ['config', 'ledger'],
-  ['graph', 'pack', 'contract'],
+  ['graph', 'pack', 'artifacts', 'map'],
   ['runner', 'guard', 'baseline', 'refresh', 'eval-gate', 'projection'],
 ];
 const layerOf = new Map(LAYERS.flatMap((names, i) => names.map((name) => [name, i])));
