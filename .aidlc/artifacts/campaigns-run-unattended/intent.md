@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: campaigns-run-unattended
 

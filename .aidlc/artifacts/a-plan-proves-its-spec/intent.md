@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: a-plan-proves-its-spec
 
