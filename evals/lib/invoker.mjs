@@ -31,35 +31,17 @@ export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd 
   ];
 }
 
-// The child's environment, as a pure function. close-the-harness B2: no eval task has a human,
-// so every task carries AIDLC_EVAL and the approve-is-the-humans rule stands down for it;
-// AIDLC_UNATTENDED stays the campaign-only signal (see the comment in `invoke`), set for steps
-// and stripped for everything else.
-export function invokerEnv({ task, pluginDir = null, base = {} }) {
-  const env = { ...base, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}), AIDLC_EVAL: '1' };
-  if (task?.steps) env.AIDLC_UNATTENDED = '1';
-  else delete env.AIDLC_UNATTENDED;
+// These former flags granted self-approval. Never propagate them, even from the operator.
+export function invokerEnv({ pluginDir = null, base = {} }) {
+  const env = { ...base, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}) };
+  delete env.AIDLC_EVAL;
+  delete env.AIDLC_UNATTENDED;
   return env;
 }
 
 export function claudeInvoker({ pluginDir, model = null }) {
   return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task }) {
     const args = invokerArgs({ prompt, model, pluginDir, budgetUsd });
-    // campaigns-run-unattended B3, B4. The signal a staged working copy can never produce: set
-    // here, by the runner, on the `claude` process's own env — never read from `harness.toml` or
-    // any path under `cwd`. See `.aidlc/lib/artifacts.mjs` `approve()`.
-    //
-    // Scoped to a campaign step only (`task.steps` present) — review `1ace6a8` (Blocking 1): set
-    // unconditionally, this reached all 22 single-prompt golden tasks too, several of them
-    // artifact- or contract-shaped, with context the golden suite was never calibrated against.
-    // A single-prompt task must run exactly as it does for a real, attended repository.
-    //
-    // Stripped, not merely not-added — review `419c0a4` (Blocking 2): `...process.env` is spread
-    // first, so an operator's own `AIDLC_UNATTENDED` survived a single-prompt task untouched.
-    // `delete` rather than assigning `undefined`: measured, Node omits an `undefined` value from
-    // the child's environment, so both happen to work today. `delete` says what is meant and does
-    // not rest on that detail — the earlier comment here claimed the assignment would arrive as
-    // the string `"undefined"`, which the confirming pass on `d668876` disproved.
     const env = invokerEnv({ task, pluginDir, base: process.env });
     const r = spawnSync('claude', args, { cwd, env, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
     // A missing CLI is not a failed task — it is a broken harness, and twenty tasks failing

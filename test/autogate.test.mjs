@@ -69,60 +69,21 @@ function sessionStart(root, env) {
   return JSON.parse(r.stdout).hookSpecificOutput.additionalContext;
 }
 
-// B1. A campaign step writes intent, spec and plan, commits them, and approves them with no
-// human present. Both gates, not just the spec — auto-approving only gate 1 would just move the
-// halt to gate 2. And the agent has to be told this before it starts, not on request: F6 is what
-// happens when the notice sits somewhere the agent has no reason to look.
-test('B1: with AIDLC_UNATTENDED set, both gates approve with no --by and no human', () => {
+test('legacy environment flags cannot approve a gate or grant self-approval', () => {
   const root = repo();
   try {
-    // A real repository's session start is byte-identical to what it is today.
-    assert.doesNotMatch(sessionStart(root, attended()), /unattended|AIDLC_UNATTENDED/);
-
-    const unattendedContext = sessionStart(root, { ...process.env, AIDLC_UNATTENDED: '1' });
-    assert.match(unattendedContext, /no human/i);
-    assert.match(unattendedContext, /harness approve/);
-    assert.match(unattendedContext, /harness new <slug>/);
-    assert.match(unattendedContext, /\.aidlc\/artifacts\/<slug>\//);
-
-    assert.equal(run(root, process.env, 'new', 'unattended-demo').status, 0);
-    deScaffoldArtifacts(root, 'unattended-demo', ['spec', 'plan']);
-    commit(root, 'draft unattended-demo');
-    const unattended = { ...process.env, AIDLC_UNATTENDED: '1' };
-
-    const spec = run(root, unattended, 'approve', 'unattended-demo', 'spec');
-    assert.equal(spec.status, 0, spec.stderr);
-    commit(root, 'spec approved');
-
-    const plan = run(root, unattended, 'approve', 'unattended-demo', 'plan');
-    assert.equal(plan.status, 0, plan.stderr);
-
-    assert.match(readFileSync(path.join(root, '.aidlc/artifacts/unattended-demo/spec.md'), 'utf8'), /^by: unattended-eval-run$/m);
-    assert.match(readFileSync(path.join(root, '.aidlc/artifacts/unattended-demo/plan.md'), 'utf8'), /^by: unattended-eval-run$/m);
-  } finally { rmSync(root, { recursive: true, force: true }); }
-});
-
-// B2. The identity is forced, not defaulted. An agent that can choose its own approver name can
-// write a person's, and a campaign result must never be readable as evidence that someone looked.
-test('B2: --by cwijayasundara is overridden — the recorded identity cannot be mistaken for a person', () => {
-  const root = repo();
-  try {
-    assert.equal(run(root, process.env, 'new', 'forced-identity').status, 0);
-    deScaffoldArtifacts(root, 'forced-identity', ['spec']);
-    commit(root, 'draft forced-identity');
-    const unattended = { ...process.env, AIDLC_UNATTENDED: '1' };
-
-    const result = run(root, unattended, 'approve', 'forced-identity', 'spec', '--by', 'cwijayasundara');
-    assert.equal(result.status, 0, result.stderr);
-
-    const front = readFileSync(path.join(root, '.aidlc/artifacts/forced-identity/spec.md'), 'utf8');
-    assert.match(front, /^by: unattended-eval-run$/m);
-    assert.doesNotMatch(front, /cwijayasundara/);
-
-    // review `1ace6a8` (Important 3): loud at the moment of substitution, not only in the file
-    // afterwards — a person whose --by was discarded is told, not left to discover it later.
-    assert.match(result.stderr, /discarded/);
-    assert.match(result.stderr, /cwijayasundara/);
+    run(root, process.env, 'new', 'still-human');
+    deScaffoldArtifacts(root, 'still-human', ['spec', 'plan']);
+    commit(root, 'draft');
+    for (const flag of ['AIDLC_UNATTENDED', 'AIDLC_EVAL']) {
+      const env = { ...attended(), [flag]: '1' };
+      assert.doesNotMatch(sessionStart(root, env), /approve your own|no human|no questions/);
+      for (const kind of ['spec', 'plan']) {
+        const result = run(root, env, 'approve', 'still-human', kind);
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /needs an approver/);
+      }
+    }
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -164,17 +125,17 @@ test('B5: uncommitted, plan-before-spec, digest and stale-approval all still hol
     const unattended = { ...process.env, AIDLC_UNATTENDED: '1' };
 
     // Uncommitted is still refused.
-    const early = run(root, unattended, 'approve', 'still-gated', 'spec');
+    const early = run(root, unattended, 'approve', 'still-gated', 'spec', '--by', 'simulated-test-driver');
     assert.equal(early.status, 1);
     assert.match(early.stderr, /commit .*spec\.md before approving/);
     commit(root, 'draft still-gated');
 
     // A plan before its spec is still refused.
-    const outOfOrder = run(root, unattended, 'approve', 'still-gated', 'plan');
+    const outOfOrder = run(root, unattended, 'approve', 'still-gated', 'plan', '--by', 'simulated-test-driver');
     assert.equal(outOfOrder.status, 1);
     assert.match(outOfOrder.stderr, /approve the spec before the plan/);
 
-    const spec = run(root, unattended, 'approve', 'still-gated', 'spec');
+    const spec = run(root, unattended, 'approve', 'still-gated', 'spec', '--by', 'simulated-test-driver');
     assert.equal(spec.status, 0, spec.stderr);
     const digest = /^digest: (sha256:[a-f0-9]{64})$/m.exec(readFileSync(path.join(root, '.aidlc/artifacts/still-gated/spec.md'), 'utf8'));
     assert.ok(digest, 'the body digest is still written');
@@ -187,7 +148,7 @@ test('B5: uncommitted, plan-before-spec, digest and stale-approval all still hol
     assert.equal(status.status, 1, status.stdout);
     assert.match(status.stdout, /stale-approval/);
 
-    const blockedPlan = run(root, unattended, 'approve', 'still-gated', 'plan');
+    const blockedPlan = run(root, unattended, 'approve', 'still-gated', 'plan', '--by', 'simulated-test-driver');
     assert.equal(blockedPlan.status, 1);
     assert.match(blockedPlan.stderr, /re-approve it first/);
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -203,7 +164,7 @@ test('B7: the results JSON of a fake-invoker run lists the auto-approved artifac
     spawnSync(process.execPath, [BIN, 'new', 'auto-demo'], { cwd, encoding: 'utf8' });
     deScaffoldArtifacts(cwd, 'auto-demo', ['spec']);
     commit(cwd, 'draft auto-demo');
-    const approved = spawnSync(process.execPath, [BIN, 'approve', 'auto-demo', 'spec'], { cwd, encoding: 'utf8', env });
+    const approved = spawnSync(process.execPath, [BIN, 'approve', 'auto-demo', 'spec', '--by', 'unattended-eval-run'], { cwd, encoding: 'utf8', env });
     assert.equal(approved.status, 0, approved.stderr);
     return { transcript: 'done', usage: { usd: 0.01 } };
   };
@@ -222,7 +183,7 @@ test('B7: the results JSON of a fake-invoker run lists the auto-approved artifac
 // campaign step by `task.steps`, which only a campaign task carries. A fake `claude` on PATH
 // dumps its own env so the real code path — not a fake invoker standing in for it — actually
 // runs; no model, no spend.
-test('B4 (invoker): AIDLC_UNATTENDED reaches a campaign step, and never a single-prompt task', () => {
+test('invoker strips former bypass flags from campaigns and single-prompt tasks', () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'stub-claude-'));
   const envLog = path.join(dir, 'env.txt');
   writeFileSync(path.join(dir, 'claude'), `#!/usr/bin/env bash\nenv > ${JSON.stringify(envLog)}\necho '{"result":"done","total_cost_usd":0}'\n`);
@@ -238,7 +199,7 @@ test('B4 (invoker): AIDLC_UNATTENDED reaches a campaign step, and never a single
 
     // A campaign step: `task.steps` is present, as `evals/run.mjs` builds it.
     invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'campaign', steps: [{ prompt: 'x' }] }, step: 0 });
-    assert.match(readFileSync(envLog, 'utf8'), /^AIDLC_UNATTENDED=1$/m);
+    assert.doesNotMatch(readFileSync(envLog, 'utf8'), /^AIDLC_(UNATTENDED|EVAL)=/m);
 
     // review `419c0a4` (Blocking 2): the runner must not merely not-add the variable — it must
     // strip one it inherited. An operator with AIDLC_UNATTENDED already exported puts every
@@ -266,7 +227,7 @@ test('important-2: a run that throws still reports what it approved before faili
     deScaffoldArtifacts(cwd, 'partial-approve', ['spec']);
     commit(cwd, 'draft partial-approve');
     const env = { ...process.env, AIDLC_UNATTENDED: '1' };
-    const approved = spawnSync(process.execPath, [BIN, 'approve', 'partial-approve', 'spec'], { cwd, encoding: 'utf8', env });
+    const approved = spawnSync(process.execPath, [BIN, 'approve', 'partial-approve', 'spec', '--by', 'unattended-eval-run'], { cwd, encoding: 'utf8', env });
     assert.equal(approved.status, 0, approved.stderr);
     throw new Error('sprint 3 exploded');
   };

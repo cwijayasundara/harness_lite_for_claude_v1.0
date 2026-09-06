@@ -9,7 +9,7 @@ fmt       = ""
 lint      = ""      # zero-dependency by constitution: no linter to install
 typecheck = ""
 test      = "node --test --test-reporter=tap test/*.test.mjs"
-test_quality = "node .aidlc/sensors/test-quality.mjs"
+test_quality = "node .aidlc/sensors/test-quality.mjs" # legacy name: test presence only
 coverage  = ""
 arch      = "node .aidlc/sensors/architecture.mjs"
 secrets   = ""      # built-in scanner

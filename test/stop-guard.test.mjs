@@ -30,20 +30,16 @@ function stop(work, { unattended, active = false }) {
   return { stdout: r.stdout, block, rows };
 }
 
-test('unattended, the first Stop with declared work waiting is refused once, then let through', () => {
+test('an automated turn may pause at a gate without being told to self-approve', () => {
   const s = stage(FIXTURES, 'campaign-ledger');
   try {
     declared(s.work);
-    const first = stop(s.work, { unattended: true });
-    assert.equal(first.block?.decision, 'block', first.stdout);
-    assert.match(first.block.reason, /product-docs/);
-    assert.match(first.block.reason, /nobody/i);
-    assert.equal(first.rows.at(-1)?.verdict, 'fail');
-
-    const second = stop(s.work, { unattended: true, active: true });
-    assert.equal(second.block?.decision, undefined, 'a turn already continuing from a block ends');
-    assert.equal(second.rows.at(-1)?.verdict, 'pass');
-    assert.equal(second.rows.at(-1)?.rule, 'let-through');
+    for (const active of [false, true]) {
+      const result = stop(s.work, { unattended: true, active });
+      assert.equal(result.block?.decision, undefined);
+      assert.deepEqual(result.rows, []);
+      assert.doesNotMatch(result.stdout, /approve your own|nobody will answer/);
+    }
   } finally { s.cleanup(); }
 });
 
@@ -66,6 +62,6 @@ test('unattended with nothing waiting blocks nothing', () => {
 });
 
 // B6: the skill and the hook say the same thing.
-test('the intent skill names the unattended case at its last step', () => {
-  assert.match(readFileSync(path.join(A, 'skills', 'intent', 'SKILL.md'), 'utf8'), /unattended/i);
+test('the intent skill returns control to the external driver', () => {
+  assert.match(readFileSync(path.join(A, 'skills', 'intent', 'SKILL.md'), 'utf8'), /external\s+driver/i);
 });

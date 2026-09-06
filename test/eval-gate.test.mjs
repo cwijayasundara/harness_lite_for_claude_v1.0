@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { gate, update, readRecord, writeRecord, loadResults, RECORD_SCHEMA } from '../.aidlc/lib/eval-gate.mjs';
+import { gate, update, readRecord, writeRecord, loadResults, render, RECORD_SCHEMA } from '../.aidlc/lib/eval-gate.mjs';
 
 const record = (tasks) => ({ schema: RECORD_SCHEMA, recorded_at: '2026-09-01T00:00:00.000Z', source: 'r.json', commit: null, tasks });
 const norm = (v) => (typeof v === 'string' ? { verdict: v } : v);
@@ -107,7 +107,32 @@ test('loadResults returns null for an empty or absent results directory', () => 
   } finally { f.cleanup(); }
 });
 
-// The widest run wins, so a three-task smoke cannot displace a full suite as the graded run.
+test('newer partial runs cannot displace the newest complete result', () => {
+  const f = tmp(); try {
+    mkdirSync(f.dir);
+    for (const [name, pairs] of [
+      ['01.json', { a: 'pass', b: 'fail' }],
+      ['02.json', { a: 'pass', b: 'pass' }],
+      ['03.json', { a: 'fail' }],
+    ]) writeFileSync(path.join(f.dir, name), JSON.stringify(results(pairs)));
+    assert.equal(loadResults(f.dir, new Set(['a', 'b'])).source, '02.json');
+    assert.equal(loadResults(f.dir).source, '02.json');
+    // Keep partial evidence visible when there is no full run; gate reports missing tasks.
+    const partial = loadResults(f.dir, new Set(['a', 'b', 'c']));
+    assert.equal(partial.source, '03.json');
+    assert.equal(gate(partial, record({ a: 'pass', b: 'pass', c: 'pass' })).ok, false);
+  } finally { f.cleanup(); }
+});
+
+test('no regression does not hide existing failures or incomplete evaluation', () => {
+  const r = gate(results({ a: 'pass', b: 'fail', c: 'flaky', d: 'inconclusive' }),
+    record({ a: 'pass', b: 'fail', c: 'flaky', d: 'fail' }));
+  assert.equal(r.ok, true, 'the regression comparison retains its meaning');
+  const output = render(r).join('\n');
+  assert.match(output, /1\/4 tasks passed/);
+  for (const verdict of ['fail', 'flaky', 'inconclusive']) assert.match(output, new RegExp(`NOT PASSING.*${verdict}`));
+});
+
 test('readRecord rejects a file with the wrong schema', () => {
   const f = tmp(); try {
     mkdirSync(f.root, { recursive: true });

@@ -94,7 +94,7 @@ test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
     // init invalidates the cache exactly as editing the generated file would.
     // lean-v2 B6 removed `.aidlc/harness.toml` from this list: it is a registry, not prompt text.
     for (const rel of ['.claude/CLAUDE.md', '.claude/settings.json', '.aidlc/instructions.md']) {
-      assert.match(String(writeBlocked(rel, cfg)), /cached prompt prefix/, `stopped guarding ${rel}`);
+      assert.match(String(writeBlocked(rel, cfg)), /agent instructions or permissions/, `stopped guarding ${rel}`);
     }
   } finally { f.cleanup(); }
 });
@@ -135,12 +135,12 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
     '.aidlc/bin/harness init --force --into .',
   ]) {
     const out = await ask(cmd);
-    assert.match(out, /cached prompt prefix/, `allowed: ${cmd}`);
+    assert.match(out, /agent instructions or permissions/, `allowed: ${cmd}`);
     assert.match(out, /ask the human to run it/i, `no human hand-off named for: ${cmd}`);
   }
 
   // B2: ordinary init stays available, or the install and upgrade paths close.
-  assert.doesNotMatch(await ask('node .aidlc/bin/harness init --into .'), /cached prompt prefix/);
+  assert.doesNotMatch(await ask('node .aidlc/bin/harness init --into .'), /agent instructions or permissions/);
 
   // B6: an invocation, not a mention. The first version matched the string anywhere and refused
   // the script writing this contract's own evidence, which quoted the rule it was documenting.
@@ -148,7 +148,7 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
     `node -e "console.log('the rule refuses ${'harness init'} ${'--force'} from the agent')"`,
     `printf '%s' 'documented: ${'harness init'} ${'--force'} is the human route'`,
   ]) {
-    assert.doesNotMatch(await ask(cmd), /cached prompt prefix/, `refused a mention, not an invocation: ${cmd}`);
+    assert.doesNotMatch(await ask(cmd), /agent instructions or permissions/, `refused a mention, not an invocation: ${cmd}`);
   }
 
   rmSync(home, { recursive: true, force: true });
@@ -472,7 +472,7 @@ test('an agent cannot run harness approve in an attended session; a mention is n
     }
     process.env.AIDLC_UNATTENDED = '1';
     const unattended = await ask('node .aidlc/bin/harness approve my-change spec');
-    assert.doesNotMatch(unattended, /approval is the human/i, 'the unattended runner keeps its approver');
+    assert.match(unattended, /approval is the human/i, 'trial flags do not grant approval authority');
   } finally {
     if (had === undefined) delete process.env.AIDLC_UNATTENDED; else process.env.AIDLC_UNATTENDED = had;
     rmSync(home, { recursive: true, force: true });

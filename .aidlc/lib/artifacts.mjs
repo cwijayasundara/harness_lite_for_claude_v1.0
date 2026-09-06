@@ -97,21 +97,9 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), an
     throw new Error('--anyway needs a reason: --anyway "<why this is fine here>"');
   }
 
-  // Unattended eval runs. The identity is forced, not defaulted — an agent that can choose its
-  // own approver name can write a person's, and a campaign result must never be readable as
-  // evidence that someone looked. The signal comes from `process.env`, set by the runner that
-  // staged the copy, and nothing else: `evidence.md` F2 records an agent that rewrote
-  // `harness.toml` to disable `require_contract`, and a switch that same agent could have written
-  // inside the working copy would be the same defect wearing a different hat. This check runs
-  // before the "needs an approver" guard below, so the working copy never gets a vote either way.
-  const suppliedBy = by;
-  if (process.env.AIDLC_UNATTENDED) by = 'unattended-eval-run';
-  if (!by) throw new Error('an approval needs an approver: --by <identity>');
-  // review `1ace6a8` (Important 3): the substitution above is silent to the caller. A real
-  // person's `--by`, leaked into an environment that also carries `AIDLC_UNATTENDED`, must not be
-  // discarded with only success printed — the same defect B2 exists to prevent, the other way
-  // round. `discardedBy` is null unless a supplied identity was actually thrown away.
-  const discardedBy = suppliedBy && suppliedBy !== by ? suppliedBy : null;
+  // --by is an audit label, not authentication. Environment flags cannot approve a gate.
+  if (!by || /[\r\n]/.test(by)) throw new Error('an approval needs an approver: --by <identity>');
+  const discardedBy = null;
 
   const target = file(cfg, slug, kind);
   if (!existsSync(target)) throw new Error(`not found: ${path.relative(cfg.layout.root, target)}`);
@@ -135,16 +123,9 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), an
   const issues = contentIssues(cfg, slug, kind, front, body, target);
   if (issues.length && !anyway) throw new Error(issues.join('\n'));
 
-  replaceAtomic(target, render({ ...front, status: 'approved', by, at, digest: bodyDigest(text), ...(anyway ? { approved_anyway: anyway } : {}) }, body));
+  replaceAtomic(target, render({ ...front, status: 'approved', by, at, digest: bodyDigest(text), ...(kind === 'plan' ? { spec_digest: bodyDigest(read(cfg, slug, 'spec').text) } : {}), ...(anyway ? { approved_anyway: anyway } : {}) }, body));
   return { file: target, digest: bodyDigest(text), discardedBy };
 }
-
-// Shared verbatim between the two places an unattended run is told it may approve its own
-// gates — `harness status` and the `SessionStart` hook — so the instruction cannot drift into
-// two different wordings of the same thing (review `1ace6a8`, Nit 2).
-export const UNATTENDED_APPROVE_NOTICE =
-  'approve your own gates: `harness approve <slug> spec` then `harness approve <slug> plan` ' +
-  '(omit --by; the identity is forced to unattended-eval-run regardless)';
 
 export function read(cfg, slug, kind) {
   const target = file(cfg, slug, kind);
@@ -152,7 +133,9 @@ export function read(cfg, slug, kind) {
   const text = readFileSync(target, 'utf8');
   const { front, body } = parse(text);
   const approved = front.status === 'approved';
-  const stale = approved && front.digest && front.digest !== bodyDigest(text);
+  const spec = kind === 'plan' && front.spec_digest ? read(cfg, slug, 'spec') : null;
+  const stale = approved && ((front.digest && front.digest !== bodyDigest(text)) ||
+    (front.spec_digest && (!spec || spec.state !== 'approved' || front.spec_digest !== bodyDigest(spec.text))));
   return {
     slug, kind, file: target, front, body, text,
     // Three states, and the third is the one that matters. An approved artifact whose body has

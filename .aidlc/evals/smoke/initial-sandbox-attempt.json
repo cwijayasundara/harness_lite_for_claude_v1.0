@@ -1,0 +1,13 @@
+{
+  "kind": "agent-mechanisms-smoke",
+  "models": {
+    "generator": "claude-sonnet-5",
+    "evaluator": "claude-opus-5",
+    "evals": "claude-haiku-4-5-20251001"
+  },
+  "cli": "2.1.263 (Claude Code)",
+  "phases": [],
+  "usd": 0,
+  "pass": false,
+  "error": "Claude invocation failed: ETIMEDOUT"
+}

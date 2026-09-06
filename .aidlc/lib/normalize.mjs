@@ -99,11 +99,11 @@ export function normalize(format, stdout, stderr, code) {
   let parseError = '';
   try { findings = parse(stdout); } catch (e) { parseError = e.message; }
 
-  // Generic fallback and parse failures both degrade to a single finding carrying the tail of
-  // the tool's own output. A sensor that cannot be parsed must still be able to say "no".
-  if (findings.length === 0 && code !== 0) {
+  // why: malformed JSON with exit 0 used to be accepted as a clean structured report.
+  // The process exit code cannot establish what an unreadable report says.
+  if (findings.length === 0 && (code !== 0 || parseError)) {
     const tail = (stderr || stdout || '').trim().split('\n').slice(-12).join('\n');
-    findings = [asFinding({ rule: parseError ? 'harness/unparseable-output' : 'exit-nonzero', message: tail || `exited ${code}` })];
+    findings = [asFinding({ rule: parseError ? 'harness/unparseable-output' : 'exit-nonzero', message: parseError ? `Cannot parse ${format} report: ${parseError}${tail ? `\n${tail}` : ''}` : tail || `exited ${code}` })];
   }
   return findings;
 }

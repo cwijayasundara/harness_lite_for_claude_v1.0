@@ -13,6 +13,8 @@ import { evaluate, KNOWN, toRegExp } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
 import { stage } from './lib/stage.mjs';
 import { parse } from '../.aidlc/lib/artifacts.mjs';
+import { approvalDriver } from './lib/approvals.mjs';
+import { loadConfig } from '../.aidlc/lib/config.mjs';
 import { layout } from '../.aidlc/lib/paths.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -134,7 +136,8 @@ export function validate(tasks, fixturesDir) {
     if (t.steps) {
       if (!t.steps.length) problems.push(`${at}: steps is empty`);
       t.steps.forEach((s, i) => {
-        if (!s.prompt) problems.push(`${at} step ${i}: must contain a prompt`);
+        if (!s.prompt && !s.gate) problems.push(`${at} step ${i}: must contain a prompt or gate decision`);
+        if (s.gate && (!['spec', 'plan'].includes(s.gate.kind) || !['approve', 'reject'].includes(s.gate.decision) || !/^[a-z0-9][a-z0-9-]{0,62}$/.test(s.gate.slug ?? ''))) problems.push(`${at} step ${i}: invalid gate decision`);
       });
     } else if (!t.prompt) {
       problems.push(`${at}: no prompt`);
@@ -185,6 +188,7 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
     return { assertions: evaluate(ctx, t.assert), usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: out.transcript ?? '', incomplete: null };
   }
 
+  const approvals = approvalDriver(loadConfig(s.work));
   const assertions = [];
   let usage = {};
   let timedOut = false;
@@ -193,54 +197,74 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
   // The working copy as it stood before each step, so a step's assertions can read the diff the
   // step itself made rather than everything since the fixture (`diff_owned_by_current_change`).
   const previous = path.join(s.root, 'previous');
-  for (let idx = 0; idx < t.steps.length; idx++) {
-    const step = t.steps[idx];
-    rmSync(previous, { recursive: true, force: true });
-    cpSync(s.work, previous, { recursive: true });
-    const out = await invoke({
-      prompt: step.prompt, cwd: s.work, timeoutMs: t.timeoutMs, budgetUsd: t.budgetUsd, task: t, step: idx,
-    });
-    const fatal = invokerFatal(out);
-    if (fatal) throw fatal;
-    usage = {
-      usd: (usage.usd ?? 0) + (out.usage?.usd ?? 0),
-      output_tokens: (usage.output_tokens ?? 0) + (out.usage?.output_tokens ?? 0),
-    };
-    timedOut = timedOut || !!out.timedOut;
-    // A step that ran out of budget stops the task, and the task is ungraded rather than failed.
-    const stalled = out.incomplete ?? ungradable(out);
-    if (stalled) { incomplete = { ...stalled, step: idx }; break; }
-    // one-integration-test, from F29: the stored transcript kept the first 20,000 characters of
-    // the whole campaign, which is the sprint that passed. Each step keeps its own tail, so the
-    // step that failed is the one a reader can see the end of.
-    transcript = [transcript, `--- step ${idx + 1} ---\n${String(out.transcript ?? '').slice(-STEP_TRANSCRIPT_CAP)}`].filter(Boolean).join('\n');
-    const ctx = { work: s.work, pristine: s.pristine, previous, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
-    const stepAsserts = evaluate(ctx, step.assert ?? []);
-    assertions.push(...stepAsserts);
-    if (stepAsserts.some((a) => !a.pass)) break;
+  try {
+    for (let idx = 0; idx < t.steps.length; idx++) {
+      const step = t.steps[idx];
+      if (step.gate) { approvals.decide(step.gate); continue; }
+      if (step.implement) approvals.assertImplementation(step.implement);
+      rmSync(previous, { recursive: true, force: true });
+      cpSync(s.work, previous, { recursive: true });
+      const out = await invoke({
+        prompt: step.prompt, cwd: s.work, timeoutMs: t.timeoutMs, budgetUsd: t.budgetUsd, task: t, step: idx,
+      });
+      const fatal = invokerFatal(out);
+      if (fatal) throw fatal;
+      usage = {
+        usd: (usage.usd ?? 0) + (out.usage?.usd ?? 0),
+        output_tokens: (usage.output_tokens ?? 0) + (out.usage?.output_tokens ?? 0),
+      };
+      timedOut = timedOut || !!out.timedOut;
+      // A step that ran out of budget stops the task, and the task is ungraded rather than failed.
+      const stalled = out.incomplete ?? ungradable(out);
+      if (stalled) { incomplete = { ...stalled, step: idx }; break; }
+      // one-integration-test, from F29: the stored transcript kept the first 20,000 characters of
+      // the whole campaign, which is the sprint that passed. Each step keeps its own tail, so the
+      // step that failed is the one a reader can see the end of.
+      transcript = [transcript, `--- step ${idx + 1} ---\n${String(out.transcript ?? '').slice(-STEP_TRANSCRIPT_CAP)}`].filter(Boolean).join('\n');
+      const ctx = { work: s.work, pristine: s.pristine, previous, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
+      const stepAsserts = evaluate(ctx, step.assert ?? []);
+      assertions.push(...stepAsserts);
+      if (stepAsserts.some((a) => !a.pass)) break;
+    }
+  } catch (error) {
+    error.approvals = approvals.events();
+    error.usage = usage;
+    error.transcript = transcript;
+    throw error;
   }
   if (!incomplete && t.assert?.length) {
     assertions.push(...evaluate({
       work: s.work, pristine: s.pristine, transcript, harness: harnessBin, usage, baseline: baseline[t.id],
     }, t.assert));
   }
-  return { assertions, usage, timedOut, transcript, incomplete };
+  return { assertions, usage, timedOut, transcript, incomplete, approvals: approvals.events() };
 }
 
-export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {} }) {
+export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {}, maxSuiteUsd = Infinity }) {
+  if (!(maxSuiteUsd > 0)) throw new Error('max-suite-usd must be positive');
+  let remaining = maxSuiteUsd;
+  const boundedInvoke = async args => {
+    if (remaining <= 0) return { incomplete: { reason: 'suite_budget_exhausted' }, usage: {}, transcript: '' };
+    const allowance = Math.min(args.budgetUsd, remaining);
+    const out = await invoke({ ...args, budgetUsd: allowance });
+    const reported = out.usage?.usd;
+    // Reserve the whole allowance if the CLI omits billing. Never treat missing usage as free.
+    remaining = Math.max(0, remaining - (Number.isFinite(reported) && reported >= 0 ? reported : allowance));
+    return out;
+  };
   const results = [];
   for (const t of tasks) {
     const runs = [];
     for (let i = 0; i < (t.repeats ?? 1); i++) {
       const s = stage(fixturesDir, t.fixture);
       try {
-        const out = await runAttempt(t, invoke, s, harnessBin, baseline);
+        const out = await runAttempt(t, boundedInvoke, s, harnessBin, baseline);
         // An ungraded run is not a passing run, and an empty assertion list is not a pass
         // either — "An empty suite is not a pass" (6496934) applies to a single attempt too.
         const pass = !out.incomplete && out.assertions.length > 0 && out.assertions.every((a) => a.pass);
         runs.push({
           attempt: i + 1, pass, incomplete: out.incomplete ?? null, assertions: out.assertions,
-          usage: out.usage ?? {}, timedOut: !!out.timedOut,
+          usage: out.usage ?? {}, timedOut: !!out.timedOut, approvals: out.approvals ?? [],
           // Without the transcript, a failure can only be triaged by paying for the task again.
           // Kept for failures only, and capped, so the results file stays readable.
           // The tail, not the head: the end of a run is where it says why it stopped (F29).
@@ -255,7 +279,7 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
         // then throws in a later one must still report what it approved — read before `finally`
         // deletes the working copy, same as the success path above.
         runs.push({
-          attempt: i + 1, pass: false, assertions: [{ name: 'harness', pass: false, detail: e.message }], usage: {},
+          attempt: i + 1, pass: false, assertions: [{ name: 'harness', pass: false, detail: e.message }], usage: e.usage ?? {}, approvals: e.approvals ?? [], transcript: String(e.transcript ?? '').slice(-TRANSCRIPT_CAP),
           unattended: unattendedApprovals(s.work),
         });
       } finally { if (!s.cleaned) s.cleanup(); }
@@ -308,6 +332,7 @@ async function main() {
   if (flag('repeats')) tasks = tasks.map((t) => ({ ...t, repeats: Number(flag('repeats')) }));
   if (!tasks.length) { console.error('no tasks matched'); return 2; }
 
+  if (!(Number(flag('max-suite-usd', Infinity)) > 0)) { console.error('--max-suite-usd must be positive'); return 2; }
   const problems = validate(tasks, fixturesDir);
   if (problems.length) { console.error('tasks.json is invalid:\n  ' + problems.join('\n  ')); return 2; }
   if (argv.includes('--dry')) {
@@ -343,7 +368,7 @@ async function main() {
   const baselineFile = path.join(HERE, 'baseline.json');
   const baseline = existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, 'utf8')) : {};
   const out = await runSuite({
-    tasks, fixturesDir, baseline,
+    tasks, fixturesDir, baseline, maxSuiteUsd: Number(flag('max-suite-usd', Infinity)),
     harnessBin: path.join(PLUGIN_ROOT, '.aidlc', 'bin', 'harness'),
     invoke: claudeInvoker({ pluginDir: PLUGIN_ROOT, model: evalModel }),
     log: (m) => console.log(m),

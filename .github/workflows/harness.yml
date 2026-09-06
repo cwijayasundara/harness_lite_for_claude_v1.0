@@ -2,8 +2,14 @@
 # under .aidlc/. It is infrastructure, not a generated artefact.
 name: harness
 on:
-  push: { branches: [main] }
+  push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      model_smoke:
+        description: Run the bounded live Claude mechanism smoke (requires repository API key)
+        type: boolean
+        default: false
 
 jobs:
   unit:
@@ -29,6 +35,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
+      # Dependencies belong to the Python example, not the zero-dependency harness.
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python -m pip install pytest==8.4.2 pytest-json-report==1.5.0 ruff==0.12.12
+      - run: .aidlc/bin/harness check --stage stop
+        working-directory: examples/scratch-py
+        env:
+          HARNESS_HOME: ${{ github.workspace }}/.aidlc
       # The example is a real installed project: it declares the harness and does not contain
       # one, exactly like a pod member's repository. HARNESS_HOME is how CI points the generated
       # shim at a checkout — here the repository itself, in a downstream project a clone made
@@ -48,29 +62,51 @@ jobs:
   # and nothing bounded the run.
   evals:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.model_smoke)
+    env:
+      HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
       - id: touched
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          git diff --name-only origin/${{ github.base_ref }}...HEAD \
-            | grep -E '^(\.aidlc/(harness\.toml|skills/|roles/|checks/|sensors/|lib/|hooks/|templates/)|\.claude/(CLAUDE\.md|settings\.json)|evals/(tasks\.json|lib/|run\.mjs))' \
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --name-only "origin/$BASE_REF...HEAD" \
+            | grep -E '^(\.aidlc/(bin/|instructions\.md|harness\.toml|skills/|roles/|policies/|adapters/|checks/|sensors/|lib/|hooks/|templates/)|\.claude/(CLAUDE\.md|settings\.json)|\.claude-plugin/|\.github/workflows/harness\.yml|evals/(tasks\.json|expected\.json|fixtures/|lib/|run\.mjs|agent-mechanisms\.mjs))' \
             && echo "run=true" >> "$GITHUB_OUTPUT" || echo "run=false" >> "$GITHUB_OUTPUT"
 
       # Without a key the job says so and stops. It does not pass quietly: a steering change that
       # merged with no eval evidence is exactly what this exists to prevent, and a green tick that
       # means "we did not look" is worse than a red one.
-      - if: steps.touched.outputs.run == 'true' && secrets.ANTHROPIC_API_KEY == ''
+      - if: steps.touched.outputs.run == 'true' && env.HAS_ANTHROPIC_API_KEY != 'true'
         run: |
           echo "::error::a steering surface changed and ANTHROPIC_API_KEY is not set — the eval suite cannot run"
           exit 1
 
-      - if: steps.touched.outputs.run == 'true' && secrets.ANTHROPIC_API_KEY != ''
+      - if: steps.touched.outputs.run == 'true' && env.HAS_ANTHROPIC_API_KEY == 'true'
+        run: npm install --global @anthropic-ai/claude-code@2.1.263
+
+      - if: github.event_name == 'pull_request' && steps.touched.outputs.run == 'true' && env.HAS_ANTHROPIC_API_KEY == 'true'
         run: node evals/run.mjs --require-auth --max-suite-usd 5
         env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }
 
-      - if: steps.touched.outputs.run == 'true' && secrets.ANTHROPIC_API_KEY != ''
+      - if: github.event_name == 'pull_request' && steps.touched.outputs.run == 'true' && env.HAS_ANTHROPIC_API_KEY == 'true'
         run: node .aidlc/bin/harness evals gate
+
+      - if: github.event_name == 'workflow_dispatch' && env.HAS_ANTHROPIC_API_KEY == 'true'
+        run: node evals/agent-mechanisms.mjs
+        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-evidence
+          path: .aidlc/evals/
+          if-no-files-found: ignore

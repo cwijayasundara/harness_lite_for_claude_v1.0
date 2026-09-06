@@ -2,17 +2,50 @@
   "description": "Generated Claude adapter projection of .aidlc/hooks/policy.json.",
   "hooks": {
     "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/.aidlc/bin/harness\" hook session-start", "timeout": 10 }] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/.aidlc/bin/harness\" hook session-start",
+            "timeout": 10
+          }
+        ]
+      }
     ],
     "PreToolUse": [
-      { "matcher": "Write|Edit|MultiEdit", "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/.aidlc/bin/harness\" hook pre-write", "timeout": 10 }] },
-      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/.aidlc/bin/harness\" hook pre-bash", "timeout": 10 }] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/.aidlc/bin/harness\" hook pre-tool",
+            "timeout": 10
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit|Bash|Grep|Glob"
+      }
     ],
     "PostToolUse": [
-      { "matcher": "Write|Edit|MultiEdit", "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/.aidlc/bin/harness\" hook post-write", "timeout": 120 }] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/.aidlc/bin/harness\" hook post-write",
+            "timeout": 120
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      }
     ],
     "Stop": [
-      { "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/.aidlc/bin/harness\" hook stop", "timeout": 180 }] }
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/.aidlc/bin/harness\" hook stop",
+            "timeout": 180
+          }
+        ]
+      }
     ]
   }
 }

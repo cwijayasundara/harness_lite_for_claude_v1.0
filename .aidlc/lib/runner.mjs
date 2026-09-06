@@ -62,6 +62,7 @@ export async function runOne(cfg, verb, files) {
     // whichever python3 that profile happens to put first, not the change.
     const r = spawnSync('bash', ['-c', full], { cwd: cfg.layout.root, encoding: 'utf8', timeout: 180000, maxBuffer: 32 * 1024 * 1024 });
     if (r.error) return { ...base, verdict: 'errored', ms: Date.now() - started, command: full, error: r.error.message };
+    if (r.signal) return { ...base, verdict: 'errored', ms: Date.now() - started, command: full, error: `terminated by ${r.signal}` };
     const fmt = cfg.formats[verb] ?? 'generic';
     const payload = existsSync(reportPath) ? readFileSync(reportPath, 'utf8') : (r.stdout ?? '');
     // 127 is "command not found". A sensor whose tool is not installed is BROKEN, not
@@ -98,13 +99,15 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
     }
     const r = await runOne(cfg, verb, files);
     results.push(r);
-    if (failFast && r.verdict === 'fail') stopped = verb;
+    if (failFast && (r.verdict === 'fail' || r.verdict === 'errored')) stopped = verb;
   }
 
   const cap = cfg.budget.max_findings;
   const report = {
     stage,
-    ok: results.every((r) => r.verdict !== 'fail'),
+    // why: an unavailable configured sensor previously returned exit 0 from `check`.
+    // Unconfigured capabilities stay skipped; an attempted check must actually succeed.
+    ok: results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped'),
     changed_files: files,
     controls: results.map((r) => ({
       control: r.control, verdict: r.verdict, ms: r.ms,
@@ -148,8 +151,8 @@ export function render(report, layoutPaths) {
   }
   if (!report.ok) {
     lines.push('');
-    lines.push('Fix the findings above, or — if a rule is wrong for this code — raise the threshold in');
-    lines.push('.aidlc/harness.toml and say why in the same commit. Do not weaken a test to pass a check.');
+    lines.push('Verification did not succeed. Fix the reported defect or unavailable tool and rerun.');
+    lines.push('Do not weaken tests or thresholds to make verification pass.');
   }
   return lines.join('\n');
 }

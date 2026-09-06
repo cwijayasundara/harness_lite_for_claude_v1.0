@@ -1,0 +1,48 @@
+{
+  "kind": "agent-mechanisms-smoke",
+  "models": {
+    "generator": "claude-sonnet-5",
+    "evaluator": "claude-opus-5",
+    "evals": "claude-haiku-4-5-20251001"
+  },
+  "cli": "2.1.263 (Claude Code)",
+  "phases": [
+    "installed plugin loaded and its SessionStart hook executed",
+    "actual model paused before approval; no implementation tools available",
+    "same CLI session accepted rejection/correction; driver approved exact revisions",
+    "resumed model implemented; independent runtime cases passed",
+    "independent evaluator found seeded defect in explicit candidate; checkout unchanged"
+  ],
+  "usd": 0.18534270000000003,
+  "billingComplete": true,
+  "plugin": "lean-harness-cs-v1",
+  "review": "# Independent review\n\nBase: 5143528a05e82d390bb2613b7b964c600357683a\nCandidate: e89e45d602c432ecf3af7371666ef706fd3bceee\nModel: claude-opus-5\nCost USD: 0.11132750000000001\nChecks: run separately; not claimed by this review.\n\n# Review: `addition` — base `5143528` → candidate `e89e45d`\n\n## Suppressions, threshold raises, `# noqa`\nNone. The diff introduces no suppressions, no lint/type-check overrides, no threshold changes, and no new config. It is a single-line edit to `sum.mjs`.\n\n## Findings\n\n### Blocking — Bugs pass; B1 — `candidate/sum.mjs:1`\n```js\nexport const sum = (a, b) => a - b;\n```\nThe exported `sum` now computes the difference, not the sum. This inverts the behaviour the base implemented (`a + b`) and contradicts the only behaviour in the contract:\n\n- `spec.md:11-12` — **B1**: \"Add integers, including positive, negative, and zero values.\"\n- `intent.md:2` — \"Return the arithmetic sum.\"\n\nEvery non-zero-`b` input is wrong, and the sign error is asymmetric (`sum(2, 3)` → `-1`, `sum(3, 2)` → `1`), so the symbol also loses commutativity that callers of an addition function may rely on. `CODEBASE-MAP.md:21` shows `sum` is the module's only exported symbol, so the whole module surface is affected. Restore `a + b`.\n\n### Blocking — Compliance pass; B1 — whole diff\nThe change is a pure regression against the approved contract; it satisfies no behaviour in `spec.md` and no plan item. `plan.md:10` scopes the change to `sum.mjs`, which is respected, but `plan.md:12` records the proof obligation as \"Driver executes positive, negative and zero input cases\" for B1 — and no such driver, test, or evidence file exists anywhere in the candidate snapshot. The diff therefore lands a behaviour change with zero behavioural evidence attached, which is exactly the gap the plan's proof column exists to close. Either the proof artifact is missing from the change, or it was never produced; both block approval.\n\n### Important — Compliance pass; B1 — `spec.md:1-15`\nThe approved spec is malformed in a way that undermines the contract this diff is judged against: it carries two stacked front-matter blocks (`status: approved` at lines 1-6, then a second `status: draft` at lines 7-9), an unterminated code fence at line 13, and a trailing line 15 asserting the draft \"still needs approval ... before any implementation proceeds.\" A spec that simultaneously reads approved and draft cannot reliably gate implementation. This predates the diff and I am not asking for it to be fixed inside this change, but it should be resolved before the re-implement attempt, since the corrected `sum` must be checked against an unambiguous B1.\n\nNo security-pass findings: the change adds no I/O, no user input handling, no logging, and no auth surface.\n\n## Nits\nNone worth reporting (0 additional suppressed).\n\n## Reviewer limitations\n- I ran no tests, no build, and no `harness check`. The functional claim above is from reading the source, not from execution.\n- I reviewed only this diff and the candidate snapshot; I did not inspect the base checkout beyond the diff hunk.\n- Findings that `harness check --stage commit` already enforces are excluded per `review.md:23`.\n\n## Verdict\n\n**changes-requested**\n\nRequired to clear: restore `export const sum = (a, b) => a + b;` in `sum.mjs:1`, and supply the B1 proof driver covering positive, negative, and zero inputs as `plan.md:12` requires. Note for the runner: this is repair attempt 1 of at most 2 on these findings; a third pass on the same `sum.mjs:1` sign error should go to the human rather than back to `implement`.\n",
+  "revisions": {
+    "base": "5143528a05e82d390bb2613b7b964c600357683a",
+    "candidate": "e89e45d602c432ecf3af7371666ef706fd3bceee"
+  },
+  "approvals": [
+    {
+      "slug": "addition",
+      "kind": "spec",
+      "decision": "reject",
+      "reason": "Include negative integers and zero.",
+      "authority": "simulated-test-driver"
+    },
+    {
+      "slug": "addition",
+      "kind": "spec",
+      "decision": "approve",
+      "reason": "",
+      "authority": "simulated-test-driver"
+    },
+    {
+      "slug": "addition",
+      "kind": "plan",
+      "decision": "approve",
+      "reason": "",
+      "authority": "simulated-test-driver"
+    }
+  ],
+  "pass": true
+}

@@ -93,40 +93,47 @@ test and no artifact chain.
 5. **Describe.** `docs/PRODUCT.md` states what the ledger does today, graded against the folded
    `supersedes:` chain.
 
-Run it with `node evals/run.mjs --id campaign-ledger --require-auth`. It is one multi-turn build,
-not one prompt — bounded at a dollar and six minutes per sprint — which is why it is not in
-`--stage commit` and CI does not run it on every push. Under the runner's `AIDLC_UNATTENDED`, the
-Stop hook refuses — once per turn — to end a turn that leaves declared work ungated (an intent
-with no spec, a written spec unapproved, an edited approval), because a sprint once ended on
-"Does this intent match what you want?" with nobody there (`an-unattended-turn-does-not-end-on-a-question`).
-An attended session is never blocked. Run a campaign
-before a release, or whenever a change touches how the harness carries context or approvals
-across a plan boundary — the two things a single-prompt task cannot exercise at all.
+Campaigns must return control at human gates. The former `AIDLC_UNATTENDED` and `AIDLC_EVAL`
+self-approval exceptions have been removed. The existing ledger prompts need a scripted gate
+sequence before they can again be described as unattended product trials.
 
-A failure here is a harness defect, not a task to patch in place: record it as its own intent
-under Law 11, the same as any other defect found by building something rather than by reasoning
-about it. Fixing it is a separate change with its own gates.
+The runner accepts explicit decision steps, supplied by the test author outside the staged repo:
 
-**A campaign runs with no human present, so it cannot obey the human gate — it is given a
-different, visibly marked one.** `evals/lib/invoker.mjs` sets `AIDLC_UNATTENDED` on the `claude`
-process it spawns for a campaign step only, and *deletes* it from the child's environment for a
-single-prompt golden task — stripped rather than merely not-added, so an operator who happens to
-have `AIDLC_UNATTENDED` exported in their own shell cannot leak it into the golden suite. No file
-inside the staged working copy can turn it on either; the signal only ever comes from the runner.
-What that does not cover is a person running `harness approve` by hand in such a shell: the three
-readers below honour the variable wherever it is set, which is why a discarded `--by` is reported
-to stderr.
+```json
+{"gate":{"slug":"addition","kind":"spec","decision":"reject","reason":"Include negative inputs"}}
+{"prompt":"Revise the spec to include negative inputs, commit it, then pause."}
+{"gate":{"slug":"addition","kind":"spec","decision":"approve"}}
+{"prompt":"Prepare and commit the implementation plan, then pause."}
+{"gate":{"slug":"addition","kind":"plan","decision":"approve"}}
+{"prompt":"Implement the approved plan and run the tests.","implement":"addition"}
+```
 
-Three places read it, and nothing else: `approve()`, which forces `by: unattended-eval-run`
-regardless of what
-`--by` was given while every other precondition — committed-first, plan-after-spec, the body
-digest, `stale-approval` — still applies exactly as it does today; the `SessionStart` hook, which
-tells the agent it may approve its own gates and where `harness new <slug>` writes; and
-`harness status`, which repeats the same notice for an agent that runs it. If a person's own
-`--by` reaches `approve()` while the variable is set, it is discarded and reported to stderr, not
-silently substituted. The results JSON of a campaign run lists every artifact approved this way.
-In a real repository `AIDLC_UNATTENDED` is never set by hand: an artifact stamped
-`unattended-eval-run` there means something went wrong.
+The parent calls the ordinary approval function and commits only that artifact. Its in-memory
+receipts bind the complete approved artifact and the plan's spec digest. The `implement` step
+rejects missing, rejected, fabricated or stale receipts. A restart needs decisions from the
+external authority again, never reconstruction from agent-written metadata. All decisions are
+labelled `simulated-test-driver`; they do not establish that a human reviewed the design.
+This verifies the launch protocol. It is not an OS sandbox: an agent with arbitrary shell access
+can still write files before a requested pause. Run untrusted trials in isolated containers with
+the driver, grading tests and credentials outside the writable mount. Disposable directories and
+regex hooks are not that boundary.
+
+## Independent review
+
+Run `harness review --base <commit> --candidate <commit> --out <review.md>`. The command uses the
+configured evaluator model, resolves explicit commits, exports a fresh candidate snapshot and
+diff, disables customizations/MCP/hooks, and exposes only Read/Grep/Glob. The parent saves the
+returned findings; CLI errors or missing output do not become a review. Run `harness check`
+separately in the candidate checkout and preserve its results alongside the review. The evaluator
+cannot run or modify tests through its tool set. It can still miss defects; its opinion does not
+replace executable product acceptance.
+
+Local `by`, `at` and `digest` fields are audit metadata, not authenticated human identity. New
+plan approvals bind the spec body digest; older unbound records remain historical/local guidance
+and cannot satisfy the external driver. Do not claim that committing a digest authenticates its
+author. Similarly, the repository's legacy `test_quality` capability checks only text presence,
+not assertion quality. Steering-file guards protect deliberate instruction/permission changes;
+editing root CLAUDE.md does not invalidate an already loaded prompt mid-session. Reload it.
 
 ## When something goes wrong in production
 
@@ -212,9 +219,8 @@ Law 5 is full. The kernel hook budget is also full (5/5); do not add a sixth ker
 
 ### Review
 
-The `evaluator` agent writes `.aidlc/artifacts/<slug>/review.md`. It runs on the model named by
-`[models] evaluator`, in a worktree it did not write to, with Bash so it can run the checks and
-no Write or Edit so it cannot make them pass. Every finding cites a behaviour id from `spec.md`
+The `harness review` caller saves `.aidlc/artifacts/<slug>/review.md`. The evaluator runs on
+`[models] evaluator` with explicit snapshots and only Read/Grep/Glob. Checks run separately. Every finding cites a behaviour id from `spec.md`
 or a named pass from `.aidlc/policies/review.md`; a finding that cites nothing is an opinion.
 
 A `changes-requested` review returns to `implement` at most twice. A third automated repair on
@@ -312,3 +318,17 @@ controls that matter to a team building services — `arch`, `coverage`, `typech
 
 **So: install into one real product repo before the month-end audit**, or read the audit knowing
 it only speaks for one unusual codebase. `harness init --into <repo>` takes about a minute.
+
+## Item 1 integration verification
+
+`node evals/agent-mechanisms.mjs` loads the actual installed plugin for generator turns and checks
+that SessionStart ran. Planning has read tools only; externally approved implementation gains
+Write/Edit, with tests executed by the driver. The evaluator receives a separate safe-mode
+session and explicit revisions. Evidence, including review findings, is saved under
+`.aidlc/evals/smoke/`. This bounded mechanism test does not replace product campaigns.
+
+The GitHub workflow runs deterministic tests, graph benchmarks and the Python example's verified
+cost comparison on pushes. PRs retain their golden-suite evaluation path. A manual dispatch with
+`model_smoke=true` runs the focused live integration with a repository API key; no credentials
+means failure, not fabricated model evidence. The harness remains dependency-free; the Python
+example installs its own pytest/reporting/ruff tools for its executable checks.

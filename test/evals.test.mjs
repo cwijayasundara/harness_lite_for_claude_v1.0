@@ -339,13 +339,26 @@ test('a failing campaign stores the end of the step that failed', async () => {
 // close-the-harness B2. No eval task has a human. The invoker marks every task it runs with
 // AIDLC_EVAL so the approve-is-the-humans rule stands down; AIDLC_UNATTENDED stays the campaign-only
 // signal that also forces the approver's identity and the session notice.
-test('the invoker marks every task as an eval, and only campaigns as unattended', async () => {
+test('the invoker strips self-approval flags from all tasks', async () => {
   const { invokerEnv } = await import('../evals/lib/invoker.mjs');
   const single = invokerEnv({ task: { id: 'x' }, pluginDir: '/plugin', base: { PATH: '/bin', AIDLC_UNATTENDED: 'leaked' } });
-  assert.equal(single.AIDLC_EVAL, '1');
+  assert.equal(single.AIDLC_EVAL, undefined);
   assert.equal(single.AIDLC_UNATTENDED, undefined, 'a single-prompt task is not unattended, even if the operator shell said so');
   const campaign = invokerEnv({ task: { id: 'c', steps: [{}] }, pluginDir: '/plugin', base: { PATH: '/bin' } });
-  assert.equal(campaign.AIDLC_EVAL, '1');
-  assert.equal(campaign.AIDLC_UNATTENDED, '1');
+  assert.equal(campaign.AIDLC_EVAL, undefined);
+  assert.equal(campaign.AIDLC_UNATTENDED, undefined);
   assert.equal(campaign.HARNESS_HOME, '/plugin');
+});
+
+test('suite spend allowance reaches each CLI call and exhaustion cannot pass', async () => {
+  const allowances = [];
+  const out = await runSuite({
+    tasks: [{ id: 'bounded', fixture: 'clean-app', prompt: 'x', repeats: 3, timeoutMs: 1000,
+      budgetUsd: 1, assert: [{ workdir_unchanged: true }] }],
+    invoke: args => { allowances.push(args.budgetUsd); return { transcript: 'done', usage: { usd: args.budgetUsd } }; },
+    fixturesDir: FIXTURES, harnessBin: HARNESS, maxSuiteUsd: 1.5,
+  });
+  assert.deepEqual(allowances, [1, 0.5]);
+  assert.equal(out.results[0].runs[2].incomplete.reason, 'suite_budget_exhausted');
+  assert.notEqual(out.results[0].verdict, 'pass');
 });

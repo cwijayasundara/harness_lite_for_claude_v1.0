@@ -117,8 +117,8 @@ test('runner: a missing tool is errored, not failed', async () => {
   const r = await check(cfg, { stage: 'fast' });
   assert.equal(r.controls[0].verdict, 'errored');
   assert.match(r.controls[0].error, /tool not installed/);
-  // A broken sensor blocks nothing — but it is on the record.
-  assert.equal(r.ok, true);
+  // A configured check that could not execute has not verified the change.
+  assert.equal(r.ok, false);
   const rows = fs.readFileSync(cfg.layout.ledger, 'utf8').trim().split('\n').map(JSON.parse);
   assert.equal(rows[0].verdict, 'errored');
   fs.rmSync(root, { recursive: true, force: true });
@@ -208,6 +208,19 @@ test('check: fail-fast stops at the first failure and records what it skipped', 
   // Skipped verbs are ledgered. A verb that did not run must not quietly flatter its own stats.
   const rows = fs.readFileSync(layout.ledger, 'utf8').trim().split('\n').map(JSON.parse);
   assert.equal(rows.filter((r) => r.verdict === 'skipped').length, 2);
+
+  cfg.capabilities.lint = 'definitely-not-a-real-binary-xyz';
+  const broken = await check(cfg, { stage: 's' });
+  assert.equal(broken.ok, false);
+  assert.deepEqual(broken.controls.map((c) => c.verdict), ['errored', 'skipped', 'skipped']);
+  const diagnostic = await check(cfg, { stage: 's', all: true });
+  assert.equal(diagnostic.ok, false);
+  assert.deepEqual(diagnostic.controls.map((c) => c.verdict), ['errored', 'pass', 'pass']);
+
+  cfg.capabilities.lint = '';
+  const optional = await check(cfg, { stage: 's' });
+  assert.equal(optional.ok, true, 'an unused optional capability stays skipped');
+  assert.deepEqual(optional.controls.map((c) => c.verdict), ['skipped', 'pass', 'pass']);
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -552,7 +565,7 @@ test('telemetry is not classified, and a control nothing reaches ages out as ret
 });
 
 // B2, test_quality: the sensor's why: is a test directory that executes nothing. Plant it.
-test('test-quality fails a test directory with no executable test', async () => {
+test('test-presence fails a directory with no test(...) text', async () => {
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -563,7 +576,7 @@ test('test-quality fails a test directory with no executable test', async () => 
   const sensor = new URL('../.aidlc/sensors/test-quality.mjs', import.meta.url).pathname;
   const planted = spawnSync(process.execPath, [sensor], { cwd: root, encoding: 'utf8' });
   assert.notEqual(planted.status, 0, 'a test directory that executes nothing must be red');
-  assert.match(planted.stderr, /no executable/);
+  assert.match(planted.stderr, /test-presence: no/);
   fs.writeFileSync(path.join(root, 'test/real.test.mjs'), "import { test } from 'node:test';\ntest('x', () => {});\n");
   assert.equal(spawnSync(process.execPath, [sensor], { cwd: root, encoding: 'utf8' }).status, 0);
   fs.rmSync(root, { recursive: true, force: true });

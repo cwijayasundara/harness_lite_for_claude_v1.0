@@ -17,6 +17,27 @@ function repo() {
   return root;
 }
 
+test('check CLI cannot verify a missing, terminated or malformed configured sensor', () => {
+  const root = repo();
+  try {
+    const cases = [
+      { command: 'definitely-not-a-real-binary-xyz', format: 'generic', verdict: 'errored' },
+      { command: 'kill -TERM $$', format: 'generic', verdict: 'errored' },
+      { command: 'echo invalid-json', format: 'ruff', verdict: 'fail' },
+      { command: 'exit 1', format: 'generic', verdict: 'fail' },
+      { command: 'echo []', format: 'ruff', verdict: 'pass' },
+    ];
+    for (const c of cases) {
+      writeFileSync(path.join(root, '.aidlc/harness.toml'),
+        `[capabilities]\nlint = '${c.command}'\n[formats]\nlint = '${c.format}'\n[stages]\nstop = ["lint"]\n`);
+      const out = run(root, 'check', '--stage', 'stop', '--json');
+      assert.equal(out.status, c.verdict === 'pass' ? 0 : 1, out.stderr || out.stdout);
+      const report = JSON.parse(out.stdout);
+      assert.equal(report.controls[0].verdict, c.verdict);
+    }
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 // a-plan-proves-its-spec B1: `approve` now refuses a `spec.md` or `plan.md` still carrying the
 // `harness new` scaffold. The tests below approve their fixtures to exercise *state* logic
 // (uncommitted, plan-before-spec, stale-approval) and must go on doing exactly that, so each
@@ -174,7 +195,7 @@ test('init refuses to rewrite a cached-prefix file it would change, unless force
     writeFileSync(instructions, `${readFileSync(instructions, 'utf8')}\nRun the linter before saying done.\n`);
     const refused = run(root, 'init', '--into', root);
     assert.equal(refused.status, 1);
-    assert.match(refused.stderr, /cached prompt prefix/);
+    assert.match(refused.stderr, /agent instructions or permissions/);
     assert.match(refused.stderr, /\.claude\/CLAUDE\.md/);
     assert.equal(readFileSync(claudeMd, 'utf8'), before, 'a refused init leaves the tree untouched');
 
@@ -183,4 +204,3 @@ test('init refuses to rewrite a cached-prefix file it would change, unless force
     assert.match(readFileSync(claudeMd, 'utf8'), /Run the linter before saying done/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
-

@@ -56,18 +56,12 @@ export function writeBlocked(rel, cfg) {
     return matchesDeclared(norm, scope.declared);
   };
 
-  // lean-v2 B6, completed. The refusal below is a cost control, not a safety one: rewriting a
-  // prefix file mid-session invalidates the prompt cache for the remaining turns. That is worth
-  // refusing a casual edit for, and not worth refusing a sealed plan for — `lean-v2` names both
-  // `.aidlc/instructions.md` and `.claude/CLAUDE.md` under its Structure and ownership because
-  // they list verbs the same plan deletes, and instructions that name commands which no longer
-  // exist are a defect in every future session, not just this one.
-  //
-  // Unowned, it still refuses, because the ordinary case is a mid-session edit nobody planned.
+  // Deliberate steering changes belong in the approved scope. This is a heuristic workflow
+  // guard, not a sandbox, authentication mechanism, or claim about cache invalidation.
   for (const p of PREFIX_CACHE_PATHS) {
     if (norm === p) {
       if (owned()) break;
-      return `${p} is part of the cached prompt prefix. Editing it mid-session invalidates the prompt cache for every remaining turn. Ask the human to change it between sessions, or name it in an approved contract.`;
+      return `${p} configures agent instructions or permissions. Name it in the approved plan before changing it; reload the session to apply instruction changes.`;
     }
   }
 

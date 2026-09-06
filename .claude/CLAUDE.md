@@ -59,7 +59,7 @@ One directory per change, `.aidlc/artifacts/<slug>/`:
 - `plan.md` — approach, `## Files`, order, and a proof row per behaviour. **Gate 2.**
 - `review.md` — written by the `evaluator` agent, findings citing a behaviour id or a review pass.
 
-An approval is frontmatter plus a digest of the body, so editing an approved artifact reports
+Approval metadata records a decision; its digest detects edits, not human identity. Editing reports
 `stale-approval` rather than silently still reading as approved. `## Files` in the plan is the
 only declaration of ownership: `scope-drift` and the write guard read it and nothing else. The
 final gate is human PR approval and merge.
@@ -67,9 +67,9 @@ final gate is human PR approval and merge.
 ## Generator and evaluator
 
 `[models]` names three. `generator` (Sonnet 5) writes the code, through the `implement` skill in a
-forked context. `evaluator` (Opus 5) judges it, through the `evaluator` agent in a worktree it did
-not write to, with Bash and no Write. `evals` (Haiku 4.5) is the model the golden suite drives,
-cheap because what the suite measures is whether the harness steers a model to the right answer.
+forked context. `harness review --base <commit> --candidate <commit> --out <file>` invokes the
+evaluator on explicit snapshots with only Read/Grep/Glob. The caller saves findings and runs
+checks separately. `evals` names the golden-suite model; capable-model product trials are separate.
 
 `harness init` renders the first two from the registry, and a test fails if generator and
 evaluator are ever the same id. A changes-requested review returns to `implement` at most twice,

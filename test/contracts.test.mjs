@@ -4,6 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { A, C, ROOT } from './_paths.mjs';
 
 
@@ -187,6 +188,16 @@ test('CI model evals cover every steering surface and require authentication', (
     assert.ok(workflow.includes(surface), surface);
   }
   assert.match(workflow, /run\.mjs --require-auth/);
+  const pattern = workflow.match(/grep -E '([^']+)'/)?.[1];
+  assert.ok(pattern, 'the workflow must select steering changes');
+  for (const file of ['.aidlc/bin/harness', '.aidlc/instructions.md', '.aidlc/policies/review.md',
+    '.aidlc/adapters/claude/hooks.json', '.claude-plugin/plugin.json', '.aidlc/lib/runner.mjs',
+    'evals/fixtures/clean-app/src/app/text.py', 'evals/expected.json', '.github/workflows/harness.yml']) {
+    assert.equal(spawnSync('grep', ['-E', pattern], { input: file + '\n' }).status, 0, file);
+  }
+  assert.equal(spawnSync('grep', ['-E', pattern], { input: 'docs/IMPROVEMENT-PLAN.md\n' }).status, 1);
+  assert.doesNotMatch(workflow, /^\s*-?\s*if:.*\bsecrets\./m,
+    'GitHub Actions does not permit the secrets context in step conditions');
 });
 
 test('marketplace ships the kernel plugin only; extra policy skills stay out of the budget', () => {
@@ -321,10 +332,19 @@ test('the generator and the evaluator are different models, and only one of them
 
   const evaluator = frontmatter(path.join(A, 'roles/evaluator.md'));
   assert.equal(evaluator.model, models.evaluator, 'the evaluator must run on the evaluator model');
-  assert.equal(evaluator.isolation, 'worktree', 'a fresh checkout it did not write to is the independence');
+  assert.equal(evaluator.isolation, undefined, 'explicit snapshots replace the default-branch worktree');
   const tools = evaluator.tools.split(',').map((t) => t.trim());
-  assert.ok(tools.includes('Bash'), 'the evaluator must be able to run the checks');
+  assert.ok(!tools.includes('Bash'), 'checks run outside the evaluator');
   for (const forbidden of ['Write', 'Edit', 'NotebookEdit']) {
     assert.ok(!tools.includes(forbidden), `the evaluator must not be able to make the checks pass (${forbidden})`);
   }
+});
+
+test('the shipped plugin resolves every agent and uses the current hook projection', async () => {
+  const { renderClaudeHooks } = await import('../.aidlc/lib/projection.mjs');
+  const manifest = JSON.parse(readFileSync(path.join(ROOT, '.claude-plugin/plugin.json'), 'utf8'));
+  for (const file of manifest.agents) assert.ok(existsSync(path.join(ROOT, file)), file);
+  assert.ok(manifest.agents.some(file => file.endsWith('/evaluator.md')));
+  assert.deepEqual(JSON.parse(readFileSync(path.join(ROOT, manifest.hooks), 'utf8')),
+    renderClaudeHooks(JSON.parse(readFileSync(path.join(A, 'hooks/policy.json'), 'utf8'))));
 });

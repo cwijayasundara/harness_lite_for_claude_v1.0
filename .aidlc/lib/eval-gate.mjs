@@ -35,7 +35,7 @@ export function loadResults(dir, expectedIds = null) {
   const full = expectedIds
     ? runs.filter((r) => [...expectedIds].every((id) => r.ids.has(id)))
     : runs.filter((r) => r.ids.size === Math.max(...runs.map((x) => x.ids.size)));
-  const chosen = (full.length ? full : runs)[Math.max(full.length, runs.length) - 1] ?? runs[runs.length - 1];
+  const chosen = (full.length ? full : runs).at(-1);
   return { ...chosen.body, source: chosen.source, sources: [chosen.source] };
 }
 
@@ -125,6 +125,8 @@ export function gate(results, record, opts = {}) {
     else if (!passed(verdict) && passed(actual)) improved.push({ id, expected: verdict, actual });
   }
   const unrecorded = [...graded.keys()].filter((id) => !(id in record.tasks));
+  const notPassing = [...graded].filter(([, verdict]) => !passed(verdict))
+    .map(([id, verdict]) => ({ id, verdict }));
 
   return {
     ok: !regressed.length && !missing.length && !unrecorded.length,
@@ -132,6 +134,7 @@ export function gate(results, record, opts = {}) {
     source: results.source ?? null,
     sources: results.sources ?? (results.source ? [results.source] : []),
     regressed, improved, missing, unrecorded,
+    total: graded.size, passed: graded.size - notPassing.length, notPassing,
   };
 }
 
@@ -181,6 +184,8 @@ export function render(result) {
   for (const id of result.missing) lines.push(`  MISSING     ${id}  recorded but not graded in this run`);
   for (const id of result.unrecorded) lines.push(`  UNRECORDED  ${id}  graded but absent from the record`);
   for (const r of result.improved) lines.push(`  improved    ${r.id}  recorded ${r.expected}, now ${r.actual} — rerun with --update to hold it`);
+  lines.push(`  ${result.passed}/${result.total} tasks passed; regression status is not release readiness`);
+  for (const r of result.notPassing) lines.push(`  NOT PASSING ${r.id}  ${r.verdict}`);
   lines.push(result.ok ? 'PASS  evals  no task lost ground' : 'FAIL  evals  the record and this run disagree');
   return lines;
 }

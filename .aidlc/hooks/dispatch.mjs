@@ -16,7 +16,7 @@ import { refresh, staleSince } from '../lib/refresh.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
 import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
-import { UNATTENDED_APPROVE_NOTICE, supersededBy, currentLine, draftsAwaitingGate, awaitingGateRemedy } from '../lib/artifacts.mjs';
+import { supersededBy, currentLine, draftsAwaitingGate, awaitingGateRemedy } from '../lib/artifacts.mjs';
 
 // In an installed project `.aidlc/bin/harness` is a bash shim; in this repository it is the
 // executable itself, and `bash` on it dies with a shell syntax error. The banner printed the
@@ -48,23 +48,15 @@ const DESTRUCTIVE = [
   [/\bgit\s+checkout\s+--\s+\./, 'git checkout -- . discards uncommitted work', 'git-checkout-dot'],
   [/\bchmod\s+-R\s+777\b/, 'chmod -R 777', 'chmod-777'],
   [/\bcurl\b[^|]*\|\s*(ba)?sh\b/, 'piping a download straight into a shell', 'curl-pipe-shell'],
-  // `init` refuses to rewrite a cached-prefix file and says to make the change between sessions.
-  // `--force` is the human's way past that. On 2026-09-02 the agent read the refusal, named the
-  // cache miss it would cause, and forced anyway — an escape hatch anyone may take is not an
-  // escape hatch. This hook sees only commands the agent issues, so a human's own shell is
-  // untouched, which is the whole mechanism.
-  // Anchored to a command position, so it matches an invocation rather than a mention. The first
-  // version matched the string anywhere in the command and refused a script that merely quoted
-  // the rule while writing this contract's own evidence.
-  [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+init\b[^|;&]*--force\b/, 'forcing init rewrites the cached prompt prefix mid-session', 'init-force'],
+  // Force-regenerating steering inputs needs a deliberate decision by the operator.
+  [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+init\b[^|;&]*--force\b/, 'forcing init rewrites agent instructions or permissions', 'init-force'],
 ];
 
 // close-the-harness B1, B2. the-suite-measures-this-harness F37: refused at a file outside its
 // plan, an agent created a change, approved its own spec and plan with `--by`, and made the
 // edit — every gate this harness has is a tool call away unless the one command that opens them
 // is the human's. Same mechanism as `init-force`: this hook sees only the agent's commands, a
-// human's shell runs no hook. Under the runner's `AIDLC_UNATTENDED` the agent is its own
-// approver on purpose, and the rule stands down.
+// human's shell runs no hook. This regex is a workflow reminder, not authentication.
 const APPROVE_IS_THE_HUMANS = [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+approve\b/, 'approval is the human\'s gate, not the agent\'s', 'approve-is-the-humans'];
 
 
@@ -100,7 +92,7 @@ function preBash(input, cfg) {
         // real invocation — so a commit message naming a destructive command is still refused.
         const scannable = commandText(cmd, { quotes: false });
         // B2: no eval task has a human, campaign or single prompt — the runner marks every one.
-        const rules = [...DESTRUCTIVE, ...(process.env.AIDLC_UNATTENDED || process.env.AIDLC_EVAL ? [] : [APPROVE_IS_THE_HUMANS]), ...(cfg.guard.deny_bash ?? []).map((p) => [new RegExp(p), `denied by harness.toml [guard].deny_bash: ${p}`, `deny_bash:${p}`])];
+        const rules = [...DESTRUCTIVE, APPROVE_IS_THE_HUMANS, ...(cfg.guard.deny_bash ?? []).map((p) => [new RegExp(p), `denied by harness.toml [guard].deny_bash: ${p}`, `deny_bash:${p}`])];
         for (const [re, why, rule] of rules) {
           if (re.test(scannable)) return fired(rule ?? 'destructive', `${why}. If this is genuinely required, ask the human to run it.`);
         }
@@ -183,20 +175,6 @@ export async function dispatch(event) {
           for (const [link, by] of supersededBy(cfg)) lines.push(`superseded: ${link} — superseded by ${by.join(', ')}`);
         } catch { /* computed from artifacts already on disk; a read failure here is not fatal */ }
 
-        // campaigns-run-unattended B1. evidence.md F6: a notice that only speaks when asked
-        // (`harness status`) never reached an agent that began writing immediately. SessionStart
-        // pushes context whether or not the agent goes looking — the `contract:` line above is
-        // the proof, since it is the guard `campaign-legacy`'s agent actually hit. Two lines,
-        // only when the runner set the variable; a real repository never sees either one. Wording
-        // shared with `harness status` via `UNATTENDED_APPROVE_NOTICE` (review `1ace6a8`, Nit 2).
-        if (process.env.AIDLC_UNATTENDED) {
-          lines.push(`unattended: this run has no human — ${UNATTENDED_APPROVE_NOTICE}`);
-          lines.push('new change: `harness new <slug>` creates .aidlc/artifacts/<slug>/{intent,spec,plan}.md — never write an artifact anywhere else');
-          // evidence.md F23. campaign-ledger sprint 2 ended on "I have one clarifying question
-          // before we move to the spec" and nobody answered. Approval was the only human
-          // interaction the notice named, and a question stalls a run exactly as a gate does.
-          lines.push('no questions: there is no human to answer one either — decide the ambiguity yourself, record the decision and why in your spec, and carry on. A recorded decision is reviewable; a question is not.');
-        }
         process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: lines.join('\n') } }));
         return 0;
       }
@@ -234,25 +212,8 @@ export async function dispatch(event) {
         // cost and is pure waste. The top-level Stop coalesces every edit into one pass.
         if (input.hook_event_name === 'SubagentStop') return 0;
 
-        // an-unattended-turn-does-not-end-on-a-question B3–B5. evidence F34: under the runner,
-        // the intent skill's "Stop. Ask the person" beat the notice's "there is no person", and
-        // sprint 5 ended on a question. Instruction does not steer against instruction; this
-        // does. Only with the runner's variable in *this* process's environment (an attended
-        // session is untouched), and only once per turn: `stop_hook_active` is the CLI's own
-        // signal that the turn is already continuing from a block, so a run cannot loop here.
-        if (process.env.AIDLC_UNATTENDED) {
-          let waiting = [];
-          try { waiting = draftsAwaitingGate(cfg); } catch { /* unreadable artifacts: let the turn end */ }
-          if (waiting.length) {
-            if (!input.stop_hook_active) {
-              ledger.append({ stage: 'stop', control: 'stop-guard', rule: 'work-awaits-gate', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout);
-              const reason = `This run is unattended: nobody will answer a question or accept an intent, and the turn cannot end here. ${awaitingGateRemedy(waiting[0])} Then finish the work and run the stop stage.`;
-              process.stdout.write(JSON.stringify({ decision: 'block', reason }));
-              return 0;
-            }
-            ledger.append({ stage: 'stop', control: 'stop-guard', rule: 'let-through', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
-          }
-        }
+        // Waiting for a human gate is a legitimate end of a turn, including in trials.
+        // The external test driver supplies the next decision; a Stop hook cannot approve it.
 
         if (!existsSync(cfg.layout.graphDirty)) return 0;
         const r = refresh(cfg);

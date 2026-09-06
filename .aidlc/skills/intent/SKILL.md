@@ -15,10 +15,9 @@ Its whole job is to be small enough that a human will actually read and approve 
 3. If a question can be answered by reading the codebase, read the codebase instead of asking.
 4. Fill the file. Leave `Open questions` populated — an intent with no open questions on the
    first pass usually means you did not push hard enough.
-5. Stop. Ask the person to accept it. Under an unattended run there is no person: do not ask —
-   go straight on to `spec.md` in the same directory, record any decision you had to make there,
-   and approve your own gates as the session notice says. After acceptance, write `spec.md`,
-   then `plan.md`, in `.aidlc/artifacts/<slug>/`; there is no separate contract file.
+5. Stop and ask the person to accept it. In automated trials, return control to the external
+   driver for a labelled simulated decision. Never approve your own gates. After acceptance,
+   write `spec.md`, then `plan.md`, in `.aidlc/artifacts/<slug>/`.
 
 ## When the source is a PRD
 
