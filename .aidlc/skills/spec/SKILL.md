@@ -37,7 +37,8 @@ ids, so renumbering breaks the chain.
   of writing around it: `supersedes: <slug>#<behaviour-id>` in this file's frontmatter,
   comma-separated for more than one. The named spec is never edited — its approval, its digest,
   its file all stand — and the link only takes effect once this spec is itself approved.
-  `harness status` and `SessionStart` name it from there.
+  `harness status` and `SessionStart` name it from there. Naming an approved behaviour's id in
+  the prose without the link is refused at approval: the field is the record, the prose is not.
 
 Structured prompt-driven development calls these Requirements, Entities, Approach, Structure,
 Operations, Norms and Safeguards. Four of those live here; Approach, Structure and Operations are

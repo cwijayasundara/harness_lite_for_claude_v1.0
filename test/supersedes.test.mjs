@@ -219,3 +219,49 @@ test('SessionStart carries the same superseded fact', () => {
     assert.match(ctx, /evolves/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+// a-named-behaviour-is-a-link B1–B3. one-integration-test F31: sprint 3 wrote "the contradiction
+// with add-balance-overdue#B12 … is being superseded" into its spec's prose, approved the spec,
+// and left the frontmatter empty — nothing was superseded. The agent had made the judgment and
+// written the exact id; the gate now insists the id be recorded where the harness reads it.
+function proseCiting(id, front = {}) {
+  const body = `# Spec: cites\n\n## Outcome\n\nA concrete, observable result stated in the language of the affected user.\n\n## Observable behaviours\n\n### B1\n\nGiven a paid invoice\nWhen isOverdue is asked\nThen it answers false, which reverses ${id}\n\n## Out of scope\n\nEverything not named above.\n\n## Safeguards\n\nThis contradicts ${id} and that behaviour is being superseded.\n`;
+  return render({ status: 'draft', ...front }, body);
+}
+
+test('approve refuses a spec whose prose names an approved behaviour id it does not link', () => {
+  const root = repo();
+  try {
+    assert.equal(run(root, 'new', 'ledger').status, 0);
+    writeFileSync(specPath(root, 'ledger'), realSpec(['B2']));
+    commit(root, 'ledger drafted');
+    assert.equal(run(root, 'approve', 'ledger', 'spec', '--by', 'tester').status, 0);
+    commit(root, 'ledger approved');
+
+    assert.equal(run(root, 'new', 'cites').status, 0);
+    writeFileSync(specPath(root, 'cites'), proseCiting('ledger#B2'));
+    commit(root, 'cites drafted');
+    const refused = run(root, 'approve', 'cites', 'spec', '--by', 'tester');
+    assert.equal(refused.status, 1);
+    assert.match(refused.stderr, /ledger#B2/);
+    assert.match(refused.stderr, /add `supersedes: ledger#B2`/);
+    assert.match(refused.stderr, /not a reversal/);
+
+    // B2: linked, it passes.
+    writeFileSync(specPath(root, 'cites'), proseCiting('ledger#B2', { supersedes: 'ledger#B2' }));
+    commit(root, 'cites linked');
+    const ok = run(root, 'approve', 'cites', 'spec', '--by', 'tester');
+    assert.equal(ok.status, 0, ok.stderr);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('an id naming no approved behaviour is not this rule\'s business', () => {
+  const root = repo();
+  try {
+    assert.equal(run(root, 'new', 'cites').status, 0);
+    writeFileSync(specPath(root, 'cites'), proseCiting('nowhere#B9'));
+    commit(root, 'cites a ghost');
+    const ok = run(root, 'approve', 'cites', 'spec', '--by', 'tester');
+    assert.equal(ok.status, 0, ok.stderr);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

@@ -289,6 +289,23 @@ function contentIssues(cfg, slug, kind, front, body, target) {
   // behaviour that does not exist is a typo pointing at nothing, and it fails rather than sitting
   // silently wrong.
   if (kind === 'spec') {
+    // a-named-behaviour-is-a-link B1–B3. F31: an agent wrote "the contradiction with
+    // add-balance-overdue#B12 … is being superseded" into the body and left the frontmatter
+    // empty. The judgment was made and the id written; only the field was missed. A body that
+    // names another approved spec's behaviour by exact id must link it — no inference from
+    // prose, only the shape, and only against ids that exist.
+    const linked = new Set(supersedesLinks(front));
+    const named = new Set();
+    for (const m of body.matchAll(/\b([a-z0-9][a-z0-9-]{0,62})#(B\d+)\b/g)) {
+      const [id, namedSlug, behaviourId] = m;
+      if (namedSlug === slug || linked.has(id) || named.has(id)) continue;
+      const other = read(cfg, namedSlug, 'spec');
+      if (!other || other.state !== 'approved' || !behavioursOf(other.body).includes(behaviourId)) continue;
+      named.add(id);
+    }
+    for (const id of named) {
+      issues.push(`${rel} names ${id} in its prose without linking it — add \`supersedes: ${id}\` to the frontmatter if this spec reverses that behaviour; if it is not a reversal, remove the id from the prose or refer to the behaviour by its title instead.`);
+    }
     for (const link of supersedesLinks(front)) {
       const m = /^([a-z0-9](?:[a-z0-9-]{0,62}))#(B\d+)$/.exec(link);
       if (!m) { issues.push(`${rel}: supersedes: ${link} is not shaped <slug>#<behaviour-id> — fix it before approving.`); continue; }

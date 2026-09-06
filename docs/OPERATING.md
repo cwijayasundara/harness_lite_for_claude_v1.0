@@ -166,7 +166,9 @@ is never touched — its `status`, `by`, `at` and `digest` all stand, because it
 was actually promised, and a link only takes effect once the superseding spec is itself approved.
 `harness status` and `SessionStart` both name a superseded behaviour and what superseded it, so a
 reader (or an agent that has just started a session) can tell without reading every change that
-came after.
+came after. And a spec whose prose names an approved behaviour by id (`<slug>#B<n>`) without
+linking it is refused at approval: an agent that has written the id has made the judgment, and
+the field is where the harness reads it (`a-named-behaviour-is-a-link`).
 
 ## Provider adapter boundary
 

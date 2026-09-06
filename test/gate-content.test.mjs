@@ -9,7 +9,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { BIN } from './_paths.mjs';
+import { A, BIN } from './_paths.mjs';
 import { bodyDigest, render } from '../.aidlc/lib/artifacts.mjs';
 
 const run = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
@@ -238,4 +238,18 @@ test('check --stage commit passes once the promised test file exists', () => {
     const result = run(root, 'check', '--stage', 'commit');
     assert.equal(result.status, 0, result.stdout + result.stderr);
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// a-named-behaviour-is-a-link B4. The reminder about `supersedes:` used to be the last paragraph
+// of the body, and an agent answered it there (F31). It now sits in the frontmatter as a comment
+// the parser ignores, beside the line it is about.
+test('the spec template carries its supersedes reminder in the frontmatter, and parse ignores it', async () => {
+  const { parse } = await import('../.aidlc/lib/artifacts.mjs');
+  const { readFileSync: read } = await import('node:fs');
+  const path = await import('node:path');
+  const template = read(path.join(A, 'templates', 'spec.md'), 'utf8');
+  const { front, body } = parse(template);
+  assert.deepEqual(front, { status: 'draft' });
+  assert.match(template.split('\n---\n')[0], /supersedes:/, 'the reminder is in the frontmatter block');
+  assert.doesNotMatch(body, /Reversing a behaviour an earlier approved spec claims/);
 });
