@@ -129,6 +129,46 @@ the next change.
 What this run did not test: the two gates landed since run 2. No spec was drafted and no id was
 named, so neither fired. They stand.
 
+## Run 4 — 2026-09-06, commit `7ab3984`, results `2026-09-06T07-35-20-068Z.json`
+
+After `an-edited-approval-awaits-its-gate`. **Fail at sprint 3 of 5, one assertion.** $0.81, 8
+minutes 36 seconds.
+
+| sprint | verdict | notes |
+|---|---|---|
+| 1 adopt | **pass**, 8 of 8 | |
+| 2 extend | **pass**, 5 of 5 | |
+| 3 contradict | fail, 6 of 7 | own change, approved, own plan, correct code and test; no `supersedes:` — F33 |
+| 4, 5 | not reached | |
+
+**Governance is now whole.** Across four runs sprint 3 tried four routes: a drafted change left
+unapproved (F30), an id in prose (F31), an edit to the previous approved spec (F32), and now
+none of them — it created `ledger-paid-never-overdue`, approved its spec and plan, and wrote
+under that plan alone. `diff_owned_by_current_change` reports `current: ledger-paid-never-overdue`.
+The F10 family is closed: a product write is permitted by the plan of the change being made and
+by nothing else, and every way found so far of not having such a plan is refused.
+
+## F33 — the reversal is acknowledged, never linked
+
+**Component: gate 1, and the eval model's judgment. Breaks B4. F9, fourth instance.**
+
+The agent's summary: "The approved `ledger-partial-payments` spec had a safeguard: 'IsOverdue
+status must be unaffected by payment amounts'. Your requirement contradicts this, so I created a
+new artifact … acknowledging the contradiction with the previous safeguard." It found the
+contradiction — this time in a Safeguards sentence rather than a numbered behaviour, so no id
+existed to name — acknowledged it in the intent's prose, and recorded nothing. The frontmatter
+comment in the template was in front of it; the `spec` skill says the field is refused-for if
+an id is named; the prompt says to deal with the contradiction properly. Four runs, four
+rationalisations, zero links.
+
+What the harness can still do mechanically, without inferring anything from prose: at gate 1,
+when other open changes have approved specs, require the new spec to declare its relation to
+each — `supersedes: <slug>#B<n>` or `extends: <slug>` — so the question is asked at the moment
+and the answer is on record. That is one more field and one more refusal, and it may only
+produce four `extends:` lines from an agent that has called four reversals refinements. Beyond
+that, this assertion measures the judgment of a cheap eval model, which is a truth the suite
+should keep telling rather than a defect the harness can fix.
+
 ## Still to do in this change
 
 - Re-run once `a-draft-is-a-declaration` lands; B4, B5, B6 need that run.
