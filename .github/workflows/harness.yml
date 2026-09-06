@@ -16,9 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
-      # Zero dependencies: no install step, and this must stay true.
+      # The harness has no package dependencies. Its CLI-presence test needs Claude installed;
+      # no model requests or credentials are used by this job.
+      - run: npm install --global @anthropic-ai/claude-code@2.1.263
       # Includes lifecycle-cli.test.mjs, which creates a real git repository and proves
       # committed approvals, failure exit codes, install idempotency, and incident SLA closure.
       # Do not replace it with `harness status` on this root: no artifacts would pass vacuously.
