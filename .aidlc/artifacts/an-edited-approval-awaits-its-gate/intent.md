@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: an-edited-approval-awaits-its-gate
 
