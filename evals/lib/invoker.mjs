@@ -31,6 +31,17 @@ export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd 
   ];
 }
 
+// The child's environment, as a pure function. close-the-harness B2: no eval task has a human,
+// so every task carries AIDLC_EVAL and the approve-is-the-humans rule stands down for it;
+// AIDLC_UNATTENDED stays the campaign-only signal (see the comment in `invoke`), set for steps
+// and stripped for everything else.
+export function invokerEnv({ task, pluginDir = null, base = {} }) {
+  const env = { ...base, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}), AIDLC_EVAL: '1' };
+  if (task?.steps) env.AIDLC_UNATTENDED = '1';
+  else delete env.AIDLC_UNATTENDED;
+  return env;
+}
+
 export function claudeInvoker({ pluginDir, model = null }) {
   return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task }) {
     const args = invokerArgs({ prompt, model, pluginDir, budgetUsd });
@@ -49,9 +60,7 @@ export function claudeInvoker({ pluginDir, model = null }) {
     // the child's environment, so both happen to work today. `delete` says what is meant and does
     // not rest on that detail — the earlier comment here claimed the assignment would arrive as
     // the string `"undefined"`, which the confirming pass on `d668876` disproved.
-    const env = { ...process.env, ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}) };
-    if (task?.steps) env.AIDLC_UNATTENDED = '1';
-    else delete env.AIDLC_UNATTENDED;
+    const env = invokerEnv({ task, pluginDir, base: process.env });
     const r = spawnSync('claude', args, { cwd, env, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
     // A missing CLI is not a failed task — it is a broken harness, and twenty tasks failing
     // with empty transcripts is the least useful way to say so. Same lesson as exit 127 in the

@@ -335,3 +335,17 @@ test('a failing campaign stores the end of the step that failed', async () => {
   assert.match(stored, /END-OF-STEP-TWO/, 'the failing step\'s ending survives');
   assert.match(stored, /--- step 2 ---/);
 });
+
+// close-the-harness B2. No eval task has a human. The invoker marks every task it runs with
+// AIDLC_EVAL so the approve-is-the-humans rule stands down; AIDLC_UNATTENDED stays the campaign-only
+// signal that also forces the approver's identity and the session notice.
+test('the invoker marks every task as an eval, and only campaigns as unattended', async () => {
+  const { invokerEnv } = await import('../evals/lib/invoker.mjs');
+  const single = invokerEnv({ task: { id: 'x' }, pluginDir: '/plugin', base: { PATH: '/bin', AIDLC_UNATTENDED: 'leaked' } });
+  assert.equal(single.AIDLC_EVAL, '1');
+  assert.equal(single.AIDLC_UNATTENDED, undefined, 'a single-prompt task is not unattended, even if the operator shell said so');
+  const campaign = invokerEnv({ task: { id: 'c', steps: [{}] }, pluginDir: '/plugin', base: { PATH: '/bin' } });
+  assert.equal(campaign.AIDLC_EVAL, '1');
+  assert.equal(campaign.AIDLC_UNATTENDED, '1');
+  assert.equal(campaign.HARNESS_HOME, '/plugin');
+});

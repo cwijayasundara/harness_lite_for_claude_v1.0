@@ -99,7 +99,8 @@ function preBash(input, cfg) {
         // one session. Quoted spans are deliberately left in place here — `bash -c "..."` is a
         // real invocation — so a commit message naming a destructive command is still refused.
         const scannable = commandText(cmd, { quotes: false });
-        const rules = [...DESTRUCTIVE, ...(process.env.AIDLC_UNATTENDED ? [] : [APPROVE_IS_THE_HUMANS]), ...(cfg.guard.deny_bash ?? []).map((p) => [new RegExp(p), `denied by harness.toml [guard].deny_bash: ${p}`, `deny_bash:${p}`])];
+        // B2: no eval task has a human, campaign or single prompt — the runner marks every one.
+        const rules = [...DESTRUCTIVE, ...(process.env.AIDLC_UNATTENDED || process.env.AIDLC_EVAL ? [] : [APPROVE_IS_THE_HUMANS]), ...(cfg.guard.deny_bash ?? []).map((p) => [new RegExp(p), `denied by harness.toml [guard].deny_bash: ${p}`, `deny_bash:${p}`])];
         for (const [re, why, rule] of rules) {
           if (re.test(scannable)) return fired(rule ?? 'destructive', `${why}. If this is genuinely required, ask the human to run it.`);
         }
