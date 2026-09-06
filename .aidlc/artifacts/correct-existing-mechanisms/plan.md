@@ -15,6 +15,7 @@ independent evaluation. Regenerate the stale plugin projection rather than add h
 Alternative rejected: another approval service, policy layer or orchestration framework.
 
 ## Files
+`evals/lib/stage.mjs`
 `.aidlc/adapters/claude/hooks.json`
 `.aidlc/bin/harness`
 `.aidlc/evals/smoke/agent-mechanisms.json`
