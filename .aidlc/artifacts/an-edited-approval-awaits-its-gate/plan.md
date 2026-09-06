@@ -25,6 +25,7 @@ Rejected: a separate function for stale approvals. One list, one wording, one pl
 - `test/current-change.test.mjs`
 - `test/guard.test.mjs`
 - `test/scope-drift.test.mjs`
+- `test/gate-content.test.mjs`
 - `docs/OPERATING.md`
 - `.aidlc/artifacts/an-edited-approval-awaits-its-gate/`
 
@@ -41,6 +42,10 @@ Rejected: a separate function for stale approvals. One list, one wording, one pl
 4. `test/scope-drift.test.mjs` — B4: rule `draft-awaits-gate` naming the change and artifact.
    Red, then `.aidlc/checks/scope-drift.mjs` green.
 5. `docs/OPERATING.md` — one sentence after the declaration sentence.
+0. Before all of the above, B7: `test/gate-content.test.mjs` — a spec body mentioning `<slug>`
+   has no template markers; red, then `templateMarkers` in `.aidlc/lib/artifacts.mjs` reads
+   `parse(templateText).body` instead of the whole template file. Green. This unblocks approving
+   this very spec.
 6. `node evals/run.mjs --id campaign-ledger --require-auth` (B6); record as run 4 in
    `.aidlc/artifacts/one-integration-test/evidence.md`.
 
@@ -54,3 +59,4 @@ Rejected: a separate function for stale approvals. One list, one wording, one pl
 | B4 | `test/scope-drift.test.mjs` — rule `draft-awaits-gate` names the change and the artifact |
 | B5 | `test/current-change.test.mjs` — `harness status` and the `session-start` action print the `awaiting gate` line with the artifact |
 | B6 | the `campaign-ledger` run recorded in `.aidlc/artifacts/one-integration-test/evidence.md` run 4 |
+| B7 | `test/gate-content.test.mjs` — a spec body mentioning `<slug>` carries no template marker |

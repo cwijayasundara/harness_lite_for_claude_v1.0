@@ -45,6 +45,14 @@ When `harness status` runs and when a session starts,
 Then the `awaiting gate` line names it and the artifact: `awaiting gate 1: <slug> (spec edited
 after approval)` or `awaiting gate 2: <slug> (plan edited after approval)`.
 
+### B7 — a placeholder in the template's frontmatter is not a body marker
+
+Given `.aidlc/templates/spec.md` carrying `<slug>` inside its frontmatter comment,
+When `templateMarkers('spec', body)` runs on a spec whose prose mentions `<slug>`,
+Then it reports nothing: only placeholders in the template's *body* are scaffold markers. Found
+while drafting this spec, which `draftsAwaitingGate` did not list and approval would have
+refused as an unedited scaffold.
+
 ### B6 — the campaign proves it
 
 Given `campaign-ledger` sprint 3 under the unattended runner,
