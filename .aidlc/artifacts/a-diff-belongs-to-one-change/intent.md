@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: a-diff-belongs-to-one-change
 

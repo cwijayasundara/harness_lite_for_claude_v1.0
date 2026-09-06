@@ -38,6 +38,9 @@ Rejected: asserting sprint 4 leaves every spec untouched. That would decide A3 b
 ## Files
 
 - `evals/tasks.json`
+- `evals/lib/invoker.mjs`
+- `evals/run.mjs`
+- `test/evals.test.mjs`
 - `evals/fixtures/campaign-ledger/NOTES.md`
 - `evals/fixtures/campaign-ledger/src/ledger.mjs`
 - `evals/fixtures/campaign-ledger/src/fees.mjs`
@@ -48,8 +51,21 @@ Rejected: asserting sprint 4 leaves every spec untouched. That would decide A3 b
 - `evals/README.md`
 - `.aidlc/artifacts/one-integration-test/`
 
+Amended 2026-09-06, from `a-diff-belongs-to-one-change/evidence.md` F28 and F29, found on the
+run that was to prove its B7. Two runner defects stand between this campaign and a green run,
+and they are fixed here first because this is the change whose run they would spoil: the eval
+agent inherits the developer's user-level plugins (a `brainstorming` skill's approval gate
+stopped sprint 2 with a design and no code), and the stored transcript keeps the first 20,000
+characters of a campaign, which is the sprint that passed. Steps 0a and 0b below; `test/evals.test.mjs`
+carries their proofs.
+
 ## Order
 
+0a. `test/evals.test.mjs` — the invoker's argument list contains `--setting-sources` with a value
+    that excludes `user`; red, then `evals/lib/invoker.mjs` adds it beside `--plugin-dir`.
+0b. `test/evals.test.mjs` — a failing campaign whose steps together exceed the cap stores the
+    *last* step's transcript in full; red, then `evals/run.mjs` keeps the tail of each step
+    rather than the head of the whole.
 1. `evals/fixtures/campaign-ledger/src/ledger.mjs` — `addCustomer(name)` returns a numeric id,
    `addInvoice(customerId, amountCents, dueDate)` throws `Error('unknown customer')` for an id
    not in the map and returns a numeric invoice id, `listInvoices(customerId)` returns that
