@@ -92,6 +92,8 @@ test('no current change is a different finding from an unapproved plan', async (
     const plan = path.join(s.work, '.aidlc/artifacts/sprint-3/plan.md');
     writeFileSync(plan, render({ status: 'draft' }, parse(readFileSync(plan, 'utf8')).body));
     commit(s.work, 'sprint-3 plan back to draft');
+    // The commits above swept the earlier edit in; scope-drift judges the working diff.
+    writeFileSync(path.join(s.work, 'src/app/text.py'), '# edited under an unapproved plan\n');
     const unapproved = await run(cfg(s.work));
     assert.equal(unapproved.verdict, 'fail');
     assert.equal(unapproved.findings[0].rule, 'no-approved-plan');

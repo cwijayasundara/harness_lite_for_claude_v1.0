@@ -21,7 +21,7 @@ function contractRefusal(norm, scope) {
   if (!declared.length || !current.plan) {
     return `${norm}: the current change "${current.slug}" has an approved spec but its plan is not approved (${current.planState}). Approve it (harness approve ${current.slug} plan --by <you>) and commit, or close the change (status: closed in its intent.md) if that work is done.`;
   }
-  return `${norm} is outside the current change "${current.slug}" — its plan's ## Files does not name this path. Add the path and re-approve the plan, or close "${current.slug}" if that work is done.`;
+  return `${norm} is outside the current change "${current.slug}" — its approved plan's ## Files does not name this path. Add the path and re-approve the plan, or close "${current.slug}" if that work is done.`;
 }
 
 function matchesDeclared(rel, declared) {
