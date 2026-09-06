@@ -75,7 +75,15 @@ export async function run(cfg) {
   // plan in the first case approves a plan for a change that is not current.
   if (!plans.length) {
     const current = artifacts.currentChange(cfg);
-    const finding = current
+    const drafts = artifacts.draftsAwaitingGate(cfg);
+    // a-draft-is-a-declaration B3: a written, unapproved spec is work declared and not gated.
+    const finding = drafts.length
+      ? {
+          rule: 'draft-awaits-gate',
+          message: `changed while "${drafts[0]}" has a written spec awaiting gate 1${drafts.length > 1 ? ` (also: ${drafts.slice(1).join(', ')})` : ''}`,
+          fix: `harness approve ${drafts[0]} spec --by <you> and commit, or close "${drafts[0]}" (status: closed in its intent.md)`,
+        }
+      : current
       ? {
           rule: 'no-approved-plan',
           message: `changed under the current change "${current.slug}", whose plan is not approved (${current.planState})`,

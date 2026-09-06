@@ -391,11 +391,30 @@ export function currentChange(cfg) {
   };
 }
 
+// a-draft-is-a-declaration B1, B2. F30: a sprint wrote a real spec, approved nothing, and edited
+// product code under the previous sprint's still-open plan. Writing a spec *is* declaring the
+// work — gate 1 is what a filled-in spec is waiting for — so while one waits, nothing governs.
+// The scaffold `harness new` leaves (placeholders, the bare `### B1`) declares nothing, by the
+// same `templateMarkers` the approval gate uses to tell a scaffold from a spec.
+export function draftsAwaitingGate(cfg) {
+  const waiting = [];
+  for (const slug of slugs(cfg)) {
+    if (read(cfg, slug, 'intent')?.front.status === 'closed') continue;
+    const spec = read(cfg, slug, 'spec');
+    if (!spec || spec.state !== 'draft') continue;
+    if (templateMarkers('spec', spec.body).length) continue;
+    waiting.push(slug);
+  }
+  return waiting;
+}
+
 // Every plan a guard or a check may honour. Exactly one or none: the current change's plan,
 // approved, committed, and unchanged since approval. It used to return every such plan in the
 // repository, which is how a closed change's plan authorised an edit two days later (B4) and a
-// refused plan's work went through on another plan's ownership (F26).
+// refused plan's work went through on another plan's ownership (F26). And none at all while a
+// written spec awaits gate 1 (a-draft-is-a-declaration).
 export function governingPlans(cfg) {
+  if (draftsAwaitingGate(cfg).length) return [];
   const current = currentChange(cfg);
   return current?.plan ? [current.plan] : [];
 }
@@ -403,9 +422,12 @@ export function governingPlans(cfg) {
 // B6. One wording for `harness status` and `SessionStart`, so the two cannot drift apart.
 export function currentLine(cfg) {
   const current = currentChange(cfg);
-  if (!current) return 'current: none — approve a spec (harness approve <slug> spec --by <you>) before product files change';
-  if (current.plan) return `current: ${current.slug} (plan approved) — only its ## Files may change`;
-  return `current: ${current.slug} — plan not approved (${current.planState}); product writes are refused until it is, or the change is closed`;
+  const lines = [];
+  if (!current) lines.push('current: none — approve a spec (harness approve <slug> spec --by <you>) before product files change');
+  else if (current.plan) lines.push(`current: ${current.slug} (plan approved) — only its ## Files may change`);
+  else lines.push(`current: ${current.slug} — plan not approved (${current.planState}); product writes are refused until it is, or the change is closed`);
+  for (const slug of draftsAwaitingGate(cfg)) lines.push(`awaiting gate 1: ${slug} — its spec is written and not approved; product writes are refused until it is approved or closed`);
+  return lines.join('\n');
 }
 
 // What `status` prints, and what a session resumes from.

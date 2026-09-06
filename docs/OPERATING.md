@@ -218,7 +218,11 @@ three times a write went through on an older plan's authority — once after tha
 had been refused at the gate — because ownership answered "is this path claimed?" instead of "is
 it claimed by the change being made?". `scope-drift` reads the same function, so the guard and
 the check cannot disagree. Closing a change is how it stops being current; `harness status` and
-`SessionStart` both print `current:` so the answer is never a surprise. This is the default.
+`SessionStart` both print `current:` so the answer is never a surprise. And writing a spec is
+declaring work: while any open change has a filled-in spec that is not yet approved, no product
+file may change and the refusal names it (`a-draft-is-a-declaration`, from the sprint that
+drafted a spec, approved nothing, and edited code under the previous sprint's plan). A scaffold
+left by `harness new`, placeholders and all, declares nothing. This is the default.
 Shell releases to a live environment without `HARNESS_RELEASE_APPROVAL` are denied by the bash hook.
 
 Auto-accept of edits is allowed only after a plan is approved, the blast radius is owned, and

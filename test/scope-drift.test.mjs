@@ -130,3 +130,20 @@ test('an uncommitted or stale approval owns nothing', async () => {
     assert.match(stale.findings.map((f) => f.file).join(' '), /late\.py/);
   } finally { s.cleanup(); }
 });
+
+// a-draft-is-a-declaration B3: the check asks the same question as the guard.
+test('a filled-in draft spec makes every product change a draft-awaits-gate finding', async () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    const dir = path.join(s.work, '.aidlc/artifacts/paid-never-overdue');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
+    writeFileSync(path.join(dir, 'spec.md'), render({ status: 'draft' }, '# Spec\n\n### B1\n\nGiven a paid invoice\nWhen isOverdue is asked\nThen it answers false\n'));
+    commit(s.work, 'a declaration, not yet gated');
+    writeFileSync(path.join(s.work, 'src/app/text.py'), '# written under a waiting draft\n');
+    const r = await run(cfg(s.work));
+    assert.equal(r.verdict, 'fail');
+    assert.equal(r.findings[0].rule, 'draft-awaits-gate');
+    assert.match(r.findings[0].message, /paid-never-overdue/);
+  } finally { s.cleanup(); }
+});

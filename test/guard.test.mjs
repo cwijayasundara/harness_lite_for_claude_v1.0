@@ -368,3 +368,38 @@ test('lock tests writes a lock the write guard honors, and clear removes it', ()
   } finally { f.cleanup(); }
 });
 
+
+// a-draft-is-a-declaration B1 and B5. F30: a real spec, unapproved, beside an open approved
+// change whose plan owns the file. The write is refused naming the draft and gate 1, never the
+// switch; approving the draft's spec or closing it lifts the refusal.
+test('a filled-in draft spec refuses every product write until it is approved or closed', () => {
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
+    const cfg = { layout, guard: { require_contract: true } };
+    assert.equal(writeBlocked('src/app/text.py', cfg), null);
+
+    const dir = path.join(s.work, '.aidlc/artifacts/paid-never-overdue');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
+    const body = '# Spec: paid-never-overdue\n\n### B1\n\nGiven a paid invoice\nWhen isOverdue is asked\nThen it answers false\n';
+    writeFileSync(path.join(dir, 'spec.md'), render({ status: 'draft' }, body));
+
+    const refusal = String(writeBlocked('src/app/text.py', cfg));
+    assert.match(refusal, /"paid-never-overdue"/);
+    assert.match(refusal, /awaits gate 1/);
+    assert.match(refusal, /harness approve paid-never-overdue spec/);
+    assert.match(refusal, /close/);
+    assert.doesNotMatch(refusal, /require_contract = false/);
+    assert.equal(writeBlocked('.aidlc/artifacts/paid-never-overdue/spec.md', cfg), null, 'the draft itself stays writable');
+
+    // Closing lifts it, and the current change's plan decides again.
+    writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: closed\n---\n# Intent\n');
+    assert.equal(writeBlocked('src/app/text.py', cfg), null);
+
+    // Reopen and approve instead: the draft becomes current, and its (absent) plan governs nothing.
+    writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
+    const draft = render({ status: 'draft' }, body);
+    writeFileSync(path.join(dir, 'spec.md'), render({ status: 'approved', by: 'tester', at: '2026-09-03T00:00:00.000Z', digest: bodyDigest(draft) }, body));
+    assert.match(String(writeBlocked('src/app/text.py', cfg)), /"paid-never-overdue" has an approved spec but its plan is not approved/);
+  } finally { s.cleanup(); }
+});

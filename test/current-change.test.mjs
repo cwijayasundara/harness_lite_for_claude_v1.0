@@ -124,3 +124,48 @@ test('harness status and SessionStart both name the current change and its plan 
     assert.match(spawnSync(process.execPath, [BIN, 'status'], { cwd: root, encoding: 'utf8' }).stdout, /current: sprint-4 \(plan approved\)/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+// a-draft-is-a-declaration B2 and B4. F30: sprint 3 wrote a real spec, approved nothing, and
+// edited product code under sprint 2's still-open plan. A filled-in draft spec is a declaration
+// of work not yet gated; the scaffold `harness new` leaves is not.
+const SCAFFOLD_B1 = 'Given ...\nWhen ...\nThen ...';
+function draftSpec(root, slug, body) {
+  const dir = path.join(root, '.aidlc/artifacts', slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, 'intent.md'), `---\nstatus: draft\n---\n# Intent: ${slug}\n`);
+  writeFileSync(path.join(dir, 'spec.md'), render({ status: 'draft' }, `# Spec: ${slug}\n\n## Observable behaviours\n\n### B1\n\n${body}\n`));
+  commit(root, `${slug} drafted`);
+}
+
+test('a filled-in draft spec awaits gate 1 and suspends every plan; a scaffold declares nothing', async () => {
+  const { draftsAwaitingGate } = await import('../.aidlc/lib/artifacts.mjs');
+  const root = repo();
+  try {
+    change(root, 'sprint-2', { specAt: '2026-09-02T00:00:00.000Z' });
+    draftSpec(root, 'backlog-idea', SCAFFOLD_B1);
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), [], 'a scaffold is a backlog item');
+    assert.deepEqual(governingPlans(cfg(root)).map((p) => p.slug), ['sprint-2']);
+
+    draftSpec(root, 'sprint-3', 'Given a paid invoice\nWhen isOverdue is asked\nThen it answers false');
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), ['sprint-3']);
+    assert.equal(currentChange(cfg(root)).slug, 'sprint-2', 'the current change does not move');
+    assert.deepEqual(governingPlans(cfg(root)), [], 'but nothing governs while a declaration waits');
+
+    const closed = path.join(root, '.aidlc/artifacts/sprint-3/intent.md');
+    writeFileSync(closed, '---\nstatus: closed\n---\n# Intent: sprint-3\n');
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), [], 'closing lifts it');
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('harness status and SessionStart name a draft awaiting gate 1', () => {
+  const root = repo();
+  try {
+    assert.equal(spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' }).status, 0);
+    change(root, 'sprint-2', { specAt: '2026-09-02T00:00:00.000Z' });
+    draftSpec(root, 'sprint-3', 'Given a paid invoice\nWhen isOverdue is asked\nThen it answers false');
+    const status = spawnSync(process.execPath, [BIN, 'status'], { cwd: root, encoding: 'utf8' });
+    assert.match(status.stdout, /awaiting gate 1: sprint-3/);
+    const hook = spawnSync(process.execPath, [BIN, 'hook', 'session-start'], { cwd: root, encoding: 'utf8', input: JSON.stringify({ cwd: root }) });
+    assert.match(JSON.parse(hook.stdout).hookSpecificOutput.additionalContext, /awaiting gate 1: sprint-3/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

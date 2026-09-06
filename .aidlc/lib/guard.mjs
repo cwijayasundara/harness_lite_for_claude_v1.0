@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { PREFIX_CACHE_PATHS } from './paths.mjs';
-import { governingPlans, currentChange } from './artifacts.mjs';
+import { governingPlans, currentChange, draftsAwaitingGate } from './artifacts.mjs';
 
 // One reader of ownership, shared with `scope-drift`. Two readers is how the guard and the check
 // came to disagree about which file was owned by what. `current` is the change the diff belongs
@@ -9,14 +9,19 @@ import { governingPlans, currentChange } from './artifacts.mjs';
 // another change's plan names is not owned — F10 and F26 were both routed through exactly that.
 function contractScopeState(cfg) {
   try {
-    return { declared: governingPlans(cfg).flatMap((p) => p.owns), current: currentChange(cfg), parseError: false };
-  } catch { return { declared: [], current: null, parseError: true }; }
+    return { declared: governingPlans(cfg).flatMap((p) => p.owns), current: currentChange(cfg), drafts: draftsAwaitingGate(cfg), parseError: false };
+  } catch { return { declared: [], current: null, drafts: [], parseError: true }; }
 }
 
 // The refusal must name the way forward and keep the guard on. evidence.md F2: the old message
 // ended "or set [guard].require_contract = false", and an agent did exactly that.
 function contractRefusal(norm, scope) {
-  const { current, declared } = scope;
+  const { current, declared, drafts = [] } = scope;
+  // a-draft-is-a-declaration B1: a written spec is work declared and not yet gated.
+  if (drafts.length) {
+    const [slug] = drafts;
+    return `${norm}: the change "${slug}" has a written spec that awaits gate 1, so no product file may change yet. Approve it (harness approve ${slug} spec --by <you>) and commit, or close the change (status: closed in its intent.md)${drafts.length > 1 ? `; also waiting: ${drafts.slice(1).join(', ')}` : ''}.`;
+  }
   if (!current) return `${norm}: no open change has an approved spec, so no product file may change yet. Approve a spec (harness approve <slug> spec --by <you>), then its plan, and commit each.`;
   if (!declared.length || !current.plan) {
     return `${norm}: the current change "${current.slug}" has an approved spec but its plan is not approved (${current.planState}). Approve it (harness approve ${current.slug} plan --by <you>) and commit, or close the change (status: closed in its intent.md) if that work is done.`;
