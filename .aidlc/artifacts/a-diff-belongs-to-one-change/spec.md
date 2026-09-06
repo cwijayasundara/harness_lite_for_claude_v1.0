@@ -1,7 +1,7 @@
 ---
 status: approved
 by: cwijayasundara
-at: 2026-09-06T05:26:37.528Z
+at: 2026-09-06T05:41:38.712Z
 digest: sha256:7ead74ef556f3a243b6cffe036da409dbc7b1084927011b2ec083f891af5e18c
 ---
 # Spec: a-diff-belongs-to-one-change
