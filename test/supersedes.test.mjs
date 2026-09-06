@@ -336,3 +336,30 @@ test('the spec template and the spec skill both name extends: beside supersedes:
   assert.match(template, /extends:/);
   assert.match(readFileSync(path.join(A, 'skills', 'spec', 'SKILL.md'), 'utf8'), /extends:/);
 });
+
+// close-the-harness B4. one-integration-test F35: run 6 added a behaviour to the previous
+// sprint's approved spec, re-approved it, and its earlier extends: line answered the relation
+// gate. An approved spec's promises do not grow; new behaviours belong in a new change.
+test('re-approving an approved spec with added behaviour headings is refused; a prose edit is not', () => {
+  const root = repo();
+  try {
+    assert.equal(run(root, 'new', 'ledger').status, 0);
+    writeFileSync(specPath(root, 'ledger'), realSpec(['B1']));
+    commit(root, 'ledger drafted');
+    assert.equal(run(root, 'approve', 'ledger', 'spec', '--by', 'tester').status, 0);
+    commit(root, 'ledger approved');
+
+    const approved = readFileSync(specPath(root, 'ledger'), 'utf8');
+    writeFileSync(specPath(root, 'ledger'), approved.replace('## Out of scope', '### B2\n\nGiven a paid invoice\nWhen isOverdue is asked\nThen it answers false\n\n## Out of scope'));
+    commit(root, 'ledger grew');
+    const grown = run(root, 'approve', 'ledger', 'spec', '--by', 'tester');
+    assert.equal(grown.status, 1);
+    assert.match(grown.stderr, /B2/);
+    assert.match(grown.stderr, /new change/);
+
+    writeFileSync(specPath(root, 'ledger'), approved.replace('a real, specific result follows', 'a real, specific and documented result follows'));
+    commit(root, 'ledger reworded');
+    const reworded = run(root, 'approve', 'ledger', 'spec', '--by', 'tester');
+    assert.equal(reworded.status, 0, reworded.stderr);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

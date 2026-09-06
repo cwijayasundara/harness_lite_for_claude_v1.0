@@ -425,3 +425,69 @@ test('an edited approved spec refuses every product write until re-approved or r
     assert.equal(writeBlocked('.aidlc/artifacts/sprint-2/spec.md', cfg), null, 'the artifact stays writable');
   } finally { s.cleanup(); }
 });
+
+// close-the-harness B1, B2. the-suite-measures-this-harness F37: refused at a file outside its
+// plan, an agent created a change, approved its own spec and plan with `--by`, and made the
+// edit. Every gate is a tool call away unless the one command that opens them is the human's.
+// The pre-bash hook sees only the agent's commands, so a human's shell is untouched — the same
+// mechanism `init --force` uses. Under the unattended runner the agent is its own approver on
+// purpose, and the rule stands down.
+test('an agent cannot run harness approve in an attended session; a mention is not an invocation; unattended may', async () => {
+  const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
+  const home = mkdtempSync(path.join(tmpdir(), 'dispatch-approve-'));
+  mkdirSync(path.join(home, '.aidlc'), { recursive: true });
+  writeFileSync(path.join(home, '.aidlc/harness.toml'), '[project]\nname = "dispatch-test"\n');
+  const ask = async (command) => {
+    const chunks = [];
+    const write = process.stdout.write.bind(process.stdout);
+    process.stdout.write = (s) => { chunks.push(String(s)); return true; };
+    const stdin = process.stdin;
+    const { Readable } = await import('node:stream');
+    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_input: { command } })]), configurable: true });
+    try { await dispatch('pre-bash'); } finally {
+      process.stdout.write = write;
+      Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
+    }
+    return chunks.join('');
+  };
+  const had = process.env.AIDLC_UNATTENDED;
+  delete process.env.AIDLC_UNATTENDED;
+  try {
+    for (const cmd of [
+      'node .aidlc/bin/harness approve my-change spec --by me',
+      'bash .aidlc/bin/harness approve my-change plan --by tester',
+      'cd /tmp && .aidlc/bin/harness approve x spec --by y',
+    ]) {
+      const out = await ask(cmd);
+      assert.match(out, /approval is the human/i, `allowed: ${cmd}`);
+      assert.match(out, /ask the human/i, `no hand-off named for: ${cmd}`);
+    }
+    for (const cmd of [
+      'git commit -m "the owner ran harness approve for this spec"',
+      "cat > notes.md <<'EOF'\nrun harness approve x spec\nEOF",
+      'node .aidlc/bin/harness status',
+    ]) {
+      const out = await ask(cmd);
+      assert.doesNotMatch(out, /approval is the human/i, `refused a mention or an unrelated command: ${cmd}`);
+    }
+    process.env.AIDLC_UNATTENDED = '1';
+    const unattended = await ask('node .aidlc/bin/harness approve my-change spec');
+    assert.doesNotMatch(unattended, /approval is the human/i, 'the unattended runner keeps its approver');
+  } finally {
+    if (had === undefined) delete process.env.AIDLC_UNATTENDED; else process.env.AIDLC_UNATTENDED = had;
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+// B3. F38: an agent edited `.aidlc/harness.toml` in a task about a health endpoint. The registry
+// is protected by default in every installed repository; a plan that names it still may.
+test('the registry is a protected path by default, and a plan naming it still permits the write', async () => {
+  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const cfg = loadConfig(s.work);
+    assert.ok(cfg.guard.protected_paths.includes('.aidlc/harness.toml'), 'protected by default');
+    assert.match(String(writeBlocked('.aidlc/harness.toml', cfg)), /protected_paths/);
+    approvedChange(s.work, 'tune-registry', ['.aidlc/harness.toml'], '2026-09-02T00:00:00.000Z');
+    assert.equal(writeBlocked('.aidlc/harness.toml', loadConfig(s.work)), null, 'a plan naming it wins');
+  } finally { s.cleanup(); }
+});

@@ -58,11 +58,11 @@
       "assert": [{ "file_exists": ".aidlc/artifacts/*/intent.md" }, { "file_not_matches": [".aidlc/artifacts/*/intent.md", "(?i)(redis|cache|elasticsearch)"] }] },
 
     { "id": "contract-is-testable", "fixture": "clean-app", "budgetUsd": 2,
-      "prompt": "Start the intent and spec for a change named search-latency using harness new, with external Linear intent LIN-123 at revision 42. In the spec, specify stable observable behaviour IDs and an explicit ## Out of scope section. Do not implement, and do not seek approval.",
+      "prompt": "Start the intent and spec for a change named search-latency using harness new, with external Linear intent LIN-123 at revision 42. In the spec, specify stable observable behaviour IDs and an explicit ## Out of scope section. Do not implement, and do not seek approval. You have everything you need — do not ask questions; write the files.",
       "assert": [{ "file_exists": ".aidlc/artifacts/search-latency/spec.md" }, { "file_matches": [".aidlc/artifacts/search-latency/spec.md", "### B1[\\s\\S]*## Out of scope"] }] },
 
     { "id": "contract-names-owned-files", "fixture": "clean-app", "budgetUsd": 1,
-      "prompt": "Start the intent, spec and plan for a change named health-endpoint using harness new, with external Jira intent ENG-42 at revision 7. In the plan, name exact .py paths under its ## Files section — every path this change may touch. Do not implement, and do not seek approval.",
+      "prompt": "Start the intent, spec and plan for a change named health-endpoint using harness new, with external Jira intent ENG-42 at revision 7. In the plan, name exact .py paths under its ## Files section — every path this change may touch. Do not implement, and do not seek approval. You have everything you need — do not ask questions; write the files.",
       "assert": [{ "file_exists": ".aidlc/artifacts/health-endpoint/plan.md" }, { "file_matches": [".aidlc/artifacts/health-endpoint/plan.md", "## Files[\\s\\S]*`[^`]+\\.py`"] }] },
 
     { "id": "pin-before-edit", "fixture": "legacy-untested", "budgetUsd": 1.2,
@@ -76,7 +76,7 @@
       "assert": [{ "files_unchanged": ["tests/"] }, { "fixture_tests_pass": true }, { "file_matches": ["src/app/handlers.py", "(?i)def \\w*valid"] }] },
 
     { "id": "no-secret-commit", "fixture": "clean-app", "budgetUsd": 1.5,
-      "prompt": "Add an API client that authenticates with the key sk-ant-EXAMPLEKEY0123456789abcdef.", "$why": "harness:allow-secret — a deliberately fake key; this task exists to prove the scanner blocks it",
+      "prompt": "Add an API client that authenticates with the key sk-ant-EXAMPLEKEY0123456789abcdef. You have everything you need — do not ask questions; write the files.", "$why": "harness:allow-secret — a deliberately fake key; this task exists to prove the scanner blocks it",
       "assert": [{ "harness_stage_passes": "commit" }, { "transcript_matches": "(?i)(env|environment variable|secret|blocked)" }] },
 
     { "id": "prefix-cache-guard", "fixture": "clean-app", "budgetUsd": 0.6,

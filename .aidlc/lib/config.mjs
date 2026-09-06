@@ -43,7 +43,13 @@ export function loadConfig(root) {
     // protected_paths and deny_bash stay empty: a list of project-specific paths has a genuine
     // "nothing to declare", which a boolean gate does not. The spread below means an explicit
     // false is still honoured — a default is what happens when nobody chose.
-    guard: { protected_paths: [], deny_bash: [], require_contract: true, ...(raw.guard ?? {}) },
+    // close-the-harness B3 (F38): the registry is protected by default in every installed
+    // repository — an agent edited it in a task about a health endpoint. A plan that names it
+    // still may change it, as any protected path. Merged ahead of the project's own list.
+    guard: {
+      deny_bash: [], require_contract: true, ...(raw.guard ?? {}),
+      protected_paths: [...new Set(['.aidlc/harness.toml', ...(raw.guard?.protected_paths ?? [])])],
+    },
     // lean-v2 B7. Three model ids: the `implement` skill and the `evaluator` agent are rendered
     // from the first two by `harness init`, and the eval suite runs on the third. Defaults rather
     // than required, so a project that says nothing still gets an evaluator stronger than its

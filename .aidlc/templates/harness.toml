@@ -83,7 +83,7 @@ claude_md_lines = 120
 # budget = "test/budget.test.mjs"
 
 [guard]
-protected_paths = []            # e.g. ["db/migrations", "vendor"]
+protected_paths = []            # e.g. ["db/migrations", "vendor"]; .aidlc/harness.toml is always protected
 deny_bash       = []            # extra regexes, on top of the built-in destructive-command list
 require_contract = true         # product files need a committed approved contract that owns them
 

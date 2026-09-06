@@ -568,3 +568,15 @@ test('test-quality fails a test directory with no executable test', async () => 
   assert.equal(spawnSync(process.execPath, [sensor], { cwd: root, encoding: 'utf8' }).status, 0);
   fs.rmSync(root, { recursive: true, force: true });
 });
+
+// close-the-harness B5. Three golden tasks start an intent and expect files; the intent skill
+// interviews first, as it should when a person is there. The one task that says it has
+// everything passes, so the three say it too.
+test('the three interview tasks tell the agent it has everything and must not ask', async () => {
+  const fs = await import('node:fs');
+  const tasks = JSON.parse(fs.readFileSync(new URL('../evals/tasks.json', import.meta.url), 'utf8')).tasks;
+  for (const id of ['contract-is-testable', 'contract-names-owned-files', 'no-secret-commit']) {
+    const t = tasks.find((x) => x.id === id);
+    assert.match(t.prompt, /do not ask questions/i, id);
+  }
+});

@@ -261,6 +261,19 @@ export function templateMarkers(kind, body) {
   return found;
 }
 
+// The most recent committed version of `rel` whose body digest is `digest` — the text a human
+// approved — or null when history does not hold one. Bounded to the last fifty revisions.
+function approvedTextOf(cfg, rel, digest) {
+  try {
+    const shas = execFileSync('git', ['log', '-n', '50', '--format=%H', '--', rel], { cwd: cfg.layout.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).split('\n').filter(Boolean);
+    for (const sha of shas) {
+      const text = execFileSync('git', ['show', `${sha}:${rel}`], { cwd: cfg.layout.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      if (bodyDigest(text) === digest) return parse(text);
+    }
+  } catch { /* no git, or no history: nothing to compare against */ }
+  return null;
+}
+
 // B1 and B2, together: what an approval refuses about an artifact's *content*, as opposed to its
 // *state* above. Presence only for B2 — F11 and F15 record that every plan an agent has written
 // unprompted proves its behaviours with prose rather than a resolvable test, and a plan may
@@ -291,6 +304,19 @@ function contentIssues(cfg, slug, kind, front, body, target) {
   // behaviour that does not exist is a typo pointing at nothing, and it fails rather than sitting
   // silently wrong.
   if (kind === 'spec') {
+    // close-the-harness B4 (F35): an approved spec's promises do not grow. Run 6 of the campaign
+    // added a behaviour to the previous sprint's approved spec, re-approved it, and its earlier
+    // `extends:` line answered the relation gate. Compared against the committed text, the same
+    // dependency `isCommitted` has; prose edits and removals stay allowed.
+    // The approved text is the committed version whose body digest is the one the frontmatter
+    // still carries — the edit that grew the spec is itself committed by the time approval
+    // runs, so HEAD is never the comparison. Walked back through the file's history, bounded.
+    const was = front.digest ? approvedTextOf(cfg, rel, front.digest) : null;
+    if (was && was.front.status === 'approved') {
+      const before = new Set(behavioursOf(was.body));
+      const added = behavioursOf(body).filter((id) => !before.has(id));
+      if (added.length) issues.push(`${rel} adds ${added.join(', ')} to a spec that was already approved — an approved spec's behaviours do not grow. Put new behaviours in a new change (harness new <slug>), which declares its relation to this one and links any behaviour it reverses.`);
+    }
     // a-named-behaviour-is-a-link B1–B3. F31: an agent wrote "the contradiction with
     // add-balance-overdue#B12 … is being superseded" into the body and left the frontmatter
     // empty. The judgment was made and the id written; only the field was missed. A body that

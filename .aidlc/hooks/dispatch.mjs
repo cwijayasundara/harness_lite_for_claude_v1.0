@@ -59,6 +59,14 @@ const DESTRUCTIVE = [
   [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+init\b[^|;&]*--force\b/, 'forcing init rewrites the cached prompt prefix mid-session', 'init-force'],
 ];
 
+// close-the-harness B1, B2. the-suite-measures-this-harness F37: refused at a file outside its
+// plan, an agent created a change, approved its own spec and plan with `--by`, and made the
+// edit — every gate this harness has is a tool call away unless the one command that opens them
+// is the human's. Same mechanism as `init-force`: this hook sees only the agent's commands, a
+// human's shell runs no hook. Under the runner's `AIDLC_UNATTENDED` the agent is its own
+// approver on purpose, and the rule stands down.
+const APPROVE_IS_THE_HUMANS = [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+approve\b/, 'approval is the human\'s gate, not the agent\'s', 'approve-is-the-humans'];
+
 
 // The pre-tool guards, as functions rather than case bodies: one hook binding now covers every
 // tool, and each of these is what it does for one of them.
@@ -91,7 +99,8 @@ function preBash(input, cfg) {
         // one session. Quoted spans are deliberately left in place here — `bash -c "..."` is a
         // real invocation — so a commit message naming a destructive command is still refused.
         const scannable = commandText(cmd, { quotes: false });
-        for (const [re, why, rule] of [...DESTRUCTIVE, ...(cfg.guard.deny_bash ?? []).map((p) => [new RegExp(p), `denied by harness.toml [guard].deny_bash: ${p}`, `deny_bash:${p}`])]) {
+        const rules = [...DESTRUCTIVE, ...(process.env.AIDLC_UNATTENDED ? [] : [APPROVE_IS_THE_HUMANS]), ...(cfg.guard.deny_bash ?? []).map((p) => [new RegExp(p), `denied by harness.toml [guard].deny_bash: ${p}`, `deny_bash:${p}`])];
+        for (const [re, why, rule] of rules) {
           if (re.test(scannable)) return fired(rule ?? 'destructive', `${why}. If this is genuinely required, ask the human to run it.`);
         }
         const prod = productionDenied(cmd, process.env);
