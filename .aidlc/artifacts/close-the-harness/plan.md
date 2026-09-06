@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-06T15:26:06.412Z
+digest: sha256:237e9a88f11a2dda2561f1d1543e7eaa3f13d1f0010c290bcb7f043f6eef5a4d
 ---
 # Plan: close-the-harness
 
