@@ -22,11 +22,14 @@ When the agent runs a command that invokes `harness approve` (in any spelling th
 Then it is denied with rule `approve-is-the-humans` and a message saying to ask the human to run
 it. A mention of the words in a heredoc or a commit message is not an invocation.
 
-### B2 — the unattended runner keeps its approver
+### B2 — the eval runner keeps its approver
 
-Given `AIDLC_UNATTENDED` set,
+Given `AIDLC_UNATTENDED` set, or `AIDLC_EVAL` set,
 When the agent runs `harness approve`,
-Then B1 does not fire.
+Then B1 does not fire. The runner sets `AIDLC_EVAL` for every task it invokes, campaign or
+single prompt, because no eval task has a human; `AIDLC_UNATTENDED` stays what it was, the
+campaign-only signal that also changes the approver's identity and the session notice.
+Amended 2026-09-06 after the closing suite's first task failed under B1 as first written.
 
 ### B3 — the registry is protected by default
 

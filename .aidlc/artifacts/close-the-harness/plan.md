@@ -29,6 +29,13 @@ dependency `isCommitted` already carries; if git cannot answer, the check stays 
 
 **B6.** The runs, the record, the deletion, in that order, in the evidence.
 
+Amended 2026-09-06: the closing suite's first task, `surgical-fix`, failed twice under B1 as first
+written — a single-prompt golden task runs without `AIDLC_UNATTENDED`, the agent approves its own
+plan to make the fix, and the new rule refused it. The runner has no human for any task. The
+invoker now sets `AIDLC_EVAL` for every task (`evals/lib/invoker.mjs`, proven in
+`test/evals.test.mjs`), and the rule stands down under either flag. The campaign-only notice and
+the forced approver identity stay on `AIDLC_UNATTENDED`, untouched.
+
 Rejected: putting F37 in the write guard. Approval is a command, not a file write; the pre-bash
 hook is the only place that sees it, and it sees only the agent's commands.
 
@@ -38,6 +45,8 @@ digest already reports them; only growth of the promise set is the reversal rout
 ## Files
 
 - `.aidlc/hooks/dispatch.mjs`
+- `evals/lib/invoker.mjs`
+- `test/evals.test.mjs`
 - `.aidlc/lib/config.mjs`
 - `.aidlc/lib/artifacts.mjs`
 - `.aidlc/templates/harness.toml`
