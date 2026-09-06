@@ -1,0 +1,12 @@
+file:///Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/lib/review.mjs:37
+    if (out.error || out.signal || out.status !== 0) throw new Error(`review incomplete: ${out.error?.message ?? out.signal ?? out.stderr ?? out.status}`);
+                                                           ^
+
+Error: review incomplete: spawnSync claude ETIMEDOUT
+    at review (file:///Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/lib/review.mjs:37:60)
+    at file:///private/tmp/item2-review.mjs:7:28
+    at ModuleJob.run (node:internal/modules/esm/module_job:327:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:663:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:99:5)
+
+Node.js v24.1.0

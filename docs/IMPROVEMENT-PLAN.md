@@ -285,3 +285,10 @@ questions/stops in both variants: it demonstrates no regression, not fewer workf
 That empirical reduction criterion remains unproven. Detailed results, original grading, incomplete
 attempt and costs are recorded in `.aidlc/artifacts/simplify-daily-guidance/evidence.md`.
 Full product campaigns remain item 3.
+
+
+Item 2 delivery: local stop/commit checks, hosted unit/graph/Python checks and the actual-plugin
+smoke passed. The code change is delivered under the user's explicit merge/push authorization.
+Three independent candidate-review attempts timed out; no candidate-review approval is claimed.
+The paired sample found no regression but did not establish the requested friction reduction.
+These limitations remain recorded rather than being reported as completed acceptance evidence.

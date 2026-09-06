@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: simplify-daily-guidance
 
@@ -10,3 +10,5 @@ The user explicitly authorized implementation, full testing, merge to main and G
 in this conversation. Codex records that authority through the ordinary approval path;
 this does not claim a separate human CLI event. No open questions block this scope.
 The pre-existing CODEBASE-MAP.md edit remains untouched.
+
+Implementation delivered with verification limitations retained in evidence.md and review.md.

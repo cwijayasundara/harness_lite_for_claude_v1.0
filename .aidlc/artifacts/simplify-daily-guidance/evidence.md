@@ -70,5 +70,46 @@ evaluator. This remains a bounded mechanism smoke, not a full product campaign.
 
 Hosted unit/graph and Python stop/cost checks passed for implementation 6d76857:
 https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34056381895
-The final grading correction, independent review disposition and merge verification are recorded
-below when complete. No hosted model execution is claimed; model evidence is from local live runs.
+The final grading correction and review disposition are recorded below. No hosted model execution is claimed; model evidence is from local live runs.
+
+
+Final implementation 9174bb4 also passed hosted CI:
+https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34056522512
+Hosted unit totals: 258 tests, 257 passed, 0 failed, 1 skipped. The skipped fixture-truth check
+requires ruff/pytest, which the unit job does not install. It was run separately locally with
+both tools installed: 1 passed, 0 skipped. The hosted Python stop/cost job passed separately.
+The first independent review attempt (6d76857) timed out without findings or billing data;
+`review-incomplete.txt` preserves its outcome. It is not a completed review.
+
+
+The second independent review attempt (9174bb4, with the working model environment and a
+300-second timeout) also timed out without findings or billing data; its process output is
+`review-retry-incomplete.txt`. A final focused attempt uses the same explicit revisions and
+read-only tools, directing attention to changed source/tests and the evidence summary instead
+of archived transcript payloads. None of these incomplete attempts supplies reviewer approval.
+
+The caller also checked the source diff, unchanged approval implementation, template fixture
+assertions, and canonical-to-Claude projection equality. This local inspection is supplementary
+and is not represented as an independent model review.
+
+
+## Delivery disposition
+
+The third focused independent review also timed out without findings or billing data;
+`review-focused-incomplete.txt` preserves the outcome. No completed independent candidate review
+or reviewer approval is claimed. The separate installed-plugin smoke's seeded-defect evaluator
+did complete successfully; that is mechanism evidence, not this implementation's review.
+
+All required executable checks passed. The final delivery stop check reported:
+
+```text
+PASS  secrets     87ms
+PASS  test        11246ms
+
+```
+
+The implementation is delivered under the user's explicit merge/push authorization. This closes
+the coding change, while retaining two limitations: independent candidate review could not
+complete, and the measured friction-reduction acceptance criterion remains unproven. Those
+limitations are not converted into passing claims. Reported live comparison plus plugin-smoke
+cost is USD 0.31156615; timed-out comparison/review costs are unknown and excluded from that sum.
