@@ -268,7 +268,8 @@ Closed with B4, B5 proven once and B6 unproven, on the owner's instruction that 
 loop ends here. The next run is one command, and `an-approved-spec-does-not-grow` is the intent
 that names what it would find.
 
-## Still to do in this change
+## B8 — `../dunning` deleted, 2026-09-06
 
-- Re-run once `a-draft-is-a-declaration` lands; B4, B5, B6 need that run.
-- Delete `../dunning`, with the owner's spoken yes in that session (B8).
+With the owner's yes in this session: `rm -rf ../dunning` (a git repository with no remote,
+26 MB, two commits of harness install and one feature). One test project remains, inside this
+repository. B8 holds in full.
