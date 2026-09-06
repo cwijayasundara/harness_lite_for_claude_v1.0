@@ -4,7 +4,7 @@
 // committed plan is the only plan that governs a product write.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -147,7 +147,7 @@ test('a filled-in draft spec awaits gate 1 and suspends every plan; a scaffold d
     assert.deepEqual(governingPlans(cfg(root)).map((p) => p.slug), ['sprint-2']);
 
     draftSpec(root, 'sprint-3', 'Given a paid invoice\nWhen isOverdue is asked\nThen it answers false');
-    assert.deepEqual(draftsAwaitingGate(cfg(root)), ['sprint-3']);
+    assert.deepEqual(draftsAwaitingGate(cfg(root)).map((d) => d.slug), ['sprint-3']);
     assert.equal(currentChange(cfg(root)).slug, 'sprint-2', 'the current change does not move');
     assert.deepEqual(governingPlans(cfg(root)), [], 'but nothing governs while a declaration waits');
 
@@ -167,5 +167,53 @@ test('harness status and SessionStart name a draft awaiting gate 1', () => {
     assert.match(status.stdout, /awaiting gate 1: sprint-3/);
     const hook = spawnSync(process.execPath, [BIN, 'hook', 'session-start'], { cwd: root, encoding: 'utf8', input: JSON.stringify({ cwd: root }) });
     assert.match(JSON.parse(hook.stdout).hookSpecificOutput.additionalContext, /awaiting gate 1: sprint-3/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+// an-edited-approval-awaits-its-gate B2, B3, B5. F32: sprint 3 appended behaviours to sprint 2's
+// approved spec; the approval went stale, the stale spec was no longer current, and sprint 1's
+// plan governed the write. An edited approval is a declaration that the promise changed.
+test('an edited approved spec or plan on an open change awaits its gate and suspends every plan', async () => {
+  const { draftsAwaitingGate } = await import('../.aidlc/lib/artifacts.mjs');
+  const root = repo();
+  try {
+    change(root, 'sprint-1', { specAt: '2026-09-01T00:00:00.000Z', owns: ['src/ledger.mjs'] });
+    change(root, 'sprint-2', { specAt: '2026-09-02T00:00:00.000Z', owns: ['src/ledger.mjs'] });
+    const spec = path.join(root, '.aidlc/artifacts/sprint-2/spec.md');
+    writeFileSync(spec, readFileSync(spec, 'utf8') + '\n### B8\n\nGiven a paid invoice\nWhen asked\nThen never overdue\n');
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), [{ slug: 'sprint-2', kind: 'spec', reason: 'stale' }]);
+    assert.deepEqual(governingPlans(cfg(root)), [], 'sprint-1 must not govern in sprint-2\'s place');
+
+    // Restore the approved text: the list empties and sprint-2 governs again.
+    spawnSync('git', ['checkout', '--', '.aidlc/artifacts/sprint-2/spec.md'], { cwd: root });
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), []);
+    assert.deepEqual(governingPlans(cfg(root)).map((p) => p.slug), ['sprint-2']);
+
+    // An edited approved plan likewise, at gate 2.
+    const plan = path.join(root, '.aidlc/artifacts/sprint-2/plan.md');
+    writeFileSync(plan, readFileSync(plan, 'utf8') + '- `src/store.mjs`\n');
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), [{ slug: 'sprint-2', kind: 'plan', reason: 'stale' }]);
+    assert.deepEqual(governingPlans(cfg(root)), []);
+    spawnSync('git', ['checkout', '--', '.aidlc/artifacts/sprint-2/plan.md'], { cwd: root });
+
+    // B3: a closed change's edited artifacts are history.
+    change(root, 'finished', { closed: true, specAt: '2026-08-01T00:00:00.000Z' });
+    const old = path.join(root, '.aidlc/artifacts/finished/spec.md');
+    writeFileSync(old, readFileSync(old, 'utf8') + '\nnote added later\n');
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), []);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('harness status and SessionStart name an edited approval and its gate', () => {
+  const root = repo();
+  try {
+    assert.equal(spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' }).status, 0);
+    change(root, 'sprint-2', { specAt: '2026-09-02T00:00:00.000Z' });
+    const spec = path.join(root, '.aidlc/artifacts/sprint-2/spec.md');
+    writeFileSync(spec, readFileSync(spec, 'utf8') + '\nedited after approval\n');
+    const status = spawnSync(process.execPath, [BIN, 'status'], { cwd: root, encoding: 'utf8' });
+    assert.match(status.stdout, /awaiting gate 1: sprint-2 \(spec edited after approval\)/);
+    const hook = spawnSync(process.execPath, [BIN, 'hook', 'session-start'], { cwd: root, encoding: 'utf8', input: JSON.stringify({ cwd: root }) });
+    assert.match(JSON.parse(hook.stdout).hookSpecificOutput.additionalContext, /awaiting gate 1: sprint-2 \(spec edited after approval\)/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

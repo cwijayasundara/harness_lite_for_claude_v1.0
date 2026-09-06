@@ -253,3 +253,12 @@ test('the spec template carries its supersedes reminder in the frontmatter, and 
   assert.match(template.split('\n---\n')[0], /supersedes:/, 'the reminder is in the frontmatter block');
   assert.doesNotMatch(body, /Reversing a behaviour an earlier approved spec claims/);
 });
+
+// an-edited-approval-awaits-its-gate B7. The template's frontmatter comment carries `<slug>`,
+// and reading markers off the whole template file made every spec that mentions `<slug>` in its
+// prose read as an unedited scaffold — including the spec that recorded this.
+test('a placeholder in the template frontmatter is not a body marker', async () => {
+  const { templateMarkers } = await import('../.aidlc/lib/artifacts.mjs');
+  const body = '# Spec: x\n\n## Outcome\n\nReal.\n\n## Observable behaviours\n\n### B1\n\nGiven a thing\nWhen `harness approve <slug> spec` runs\nThen it is refused\n';
+  assert.deepEqual(templateMarkers('spec', body), []);
+});

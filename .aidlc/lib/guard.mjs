@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { PREFIX_CACHE_PATHS } from './paths.mjs';
-import { governingPlans, currentChange, draftsAwaitingGate } from './artifacts.mjs';
+import { governingPlans, currentChange, draftsAwaitingGate, awaitingGateRemedy } from './artifacts.mjs';
 
 // One reader of ownership, shared with `scope-drift`. Two readers is how the guard and the check
 // came to disagree about which file was owned by what. `current` is the change the diff belongs
@@ -19,8 +19,8 @@ function contractRefusal(norm, scope) {
   const { current, declared, drafts = [] } = scope;
   // a-draft-is-a-declaration B1: a written spec is work declared and not yet gated.
   if (drafts.length) {
-    const [slug] = drafts;
-    return `${norm}: the change "${slug}" has a written spec that awaits gate 1, so no product file may change yet. Approve it (harness approve ${slug} spec --by <you>) and commit, or close the change (status: closed in its intent.md)${drafts.length > 1 ? `; also waiting: ${drafts.slice(1).join(', ')}` : ''}.`;
+    const [first, ...rest] = drafts;
+    return `${norm}: no product file may change yet — ${awaitingGateRemedy(first)}${rest.length ? ` Also waiting: ${rest.map((d) => `${d.slug}/${d.kind}.md`).join(', ')}.` : ''}`;
   }
   if (!current) return `${norm}: no open change has an approved spec, so no product file may change yet. Approve a spec (harness approve <slug> spec --by <you>), then its plan, and commit each.`;
   if (!declared.length || !current.plan) {

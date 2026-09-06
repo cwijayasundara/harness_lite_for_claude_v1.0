@@ -80,8 +80,8 @@ export async function run(cfg) {
     const finding = drafts.length
       ? {
           rule: 'draft-awaits-gate',
-          message: `changed while "${drafts[0]}" has a written spec awaiting gate 1${drafts.length > 1 ? ` (also: ${drafts.slice(1).join(', ')})` : ''}`,
-          fix: `harness approve ${drafts[0]} spec --by <you> and commit, or close "${drafts[0]}" (status: closed in its intent.md)`,
+          message: `changed while ${artifacts.awaitingGateLine(drafts[0]).replace(/^awaiting/, 'awaiting')}${drafts.length > 1 ? ` (also: ${drafts.slice(1).map((d) => `${d.slug}/${d.kind}.md`).join(', ')})` : ''} — ${drafts[0].slug}/${drafts[0].kind}.md`,
+          fix: artifacts.awaitingGateRemedy(drafts[0]),
         }
       : current
       ? {

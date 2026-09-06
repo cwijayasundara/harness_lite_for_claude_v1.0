@@ -224,7 +224,11 @@ the check cannot disagree. Closing a change is how it stops being current; `harn
 declaring work: while any open change has a filled-in spec that is not yet approved, no product
 file may change and the refusal names it (`a-draft-is-a-declaration`, from the sprint that
 drafted a spec, approved nothing, and edited code under the previous sprint's plan). A scaffold
-left by `harness new`, placeholders and all, declares nothing. This is the default.
+left by `harness new`, placeholders and all, declares nothing. The same holds for an approved
+spec or plan of an open change that has been edited since: its `stale-approval` waits at its
+gate and no product file changes until it is re-approved or restored
+(`an-edited-approval-awaits-its-gate`, from the sprint that appended behaviours to the previous
+sprint's approved spec and was then governed by the sprint before that). This is the default.
 Shell releases to a live environment without `HARNESS_RELEASE_APPROVAL` are denied by the bash hook.
 
 Auto-accept of edits is allowed only after a plan is approved, the blast radius is owned, and

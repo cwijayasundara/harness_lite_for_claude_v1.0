@@ -243,7 +243,9 @@ function headingBody(text, heading) {
 export function templateMarkers(kind, body) {
   const templatePath = path.join(TEMPLATES_DIR, `${kind}.md`);
   if (!existsSync(templatePath)) return [];
-  const templateText = readFileSync(templatePath, 'utf8');
+  // The template's body only (an-edited-approval-awaits-its-gate B7): the frontmatter comment
+  // that reminds about `supersedes: <slug>#B<n>` is not a placeholder a spec has to replace.
+  const templateText = parse(readFileSync(templatePath, 'utf8')).body;
   const found = [];
   for (const placeholder of new Set([...templateText.matchAll(/<[^<>]+>/g)].map((m) => m[0]))) {
     if (body.includes(placeholder)) found.push(placeholder);
@@ -413,16 +415,39 @@ export function currentChange(cfg) {
 // work — gate 1 is what a filled-in spec is waiting for — so while one waits, nothing governs.
 // The scaffold `harness new` leaves (placeholders, the bare `### B1`) declares nothing, by the
 // same `templateMarkers` the approval gate uses to tell a scaffold from a spec.
+//
+// an-edited-approval-awaits-its-gate: an approved spec or plan that has been edited (F32 —
+// sprint 3 appended behaviours to sprint 2's approved spec, the approval went stale, the stale
+// spec was no longer current, and sprint 1's plan governed the write) is the same declaration
+// made the other way round, and waits at the same gate. Entries: `{ slug, kind, reason }`,
+// `reason` is `draft` or `stale`.
 export function draftsAwaitingGate(cfg) {
   const waiting = [];
   for (const slug of slugs(cfg)) {
     if (read(cfg, slug, 'intent')?.front.status === 'closed') continue;
     const spec = read(cfg, slug, 'spec');
-    if (!spec || spec.state !== 'draft') continue;
-    if (templateMarkers('spec', spec.body).length) continue;
-    waiting.push(slug);
+    if (!spec) continue;
+    if (spec.state === 'stale-approval') { waiting.push({ slug, kind: 'spec', reason: 'stale' }); continue; }
+    if (spec.state === 'draft' && !templateMarkers('spec', spec.body).length) { waiting.push({ slug, kind: 'spec', reason: 'draft' }); continue; }
+    const plan = read(cfg, slug, 'plan');
+    if (plan?.state === 'stale-approval') waiting.push({ slug, kind: 'plan', reason: 'stale' });
   }
   return waiting;
+}
+
+// One wording for what a waiting entry is and how it is cleared, shared by the guard, the check
+// and the two reporters.
+export function awaitingGateLine(entry) {
+  const gate = entry.kind === 'plan' ? 2 : 1;
+  const what = entry.reason === 'stale' ? `${entry.kind} edited after approval` : 'spec written and not approved';
+  return `awaiting gate ${gate}: ${entry.slug} (${what})`;
+}
+export function awaitingGateRemedy(entry) {
+  const approve = `harness approve ${entry.slug} ${entry.kind} --by <you>`;
+  if (entry.reason === 'stale') {
+    return `${entry.slug}/${entry.kind}.md was edited after it was approved. Re-approve it (${approve}) and commit, or restore the approved text; a reversal of an approved behaviour belongs in a new change with \`supersedes:\`, not in an edit to the old one.`;
+  }
+  return `the change "${entry.slug}" has a written spec that awaits gate 1. Approve it (${approve}) and commit, or close the change (status: closed in its intent.md).`;
 }
 
 // Every plan a guard or a check may honour. Exactly one or none: the current change's plan,
@@ -443,7 +468,7 @@ export function currentLine(cfg) {
   if (!current) lines.push('current: none — approve a spec (harness approve <slug> spec --by <you>) before product files change');
   else if (current.plan) lines.push(`current: ${current.slug} (plan approved) — only its ## Files may change`);
   else lines.push(`current: ${current.slug} — plan not approved (${current.planState}); product writes are refused until it is, or the change is closed`);
-  for (const slug of draftsAwaitingGate(cfg)) lines.push(`awaiting gate 1: ${slug} — its spec is written and not approved; product writes are refused until it is approved or closed`);
+  for (const entry of draftsAwaitingGate(cfg)) lines.push(`${awaitingGateLine(entry)} — product writes are refused until it is`);
   return lines.join('\n');
 }
 

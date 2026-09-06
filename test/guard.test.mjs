@@ -403,3 +403,25 @@ test('a filled-in draft spec refuses every product write until it is approved or
     assert.match(String(writeBlocked('src/app/text.py', cfg)), /"paid-never-overdue" has an approved spec but its plan is not approved/);
   } finally { s.cleanup(); }
 });
+
+// an-edited-approval-awaits-its-gate B1. F32: editing sprint 2's approved spec handed the write
+// to sprint 1's plan. The refusal names the change and the artifact, both remedies, and where a
+// reversal belongs — never the switch.
+test('an edited approved spec refuses every product write until re-approved or restored', () => {
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
+    const cfg = { layout, guard: { require_contract: true } };
+    approvedChange(s.work, 'sprint-2', ['src/app/text.py'], '2026-09-02T00:00:00.000Z');
+    assert.equal(writeBlocked('src/app/text.py', cfg), null);
+
+    const spec = path.join(s.work, '.aidlc/artifacts/sprint-2/spec.md');
+    writeFileSync(spec, readFileSync(spec, 'utf8') + '\n### B8\n\nGiven a paid invoice\nWhen asked\nThen never overdue\n');
+    const refusal = String(writeBlocked('src/app/text.py', cfg));
+    assert.match(refusal, /sprint-2\/spec\.md was edited after it was approved/);
+    assert.match(refusal, /harness approve sprint-2 spec/);
+    assert.match(refusal, /restore the approved text/);
+    assert.match(refusal, /supersedes:/);
+    assert.doesNotMatch(refusal, /require_contract = false/);
+    assert.equal(writeBlocked('.aidlc/artifacts/sprint-2/spec.md', cfg), null, 'the artifact stays writable');
+  } finally { s.cleanup(); }
+});

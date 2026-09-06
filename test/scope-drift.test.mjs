@@ -147,3 +147,18 @@ test('a filled-in draft spec makes every product change a draft-awaits-gate find
     assert.match(r.findings[0].message, /paid-never-overdue/);
   } finally { s.cleanup(); }
 });
+
+// an-edited-approval-awaits-its-gate B4: the check asks the same question as the guard.
+test('an edited approved spec makes every product change a draft-awaits-gate finding naming the artifact', async () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    const spec = path.join(s.work, '.aidlc/artifacts/hyphen-titlecase/spec.md');
+    writeFileSync(spec, readFileSync(spec, 'utf8') + '\nedited after approval\n');
+    commit(s.work, 'edited an approved spec');
+    writeFileSync(path.join(s.work, 'src/app/text.py'), '# written under a stale approval\n');
+    const r = await run(cfg(s.work));
+    assert.equal(r.verdict, 'fail');
+    assert.equal(r.findings[0].rule, 'draft-awaits-gate');
+    assert.match(r.findings[0].message, /hyphen-titlecase.*spec\.md/);
+  } finally { s.cleanup(); }
+});
