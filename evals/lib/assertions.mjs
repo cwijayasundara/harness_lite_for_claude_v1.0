@@ -4,7 +4,7 @@
 //
 // ctx = { work, pristine, transcript, harness, usage, baseline }
 
-import { readFileSync, readdirSync, statSync, existsSync, rmSync, cpSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync, rmSync, cpSync, mkdtempSync, chmodSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -248,7 +248,7 @@ export function serviceProcess(s, { dataFile='/data/items.json' }={}) {
       const text=await response.text(); console.log(JSON.stringify({status:response.status,body:JSON.parse(text)}));`;
     const r=spawnSync('docker',['exec','-i',name,'node','--input-type=module','-e',bridge],{
       input:JSON.stringify({method,url,body,raw}),encoding:'utf8',timeout:15000,killSignal:'SIGKILL',maxBuffer:1024*1024});
-    if(r.status!==0) throw new Error(`HTTP transport failed: ${r.error?.message ?? r.stderr}`);
+    if(r.status!==0){const logs=spawnSync('docker',['logs',name],{encoding:'utf8',timeout:5000,maxBuffer:16384});throw new Error(`HTTP transport failed (exit ${r.status}, signal ${r.signal}): ${r.error?.message ?? r.stderr ?? ''} ${r.stdout??''}; server: ${logs.stdout??''}${logs.stderr??''}`);}
     return JSON.parse(r.stdout);
   };
   start();
@@ -256,18 +256,20 @@ export function serviceProcess(s, { dataFile='/data/items.json' }={}) {
 }
 
 export function verifyService(s, level) {
+  const freshData=()=>{s.data=mkdtempSync(path.join(s.root,'runtime-data-'));if(process.getuid?.()===0)chmodSync(s.data,0o777);};
   // Replay real data produced by the preceding version before starting independent fresh cases.
   const baseline=path.join(s.root,'service-v3-data');
   if(level>=4 && existsSync(baseline)) {
-    for(const entry of readdirSync(s.data))rmSync(path.join(s.data,entry),{recursive:true,force:true});
+    freshData();
     cpSync(baseline,s.data,{recursive:true});
     const previous=serviceProcess(s);
     try{const out=previous.request('GET','/items');assert.equal(out.status,200);
       assert.ok(out.body.some(item=>item.title==='x'.repeat(80)),'previously accepted 80-character title remains readable');
     }finally{previous.stop();}
   }
-  // Each independent case set starts empty; restarts reuse its actual on-disk data.
-  for(const entry of readdirSync(s.data)) rmSync(path.join(s.data,entry),{recursive:true,force:true});
+  // New mount identities avoid stale Docker Desktop reads after host-side deletion.
+  // Restarts within this case set reuse its actual on-disk data.
+  freshData();
   const server=serviceProcess(s); const ask=server.request; let cases=0;
   const status=(response,code)=>{cases++;assert.equal(response.status,code);return response.body;};
   try {

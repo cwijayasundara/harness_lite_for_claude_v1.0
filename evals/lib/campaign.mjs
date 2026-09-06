@@ -181,11 +181,18 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, sandb
   const git=(...args)=>execFileSync('git',['-c','core.hooksPath=/dev/null','-c','commit.gpgsign=false',...args],{cwd:s.work,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
   const commit=message=>{assertProductTree(s.work);git('add','-A');if(git('status','--porcelain'))git('commit','-qm',message);return git('rev-parse','HEAD');};
   const save=()=>{result.approvals=approvals.events();writeFileSync(path.join(evidenceDir,'phases.json'),JSON.stringify(result,null,2)+'\n');};
-  const event=(name,extra={})=>{result.phases.push({name,...extra});log(`    ${t.id}: ${name}`);save();};
+  const event=(name,extra={})=>{result.phases.push({...extra,...(extra.name?{check:extra.name}:{}),name});log(`    ${t.id}: ${name}`);save();};
   const immutableProduct=()=>walk(s.work).filter(f=>!f.startsWith('.aidlc/artifacts/')).map(f=>[f,createHash('sha256').update(readFileSync(path.join(s.work,f))).digest('hex')]);
+  const invokePhase=async args=>{
+    try{return await invoke(args);}catch(error){
+      result.billingComplete=false;
+      event(`model-${args.phase}-error`,{prompt:args.prompt,error:error.message});
+      throw Object.assign(error,{incomplete:{reason:'invocation_error',detail:error.message}});
+    }
+  };
   const call=async(prompt,phase='plan',extra={})=>{
     const before=phase==='plan'?immutableProduct():null;
-    const out=await invoke({prompt,cwd:s.work,timeoutMs:t.timeoutMs,budgetUsd:t.budgetUsd,task:t,sandbox:s,phase,sessionId,...extra});
+    const out=await invokePhase({prompt,cwd:s.work,timeoutMs:t.timeoutMs,budgetUsd:t.budgetUsd,task:t,sandbox:s,phase,sessionId,...extra});
     const usd=out.usage?.usd;
     if(Number.isFinite(usd))result.usage.usd+=usd;else result.billingComplete=false;
     result.transcript=out.transcript??'';
@@ -286,10 +293,11 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, sandb
         const exported=path.join(s.root,'review-candidate');mkdirSync(exported);
         execFileSync('tar',['-x','-C',exported],{input:execFileSync('git',['archive',candidate],{cwd:s.work})});
         writeFileSync(path.join(exported,'candidate.diff'),git('diff',base,candidate));
-        const out=await invoke({prompt:`Independent read-only review. Base ${base}, candidate ${candidate}. The exported candidate and candidate.diff are the exact subject. Read only the diff and affected source. Identify the seeded behavioural defect with evidence; return changes-requested if defective. No checks ran in your context.`,
+        const prompt=`Independent read-only review. Base ${base}, candidate ${candidate}. The exported candidate and candidate.diff are the exact subject. Read only the diff and affected source. Identify the seeded behavioural defect with evidence; return changes-requested if defective. No checks ran in your context.`;
+        const out=await invokePhase({prompt,
           cwd:s.work,sandbox:{...s,work:exported},phase:'review',task:t,timeoutMs:t.timeoutMs,budgetUsd:t.budgetUsd,model:evaluatorModel});
         if(Number.isFinite(out.usage?.usd))result.usage.usd+=out.usage.usd;else result.billingComplete=false;
-        event('independent-review',{base,candidate,modelUsage:out.modelUsage,usage:out.usage,findings:out.transcript});
+        event('independent-review',{base,candidate,prompt,sessionId:out.sessionId,turns:out.turns,modelUsage:out.modelUsage,usage:out.usage,findings:out.transcript});
         if(out.incomplete||out.exitCode!==0)throw Object.assign(new Error('independent review incomplete'),{incomplete:out.incomplete??{reason:'review_incomplete'}});
         assert.match(out.transcript,/changes.requested/i);assert.match(out.transcript,/isOverdue|overdue/i);
         await call(`Independent review of ${candidate} requested changes:\n${out.transcript}\nRepair the seeded defect within the current approved plan. The driver will execute regression checks.`,'implement');

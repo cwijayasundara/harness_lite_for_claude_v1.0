@@ -17,8 +17,9 @@ node evals/run.mjs --products --max-suite-usd 20 --require-auth  # both product 
 node evals/run.mjs --dry           # validate tasks.json without spending anything
 ```
 
-Exits 0 with a clear message when no Claude credentials are found (API key **or** a Claude
-Code login), so the suite never blocks a contributor who only wants to run `node --test`.
+The default golden suite exits 0 with a clear skip message when no Claude credentials are found
+(API key **or** a Claude Code login). Product trials fail closed without an environment key or
+token, including when `--force` is supplied: the isolated container cannot use a host keychain.
 
 ## Design rules
 

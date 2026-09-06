@@ -86,3 +86,57 @@ test('deterministic product campaign preserves failed no-op evidence and externa
     assert.ok(existsSync(path.join(evidence,'phases.json')));assert.ok(existsSync(path.join(evidence,'product/src/ledger.mjs')));
   }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
 });
+
+test('incomplete product calls retain evidence and never invent missing billing', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+  for(const reason of ['timeout','invocation_error']){
+    const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-incomplete-'));
+    try{
+      const task={id:'deterministic-incomplete',product:'service',timeoutMs:1000,budgetUsd:1,steps:[{
+        slug:'service-create',request:'Create the service.',behaviours:['Expose HTTP health.'],files:['src/server.mjs'],level:1}]};
+      const out=await runProductCampaign({task,sandbox:s,harnessBin:path.join(ROOT,'.aidlc/bin/harness'),evidenceDir:evidence,
+        evaluateProduct:()=>{throw new Error('incomplete calls must not reach acceptance');},invoke:async()=>{
+          if(reason==='invocation_error')throw new Error('test transport disconnected');
+          return {timedOut:true,incomplete:{reason},transcript:'partial response',usage:{}};
+        }});
+      assert.equal(out.incomplete.reason,reason);assert.equal(out.completedSteps,0);
+      assert.equal(out.billingComplete,false);assert.equal(out.usage.usd,null);assert.equal(out.usage.reportedUsd,0);
+      const saved=JSON.parse(readFileSync(path.join(evidence,'phases.json'),'utf8'));
+      assert.equal(saved.incomplete.reason,reason);assert.equal(saved.usage.usd,null);
+      assert.ok(saved.phases.some(p=>p.prompt));assert.ok(existsSync(path.join(evidence,'product/.git/HEAD')));
+    }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
+  }
+});
+
+test('private HTTP acceptance exercises persistence, rule changes and storage failure outside the server', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+  const {verifyService}=await import('../evals/lib/assertions.mjs');
+  const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT);
+  try {
+    assert.equal(existsSync(path.join(s.work,'src/app')),false,'greenfield product has no unrelated Python source');
+    assert.throws(()=>verifyService(s,1),'an empty product must fail acceptance');
+    const server=`import http from 'node:http';import fs from 'node:fs';import path from 'node:path';
+      const file=process.env.DATA_FILE;let items=file&&fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):[];
+      const save=next=>{if(file){fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,JSON.stringify(next));}items=next;};
+      http.createServer(async(req,res)=>{
+        const reply=(status,body)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(body));};
+        if(req.method==='GET'&&req.url==='/health')return reply(200,{ok:true});
+        if(req.method==='GET'&&req.url==='/items')return reply(200,items);
+        if(req.method==='POST'&&req.url==='/items'||req.method==='PATCH'&&/^\\/items\\/\\d+$/.test(req.url)){
+          let text='';for await(const part of req)text+=part;let data;try{data=JSON.parse(text);}catch{return reply(400,{error:'JSON'});}
+          if(req.method==='POST'){
+            if(typeof data.title!=='string'||!data.title.trim()||data.title.trim().length>LIMIT)return reply(400,{error:'title'});
+            const item={id:Math.max(0,...items.map(i=>i.id))+1,title:data.title.trim(),done:false};
+            try{save([...items,item]);return reply(201,item);}catch{return reply(503,{error:'storage'});}
+          }
+          if(typeof data.done!=='boolean')return reply(400,{error:'done'});
+          const item=items.find(i=>i.id===Number(req.url.split('/')[2]));if(!item)return reply(404,{error:'missing'});
+          const updated={...item,done:data.done};try{save(items.map(i=>i.id===item.id?updated:i));return reply(200,updated);}catch{return reply(503,{error:'storage'});}
+        }return reply(404,{error:'route'});
+      }).listen(Number(process.env.PORT));`;
+    const {mkdirSync}=await import('node:fs');mkdirSync(path.join(s.work,'src'),{recursive:true});
+    const file=path.join(s.work,'src/server.mjs');writeFileSync(file,server.replace('LIMIT','80'));
+    assert.equal(verifyService(s,3).pass,true);
+    writeFileSync(file,server.replace('LIMIT','40'));assert.equal(verifyService(s,6).pass,true);
+    writeFileSync(file,"import http from 'node:http';http.createServer((q,r)=>{r.end(JSON.stringify({ok:true}));}).listen(Number(process.env.PORT));");
+    assert.throws(()=>verifyService(s,1),'a service returning success for every request is not a product pass');
+  }finally{s.cleanup();}
+});

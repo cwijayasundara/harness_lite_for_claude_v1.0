@@ -81,7 +81,7 @@ function regexesIn(name, arg) {
 }
 
 export function promptCount(t) {
-  if (t.product) return t.steps.reduce((n,s)=>n+2+Number(!!s.reject)+Number(!!s.stale)+2*Number(!!s.reviewSeed)+2,0);
+  if (t.product) return t.steps.reduce((n,s)=>n+2+Number(!!s.characterize)+Number(!!s.reject)+Number(!!s.stale)+2*Number(!!s.reviewSeed)+2,0);
   if (t.steps?.length) return t.steps.filter((s) => s.prompt).length;
   return t.prompt ? 1 : 0;
 }
@@ -105,8 +105,9 @@ export function loadDotEnv(root, env = process.env) {
   return true;
 }
 
-export function claudeAuthenticated(env = process.env, run = spawnSync) {
+export function claudeAuthenticated(env = process.env, run = spawnSync, {product=false}={}) {
   if (env.ANTHROPIC_API_KEY || env.CLAUDE_CODE_OAUTH_TOKEN || env.ANTHROPIC_AUTH_TOKEN) return true;
+  if(product)return false; // Host keychains are deliberately absent from the container.
   const result = run('claude', ['auth', 'status'], { encoding: 'utf8', env });
   if (result.error?.code === 'ENOENT') return false;
   try { return JSON.parse(result.stdout ?? '').loggedIn === true; }
@@ -253,7 +254,7 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
   if (!(maxSuiteUsd > 0)) throw new Error('max-suite-usd must be positive');
   let remaining = maxSuiteUsd;
   const boundedInvoke = async args => {
-    if (remaining <= 0) return { incomplete: { reason: 'suite_budget_exhausted' }, usage: {}, transcript: '' };
+    if (remaining <= 0) return { incomplete: { reason: 'suite_budget_exhausted' }, usage: {usd:0}, transcript: '' };
     const allowance = Math.min(args.budgetUsd, remaining);
     const out = await invoke({ ...args, budgetUsd: allowance });
     const reported = out.usage?.usd;
@@ -374,11 +375,11 @@ async function main() {
   // Claude may store OAuth credentials in an OS keychain rather than a repository-visible file.
   // Ask the CLI that will perform the run; environment tokens remain the non-interactive CI path.
   const fromFile = loadDotEnv(PLUGIN_ROOT);
-  const authed = claudeAuthenticated();
+  const authed = claudeAuthenticated(process.env,spawnSync,{product:products});
   if (fromFile && authed) console.log('credentials: .env');
-  if (!authed && !argv.includes('--force')) {
-    if (argv.includes('--require-auth')) {
-      console.error('Claude credentials are required for this eval run, but none were found.');
+  if (!authed && (products || !argv.includes('--force'))) {
+    if (products || argv.includes('--require-auth')) {
+      console.error(products?'Product trials require an environment API key or token; host keychains are not mounted.':'Claude credentials are required for this eval run, but none were found.');
       return 2;
     }
     // Never block a contributor who only wanted `node --test`.

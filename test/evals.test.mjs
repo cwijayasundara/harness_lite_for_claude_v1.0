@@ -32,6 +32,8 @@ test('authentication follows Claude CLI status, including keychain-backed logins
   assert.equal(claudeAuthenticated({}, loggedIn), true);
   assert.equal(claudeAuthenticated({}, loggedOut), false);
   assert.equal(claudeAuthenticated({ ANTHROPIC_API_KEY: 'ci-token' }, loggedOut), true);
+  assert.equal(claudeAuthenticated({}, loggedIn,{product:true}),false,'isolated products cannot use the host keychain');
+  assert.equal(claudeAuthenticated({CLAUDE_CODE_OAUTH_TOKEN:'ci-token'},loggedOut,{product:true}),true);
 });
 
 test('validate rejects the four ways a task wastes money', () => {
@@ -361,5 +363,10 @@ test('suite spend allowance reaches each CLI call and exhaustion cannot pass', a
   });
   assert.deepEqual(allowances, [1, 0.5]);
   assert.equal(out.results[0].runs[2].incomplete.reason, 'suite_budget_exhausted');
+  assert.equal(out.results[0].runs[2].usage.usd,0,'no invocation means known zero spend');
   assert.notEqual(out.results[0].verdict, 'pass');
+});
+
+test('product dry-run ceiling includes characterization, gate corrections, review and bounded repairs',()=>{
+  assert.equal(promptCount({product:'ledger',steps:[{characterize:true,reject:true,stale:true,reviewSeed:true}]}),9);
 });
