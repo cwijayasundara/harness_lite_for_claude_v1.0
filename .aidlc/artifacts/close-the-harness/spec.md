@@ -1,8 +1,8 @@
 ---
 status: approved
 by: cwijayasundara
-at: 2026-09-06T15:26:06.352Z
-digest: sha256:c2f5a61a04a03ca958d523bfccb7041a1bb9f4dce373dd61314b8a10db21115e
+at: 2026-09-06T15:52:18.438Z
+digest: sha256:c21626db1642fa8b77dcf40452220611678eb9c268224c170c249ea8cbf0cec4
 ---
 # Spec: close-the-harness
 
