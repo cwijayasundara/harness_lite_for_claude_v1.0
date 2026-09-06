@@ -7,7 +7,7 @@ import { stage, isolateStage, productDockerArgs, assertProductTree } from '../ev
 import { invokerArgs } from '../evals/lib/invoker.mjs';
 import {tmpdir} from 'node:os';
 import {verifyLedger} from '../evals/lib/assertions.mjs';
-import {runProductCampaign} from '../evals/lib/campaign.mjs';
+import {runProductCampaign,runProductCheck} from '../evals/lib/campaign.mjs';
 import { ROOT } from './_paths.mjs';
 const fixtures = path.join(ROOT, 'evals/fixtures');
 
@@ -105,6 +105,18 @@ test('incomplete product calls retain evidence and never invent missing billing'
       assert.ok(saved.phases.some(p=>p.prompt));assert.ok(existsSync(path.join(evidence,'product/.git/HEAD')));
     }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
   }
+});
+
+test('timed-out public product tests remove their container, not just the Docker client', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},()=>{
+  const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT);
+  const containers=()=>spawnSync('docker',['ps','-aq','--filter','name=harness-check-'],{encoding:'utf8',timeout:5000}).stdout.trim();
+  const before=containers();
+  try{
+    writeFileSync(path.join(s.work,'tests/hang.test.mjs'),'setInterval(()=>{},1000);\n');
+    const out=runProductCheck(s,2000);
+    assert.equal(out.error?.code,'ETIMEDOUT');
+    assert.equal(containers(),before,'a killed client must not leave the product test running');
+  }finally{s.cleanup();}
 });
 
 test('private HTTP acceptance exercises persistence, rule changes and storage failure outside the server', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{

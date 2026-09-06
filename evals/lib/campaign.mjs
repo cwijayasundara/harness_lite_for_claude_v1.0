@@ -5,7 +5,7 @@
 import { readFileSync, readdirSync, existsSync, writeFileSync as writeRaw, mkdirSync, cpSync, rmSync, renameSync } from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { loadConfig } from '../../.aidlc/lib/config.mjs';
 import { approvalDriver } from './approvals.mjs';
@@ -173,6 +173,14 @@ export function prepareProductChange(s, step) {
   writeFileSync(path.join(dir,'plan.md'),render({status:'draft'},`# ${step.slug}\n\n## Approach\nUse existing patterns and small behavioural slices. Run public regression tests and the external driver's runtime proof.\n\n## Files\n${step.files.map(f=>'`'+f+'`').join('\n')}\n\n## Order\n1. Inspect existing code and reproduce the required change.\n2. Implement and add regression coverage.\n\n## Proof\n| Behaviour | Evidence |\n|---|---|\n${step.behaviours.map((_,i)=>`| B${i+1} | External driver runtime acceptance and public regression suite |`).join('\n')}\n`));
 }
 
+export function runProductCheck(s, timeoutMs=60000) {
+  const name=`harness-check-${randomUUID()}`;
+  const out=spawnSync('docker',[...productDockerArgs(s,{phase:'check',name}),'node','/plugin/.aidlc/bin/harness','check','--stage','stop'],{encoding:'utf8',timeout:timeoutMs,killSignal:'SIGKILL'});
+  // Killing only the Docker client leaves a hanging product test alive in the daemon.
+  if(out.error||out.signal)spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:10000});
+  return out;
+}
+
 export async function runProductCampaign({task:t, invoke, evaluateProduct, sandbox:s, harnessBin, evaluatorModel, evidenceDir, log=()=>{}}) {
   mkdirSync(evidenceDir,{recursive:true});
   const cfg=loadConfig(s.work), approvals=approvalDriver(cfg), completed=[];
@@ -206,7 +214,7 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, sandb
     return out;
   };
   const driverChecks=()=>{
-    const out=spawnSync('docker',[...productDockerArgs(s,{phase:'check'}),'node','/plugin/.aidlc/bin/harness','check','--stage','stop'],{encoding:'utf8',timeout:60000,killSignal:'SIGKILL'});
+    const out=runProductCheck(s);
     assert.equal(out.status,0,`public regression check failed: ${out.stdout}${out.stderr}`);
     return out.stdout;
   };
