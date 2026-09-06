@@ -55,6 +55,44 @@ nothing. This is `a-draft-is-a-declaration`, the next change.
 - Sprint 3's agent used `paidCents ?? 0` "for backward compatibility with Spring 1 invoices" —
   harmless, and a reminder that the cheap model is the point of the eval model.
 
+## Run 2 — 2026-09-06, commit `8893313`, results `2026-09-06T06-43-37-920Z.json`
+
+After `a-draft-is-a-declaration`. **Fail at sprint 3 of 5**, one assertion. $1.04, 9 minutes 36
+seconds.
+
+| sprint | verdict | notes |
+|---|---|---|
+| 1 adopt | **pass**, 8 of 8 | |
+| 2 extend | **pass**, 5 of 5 | |
+| 3 contradict | fail, 6 of 7 | own change created **and approved**, code written under its own plan; no `supersedes:` link — F31 |
+| 4, 5 | not reached | |
+
+**F30 is fixed.** Sprint 3 created `paid-never-overdue`, approved its spec and plan (the
+unattended list now shows six approvals, not four), and every product write belonged to that
+plan: `diff_owned_by_current_change` reports `current: paid-never-overdue`. The refusal did what
+the spec said it would: the agent could not write until it had gated its own work.
+
+## F31 — the agent names the superseded behaviour in prose and leaves the field empty
+
+**Component: `contentIssues()` in `.aidlc/lib/artifacts.mjs`, the spec approval gate. Breaks B4.
+F9, second instance.**
+
+Sprint 3's closing summary: "the approved add-balance-overdue spec (Behavior 12) explicitly
+promised that `isOverdue()` returns true for any past-due invoice, regardless of payment … the
+earlier spec's behavior is being superseded … explicit safeguards noting the contradiction with
+add-balance-overdue#B12". The agent did the analysis, named the behaviour by its exact id, used
+the word, and wrote all of it into the spec's Safeguards prose. The frontmatter has no
+`supersedes:` line, so nothing is superseded and `harness status` says sprint 1's promise still
+stands.
+
+F9 recorded the first instance — "evolves" instead of "supersedes" — and its fix gave the agent a
+field. This instance shows the field is not enough when the template's reminder sits at the
+bottom of the body: the agent wrote where it was reminded. The mechanical answer is at the gate:
+a spec whose body names `<slug>#B<n>` for a behaviour of another approved spec, and whose
+frontmatter does not link it, is refused at approval with the line to add. The agent has already
+made the judgment by writing the id; the gate only insists it be recorded where the harness can
+read it. `a-named-behaviour-is-a-link`, the next change.
+
 ## Still to do in this change
 
 - Re-run once `a-draft-is-a-declaration` lands; B4, B5, B6 need that run.
