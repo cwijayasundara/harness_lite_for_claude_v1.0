@@ -14,16 +14,20 @@ const commit = (root, message) => {
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', message], { cwd: root });
 };
 
-// A plan as a human would leave it: approved, digested, committed.
-function approvedPlan(root, slug, files, { commitIt = true } = {}) {
+// A change as a human would leave it: spec and plan approved, digested, committed. The spec's
+// `at:` is what makes the change current (a-diff-belongs-to-one-change B1), so it is later than
+// the fixture's own 2026-09-01 approval by default.
+function approvedPlan(root, slug, files, { commitIt = true, at = '2026-09-02T00:00:00.000Z' } = {}) {
   const dir = path.join(root, '.aidlc/artifacts', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
+  const specDraft = render({ status: 'draft' }, `# Spec: ${slug}\n\n### B1\n\nGiven, when, then.\n`);
+  writeFileSync(path.join(dir, 'spec.md'), render({ status: 'approved', by: 'tester', at, digest: bodyDigest(specDraft) }, parse(specDraft).body));
   const body = `# Plan: ${slug}\n\n## Files\n\n${files.map((f) => `- \`${f}\``).join('\n')}\n`;
   const file = path.join(dir, 'plan.md');
   writeFileSync(file, `---\nstatus: draft\n---\n${body}`);
   const text = readFileSync(file, 'utf8');
-  writeFileSync(file, render({ ...parse(text).front, status: 'approved', by: 'tester', at: '2026-09-01T00:00:00.000Z', digest: bodyDigest(text) }, parse(text).body));
+  writeFileSync(file, render({ ...parse(text).front, status: 'approved', by: 'tester', at, digest: bodyDigest(text) }, parse(text).body));
   if (commitIt) commit(root, `plan approved: ${slug}`);
   return file;
 }
@@ -42,26 +46,56 @@ test('the approved plan owns the working diff', async () => {
   } finally { s.cleanup(); }
 });
 
-// scope-drift-reads-every-contract B1/B2/B4/B6, carried into the three-file chain. Ownership is a
-// property of the repository, not of whichever artifact was edited last: reading it off the most
-// recently modified one made the check disagree with the write guard, and recording a file owned
-// by one plan failed because another happened to have a newer mtime.
-test('a file owned by any approved committed plan is in scope, whichever is newest', async () => {
+// a-diff-belongs-to-one-change B5. This test used to assert the opposite: that a file owned by
+// *any* approved committed plan was in scope. That is the rule F10 and F26 were routed through —
+// sprint 3 wrote product code under sprint 2's plan, and a generator edited a file under a change
+// closed two days earlier. Ownership is now a property of the current change — the open change
+// whose spec was approved most recently — and the guard reads the same function, so the two
+// cannot disagree the way they did.
+test('only the current change\'s plan owns the working diff; an older plan\'s file is a finding', async () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
     writeFileSync(path.join(s.work, 'src/app/second.py'), '# owned by the newer plan\n');
     approvedPlan(s.work, 'second-change', ['src/app/second.py']);
 
-    // Both plans govern. The older one still authorises the file it owns.
-    writeFileSync(path.join(s.work, 'src/app/text.py'), '# owned by the older plan\n');
+    // The newer change is current. Its own file passes.
     writeFileSync(path.join(s.work, 'src/app/second.py'), '# edited again\n');
     assert.equal((await run(cfg(s.work))).verdict, 'pass');
 
-    // A file no plan claims is still a finding.
-    writeFileSync(path.join(s.work, 'src/app/orphan.py'), '# owned by no plan at all\n');
-    const orphan = await run(cfg(s.work));
-    assert.equal(orphan.verdict, 'fail');
-    assert.match(orphan.findings.map((f) => f.file).join(' '), /orphan\.py/);
+    // The older plan's file is a finding, and the finding names the change actually being made.
+    writeFileSync(path.join(s.work, 'src/app/text.py'), '# owned by the older plan\n');
+    const older = await run(cfg(s.work));
+    assert.equal(older.verdict, 'fail');
+    const finding = older.findings.find((f) => f.file === 'src/app/text.py');
+    assert.equal(finding.rule, 'scope-drift');
+    assert.match(finding.message, /second-change/);
+  } finally { s.cleanup(); }
+});
+
+// B5: a diff with no current change reports why — no open change has an approved spec — rather
+// than `no-approved-plan`, which would send the agent to approve a plan for a change that is not
+// current. B3's shape: a current change whose plan is not approved is `no-approved-plan`.
+test('no current change is a different finding from an unapproved plan', async () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    // Close the fixture's only change: nothing is current.
+    const intent = path.join(s.work, '.aidlc/artifacts/hyphen-titlecase/intent.md');
+    writeFileSync(intent, readFileSync(intent, 'utf8').replace('status: draft', 'status: closed'));
+    commit(s.work, 'close hyphen-titlecase');
+    writeFileSync(path.join(s.work, 'src/app/text.py'), '# no current change\n');
+    const none = await run(cfg(s.work));
+    assert.equal(none.verdict, 'fail');
+    assert.equal(none.findings[0].rule, 'no-current-change');
+
+    // A newer change with an approved spec and a draft plan is current, and governs nothing.
+    approvedPlan(s.work, 'sprint-3', ['src/app/text.py']);
+    const plan = path.join(s.work, '.aidlc/artifacts/sprint-3/plan.md');
+    writeFileSync(plan, render({ status: 'draft' }, parse(readFileSync(plan, 'utf8')).body));
+    commit(s.work, 'sprint-3 plan back to draft');
+    const unapproved = await run(cfg(s.work));
+    assert.equal(unapproved.verdict, 'fail');
+    assert.equal(unapproved.findings[0].rule, 'no-approved-plan');
+    assert.match(unapproved.findings[0].message, /sprint-3/);
   } finally { s.cleanup(); }
 });
 

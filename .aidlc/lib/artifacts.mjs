@@ -359,16 +359,53 @@ export function slugs(cfg) {
     .map((e) => e.name).sort();
 }
 
-// Every plan a guard or a check may honour: approved, committed, and unchanged since approval.
-export function governingPlans(cfg) {
-  const plans = [];
+// a-diff-belongs-to-one-change B1. Which change a diff belongs to: the open change whose spec
+// was approved most recently. Approving a spec is the one act in the chain that means "this is
+// the work now"; closing a change (`status: closed` in intent.md) or approving the next spec is
+// how it stops. Nothing is declared and nothing goes stale on its own.
+//
+// Three instances of one gap chose this. A branch convention fails for campaigns that never
+// branch; "most recently approved plan" lands on sprint 2 in exactly the F26 case, where sprint
+// 3's plan was refused and its work went through on sprint 2's authority; a declared current
+// change is one more thing to forget, and forgetting it refuses every write with no change
+// named, which is F2's dead end by another road.
+//
+// `plan` is the current change's approved committed plan, or null when there is none — and a
+// current change with no approved plan governs nothing, which is the point (B3).
+export function currentChange(cfg) {
+  let best = null;
   for (const slug of slugs(cfg)) {
-    const plan = read(cfg, slug, 'plan');
-    if (!plan || plan.state !== 'approved') continue;
-    if (!isCommitted(cfg.layout.root, plan.file)) continue;
-    plans.push({ slug, file: plan.file, owns: ownedFiles(plan.body) });
+    if (read(cfg, slug, 'intent')?.front.status === 'closed') continue;
+    const spec = read(cfg, slug, 'spec');
+    if (!spec || spec.state !== 'approved' || !spec.front.at) continue;
+    if (!best || String(spec.front.at) > String(best.at)) best = { slug, at: String(spec.front.at) };
   }
-  return plans;
+  if (!best) return null;
+  const plan = read(cfg, best.slug, 'plan');
+  const governs = plan?.state === 'approved' && isCommitted(cfg.layout.root, plan.file);
+  return {
+    slug: best.slug,
+    at: best.at,
+    planState: !plan ? 'absent' : plan.state === 'approved' && !governs ? 'uncommitted' : plan.state,
+    plan: governs ? { slug: best.slug, file: plan.file, owns: ownedFiles(plan.body) } : null,
+  };
+}
+
+// Every plan a guard or a check may honour. Exactly one or none: the current change's plan,
+// approved, committed, and unchanged since approval. It used to return every such plan in the
+// repository, which is how a closed change's plan authorised an edit two days later (B4) and a
+// refused plan's work went through on another plan's ownership (F26).
+export function governingPlans(cfg) {
+  const current = currentChange(cfg);
+  return current?.plan ? [current.plan] : [];
+}
+
+// B6. One wording for `harness status` and `SessionStart`, so the two cannot drift apart.
+export function currentLine(cfg) {
+  const current = currentChange(cfg);
+  if (!current) return 'current: none — approve a spec (harness approve <slug> spec --by <you>) before product files change';
+  if (current.plan) return `current: ${current.slug} (plan approved) — only its ## Files may change`;
+  return `current: ${current.slug} — plan not approved (${current.planState}); product writes are refused until it is, or the change is closed`;
 }
 
 // What `status` prints, and what a session resumes from.

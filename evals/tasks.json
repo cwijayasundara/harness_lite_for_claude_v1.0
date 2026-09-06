@@ -133,7 +133,7 @@
             { "harness_stage_passes": "stop" },
             { "file_matches": [".aidlc/artifacts/*/spec.md", "(?m)^supersedes:\\s*\\S+#B\\d+"] },
             { "file_matches": ["src/ledger.mjs", "isOverdue"] },
-            { "behaviours_have_tests": true }
+            { "behaviours_have_tests": true }, { "diff_owned_by_current_change": true }
           ]
         }
       ]

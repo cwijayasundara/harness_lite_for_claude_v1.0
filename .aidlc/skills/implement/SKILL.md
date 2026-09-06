@@ -49,6 +49,13 @@ Paste the output. If it is not green, you are not done. Do not report completion
 - **Never touch a file outside `## Files` in `plan.md`.** If you need another path, stop, add it
   to the plan, and have the plan approved and committed again.
 
+## When the change is delivered
+
+Set `status: closed` in its `intent.md`, in the same commit as the last proof. An open change with
+an approved spec is the *current* change — the only one whose plan can permit a product write —
+until it is closed or a newer spec is approved. Leaving it open makes the next change's writes
+refused under this one's name.
+
 ## When the plan turns out to be wrong
 
 Say so, immediately, and stop. Amend the spec or the plan, get it approved again, then continue.

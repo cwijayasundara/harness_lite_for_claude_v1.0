@@ -2,11 +2,12 @@
 // file is green, a multi-sprint eval that names these checks is grading something real.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, cpSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { unseenRequirements, modifiedNotReplaced, behavioursHaveTests } from '../evals/lib/campaign.mjs';
+import { unseenRequirements, modifiedNotReplaced, behavioursHaveTests, diffOwnedByCurrentChange } from '../evals/lib/campaign.mjs';
+import { render, bodyDigest } from '../.aidlc/lib/artifacts.mjs';
 import { evaluate, KNOWN } from '../evals/lib/assertions.mjs';
 import { runSuite } from '../evals/run.mjs';
 import { stage } from '../evals/lib/stage.mjs';
@@ -429,4 +430,52 @@ test('a step that timed out after producing output is still graded', async () =>
   });
   assert.equal(out.results[0].runs[0].incomplete, null);
   assert.equal(out.results[0].verdict, 'pass');
+});
+
+// a-diff-belongs-to-one-change B7. F26: sprint 3's plan was refused at the gate and the sprint
+// wrote `isOverdue` anyway, because sprint 2's plan owned the file. The assertion reads the
+// diff since the previous step and checks every product path against the plan of the change
+// that is current when the step ends — not against every plan the working copy has collected.
+test('diffOwnedByCurrentChange passes a file the current plan names and fails one it does not', () => {
+  const d = dir();
+  const before = mkdtempSync(path.join(tmpdir(), 'campaign-prev-'));
+  try {
+    spawnSync('git', ['init', '-q'], { cwd: d.root });
+    spawnSync('git', ['config', 'user.email', 'eval@harness'], { cwd: d.root });
+    spawnSync('git', ['config', 'user.name', 'eval'], { cwd: d.root });
+    mkdirSync(path.join(d.root, 'src'), { recursive: true });
+    writeFileSync(path.join(d.root, 'src/ledger.mjs'), 'export const a = 1;\n');
+    cpSync(d.root, before, { recursive: true });
+
+    // Sprint 2's change owns src/ledger.mjs; sprint 3's is newer, approved, and owns only src/rules.mjs.
+    const seal = (slug, body, at) => {
+      const draft = render({ status: 'draft' }, body);
+      return render({ status: 'approved', by: 'unattended-eval-run', at, digest: bodyDigest(draft) }, body);
+    };
+    for (const [slug, at, owns] of [['sprint-2', '2026-09-01T00:00:00.000Z', 'src/ledger.mjs'], ['sprint-3', '2026-09-02T00:00:00.000Z', 'src/rules.mjs']]) {
+      const a = path.join(d.root, '.aidlc/artifacts', slug);
+      mkdirSync(a, { recursive: true });
+      writeFileSync(path.join(a, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
+      writeFileSync(path.join(a, 'spec.md'), seal(slug, `# Spec: ${slug}\n\n### B1\n\nGiven, when, then.\n`, at));
+      writeFileSync(path.join(a, 'plan.md'), seal(slug, `# Plan: ${slug}\n\n## Files\n\n- \`${owns}\`\n`, at));
+    }
+    spawnSync('git', ['add', '-A'], { cwd: d.root });
+    spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'artifacts'], { cwd: d.root });
+
+    writeFileSync(path.join(d.root, 'src/rules.mjs'), 'export const b = 2;\n');
+    const owned = diffOwnedByCurrentChange(d.root, before);
+    assert.equal(owned.ok, true, owned.violations.join('; '));
+    assert.equal(owned.current, 'sprint-3');
+
+    // The F26 write: the file sprint 2's plan owns, edited under sprint 3.
+    writeFileSync(path.join(d.root, 'src/ledger.mjs'), 'export const a = 1; export const isOverdue = () => false;\n');
+    const routed = diffOwnedByCurrentChange(d.root, before);
+    assert.equal(routed.ok, false);
+    assert.match(routed.violations.join(';'), /src\/ledger\.mjs.*sprint-3/);
+
+    // Artifacts and state never count as product files.
+    writeFileSync(path.join(d.root, 'src/ledger.mjs'), 'export const a = 1;\n');
+    writeFileSync(path.join(d.root, '.aidlc/artifacts/sprint-3/evidence.md'), '# notes\n');
+    assert.equal(diffOwnedByCurrentChange(d.root, before).ok, true);
+  } finally { d.cleanup(); rmSync(before, { recursive: true, force: true }); }
 });

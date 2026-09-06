@@ -192,9 +192,16 @@ were a second implementation of the passes above, gated behind a key the reposit
 so they never ran. What replaces them is the agent plus branch protection, which is what the
 playbook asks for.
 
-`[guard].require_contract = true` makes product-file writes need a committed approved plan whose
-`## Files` section names the path. This is the default. Shell releases to a live environment
-without `HARNESS_RELEASE_APPROVAL` are denied by the bash hook.
+`[guard].require_contract = true` makes product-file writes need the *current change's* committed
+approved plan to name the path in `## Files`. The current change is the open change whose spec
+was approved most recently; a closed change (`status: closed` in its `intent.md`) or a draft spec
+is never current, and no other change's plan is consulted. That is `a-diff-belongs-to-one-change`:
+three times a write went through on an older plan's authority — once after that plan's own change
+had been refused at the gate — because ownership answered "is this path claimed?" instead of "is
+it claimed by the change being made?". `scope-drift` reads the same function, so the guard and
+the check cannot disagree. Closing a change is how it stops being current; `harness status` and
+`SessionStart` both print `current:` so the answer is never a surprise. This is the default.
+Shell releases to a live environment without `HARNESS_RELEASE_APPROVAL` are denied by the bash hook.
 
 Auto-accept of edits is allowed only after a plan is approved, the blast radius is owned, and
 tests exist. It is not a harness mode.

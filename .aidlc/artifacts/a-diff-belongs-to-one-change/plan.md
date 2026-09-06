@@ -35,6 +35,14 @@ and state paths, and check each remaining path against `currentChange(cfg).plan.
 already stages a pristine copy; it gains a per-step snapshot of the file list and digests so a step
 can be compared with the step before it rather than with the fixture.
 
+Amended during implementation, 2026-09-06: `evals/lib/assertions.mjs` is where every assertion
+name is registered (`KNOWN`), and the first draft of this plan missed it. Also learned the hard
+way: the hook reads `artifacts.mjs` live, so the moment `governingPlans` changed, the current
+change became the one whose spec the owner had approved last — not this one — and this change's
+own edits were refused with the message it had just written. The implementation order became
+tests and consumers first, `artifacts.mjs` last, and the remaining edits wait on the owner
+re-approving this spec, which is the mechanism working as specified.
+
 Rejected: a `current` file under `.aidlc/state/`. It is a declaration, it goes stale, and the spec
 argues it out.
 
@@ -53,6 +61,7 @@ close changes whose merge has not happened. Out of scope by the spec.
 - `.aidlc/hooks/dispatch.mjs`
 - `.aidlc/skills/implement/SKILL.md`
 - `evals/lib/campaign.mjs`
+- `evals/lib/assertions.mjs`
 - `evals/run.mjs`
 - `evals/tasks.json`
 - `test/current-change.test.mjs`

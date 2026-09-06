@@ -6,6 +6,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { C, BIN } from './_paths.mjs';
 import { writeBlocked, productionDenied, lockTests, clearLock, bashTouchesProtected, bashContractBlocked, writeTargets } from '../.aidlc/lib/guard.mjs';
+import { render, bodyDigest } from '../.aidlc/lib/artifacts.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 
 
@@ -20,6 +21,23 @@ function tmp(prefix) {
   mkdirSync(path.join(root, ".aidlc/artifacts/contracts"), { recursive: true });
   mkdirSync(layout.state, { recursive: true });
   return { root, layout, cleanup: () => rmSync(root, { recursive: true, force: true }) };
+}
+
+// A change as a human leaves it after the gates: approved spec (its `at:` is what makes the
+// change current), approved or draft plan, committed. Same shape as test/scope-drift.test.mjs.
+function approvedChange(root, slug, files, specAt, { plan = 'approved' } = {}) {
+  const dir = path.join(root, '.aidlc/artifacts', slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
+  const seal = (body, at) => {
+    const draft = render({ status: 'draft' }, body);
+    return render({ status: 'approved', by: 'tester', at, digest: bodyDigest(draft) }, body);
+  };
+  writeFileSync(path.join(dir, 'spec.md'), seal(`# Spec: ${slug}\n\n### B1\n\nGiven, when, then.\n`, specAt));
+  const planBody = `# Plan: ${slug}\n\n## Files\n\n${files.map((f) => `- \`${f}\``).join('\n')}\n`;
+  writeFileSync(path.join(dir, 'plan.md'), plan === 'approved' ? seal(planBody, specAt) : render({ status: 'draft' }, planBody));
+  spawnSync('git', ['add', '-A'], { cwd: root });
+  spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', `${slug} written`], { cwd: root });
 }
 
 // Spec behaviour 14. The old check asked whether the command contained `>` *anywhere* and then
@@ -216,8 +234,47 @@ test('require_contract permits only paths owned by a committed approved contract
     const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
     const cfg = { layout, guard: { require_contract: true } };
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
-    assert.match(writeBlocked('src/app/handlers.py', cfg), /outside every approved/);
+    assert.match(writeBlocked('src/app/handlers.py', cfg), /outside the current change "hyphen-titlecase"/);
     assert.equal(writeBlocked('.aidlc/artifacts/intent-refs/change.json', cfg), null);
+  } finally { s.cleanup(); }
+});
+
+// a-diff-belongs-to-one-change B2. F10, second instance: a generator edited a file under a
+// change that finished two days earlier, because that change's plan owned the directory. A
+// path named only by another change's plan is refused, and the refusal names the change that
+// is actually being made.
+test('a path named only by an older change\'s plan is refused under the current change', () => {
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
+    const cfg = { layout, guard: { require_contract: true } };
+    approvedChange(s.work, 'second-change', ['src/app/second.py'], '2026-09-02T00:00:00.000Z');
+
+    assert.equal(writeBlocked('src/app/second.py', cfg), null, 'refused a path the current plan owns');
+    const refusal = String(writeBlocked('src/app/text.py', cfg));
+    assert.match(refusal, /outside the current change "second-change"/);
+    assert.doesNotMatch(refusal, /require_contract = false/);
+  } finally { s.cleanup(); }
+});
+
+// B3. F26: sprint 3's plan was refused at the gate and the sprint wrote product code anyway on
+// sprint 2's authority. A current change without an approved plan refuses every product write,
+// and says what to do next — never that the guard can be switched off (F2).
+test('a current change with no approved plan refuses every product write and names the way forward', () => {
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
+    const cfg = { layout, guard: { require_contract: true } };
+    approvedChange(s.work, 'sprint-3', ['src/app/text.py'], '2026-09-02T00:00:00.000Z', { plan: 'draft' });
+
+    for (const rel of ['src/app/text.py', 'src/app/handlers.py']) {
+      const refusal = String(writeBlocked(rel, cfg));
+      assert.match(refusal, /"sprint-3"/);
+      assert.match(refusal, /plan is not approved/);
+      assert.match(refusal, /harness approve sprint-3 plan/);
+      assert.match(refusal, /close/);
+      assert.doesNotMatch(refusal, /require_contract = false/);
+    }
+    // Artifacts stay writable: the gate you cannot draft is not a gate.
+    assert.equal(writeBlocked('.aidlc/artifacts/sprint-3/plan.md', cfg), null);
   } finally { s.cleanup(); }
 });
 
@@ -243,7 +300,7 @@ test('a protected path an approved committed contract names is writable', () => 
     // With nothing protected, the same path is refused by the ownership rule instead. Both rules
     // still refuse it; ownership is what either of them yields to.
     const unprotected = { layout, guard: { require_contract: true } };
-    assert.match(String(writeBlocked('src/app/handlers.py', unprotected)), /outside every approved/);
+    assert.match(String(writeBlocked('src/app/handlers.py', unprotected)), /outside the current change/);
     assert.equal(writeBlocked('src/app/text.py', unprotected), null);
   } finally { s.cleanup(); }
 });
@@ -252,7 +309,9 @@ test('a malformed contract fails closed for product writes', () => {
   const f = tmp('guard-bad-'); try {
     f.layout.contracts = path.join(f.root, '.aidlc/artifacts/contracts'); mkdirSync(f.layout.contracts, { recursive: true });
     writeFileSync(path.join(f.layout.contracts, 'change.md'), '# malformed contract\n');
-    assert.match(writeBlocked('src/app.py', { layout: f.layout, guard: { require_contract: true } }), /approved delivery contract/);
+    const refusal = String(writeBlocked('src/app.py', { layout: f.layout, guard: { require_contract: true } }));
+    assert.match(refusal, /no open change has an approved spec/);
+    assert.doesNotMatch(refusal, /require_contract = false/);
   } finally { f.cleanup(); }
 });
 

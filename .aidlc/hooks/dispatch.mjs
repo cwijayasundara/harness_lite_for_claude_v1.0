@@ -16,7 +16,7 @@ import { refresh, staleSince } from '../lib/refresh.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
 import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
-import { UNATTENDED_APPROVE_NOTICE, supersededBy } from '../lib/artifacts.mjs';
+import { UNATTENDED_APPROVE_NOTICE, supersededBy, currentLine } from '../lib/artifacts.mjs';
 
 // In an installed project `.aidlc/bin/harness` is a bash shim; in this repository it is the
 // executable itself, and `bash` on it dies with a shell syntax error. The banner printed the
@@ -158,8 +158,12 @@ export async function dispatch(event) {
           const g = graph.load(cfg);
           if (g) lines.push(...codemap.summary(cfg, g));
         } catch { /* no index yet: the map line would be noise, not help */ }
-        if (cfg.guard?.require_contract) lines.push('contract: product file edits need a committed approved contract that owns the path');
+        if (cfg.guard?.require_contract) lines.push('contract: product file edits need the current change\'s committed approved plan to name the path');
         else lines.push('contract: scope enforcement is off; set [guard].require_contract = true for product repositories');
+        // a-diff-belongs-to-one-change B6. Which change a write belongs to, and whether that
+        // change can permit one yet. Pushed here for the F6 reason: an agent that starts working
+        // immediately never asks `status`, and a refusal it cannot predict is one it routes around.
+        try { lines.push(currentLine(cfg)); } catch { /* artifacts unreadable: the guard will say so on the first write */ }
 
         // B4: the same reason F7's map line is here rather than only in `status` — a fact
         // available on request does not reach an agent that begins working immediately (F6). A

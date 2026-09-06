@@ -67,18 +67,24 @@ export async function run(cfg) {
   // `governingPlans` drops both, so a plan cannot widen its own scope after the fact.
   const owned = [...new Set(plans.flatMap((p) => p.owns))];
 
+  // a-diff-belongs-to-one-change B5. `governingPlans` is the current change's plan or nothing,
+  // so an empty list has two causes and they need different remedies: no open change has an
+  // approved spec, or the current change's plan is not approved. Sending the agent to approve a
+  // plan in the first case approves a plan for a change that is not current.
   if (!plans.length) {
-    return {
-      verdict: 'fail',
-      findings: [
-        ...product.map((f) => ({
-          file: f, line: 0, rule: 'no-approved-plan',
-          message: 'changed with no approved committed plan governing this repository',
+    const current = artifacts.currentChange(cfg);
+    const finding = current
+      ? {
+          rule: 'no-approved-plan',
+          message: `changed under the current change "${current.slug}", whose plan is not approved (${current.planState})`,
+          fix: `harness approve ${current.slug} plan --by <you> and commit, or close "${current.slug}" if that work is done`,
+        }
+      : {
+          rule: 'no-current-change',
+          message: 'changed with no current change — no open change has an approved spec',
           fix: 'harness approve <slug> spec --by <you>, then plan, and commit each',
-        })),
-        ...proofFindings,
-      ],
-    };
+        };
+    return { verdict: 'fail', findings: [...product.map((f) => ({ file: f, line: 0, ...finding })), ...proofFindings] };
   }
 
   // A plan that claims nothing governs nothing, and would silently authorise the whole tree.
@@ -94,8 +100,8 @@ export async function run(cfg) {
       .filter((f) => !owned.some((d) => under(f, d)))
       .map((f) => ({
         file: f, line: 0, rule: 'scope-drift',
-        message: `changed but claimed by no approved plan (${plans.map((p) => p.slug).join(', ')})`,
-        fix: 'add the path to "## Files" and re-approve the plan, or revert the change',
+        message: `changed but not named by the current change "${plans[0].slug}" — its plan's ## Files does not claim it`,
+        fix: `add the path to "## Files" of ${plans[0].slug}/plan.md and re-approve it, or revert the change`,
       })),
     ...proofFindings,
   ];

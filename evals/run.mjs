@@ -5,7 +5,7 @@
 // so `runSuite` is exercised in the unit suite with a fake and no spend. That seam is the
 // reason the numbers this prints can be trusted.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -185,8 +185,13 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
   let timedOut = false;
   let transcript = '';
   let incomplete = null;
+  // The working copy as it stood before each step, so a step's assertions can read the diff the
+  // step itself made rather than everything since the fixture (`diff_owned_by_current_change`).
+  const previous = path.join(s.root, 'previous');
   for (let idx = 0; idx < t.steps.length; idx++) {
     const step = t.steps[idx];
+    rmSync(previous, { recursive: true, force: true });
+    cpSync(s.work, previous, { recursive: true });
     const out = await invoke({
       prompt: step.prompt, cwd: s.work, timeoutMs: t.timeoutMs, budgetUsd: t.budgetUsd, task: t, step: idx,
     });
@@ -201,7 +206,7 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
     const stalled = out.incomplete ?? ungradable(out);
     if (stalled) { incomplete = { ...stalled, step: idx }; break; }
     transcript = [transcript, out.transcript ?? ''].filter(Boolean).join('\n');
-    const ctx = { work: s.work, pristine: s.pristine, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
+    const ctx = { work: s.work, pristine: s.pristine, previous, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
     const stepAsserts = evaluate(ctx, step.assert ?? []);
     assertions.push(...stepAsserts);
     if (stepAsserts.some((a) => !a.pass)) break;

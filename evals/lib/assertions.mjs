@@ -7,7 +7,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { unseenRequirements, behavioursHaveTests, modifiedNotReplaced, walk } from './campaign.mjs';
+import { unseenRequirements, behavioursHaveTests, modifiedNotReplaced, diffOwnedByCurrentChange, walk } from './campaign.mjs';
 
 // A deliberately small glob: `*` inside one path segment. Enough for
 // ".aidlc/artifacts/intent/*.md" and "tests/*.py", and small enough to have no bugs.
@@ -145,6 +145,13 @@ export const CHECKS = {
   modified_not_replaced(ctx, { file, markers }) {
     const r = modifiedNotReplaced(ctx.work, file, markers);
     return ok(r.ok, r.violations.join('; '));
+  },
+  // Every product file changed since the previous step is named by the current change's plan.
+  // `ctx.previous` is the runner's snapshot before the step; a single-prompt task has none and
+  // is compared with the fixture.
+  diff_owned_by_current_change(ctx, want) {
+    const r = diffOwnedByCurrentChange(ctx.work, ctx.previous ?? ctx.pristine);
+    return ok(r.ok === want, [r.violations.join('; '), r.current ? `current: ${r.current}` : ''].filter(Boolean).join(' | '));
   },
 };
 

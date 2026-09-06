@@ -443,6 +443,9 @@ async function main() {
         if (unattendedNote) console.log(unattendedNote);
         return 0;
       }
+      // a-diff-belongs-to-one-change B6: which change a product write belongs to right now, and
+      // whether it can permit one. Same wording as the SessionStart line, from one function.
+      console.log(artifacts.currentLine(cfg));
       console.log('changes\n\n  change                         next                 spec       plan');
       for (const row of rows) {
         const mark = (kind) => row.artifacts[kind]?.state ?? 'absent';
