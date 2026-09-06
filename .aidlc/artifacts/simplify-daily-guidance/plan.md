@@ -34,6 +34,11 @@ product outputs. Record limitations rather than treating this as a full product 
 `test/mechanisms.test.mjs`
 `.aidlc/evals/smoke/guidance-comparison.json`
 
+`.aidlc/lib/normalize.mjs`
+`test/autogate.test.mjs`
+`test/lifecycle-cli.test.mjs`
+`test/gate-content.test.mjs`
+
 ## Order
 1. Revise existing skills, templates, canonical instructions and operating guidance together.
 2. Extend evals/agent-mechanisms.mjs and verify its deterministic helpers in test/mechanisms.test.mjs.
