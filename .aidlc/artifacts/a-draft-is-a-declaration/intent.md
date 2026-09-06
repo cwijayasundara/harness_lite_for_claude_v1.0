@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: a-draft-is-a-declaration
 
