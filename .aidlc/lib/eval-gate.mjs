@@ -139,7 +139,7 @@ export function gate(results, record, opts = {}) {
 // committed file, which a human reviews. A baseline you can lower to make a run green is the
 // same defect as a fixture edited to make a test pass, and evals/fixtures/ is write-protected
 // for exactly that reason.
-export function update(record, results, { commit = null, at = new Date().toISOString() } = {}) {
+export function update(record, results, { commit = null, at = new Date().toISOString(), cwd = process.cwd(), head = 'HEAD' } = {}) {
   const graded = verdicts(results);
 
   // A task nobody could grade has no state to record. Writing `inconclusive` into the record
@@ -147,9 +147,13 @@ export function update(record, results, { commit = null, at = new Date().toISOSt
   const ungraded = [...graded.entries()].filter(([, v]) => v === 'inconclusive').map(([id]) => id);
   if (ungraded.length) throw new Error(`refusing to record ${ungraded.join(', ')} — inconclusive; re-run those tasks first`);
 
+  // The ratchet holds between comparable runs. B4: a record that predates the artifact model is
+  // not a claim about this harness, and re-recording it must write what is true, `fail`
+  // included — otherwise the re-record B6 sends you to run is the one thing the ratchet refuses.
   const previous = record?.tasks ?? {};
+  const fresh = predatesArtifactModel(record?.commit, { cwd, head });
   const lowered = Object.entries(previous).filter(([id, expected]) => passed(entry(expected).verdict) && !passed(graded.get(id)));
-  if (lowered.length) throw new Error(`refusing to lower ${lowered.map(([id]) => id).join(', ')} — the record only moves fail -> pass`);
+  if (lowered.length && !fresh) throw new Error(`refusing to lower ${lowered.map(([id]) => id).join(', ')} — the record only moves fail -> pass`);
 
   // usd is recorded, not ratcheted: the newest observation, so a reader can see what a run costs
   // per task and per model. The gate no longer compares it against anything.

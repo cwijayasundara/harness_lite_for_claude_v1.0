@@ -231,3 +231,19 @@ test('B6: gate grades normally once the baseline is recorded against a commit th
   assert.equal(r.ok, false);
   assert.deepEqual(r.regressed.map((x) => x.id), ['a'], 'a genuine regression against a comparable baseline is still reported as one');
 });
+
+// B4: a re-baseline records what is true, including what is broken. The ratchet that refuses to
+// lower a verdict is right between two comparable runs; against a record that predates the
+// artifact model it refused the very re-record B6 sends you to run — ten tasks read `pass` on a
+// harness that no longer existed, and `--update` would not write `fail` over them.
+test('B4: update accepts lowered verdicts only when the record predates the artifact model', async () => {
+  const { update } = await import('../.aidlc/lib/eval-gate.mjs');
+  const results = { source: 'r.json', results: [{ id: 'a', verdict: 'fail', usd: 0.1 }, { id: 'b', verdict: 'pass', usd: 0.2 }] };
+  const stale = { schema: RECORD_SCHEMA, commit: '4616d9e1a527458748382d0049d1856d664629cb', tasks: { a: { verdict: 'pass', usd: 1 }, b: { verdict: 'pass', usd: 1 } } };
+  const next = update(stale, results, { commit: 'HEAD', cwd: ROOT });
+  assert.equal(next.tasks.a.verdict, 'fail', 'a genuine failure is recorded, not smoothed');
+  assert.equal(next.tasks.b.verdict, 'pass');
+
+  const comparable = { ...stale, commit: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim() };
+  assert.throws(() => update(comparable, results, { commit: 'HEAD', cwd: ROOT }), /refusing to lower a/);
+});

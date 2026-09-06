@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: the-suite-measures-this-harness
 
