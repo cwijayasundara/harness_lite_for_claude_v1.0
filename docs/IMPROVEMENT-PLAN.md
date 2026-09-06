@@ -114,7 +114,7 @@ after repeatable product evidence shows it necessary.
 | Delivery | Status | Scope |
 |---|---|---|
 | A | Complete for item 1 | Honest execution/reporting, hosted CI and explicit read-only evaluator verified |
-| B | Verification in progress | External decisions, spec-bound plans and daily guidance simplification implemented |
+| B | Implemented and tested | Daily guidance simplified; bounded comparison found no regression, but friction reduction remains unproven |
 | C | Pending | External product acceptance and two unattended campaigns |
 | D | Pending | Comparative model/graph trials and evidence-based pruning |
 
@@ -279,5 +279,9 @@ Templates, canonical instructions, the Claude projection, review guidance and te
 are consistent with those rules. No skills, roles, hooks or control budgets were added.
 Tests using generated template fixtures were updated to fill the revised prompts; their approval
 state assertions and placeholder refusal checks remain intact. Full stop and commit checks and
-the graph benchmark passed. Live comparison and review evidence will be recorded below before
-merge. Full product campaigns remain item 3.
+the graph benchmark passed. The live installed-plugin smoke passed, including approval pauses, correction and independent
+review. The paired guidance sample passed all boundary and product checks with zero unnecessary
+questions/stops in both variants: it demonstrates no regression, not fewer workflow-repair turns.
+That empirical reduction criterion remains unproven. Detailed results, original grading, incomplete
+attempt and costs are recorded in `.aidlc/artifacts/simplify-daily-guidance/evidence.md`.
+Full product campaigns remain item 3.

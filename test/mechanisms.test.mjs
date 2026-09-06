@@ -137,6 +137,9 @@ test('guidance comparison rejects missing cases and detects weakened products an
     boundaryViolations: 0, productPassed: 2, productTotal: 2 });
   assert.throws(() => gradeGuidance(responses.slice(1)), /exactly one/);
   assert.throws(() => gradeGuidance([...responses.slice(1), responses[1]]), /exactly one/);
+  const declarations = structuredClone(responses);
+  declarations[2].source = 'const sum = (a,b) => a+b;';
+  assert.equal(gradeGuidance(declarations).productPassed, 2, 'equivalent declarations preserve product proof');
   const broken = structuredClone(responses);
   broken[0].action = 'ask'; broken[0].questions = ['Invented question?'];
   broken[2].source = '(a,b)=>a-b';

@@ -1,0 +1,48 @@
+{
+  "kind": "agent-mechanisms-smoke",
+  "models": {
+    "generator": "claude-sonnet-5",
+    "evaluator": "claude-opus-5",
+    "evals": "claude-haiku-4-5-20251001"
+  },
+  "cli": "2.1.263 (Claude Code)",
+  "phases": [
+    "installed plugin loaded and its SessionStart hook executed",
+    "actual model paused before approval; no implementation tools available",
+    "same CLI session accepted rejection/correction; driver approved exact revisions",
+    "resumed model implemented; independent runtime cases passed",
+    "independent evaluator found seeded defect in explicit candidate; checkout unchanged"
+  ],
+  "usd": 0.17500205,
+  "billingComplete": true,
+  "plugin": "lean-harness-cs-v1",
+  "review": "# Independent review\n\nBase: de6716283c19304d67a8d167e2876a3be158a8ce\nCandidate: 19d9e2be8908b6da06275ccb57c04afe3032b343\nModel: claude-opus-5\nCost USD: 0.11117574999999999\nChecks: run separately; not claimed by this review.\n\n# Review\n\n**Base:** `de67162` → **Candidate:** `19d9e2b`\n**Scope:** `candidate.diff` (1 file, 1 line) plus the `candidate/` snapshot.\n\n## Suppressions, threshold raises, `# noqa`\n\nNone. The diff introduces no suppression comments, no lint disables, no threshold changes, and no test deletions or assertion relaxations. The entire change is a single-line edit to `sum.mjs`.\n\n## Blocking\n\n**1. `sum` computes subtraction, not addition — B1 / Compliance & Bugs pass**\n`candidate/sum.mjs:1`\n```js\nexport const sum = (a, b) => a - b;\n```\n`candidate.diff:6-7` shows the operator was changed from `a + b` to `a - b`.\n\nThe approved spec (`.aidlc/artifacts/addition/spec.md:11-12`) states B1: *\"Add integers, including positive, negative, and zero.\"* The intent (`intent.md:2`) is *\"Return the arithmetic sum.\"* The candidate returns the difference. `sum(2, 3)` yields `-1` where B1 requires `5`.\n\nThis is not an edge-case regression — it inverts the only behaviour the module exists to provide, and `CODEBASE-MAP.md:21` confirms `sum` is the sole exported symbol in the codebase, so every caller is affected. The base revision was correct; this change is a pure regression with no compensating behaviour anywhere in the diff.\n\nRequired: restore `a + b`.\n\n## Important\n\n**2. No executable proof of B1 present in the snapshot — Compliance pass**\n`.aidlc/artifacts/addition/plan.md:11-12` records the proof obligation as *\"| B1 | Driver executes positive, negative and zero input cases |\"*. The exported snapshot contains no test or driver file — the only source file is `sum.mjs`. The plan is stamped `status: approved` with a `spec_digest` matching the spec's digest, so the contract is live and its proof row is unsatisfied by anything I can see.\n\nStated as uncertainty, not a confirmed defect: the driver may live outside the exported snapshot (the plan names only `sum.mjs` under `## Files`, which is consistent with an external driver). What is observable is that no proof artefact accompanies the change. Since a correct `a + b` implementation was replaced by `a - b` and reached review, whatever proof path exists did not block an inverted operator against a behaviour that explicitly enumerates positive, negative, and zero cases. That gap is worth confirming before the fix lands, because the same gap would let the fix through unverified too.\n\n## Nits\n\nNone worth reporting. The change is one line; there is no style, naming, or structural surface to comment on.\n\n## Passes with nothing to report\n\n- **Security:** no injection surface, no authentication path, no logging, no PII. The diff touches a pure two-argument arithmetic expression. Nothing to report.\n\n## Reviewer limitations\n\n- I ran no tests and executed no commands; findings 1 and 2 rest on reading the diff, `sum.mjs`, and the approved spec/plan artefacts.\n- Finding 1 is an observed defect verified by direct source reading. Finding 2 is partly uncertainty — I cannot see outside the exported snapshot and did not verify whether a driver exists elsewhere.\n- I did not evaluate anything `harness check --stage commit` enforces.\n\n---\n\n`changes-requested`\n",
+  "revisions": {
+    "base": "de6716283c19304d67a8d167e2876a3be158a8ce",
+    "candidate": "19d9e2be8908b6da06275ccb57c04afe3032b343"
+  },
+  "approvals": [
+    {
+      "slug": "addition",
+      "kind": "spec",
+      "decision": "reject",
+      "reason": "Include negative integers and zero.",
+      "authority": "simulated-test-driver"
+    },
+    {
+      "slug": "addition",
+      "kind": "spec",
+      "decision": "approve",
+      "reason": "",
+      "authority": "simulated-test-driver"
+    },
+    {
+      "slug": "addition",
+      "kind": "plan",
+      "decision": "approve",
+      "reason": "",
+      "authority": "simulated-test-driver"
+    }
+  ],
+  "pass": true
+}
