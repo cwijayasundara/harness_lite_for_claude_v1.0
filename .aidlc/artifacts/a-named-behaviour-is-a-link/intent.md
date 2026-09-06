@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: a-named-behaviour-is-a-link
 
