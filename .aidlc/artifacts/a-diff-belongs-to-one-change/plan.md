@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-06T05:26:53.164Z
+digest: sha256:db1c6353de29eca933e00d936eeeab18998ebd09edc77ccd8bd720a161b10dee
 ---
 # Plan: a-diff-belongs-to-one-change
 

@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-06T05:27:19.976Z
+digest: sha256:2416e251db875e34d1f0360296e0ad5725ff3550fc63dfcc17d556eab29425f4
 ---
 # Plan: one-integration-test
 

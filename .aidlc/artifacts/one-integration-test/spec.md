@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 supersedes: lean-v2#B13
+by: cwijayasundara
+at: 2026-09-06T05:27:04.835Z
+digest: sha256:53ea2573ea19ddb27708cb0ecf0f708bb5929145b01217505257e52cfb177b50
 ---
 # Spec: one-integration-test
 

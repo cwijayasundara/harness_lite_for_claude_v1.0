@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-06T05:27:40.732Z
+digest: sha256:2164e29f1e230db86e09ee7718c8ea8a9709282d2c4aab3a33d3cb2a8ad40768
 ---
 # Spec: every-control-fires-or-goes
 
