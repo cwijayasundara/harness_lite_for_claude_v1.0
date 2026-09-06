@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: an-unattended-turn-does-not-end-on-a-question
 
