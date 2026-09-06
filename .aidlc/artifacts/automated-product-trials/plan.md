@@ -23,6 +23,7 @@ Alternative: host temporary directories cannot isolate private grading or approv
 `evals/lib/approvals.mjs`
 `evals/products.json`
 `evals/tasks.json`
+`evals/expected.json`
 `evals/Dockerfile`
 `evals/fixtures/campaign-service/`
 `test/campaign.test.mjs`
