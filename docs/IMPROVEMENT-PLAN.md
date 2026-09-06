@@ -237,12 +237,16 @@ installs its test dependencies and requires a successful stop stage before the c
 token thresholds and historical outcome expectations are unchanged.
 
 Item 1 acceptance is complete. Hosted unit/graph and verified Python cost jobs passed on
-[implementation 74b6b78](https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34046902036).
+[reviewer-corrected implementation 6a1cd15](https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34047279120).
 The first hosted runs exposed missing CLI/history and a Git-metadata snapshot-copy failure;
 those defects were fixed and rerun without changing test expectations or token thresholds.
 The actual-plugin integration reported $0.1853427 and passed all phases. Detailed outcomes,
 including incomplete attempts, are in `.aidlc/artifacts/correct-existing-mechanisms/evidence.md`.
-Merge completion is tracked separately from these acceptance results. Hosted model execution is an
+The confirmation review of 6a1cd15 cleared the mechanism corrections and requested two
+documentation fixes: cite this newer CI run and distinguish the completed review archive from
+the earlier timeout. Both are now corrected against recorded evidence. No further model
+approval is claimed; merge is authorized by the user's explicit instruction. Merge completion
+is tracked separately from these acceptance results. Hosted model execution is an
 explicit workflow-dispatch option and fails without its required API key. This repository has no
 API-key secret configured; local live-model evidence is reported separately from hosted tests.
 Full ledger/service product campaigns and arbitrary-shell trial isolation remain item 3, not

@@ -11,7 +11,9 @@ human CLI actions. Older approvals were preserved. Scope drift passes.
 All local commit-stage controls pass: secrets, tests, scope drift, budget, tamper,
 architecture and test presence. Actionlint 1.7.12 validates the workflow.
 
-Hosted CI passed for implementation 74b6b78:
+Hosted CI passed for reviewer-corrected implementation 6a1cd15:
+https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34047279120
+The earlier 74b6b78 run also passed:
 https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34046902036
 The unit job includes tests and the graph benchmark; the cost job executes the Python
 example's tests before checking its unchanged token thresholds.
@@ -39,18 +41,23 @@ smoke is an explicit dispatch option that fails if requested without credentials
 
 ## Independent implementation review
 
-The initial bce7cc0 review timed out before returning findings. It is incomplete, not approval;
-usage for that attempt is unreported. The corrected candidate review is recorded separately
-in review.md. That review returned changes-requested (USD 1.8742675). The repair distinguishes
-the supplementary native agent from the authoritative standalone review path, removes the
-remaining stale bypass guidance and corrects missing billing data to null. It also removes dead
-imports/return data, corrects the shell-guard message, explains duplicate push/PR CI runs and
-labels the overwritten early smoke result as conversational history. A focused confirmation
-review follows these corrections.
+Three invocation outcomes are distinct:
+
+1. bce7cc0 attempt: timed out, no review file, billing unreported.
+2. 74b6b78 completed review: preserved verbatim in `review-initial.md` (the first completed
+   review, not the timed-out attempt), USD 1.8742675. It requested three mechanism/guidance/
+   billing corrections, implemented in 6a1cd15.
+3. 6a1cd15 confirmation: preserved verbatim in `review-confirmation.md`, USD 1.249705. It
+   explicitly cleared the prior mechanism findings and requested two documentation-only fixes:
+   cite CI for 6a1cd15 rather than its base, and distinguish this archive from the timeout.
+
+Those documentation fixes were checked against the run links and immutable review headers
+above. `review.md` is the caller's final disposition, not an altered model transcript. No third
+model approval is claimed. The user's explicit merge instruction supplies merge authority.
+Non-blocking editorial suggestions do not change the verified mechanism outcomes.
 
 ## Remaining program work
 
 Item 3 owns full ledger/service campaigns and isolation for arbitrary-shell agents. Items 2,
 4 and 5 own broader guidance simplification, comparisons and pruning. These are not claimed
-complete by this focused mechanism acceptance. The pre-existing CODEBASE-MAP.md edit is
-preserved locally and excluded from the commits.
+complete by this focused mechanism acceptance. CODEBASE-MAP.md is excluded from this changeset.
