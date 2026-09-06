@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-06T07:41:04.441Z
+digest: sha256:aad5bc68605f544cc638d012b9843119deaaa1e72c03dcac111c2e53cbdcaea1
 ---
 # Plan: a-change-declares-its-relation
 

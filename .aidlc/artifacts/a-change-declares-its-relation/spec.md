@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 extends: one-integration-test, the-suite-measures-this-harness
+by: cwijayasundara
+at: 2026-09-06T07:41:04.389Z
+digest: sha256:a22382c408d6d54ffc40e7638af5cde9cd9a0f1c976cf292f937407d052d7802
 ---
 # Spec: a-change-declares-its-relation
 
