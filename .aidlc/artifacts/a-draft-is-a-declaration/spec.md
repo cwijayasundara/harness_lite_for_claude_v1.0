@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-06T06:32:07.920Z
+digest: sha256:f63f7dd7f4f6ab40cb08b1c50d712e424582db28ec4c7becc912eb84cd3c790d
 ---
 # Spec: a-draft-is-a-declaration
 
