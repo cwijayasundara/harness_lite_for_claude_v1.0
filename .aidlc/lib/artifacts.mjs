@@ -99,7 +99,6 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), an
 
   // --by is an audit label, not authentication. Environment flags cannot approve a gate.
   if (!by || /[\r\n]/.test(by)) throw new Error('an approval needs an approver: --by <identity>');
-  const discardedBy = null;
 
   const target = file(cfg, slug, kind);
   if (!existsSync(target)) throw new Error(`not found: ${path.relative(cfg.layout.root, target)}`);
@@ -124,7 +123,7 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), an
   if (issues.length && !anyway) throw new Error(issues.join('\n'));
 
   replaceAtomic(target, render({ ...front, status: 'approved', by, at, digest: bodyDigest(text), ...(kind === 'plan' ? { spec_digest: bodyDigest(read(cfg, slug, 'spec').text) } : {}), ...(anyway ? { approved_anyway: anyway } : {}) }, body));
-  return { file: target, digest: bodyDigest(text), discardedBy };
+  return { file: target, digest: bodyDigest(text) };
 }
 
 export function read(cfg, slug, kind) {

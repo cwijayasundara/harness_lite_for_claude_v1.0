@@ -16,7 +16,7 @@ import { refresh, staleSince } from '../lib/refresh.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
 import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
-import { supersededBy, currentLine, draftsAwaitingGate, awaitingGateRemedy } from '../lib/artifacts.mjs';
+import { supersededBy, currentLine } from '../lib/artifacts.mjs';
 
 // In an installed project `.aidlc/bin/harness` is a bash shim; in this repository it is the
 // executable itself, and `bash` on it dies with a shell syntax error. The banner printed the
@@ -101,7 +101,7 @@ function preBash(input, cfg) {
         const planned = bashContractBlocked(cmd, cfg);
         if (planned) return fired('contract-scope', planned);
         const p = bashTouchesProtected(cmd, PREFIX_CACHE_PATHS);
-        if (p) return fired('prompt-prefix', `this command writes to ${p} through the shell, which bypasses the write guard. Same rule applies: not mid-session.`);
+        if (p) return fired('prompt-prefix', `this command writes to ${p} through the shell, which bypasses the write guard. Instruction and permission changes require the approved scope.`);
         ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
   return 0;
 }

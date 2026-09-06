@@ -113,7 +113,7 @@ after repeatable product evidence shows it necessary.
 
 | Delivery | Status | Scope |
 |---|---|---|
-| A | Mechanisms implemented; acceptance in progress | Honest execution/reporting, CI validation and explicit read-only evaluator |
+| A | Complete for item 1 | Honest execution/reporting, hosted CI and explicit read-only evaluator verified |
 | B | Partially implemented | External simulated decisions and spec-bound plans implemented; guidance simplification pending |
 | C | Pending | External product acceptance and two unattended campaigns |
 | D | Pending | Comparative model/graph trials and evidence-based pruning |
@@ -208,7 +208,9 @@ decisions and runtime assertions are supplied by the driver. The first run teste
 below also tests actual plugin loading; neither run replaces end-to-end product campaigns. Its evidence lives under `.aidlc/evals/smoke/`.
 
 Live result: the retry outside the restricted execution sandbox passed all four phases using
-Claude Code 2.1.263 and the configured Sonnet/Opus models. The successful run reported $0.1395525.
+Claude Code 2.1.263 and the configured Sonnet/Opus models. The successful native-only run reported $0.1395525 in the prior turn; its per-run JSON was
+overwritten by the later actual-plugin run. That earlier figure is conversational history, not
+a retained independently inspectable artifact. The retained actual-plugin evidence reports $0.1853427.
 The initial sandboxed attempt timed out before any model output and returned no billing data;
 its cost is unreported, not assumed free. The seeded faulty candidate was
 `5ea34ea710040daf428ea911dd73047cb9baeeed`, reviewed while the checkout remained on
@@ -234,7 +236,13 @@ commit-stage controls passed, including scope drift. The Python example's CI env
 installs its test dependencies and requires a successful stop stage before the cost comparison;
 token thresholds and historical outcome expectations are unchanged.
 
-GitHub CI publication and merge evidence will be recorded below. Hosted model execution is an
+Item 1 acceptance is complete. Hosted unit/graph and verified Python cost jobs passed on
+[implementation 74b6b78](https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34046902036).
+The first hosted runs exposed missing CLI/history and a Git-metadata snapshot-copy failure;
+those defects were fixed and rerun without changing test expectations or token thresholds.
+The actual-plugin integration reported $0.1853427 and passed all phases. Detailed outcomes,
+including incomplete attempts, are in `.aidlc/artifacts/correct-existing-mechanisms/evidence.md`.
+Merge completion is tracked separately from these acceptance results. Hosted model execution is an
 explicit workflow-dispatch option and fails without its required API key. This repository has no
 API-key secret configured; local live-model evidence is reported separately from hosted tests.
 Full ledger/service product campaigns and arbitrary-shell trial isolation remain item 3, not

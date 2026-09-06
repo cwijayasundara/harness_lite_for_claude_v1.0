@@ -1,5 +1,8 @@
 # GitHub requires workflows at this exact path, so this is the one file that cannot live
 # under .aidlc/. It is infrastructure, not a generated artefact.
+# Pushes validate branches before a PR exists (and direct, explicitly authorized merges).
+# PRs also run the credentialed golden-suite job; duplicate deterministic checks on PR branches
+# are deliberate so a push run cannot cancel or substitute for that PR-only evidence.
 name: harness
 on:
   push:

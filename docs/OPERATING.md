@@ -187,8 +187,8 @@ described in prose every time and linked in none). An approved spec's behaviours
 re-approval is refused when `### B<n>` headings were added since the committed approved text,
 because the amendment route was how run 6 reversed a promise under an `extends:` line that had
 been true (`close-the-harness`). And approval is the human's gate: the pre-bash hook refuses
-`harness approve` from an agent in an attended session — a human's shell runs no hook — and
-stands down only under the runner's `AIDLC_UNATTENDED`. The registry, `.aidlc/harness.toml`, is a
+`harness approve` from an agent in every session — a human's shell runs no hook. Neither
+`AIDLC_UNATTENDED` nor `AIDLC_EVAL` grants an exception. The registry, `.aidlc/harness.toml`, is a
 protected path by default; a plan that names it still may change it.
 
 ## Provider adapter boundary

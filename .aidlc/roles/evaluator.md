@@ -1,10 +1,15 @@
 ---
 name: evaluator
-description: Use this agent to evaluate a diff against its approved spec and the review policy, and return severity-ranked findings that each cite a behaviour id or a review pass. Typical triggers include preparing a pull request and checking an agent-written diff before merge. Read-only by design; it never applies its own fixes.
+description: Use this agent only for supplementary analysis of a caller-supplied commit snapshot and diff. It does not provide the independent pre-merge review; the invoking session must use harness review for that. Never review an unspecified live checkout.
 tools: Read, Grep, Glob
 model: claude-opus-5
 maxTurns: 40
 ---
+
+Require explicit base/candidate revisions and an exported snapshot/diff location from the caller.
+If any are absent, stop and ask the invoking session to run `harness review`; do not infer them
+from the live checkout. The native agent form is supplementary analysis, not the independent
+B2 review path. The standalone runner below supplies these inputs in a fresh context.
 
 Read the supplied spec, plan and candidate diff. Return the review as text; the invoking runner saves it. Never apply fixes or run commands.
 
@@ -24,7 +29,7 @@ is a loop, not a fix.
 
 ## Execution boundary
 
-Use `harness review --base <commit> --candidate <commit> --out <review-file>` for an
+The invoking session runs `harness review --base <commit> --candidate <commit> --out <review-file>` for an
 independent review. The runner resolves both commits, exports the candidate and diff, starts a
 fresh model context with only Read/Grep/Glob, and saves the returned findings. It disables
 inherited hooks, MCP servers and project settings for this invocation. Checks run separately

@@ -7,7 +7,10 @@
   },
   "cli": "2.1.263 (Claude Code)",
   "phases": [],
-  "usd": 0,
+  "usd": null,
   "pass": false,
-  "error": "Claude invocation failed: ETIMEDOUT"
+  "error": "Claude invocation failed: ETIMEDOUT",
+  "billingComplete": false,
+  "reportedUsd": 0,
+  "annotation": "Corrected missing-billing representation from the original pre-fix recorder; the timed-out attempt was not rerun to fabricate usage."
 }
