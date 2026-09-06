@@ -1,5 +1,9 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara (conversation approval, recorded by Codex)
+at: 2026-09-06T20:22:27.679Z
+digest: sha256:d782f583976e95055f4f39c5bc9a4ae44d2aa2279c47e432abaa37d9b9b48497
+spec_digest: sha256:50054c78e72d3329e1c909f6e92f626a0cb65fdc56176321856a8c6c71d9ca2e
 ---
 # Plan: automated-product-trials
 
