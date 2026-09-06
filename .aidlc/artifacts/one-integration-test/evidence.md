@@ -169,6 +169,50 @@ produce four `extends:` lines from an agent that has called four reversals refin
 that, this assertion measures the judgment of a cheap eval model, which is a truth the suite
 should keep telling rather than a defect the harness can fix.
 
+## Run 5 — 2026-09-06, commit `dc10a6c`, results `2026-09-06T07-55-05-139Z.json`
+
+After `a-change-declares-its-relation`. **Fail at sprint 5 of 5, two assertions.** $1.12, 11
+minutes 41 seconds. 29 of 31 assertions pass.
+
+| sprint | verdict | notes |
+|---|---|---|
+| 1 adopt | **pass**, 8 of 8 | |
+| 2 extend | **pass**, 5 of 5 | |
+| 3 contradict | **pass**, 7 of 7 | `supersedes: ledger-functions#B6` recorded — the first time in five runs |
+| 4 refactor | **pass**, 7 of 7 | own change `ledger-store-refactor`, store split, four tests kept, fees untouched |
+| 5 describe | fail, 1 of 3 | `docs/PRODUCT.md` never written — F34 |
+
+**B4 holds.** With the relation gate asking, sprint 3's agent wrote "Created a new artifact
+(paid-never-overdue) with an explicit `supersedes: ledger-functions#B6` marker … this
+intentionally overrides the earlier behaviour." Four runs of prose, one run of a link, and the
+difference was a gate that asks rather than a field that waits.
+
+**B5 holds, and answers the analysis's A3 question the cheap way.** The refactor sprint created
+its own change with its own spec and plan, and neither of the earlier specs moved. A pure
+refactor reaches the contract as a new change that extends the earlier ones; nothing needed a
+`sync` verb. Recorded here as the finding the analysis asked for: no mechanism, one convention
+the gates already enforce.
+
+## F34 — a refused first write becomes a question nobody answers
+
+**Component: the `intent` skill's closing step, under `AIDLC_UNATTENDED`. Breaks B6. F23,
+second instance.**
+
+Sprint 5's first act was to write `docs/PRODUCT.md`; the guard refused it, correctly — a product
+file with no change to belong to. The agent then started the chain, wrote an intent, and ended
+its turn with "Does this intent match what you want?". The unattended notice says nobody will
+answer; the agent asked anyway, because the `intent` skill's last step asks. F23 fixed the
+notice; the skill still ends in a question, and an instruction that says "do not ask" loses to
+an instruction that says "ask".
+
+Two things could close this. Cheaper: the `intent` skill's last step says to confirm with the
+human *unless* the session is unattended, in which case go on to the spec. That is instruction
+against instruction again, and F6/F7/F26/F30 say which wins. Structural: under
+`AIDLC_UNATTENDED` the Stop hook refuses to end a turn that leaves a written spec, or an intent
+with no spec, awaiting its gate — once per session, with the reason — so the agent that stops
+to ask is sent back to the work with the answer it needs: nobody is coming. Claude Code's Stop
+hook can return `decision: block` for exactly this.
+
 ## Still to do in this change
 
 - Re-run once `a-draft-is-a-declaration` lands; B4, B5, B6 need that run.
