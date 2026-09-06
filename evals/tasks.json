@@ -284,13 +284,13 @@
             {
               "file_matches": [
                 "docs/PRODUCT.md",
-                "(?i)partial"
+                "(?i)(partial|multiple payments|payments[^\\n]*(sum|accumulate)|part of an invoice)"
               ]
             },
             {
               "file_matches": [
                 "docs/PRODUCT.md",
-                "(?i)paid[^\\n]*(never|not)[^\\n]*overdue"
+                "(?i)(paid[^\\n]*(never|not)[^\\n]*overdue|not overdue[^\\n]*paid)"
               ]
             },
             {
