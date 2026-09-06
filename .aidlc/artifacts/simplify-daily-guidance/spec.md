@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 extends: correct-existing-mechanisms, close-the-harness
+by: cwijayasundara (conversation approval, recorded by Codex)
+at: 2026-09-06T19:44:47.471Z
+digest: sha256:fc9c7d16cec4ead1c4683026dd87fd4fc4c39c7f831eb660c38819741ef2219e
 ---
 # Spec: simplify-daily-guidance
 
