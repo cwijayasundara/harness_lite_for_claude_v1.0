@@ -1,66 +1,34 @@
 ---
 name: change-safely
-description: Decides how to change existing code safely — check the net, pin behaviour with characterisation tests, sprout beside code too tangled to test, and keep refactors free of behaviour changes. This skill should be used before modifying any existing code, whenever working in an unfamiliar or legacy area, and whenever a change is described as cleanup, tidying, restructuring, renaming, extracting, or moving code.
+description: Guides safe changes to existing code through system understanding, meaningful regression coverage, narrow seams and behaviour-preserving refactors. This skill should be used before modifying any existing code, whenever working in an unfamiliar or legacy area, and whenever a change is described as cleanup, tidying, restructuring, renaming, extracting, or moving code.
 ---
 
-# Changing code that already exists
+# Change existing code safely
 
-Four moves, one decision. Find the safety net, then pick.
+Understand the affected behaviour, callers, dependencies and state before editing. Read nearby
+implementations and tests for established patterns. Use coverage, when available, to locate
+risk; inspect assertions rather than treating a percentage as proof.
 
-```
-.aidlc/bin/harness check --stage drift        # coverage, if the project has it
-```
-
-| What you find | What to do |
+| Situation | Approach |
 |---|---|
-| Covered, with meaningful assertions | Change it. The suite will tell you if you broke it. |
-| Covered by line, thin assertions | Strengthen the assertions first. High coverage with weak assertions is worse than none: it buys false confidence. |
-| Not covered, and small enough to characterise | **Pin** it, below. Do not edit blind. |
-| Not covered, and too tangled to characterise | **Sprout** beside it, below. |
-| No behaviour change intended at all | **Refactor** purely, below. |
+| Meaningful coverage exists | Run the relevant checks before and after the change. |
+| Assertions miss affected behaviour | Add focused behavioural coverage. |
+| Important behaviour is untested | Run it and pin the load-bearing cases before changing it. |
+| Code is too tangled to exercise safely | Find a narrow seam and test the new behaviour there. |
+| Behaviour must remain unchanged | Refactor in small steps and preserve observable contracts. |
 
-Coverage is a map of where you are safe, not a target. Do not write tests to raise a number;
-write them where you are about to be dangerous. A project at 40% where the 40% is the payment
-path is in better shape than one at 80% covering only the getters.
+Characterisation records reality, including surprising behaviour. Distinguish a preserved
+contract from a defect the approved change is meant to fix. A separate test commit is useful
+when it improves review, but is not required for every change. Fix an in-scope defect after
+reproducing it; record unrelated bugs for separate work.
 
-## Pin
+A pure refactor preserves observable behaviour, not necessarily test source text. Renames,
+imports, fixture setup and tests coupled to internals may need maintenance. Keep equivalent
+or stronger behavioural assertions and explain the adjustment. Do not weaken acceptance
+criteria to get green. If a proposed test change alters the product contract, check the spec
+and obtain human approval when that change is outside its boundary.
 
-Untested code has no specification — it has behaviour, some of it load-bearing and undocumented,
-and you find out which in production.
-
-1. Run the code and record what it actually does: bad input, empty input, the edge nobody hits.
-2. Assert exactly that, including the parts that look like bugs. You are pinning reality, not
-   endorsing it.
-3. Commit those tests on their own, green against the unmodified code.
-4. Now change it. A characterisation test going red is a behaviour change: intended, and you say
-   so in the message, or a regression you just caught.
-
-A pinned behaviour that is clearly wrong does not get fixed in the same commit. Note it, finish
-the change, fix it separately with its own intent.
-
-## Sprout
-
-When new behaviour has to live inside a function you cannot safely test, do not edit inside it.
-
-1. Write the new behaviour as a new, fully tested unit beside it.
-2. Call it from the old code once. One line, one place.
-3. Leave the rest of the old code untouched.
-
-The diff is one tested unit plus a line, which is reviewable. Twenty edits threaded through four
-hundred untested lines is not, and it is where agents do the most damage. That one-line seam is
-also what lets the old code be pinned and dismantled later: a codebase gets tested by
-accumulating footholds, not by a testing sprint nobody schedules.
-
-## Refactor
-
-If the tests had to change, it was not a refactor. That is the whole rule, and you can apply it
-to your own diff before anyone else sees it.
-
-- Green before, green after, with the same tests.
-- No new behaviour, no fixed bugs, no "while I was in there".
-- A bug found mid-refactor gets written down, not fixed here. Second commit, own test.
-
-Mixed diffs are the most expensive thing you can hand a reviewer. A hundred lines of pure rename
-read in seconds; ten lines of behaviour change hidden inside them cannot be reviewed at all, so
-they get approved unread. Start the message with `refactor:` and the reviewer knows the tests did
-not change. If you cannot honestly write that prefix, split the commit.
+Prefer existing patterns and small, reviewable diffs. A tested helper or seam can reduce risk
+without imposing a one-line integration rule on every legacy change. Run the affected runtime
+path and regression suite; say what remains untested. Honour the approved file scope, test
+locks and external evaluation ownership throughout.

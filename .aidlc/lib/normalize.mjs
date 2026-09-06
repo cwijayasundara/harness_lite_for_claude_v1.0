@@ -50,7 +50,7 @@ const FORMATS = {
     const rep = JSON.parse(stdout.slice(start));
     return (rep.tests ?? []).filter((t) => t.outcome === 'failed').map((t) => asFinding({
       file: (t.nodeid ?? '').split('::')[0], line: t.lineno ?? 0, rule: 'test-failed',
-      message: t.nodeid, fix: 'fix the code, never the test',
+      message: t.nodeid, fix: 'diagnose against the approved behaviour; preserve regression proof when fixing code or tests',
     }));
   },
 
@@ -84,7 +84,7 @@ const FORMATS = {
         const err = lines[j].match(/^\s*error:\s*'?(.+?)'?$/);
         if (err && err[1] !== '|-') message = `${m[1].trim()} — ${err[1]}`;
       }
-      out.push(asFinding({ file, line, rule: 'test-failed', message, fix: 'fix the code, never the test' }));
+      out.push(asFinding({ file, line, rule: 'test-failed', message, fix: 'diagnose against the approved behaviour; preserve regression proof when fixing code or tests' }));
     }
     return out;
   },

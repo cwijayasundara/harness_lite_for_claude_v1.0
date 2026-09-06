@@ -332,3 +332,25 @@ cost comparison on pushes. PRs retain their golden-suite evaluation path. A manu
 `model_smoke=true` runs the focused live integration with a repository API key; no credentials
 means failure, not fabricated model evidence. The harness remains dependency-free; the Python
 example installs its own pytest/reporting/ruff tools for its executable checks.
+
+## Daily guidance after item 2
+
+Intent records the problem and outcome; spec records observable behaviour, consequential design
+and safeguards; plan records approach, file scope and proof; review records defects, evidence
+and uncertainty. Read relevant source, tests and existing patterns before asking about facts
+available in the repository. Ask only questions that could change a consequential decision.
+A complete request needs no invented open questions or interview. Related behaviours may share
+one intent and delivery boundary.
+
+Within a current approved design and file scope, proceed with routine choices. Test maintenance
+for renames, corrected test defects or approved requirements is legitimate when regression proof
+remains equivalent or stronger. Do not weaken assertions to conceal a failure. Test locks and
+external evaluation ownership still apply. Material design, behaviour, safeguard or scope
+changes return to a human; artifact edits still invalidate approval digests.
+
+`node evals/agent-mechanisms.mjs --guidance-base <commit>` compares the same bounded scenarios
+using the configured capable generator with old and current guidance. The parent grades decisions
+and executes two returned function expressions against undisclosed cases. It records questions,
+proposed unnecessary stops/splits, boundary violations, product results, model metadata and cost
+in `.aidlc/evals/smoke/guidance-comparison.json`. This is one paired decision sample, not an actual
+product campaign or a measurement of workflow-repair turns. No model calls occur in unit tests.

@@ -3,33 +3,24 @@ name: intent
 description: Turns a conversation, a PRD, or a vague request into a version-controlled intent.md — the problem, the outcome, the constraints, and the questions that block progress. This skill should be used whenever someone describes something they want built or changed and no intent file exists yet, including when they paste a PRD or a ticket. Start here rather than jumping to a plan.
 ---
 
-# Write the intent
+# Capture the problem and outcome
 
-The intent captures **what is wrong and what should become true**. It contains no solution.
-Its whole job is to be small enough that a human will actually read and approve it.
+Read the request and relevant code, tests and documentation first. Establish who is affected,
+what fails today, the desired outcome and real constraints. Keep the intent concise; design
+belongs in the spec and implementation scope belongs in the plan.
 
-## Do this
+Use `harness new <slug>` to create the artifact chain. Record the source and any decisions
+already made. Ask only unresolved questions whose answers could materially change behaviour,
+design, safeguards or scope. Group closely related questions when that makes them easier to
+answer. Resolve repository facts by reading the repository. A sufficiently clear request or
+PRD needs no interview; write `None` under Open questions when none block progress.
 
-1. `bash .aidlc/bin/harness new <slug>` — creates `intent.md`, `spec.md` and `plan.md` from the templates.
-2. Interview the person. **One question at a time.** Wait for the answer before the next one.
-3. If a question can be answered by reading the codebase, read the codebase instead of asking.
-4. Fill the file. Leave `Open questions` populated — an intent with no open questions on the
-   first pass usually means you did not push hard enough.
-5. Stop and ask the person to accept it. In automated trials, return control to the external
-   driver for a labelled simulated decision. Never approve your own gates. After acceptance,
-   write `spec.md`, then `plan.md`, in `.aidlc/artifacts/<slug>/`.
+One intent may cover related behaviours that deliver one coherent outcome. Split independent
+outcomes when their approval or delivery should be separate, regardless of the word "and".
+Do not invent questions, constraints or separate changes to fill a template.
 
-## When the source is a PRD
-
-Read it, then still interview. A PRD tells you what someone wants; it rarely tells you what is
-wrong today, and the problem statement is checked against the delivery contract later.
-Quote the PRD for the outcome, write the problem in your own words, and list every place the
-PRD is ambiguous under `Open questions`.
-
-## Anti-patterns
-
-- **Solutioning.** "Add a Redis cache" is not a problem. "Search takes 4s at p95 and support
-  gets ~10 complaints a week" is.
-- **Merging several changes into one intent.** One intent, one outcome. If the outcome needs
-  the word "and", write two files.
-- **Inventing constraints.** Only write what the person or the codebase told you.
+Confirm intent when consequential ambiguity remains. Spec and plan still require human approval
+through the ordinary gates before implementation. In automated trials, return control to the
+external driver for a labelled simulated decision. Never fabricate approval or approve your
+own gates. Existing explicit human authorization is context to preserve, not a reason to ask
+for the same decision again; record its source without claiming a separate human CLI event.

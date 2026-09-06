@@ -55,14 +55,21 @@ Never report a task complete without running and pasting the output of `--stage 
 One directory per change, `.aidlc/artifacts/<slug>/`:
 
 - `intent.md` — problem, outcome, affected users and systems, constraints, open questions.
-- `spec.md` — numbered `### B<n>` behaviours as Given/When/Then, out of scope, safeguards. **Gate 1.**
+- `spec.md` — numbered `### B<n>` behaviours, consequential design, boundaries and safeguards. **Gate 1.**
 - `plan.md` — approach, `## Files`, order, and a proof row per behaviour. **Gate 2.**
-- `review.md` — written by the `evaluator` agent, findings citing a behaviour id or a review pass.
+- `review.md` — evaluator findings citing behaviours or review passes, evidence and uncertainty.
 
 Approval metadata records a decision; its digest detects edits, not human identity. Editing reports
 `stale-approval` rather than silently still reading as approved. `## Files` in the plan is the
 only declaration of ownership: `scope-drift` and the write guard read it and nothing else. The
 final gate is human PR approval and merge.
+
+Read the relevant system and existing patterns before changing it. Ask only consequential
+unresolved questions; do not invent questions or split a coherent outcome on the word "and".
+Work in small behavioural slices, reproduce defects before fixing them, and verify runtime
+behaviour. Legitimate test maintenance is allowed when it preserves proof of approved behaviour;
+weakening assertions to hide failures is not. Material design or scope changes return to the
+human. Routine choices inside current approved boundaries proceed without another gate.
 
 ## Generator and evaluator
 

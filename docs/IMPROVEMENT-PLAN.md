@@ -114,7 +114,7 @@ after repeatable product evidence shows it necessary.
 | Delivery | Status | Scope |
 |---|---|---|
 | A | Complete for item 1 | Honest execution/reporting, hosted CI and explicit read-only evaluator verified |
-| B | Partially implemented | External simulated decisions and spec-bound plans implemented; guidance simplification pending |
+| B | Verification in progress | External decisions, spec-bound plans and daily guidance simplification implemented |
 | C | Pending | External product acceptance and two unattended campaigns |
 | D | Pending | Comparative model/graph trials and evidence-based pruning |
 
@@ -263,3 +263,21 @@ unfinished item-1 mechanism tests.
 - [SwarmForge](https://github.com/cwijayasundara/swarm-forge)
 - [Devin Fusion](https://cognition.com/blog/devin-fusion)
 - [Claude Code documentation](https://code.claude.com/docs/llms.txt)
+
+### Item 2 implementation, 2026-09-06
+
+The user's instruction to complete item 2, test, merge and push authorizes this delivery.
+The ordinary spec/plan approval records are under `.aidlc/artifacts/simplify-daily-guidance/`.
+Existing skills now encourage relevant system reads, consequential clarification, existing
+patterns, small behavioural slices, reproduction, runtime proof and honest reporting.
+Intent no longer demands an interview or invented questions, or splits an outcome on "and".
+Spec includes consequential design; plan discusses alternatives only when a tradeoff exists.
+Legitimate test maintenance is allowed while preserving regression proof, explicit locks and
+external evaluation ownership. Material design/scope changes still return to a human.
+
+Templates, canonical instructions, the Claude projection, review guidance and test-failure hints
+are consistent with those rules. No skills, roles, hooks or control budgets were added.
+Tests using generated template fixtures were updated to fill the revised prompts; their approval
+state assertions and placeholder refusal checks remain intact. Full stop and commit checks and
+the graph benchmark passed. Live comparison and review evidence will be recorded below before
+merge. Full product campaigns remain item 3.

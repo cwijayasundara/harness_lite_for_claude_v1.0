@@ -19,7 +19,8 @@ Ranked, best first:
 5. A manual sequence you can repeat identically.
 
 A 30-second flaky loop is barely better than no loop. A 2-second deterministic loop is a
-debugging superpower. If you cannot build a loop, say so and ask for help rather than guessing.
+debugging superpower. If you cannot build a loop, record what is missing, gather available evidence and ask only for
+information or access that blocks diagnosis. Do not guess at a fix.
 
 ## Phase 2 — isolate
 
@@ -34,9 +35,11 @@ different one. If you cannot, you have found *a* problem, not *the* problem.
 
 ## Phase 4 — fix
 
-Write the test first, from the loop you already have. Then
-`bash .aidlc/bin/harness lock tests --pattern <the test path>` so the test cannot be
-weakened, and fix the code. `bash .aidlc/bin/harness lock clear` when the fix is green.
+Use the reproduction as a regression check, then fix the cause in a small slice. Exercise the
+affected runtime path and nearby failure cases. Maintain tests when the approved behaviour or
+a test defect requires it, explaining the change without weakening the regression proof.
+Existing test locks and external evaluation fixtures remain protected; the owner decides any
+lock change. Report the observed result and any uncertainty.
 
 For a production incident or control-band breach, first create
 `.aidlc/artifacts/incident/<slug>.md` with `harness new incident <slug>`. Preserve the metric,

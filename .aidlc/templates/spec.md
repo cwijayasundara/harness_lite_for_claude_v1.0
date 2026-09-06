@@ -17,6 +17,10 @@ Given ...
 When ...
 Then ...
 
+## Design
+
+<Consequential architecture, interfaces, state and failure paths. Omit if not needed.>
+
 ## Out of scope
 
 <Explicit boundaries. What a reader might reasonably expect and will not get.>

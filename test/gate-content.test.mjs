@@ -74,7 +74,7 @@ test('approve refuses an unedited plan.md, naming the placeholder it found', () 
     assert.equal(result.status, 1);
     assert.match(result.stderr, /plan\.md/);
     assert.match(result.stderr, /placeholder/);
-    assert.match(result.stderr, /The chosen approach/);
+    assert.match(result.stderr, /The approach and why it fits/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

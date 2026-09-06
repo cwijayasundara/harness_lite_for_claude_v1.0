@@ -23,6 +23,11 @@ Start with every suppression, threshold raise, and `# noqa` the diff introduced 
 the points where a control was overridden, and they carry more signal than the rest of the
 change combined.
 
+Distinguish observed defects from uncertainty. Cite concrete evidence and identify unverified
+behaviour; do not invent findings to fill a pass. Legitimate test maintenance is acceptable
+when it preserves or improves proof of approved behaviour. Flag weakened coverage or changed
+acceptance criteria that hide a defect.
+
 Finish with `approve` or `changes-requested`. A changes-requested review returns to `implement`
 at most twice; after that the human decides, because a third automated repair on the same finding
 is a loop, not a fix.

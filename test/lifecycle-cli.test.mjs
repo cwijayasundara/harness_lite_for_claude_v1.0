@@ -47,9 +47,10 @@ function deScaffold(text) {
   return text
     .replace('<The observable result, in the language of the affected user.>', 'Fixture content — this file exists to test approval state, not this text.')
     .replace('Given ...\nWhen ...\nThen ...', 'Given this fixture exists\nWhen it is approved\nThen the approval succeeds')
+    .replace('<Consequential architecture, interfaces, state and failure paths. Omit if not needed.>', 'No consequential design decisions in this approval-state fixture.')
     .replace('<Explicit boundaries. What a reader might reasonably expect and will not get.>', 'Nothing — this is a fixture.')
     .replace('<Security, privacy, compatibility, performance and operational invariants this must not break.>', 'None — this is a fixture.')
-    .replace('<The chosen approach, why, and at least one meaningful alternative not taken.>', 'Fixture content — no real approach; this file exists to test approval state.')
+    .replace('<The approach and why it fits. Discuss alternatives only when a meaningful tradeoff exists.>', 'Fixture content — no real approach; this file exists to test approval state.')
     .replace(/<Every path this change may touch, in backticks, one per line\. `scope-drift` and the write guard\nread this section and nothing else: a path not named here cannot be written\.>/, 'Fixture content — no real files section needed here.')
     .replace('<Ordered step naming an exact path.>', 'Fixture content — no real steps needed here.')
     .replace('<named test or runtime evidence>', 'manual check: fixture only');

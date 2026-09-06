@@ -6,8 +6,8 @@ description: Turns an accepted intent into numbered observable behaviours a huma
 # Write the spec
 
 `spec.md` is the first human gate. It says what will be observably true, in the language of
-whoever asked. It says nothing about files, modules, or order — that is the plan's job, and
-mixing them is what makes a spec unreviewable by the person who wanted the change.
+whoever asked. Include consequential design decisions, system boundaries and safeguards so
+the human can approve their implications. The plan owns exact files, work order and proof.
 
 ## Behaviours
 
@@ -22,8 +22,8 @@ When the reminder job runs,
 Then no second reminder is sent, and the run records why it was skipped.
 ```
 
-A behaviour a test cannot observe from outside is not a behaviour, it is a design note. Move it
-or drop it. Number them permanently: the plan's proof table and every review finding cite these
+Keep observable behaviours separate from design notes; put consequential design in a concise
+Design section. Number them permanently: the plan's proof table and every review finding cite these
 ids, so renumbering breaks the chain.
 
 ## The rest
@@ -32,6 +32,8 @@ ids, so renumbering breaks the chain.
   more rework than any other, because it is where the disagreement surfaces while it is cheap.
 - **Safeguards.** Security, privacy, compatibility, performance and operational invariants the
   change must not break. Name the ones this change could plausibly break, not a checklist.
+- **Design.** Relevant architecture, interfaces, state and failure paths; follow existing patterns
+  and explain meaningful departures. Include only decisions that matter to this change.
 - **Entities.** Only if the domain has words the reader would otherwise guess at.
 - **Supersedes.** If a behaviour here reverses one an earlier approved spec claims, say so instead
   of writing around it: `supersedes: <slug>#<behaviour-id>` in this file's frontmatter,
@@ -43,10 +45,8 @@ ids, so renumbering breaks the chain.
   behaviour of it, or `extends: <slug>` when all its promises still hold. Approval refuses a
   spec that says neither.
 
-Structured prompt-driven development calls these Requirements, Entities, Approach, Structure,
-Operations, Norms and Safeguards. Four of those live here; Approach, Structure and Operations are
-the plan. Use them as a checklist for what to think about, never as required headings — required
-sections are how one file grew to nine of them and 134 lines for a twenty-line change.
+Scale detail to risk. Use only sections that help the reader decide; do not invent content to
+fill a checklist. Routine implementation choices belong inside the approved design boundary.
 
 ## Before you ask for approval
 

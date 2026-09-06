@@ -5,7 +5,7 @@ status: draft
 
 ## Approach
 
-<The chosen approach, why, and at least one meaningful alternative not taken.>
+<The approach and why it fits. Discuss alternatives only when a meaningful tradeoff exists.>
 
 ## Files
 

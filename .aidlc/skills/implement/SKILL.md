@@ -1,62 +1,47 @@
 ---
 name: implement
-description: Executes an approved plan one behaviour at a time under a red-green loop. Use whenever code is about to be written for .aidlc/artifacts/<slug>/plan.md or someone asks to build an approved change.
+description: Executes an approved plan in small behavioural slices with focused regression proof and runtime verification. Use whenever code is about to be written for .aidlc/artifacts/<slug>/plan.md or someone asks to build an approved change.
 context: fork
 model: claude-sonnet-5
 ---
 
 # Implement the approved plan
 
-## The loop
+Read the current spec, plan, relevant code and tests. Understand callers, state and failure
+paths; follow existing patterns where they fit. Confirm approvals are current and committed.
+Make routine implementation choices inside the approved design and owned files without
+reopening a gate.
 
-For each behaviour in `spec.md`, in the order `plan.md` gives:
+## Work in small behavioural slices
 
-1. **Red.** Write the test named in `## Proof`. Run it. Watch it fail for the right reason.
-   A test that passes before the change proves nothing.
-2. **Green.** Write the smallest code that makes it pass.
-3. **Check.** `bash .aidlc/bin/harness check --stage fast --changed`. Fix what it says.
-4. **Refactor.** Only with the test green, and only behaviour-preserving changes.
+For each behaviour, choose the smallest useful proof from the plan:
 
-Vertical slices, one behaviour at a time:
+1. Reproduce a defect or demonstrate the new behaviour is missing before fixing it. Check that
+   a failing test fails for the intended reason. Reuse existing tests when they already prove
+   preserved behaviour; a documentation edit or pure refactor needs no invented red test.
+2. Implement the slice using existing abstractions, with the least complexity that meets the spec.
+3. Run the focused proof and `harness check --stage fast --changed`; resolve failures.
+4. Refactor with checks green. Exercise the affected runtime path, including relevant edge cases
+   and integration boundaries. Report anything the environment prevents you from verifying.
 
-```
-WRONG                              RIGHT
-test A, test B, test C             test A -> code A -> refactor
-code A,  code B,  code C           test B -> code B -> refactor
-                                   test C -> code C -> refactor
-```
+## Test maintenance and boundaries
 
-Horizontal slicing produces crap tests. Written in bulk they assert imagined behaviour, they pass
-on the first run only because they assert nothing interesting, and by the time the implementation
-lands nobody re-reads them.
+Tests may change for an approved requirement, corrected test defect, renamed interface, moved
+fixture or improved assertion. Explain why the edit still proves the intended behaviour and
+retain relevant regression coverage. Do not delete assertions, relax thresholds or rewrite
+expected results merely to hide a failure. If the expected behaviour is uncertain, ask the human.
+Respect explicit test locks and externally owned evaluation fixtures.
 
-The red step carries the value. A test you never watched fail is a test you have not verified,
-and a test failing on an import error is not a red step — check it failed for the reason you
-expected.
+Never write outside `## Files` in the current approved plan. A new path requires an amended,
+re-approved and committed plan. Material design, behaviour, safeguard or scope changes return
+to the human; routine choices within that boundary proceed. An approval becomes stale after
+an artifact edit; preserve the ordinary gate rather than silently widening its authority.
 
-## Before you say "done"
+## Before reporting completion
 
-```
-bash .aidlc/bin/harness check --stage stop
-```
+Run `harness check --stage stop` and paste its output. Run the plan's runtime proof and required
+commit checks. Report what changed, evidence, remaining defects and uncertainty. A failed
+required check prevents verified completion; it does not prevent diagnosis.
 
-Paste the output. If it is not green, you are not done. Do not report completion on a promise.
-
-## The two rules that are not negotiable
-
-- **Never edit a test to make it pass.** If a test is genuinely wrong, stop and say so — that is
-  a spec question, not an implementation one.
-- **Never touch a file outside `## Files` in `plan.md`.** If you need another path, stop, add it
-  to the plan, and have the plan approved and committed again.
-
-## When the change is delivered
-
-Set `status: closed` in its `intent.md`, in the same commit as the last proof. An open change with
-an approved spec is the *current* change — the only one whose plan can permit a product write —
-until it is closed or a newer spec is approved. Leaving it open makes the next change's writes
-refused under this one's name.
-
-## When the plan turns out to be wrong
-
-Say so, immediately, and stop. Amend the spec or the plan, get it approved again, then continue.
-A silently abandoned plan is the failure mode that makes agent output unreviewable.
+When delivery is verified, close the intent with `status: closed` in the final evidence commit.
+Do not claim deployment or merge from local tests alone.

@@ -9,9 +9,9 @@ description: Turns an approved spec into the files that will change, the order o
 
 ## Approach
 
-The chosen approach in a paragraph, and at least one real alternative you rejected with the
-reason. A plan with no rejected alternative was not a decision, and the reviewer cannot tell
-whether you considered the thing they are worried about.
+Describe the approach and why it fits the approved design, repository patterns and affected
+system. Explain a meaningful alternative when a real tradeoff exists; do not invent one for
+a routine change. Identify consequential unknowns before implementation.
 
 ## Files
 
@@ -40,6 +40,9 @@ One row per behaviour in the spec, naming the test that will prove it:
 |---|---|
 | B1 | `tests/test_schedule.py::test_skips_recent_reminder` |
 
+Use existing regression checks for preserved behaviour and name runtime proof for changed
+paths, including relevant edge cases. Keep steps small enough to verify as you go.
+
 Every `B<n>` in the spec appears exactly once. A behaviour with no proof is a behaviour nobody
 will notice breaking, and "manual check" is only honest when the thing genuinely cannot be
 automated — write what you will actually do.
@@ -52,4 +55,5 @@ automated — write what you will actually do.
 
 Theirs to run, after the spec is approved and committed. Editing the plan after approval reports
 `stale-approval` and stops it governing anything, which is deliberate: a plan that could widen
-its own scope after signing is not a gate.
+its own scope after signing is not a gate. Routine choices inside the approved approach and
+owned files do not require another approval; material design or scope changes do.

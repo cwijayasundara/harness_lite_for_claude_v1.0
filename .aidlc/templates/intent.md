@@ -21,4 +21,4 @@ status: draft
 
 ## Open questions
 
-<Each one blocks the spec. Name who answers it.>
+<Only consequential unresolved questions. Write None when no questions block progress.>
