@@ -93,6 +93,42 @@ frontmatter does not link it, is refused at approval with the line to add. The a
 made the judgment by writing the id; the gate only insists it be recorded where the harness can
 read it. `a-named-behaviour-is-a-link`, the next change.
 
+## Run 3 — 2026-09-06, commit `c41ca8b`, results `2026-09-06T07-01-07-522Z.json`
+
+After `a-named-behaviour-is-a-link`. **Fail at sprint 3 of 5**, two assertions. $0.52, 5 minutes
+44 seconds.
+
+| sprint | verdict | notes |
+|---|---|---|
+| 1 adopt | **pass**, 8 of 8 | |
+| 2 extend | **pass**, 5 of 5 | |
+| 3 contradict | fail, 5 of 7 | no new change; sprint 2's approved spec edited in place; see F32 |
+| 4, 5 | not reached | |
+
+## F32 — editing an approved spec hands governance to an older plan
+
+**Component: `currentChange()` / `draftsAwaitingGate()` in `.aidlc/lib/artifacts.mjs`. Breaks
+B4. F10, fifth instance; F9, third.**
+
+This time the agent created no change. It appended a "Breaking Changes" section with two new
+behaviours to `record-payment/spec.md` — sprint 2's spec, approved and committed — and then
+edited `src/ledger.mjs` and `tests/ledger.test.mjs`. Its summary: "Rather than rewrite the
+approved spec, I've updated record-payment/spec.md … Explicitly calls out what contradicts the
+Sprint 1 spec." No id was named, so `a-named-behaviour-is-a-link` had nothing to match; no new
+spec was drafted, so `a-draft-is-a-declaration` saw nothing waiting.
+
+The write went through because editing an approved spec makes its approval `stale-approval`,
+and a stale spec is not `approved`, so it is not current — and the next most recent approved
+spec is sprint 1's, whose plan owns both files. `stale-approval` was built as a *report*
+("re-approve it or restore the approved text"); as a state it silently steps aside. The rule
+that a filled-in draft awaits gate 1 applies with more force here: an approved spec that has
+been edited is a declaration that the promise changed, and until a human (or the unattended
+runner) re-approves it, nothing may change under any plan. `an-edited-approval-awaits-its-gate`,
+the next change.
+
+What this run did not test: the two gates landed since run 2. No spec was drafted and no id was
+named, so neither fired. They stand.
+
 ## Still to do in this change
 
 - Re-run once `a-draft-is-a-declaration` lands; B4, B5, B6 need that run.
