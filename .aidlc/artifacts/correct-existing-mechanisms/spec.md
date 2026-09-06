@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 supersedes: close-the-harness#B2
+by: cwijayasundara (conversation approval, recorded by Codex)
+at: 2026-09-06T16:44:36.021Z
+digest: sha256:9f13ddb196e806b3ab156984b561338e2fabc1244febc2f9040a651d53aa91b4
 ---
 # Spec: correct-existing-mechanisms
 
