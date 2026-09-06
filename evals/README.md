@@ -5,11 +5,15 @@ defect the floor missed. `successor-contract-links-first` proves that a successo
 to the shipped design instead of opening an unconnected artifact chain. Contract tasks also cover
 owned scope, testability, evidence, and refusal of work outside the approved boundary.
 
+One task is a campaign: `campaign-ledger`, five sprints against one brownfield fixture, run
+unattended. It is the harness's integration test — see `docs/OPERATING.md`, "Campaigns".
+
 ## Running
 
 ```
 node evals/run.mjs                 # all tasks
 node evals/run.mjs --id surgical-fix
+node evals/run.mjs --id campaign-ledger --require-auth   # the integration test
 node evals/run.mjs --dry           # validate tasks.json without spending anything
 ```
 

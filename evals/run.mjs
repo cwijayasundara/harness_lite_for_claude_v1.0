@@ -162,6 +162,11 @@ function invokerFatal(out) {
 // seconds producing zero tokens and was recorded `fail` on assertions it never reached, which
 // accuses the agent of missing work it was never given the chance to do. A timeout *after* output
 // is still graded: partial work is work, and the transcript is there to read.
+// Per-step and per-run caps on what a failing run's results file keeps. Five steps at the
+// per-step cap fit inside the run cap, so no step's ending is lost to another's length.
+export const STEP_TRANSCRIPT_CAP = 4000;
+export const TRANSCRIPT_CAP = 20000;
+
 const ungradable = (out) =>
   out.timedOut && !(out.usage?.output_tokens > 0)
     ? { reason: 'timed_out', detail: 'the timeout fired before the model produced any output' }
@@ -205,7 +210,10 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
     // A step that ran out of budget stops the task, and the task is ungraded rather than failed.
     const stalled = out.incomplete ?? ungradable(out);
     if (stalled) { incomplete = { ...stalled, step: idx }; break; }
-    transcript = [transcript, out.transcript ?? ''].filter(Boolean).join('\n');
+    // one-integration-test, from F29: the stored transcript kept the first 20,000 characters of
+    // the whole campaign, which is the sprint that passed. Each step keeps its own tail, so the
+    // step that failed is the one a reader can see the end of.
+    transcript = [transcript, `--- step ${idx + 1} ---\n${String(out.transcript ?? '').slice(-STEP_TRANSCRIPT_CAP)}`].filter(Boolean).join('\n');
     const ctx = { work: s.work, pristine: s.pristine, previous, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
     const stepAsserts = evaluate(ctx, step.assert ?? []);
     assertions.push(...stepAsserts);
@@ -235,7 +243,8 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
           usage: out.usage ?? {}, timedOut: !!out.timedOut,
           // Without the transcript, a failure can only be triaged by paying for the task again.
           // Kept for failures only, and capped, so the results file stays readable.
-          transcript: pass ? undefined : String(out.transcript ?? '').slice(0, 20000),
+          // The tail, not the head: the end of a run is where it says why it stopped (F29).
+          transcript: pass ? undefined : String(out.transcript ?? '').slice(-TRANSCRIPT_CAP),
           changed: changedFilesIn(s.work, s.pristine),
           // B7: read before the working copy is cleaned up below.
           unattended: unattendedApprovals(s.work),

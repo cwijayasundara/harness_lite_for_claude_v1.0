@@ -6,11 +6,16 @@ import { spawnSync } from 'node:child_process';
 // the suite measures is whether the *harness* steers a model to the right answer; running a
 // frontier model here would flatter the guides and price the suite out of running on every
 // steering change, which is the one trigger Law 9 actually requires.
-export function claudeInvoker({ pluginDir, model = null }) {
-  return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task }) {
-    const args = [
+// The argument list, as a pure function, so the unit suite can read it without spawning.
+export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null }) {
+  return [
       '-p', prompt,
       ...(model ? ['--model', model] : []),
+      // one-integration-test, from a-diff-belongs-to-one-change F28: the child inherited the
+      // developer's user-level plugins, and a `brainstorming` skill's approval gate stopped a
+      // sprint with a design and no code. What the suite measures must not depend on whose laptop
+      // runs it: the fixture's own `.claude/` and the harness plugin, and nothing from `~`.
+      '--setting-sources', 'project,local',
       // Evals run against a disposable copy in mkdtemp, so permission prompts measure the CLI
       // rather than the guides. MEASURED: under `acceptEdits` the model's own skills told it to
       // run `.aidlc/bin/harness` and to write `.aidlc/artifacts/...`, and both were denied —
@@ -23,7 +28,12 @@ export function claudeInvoker({ pluginDir, model = null }) {
       '--output-format', 'json',
       ...(pluginDir ? ['--plugin-dir', pluginDir] : []),
       ...(budgetUsd ? ['--max-budget-usd', String(budgetUsd)] : []),
-    ];
+  ];
+}
+
+export function claudeInvoker({ pluginDir, model = null }) {
+  return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task }) {
+    const args = invokerArgs({ prompt, model, pluginDir, budgetUsd });
     // campaigns-run-unattended B3, B4. The signal a staged working copy can never produce: set
     // here, by the runner, on the `claude` process's own env — never read from `harness.toml` or
     // any path under `cwd`. See `.aidlc/lib/artifacts.mjs` `approve()`.

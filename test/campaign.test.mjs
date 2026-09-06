@@ -2,7 +2,7 @@
 // file is green, a multi-sprint eval that names these checks is grading something real.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, cpSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, cpSync, readFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -27,15 +27,39 @@ function dir() {
 // it. This is the reproduction the review used: the real repo's harness binary (not the shim
 // written into the staged copy, which is a shell script) against a freshly staged, untouched
 // fixture — sprint 0, before any model runs.
-for (const fixture of ['campaign-ledger', 'campaign-legacy']) {
-  test(`${fixture} passes harness check --stage stop as staged, before any sprint runs`, () => {
-    const s = stage(FIXTURES, fixture);
-    try {
-      const r = spawnSync('node', [HARNESS, 'check', '--stage', 'stop'], { cwd: s.work, encoding: 'utf8' });
-      assert.equal(r.status, 0, r.stdout + r.stderr);
-    } finally { s.cleanup(); }
-  });
-}
+test('campaign-ledger passes harness check --stage stop as staged, before any sprint runs', () => {
+  const s = stage(FIXTURES, 'campaign-ledger');
+  try {
+    const r = spawnSync('node', [HARNESS, 'check', '--stage', 'stop'], { cwd: s.work, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stdout + r.stderr);
+  } finally { s.cleanup(); }
+});
+
+// one-integration-test B1 and B8. One fixture, brownfield: working code, one smoke test, a file
+// with a deliberate defect no sprint asks about, notes, and no artifact chain. And one campaign:
+// `campaign-legacy` is gone, and nothing else has steps.
+test('the one fixture is brownfield and artifact-free, and it is the only campaign', () => {
+  const s = stage(FIXTURES, 'campaign-ledger');
+  try {
+    for (const f of ['NOTES.md', 'src/ledger.mjs', 'src/fees.mjs', 'tests/smoke.test.mjs', '.aidlc/harness.toml']) {
+      assert.ok(existsSync(path.join(s.work, f)), `${f} missing from the staged fixture`);
+    }
+    // `harness init` creates the empty directory when staging; what must be absent is a change.
+    const artifacts = path.join(s.work, '.aidlc/artifacts');
+    const changes = existsSync(artifacts) ? readdirSync(artifacts).filter((d) => existsSync(path.join(artifacts, d, 'intent.md'))) : [];
+    assert.deepEqual(changes, [], 'a brownfield fixture has no change yet');
+    const ledger = readFileSync(path.join(s.work, 'src/ledger.mjs'), 'utf8');
+    for (const fn of ['addCustomer', 'addInvoice', 'listInvoices']) assert.match(ledger, new RegExp(`export function ${fn}`));
+    for (const fn of ['outstandingBalance', 'isOverdue']) assert.doesNotMatch(ledger, new RegExp(fn), `${fn} is sprint 1's job`);
+  } finally { s.cleanup(); }
+  assert.ok(!existsSync(path.join(FIXTURES, 'campaign-legacy')));
+  const tasks = JSON.parse(readFileSync(path.join(ROOT, 'evals', 'tasks.json'), 'utf8')).tasks;
+  const campaigns = tasks.filter((t) => t.steps);
+  assert.deepEqual(campaigns.map((t) => t.id), ['campaign-ledger']);
+  const [c] = campaigns;
+  assert.equal(c.steps.length, 5, 'B7: five sprints');
+  assert.ok(c.budgetUsd <= 1 && c.timeoutMs <= 360000, 'B7: a dollar and six minutes per sprint');
+});
 
 // B2. A later sprint's requirement must not be reachable before its own step runs. Asserted
 // structurally: the text must not appear anywhere in the working copy.
@@ -448,7 +472,7 @@ test('diffOwnedByCurrentChange passes a file the current plan names and fails on
     cpSync(d.root, before, { recursive: true });
 
     // Sprint 2's change owns src/ledger.mjs; sprint 3's is newer, approved, and owns only src/rules.mjs.
-    const seal = (slug, body, at) => {
+    const seal = (body, at) => {
       const draft = render({ status: 'draft' }, body);
       return render({ status: 'approved', by: 'unattended-eval-run', at, digest: bodyDigest(draft) }, body);
     };
@@ -456,8 +480,8 @@ test('diffOwnedByCurrentChange passes a file the current plan names and fails on
       const a = path.join(d.root, '.aidlc/artifacts', slug);
       mkdirSync(a, { recursive: true });
       writeFileSync(path.join(a, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
-      writeFileSync(path.join(a, 'spec.md'), seal(slug, `# Spec: ${slug}\n\n### B1\n\nGiven, when, then.\n`, at));
-      writeFileSync(path.join(a, 'plan.md'), seal(slug, `# Plan: ${slug}\n\n## Files\n\n- \`${owns}\`\n`, at));
+      writeFileSync(path.join(a, 'spec.md'), seal(`# Spec: ${slug}\n\n### B1\n\nGiven, when, then.\n`, at));
+      writeFileSync(path.join(a, 'plan.md'), seal(`# Plan: ${slug}\n\n## Files\n\n- \`${owns}\`\n`, at));
     }
     spawnSync('git', ['add', '-A'], { cwd: d.root });
     spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'artifacts'], { cwd: d.root });

@@ -76,18 +76,26 @@ first, and it is the mechanism v6 never had — which is why v6 could only grow.
 The 22-task suite grades one prompt against one fixture. A campaign grades the harness across a
 product's whole arc: `evals/tasks.json` tasks with a `steps` array run several sprints against
 the *same* staged working copy, in order, so later sprints inherit what earlier ones built —
-including their mistakes. Two ship with the harness:
+including their mistakes. One ships with the harness, and it is the integration test:
 
-- `campaign-ledger` — greenfield. Three sprints build an invoicing ledger from nothing, and the
-  third contradicts the first on purpose, to see whether the contradiction gets surfaced or
-  silently absorbed.
-- `campaign-legacy` — brownfield. Two sprints add features to an untested, artifact-free
-  codebase with one known defect that neither sprint asks about, to see whether the harness makes
-  the first product write possible and whether the agent tidies on the way past.
+`campaign-ledger` — five sprints against one brownfield working copy: an invoicing ledger that
+already has customers, invoices, a late-fee module with a defect no sprint mentions, one smoke
+test and no artifact chain.
 
-Run them with `node evals/run.mjs --id campaign-ledger` or `--id campaign-legacy`. Each is one
-multi-turn build, not one prompt — a single run costs several dollars and several minutes, which
-is why they are not in `--stage commit` and CI does not run them on every push. Run a campaign
+1. **Adopt.** Characterise what exists, then add two behaviours. The first product write needs
+   an approved plan, and the fee module must survive untouched.
+2. **Extend.** Partial payments. Sprint 1's tests are edited, not replaced.
+3. **Contradict.** A paid invoice is never overdue, which reverses a behaviour sprint 1 approved:
+   the new spec records `supersedes:`, and every product file changed belongs to the current
+   change's plan — not to an earlier sprint's.
+4. **Refactor.** Storage moves to its own module with no behaviour change. What the agent does
+   to the contract is recorded, not prescribed.
+5. **Describe.** `docs/PRODUCT.md` states what the ledger does today, graded against the folded
+   `supersedes:` chain.
+
+Run it with `node evals/run.mjs --id campaign-ledger --require-auth`. It is one multi-turn build,
+not one prompt — bounded at a dollar and six minutes per sprint — which is why it is not in
+`--stage commit` and CI does not run it on every push. Run a campaign
 before a release, or whenever a change touches how the harness carries context or approvals
 across a plan boundary — the two things a single-prompt task cannot exercise at all.
 

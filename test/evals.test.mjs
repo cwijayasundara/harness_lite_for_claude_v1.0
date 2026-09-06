@@ -297,3 +297,41 @@ test('a key in .env is found, and an explicit one still wins', async () => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+// one-integration-test, step 0a — a-diff-belongs-to-one-change F28. The eval agent inherited the
+// developer's user-level plugins and a `brainstorming` skill's approval gate stopped a sprint
+// with a design and no code. The child must see the fixture's settings and the harness plugin
+// only: what the suite measures cannot depend on whose laptop runs it.
+test('the invoker isolates the child from user-level settings', async () => {
+  const { invokerArgs } = await import('../evals/lib/invoker.mjs');
+  const args = invokerArgs({ prompt: 'x', pluginDir: '/plugin', budgetUsd: 1 });
+  const at = args.indexOf('--setting-sources');
+  assert.notEqual(at, -1, 'no --setting-sources');
+  const sources = args[at + 1].split(',');
+  assert.ok(!sources.includes('user'), `user settings leak in: ${args[at + 1]}`);
+  assert.ok(sources.includes('project'), 'the fixture\'s own .claude/ must still load');
+  assert.ok(args.includes('--plugin-dir') && args.includes('/plugin'), 'the harness plugin still loads');
+});
+
+// step 0b — F29. The stored transcript kept the first 20,000 characters of a campaign, which was
+// the sprint that passed; the failing sprint's ending was cut off. Each step keeps its own tail.
+test('a failing campaign stores the end of the step that failed', async () => {
+  const { STEP_TRANSCRIPT_CAP } = await import('../evals/run.mjs');
+  const filler = (marker) => 'x'.repeat(STEP_TRANSCRIPT_CAP * 3) + `\n${marker}`;
+  const out = await runSuite({
+    tasks: [{
+      id: 'long', fixture: 'clean-app', timeoutMs: 1000, budgetUsd: 1, repeats: 1,
+      steps: [
+        { prompt: 'one', assert: [{ workdir_unchanged: true }] },
+        { prompt: 'two', assert: [{ transcript_matches: 'never-said' }] },
+      ],
+    }],
+    invoke: async ({ step }) => ({ transcript: filler(step === 0 ? 'END-OF-STEP-ONE' : 'END-OF-STEP-TWO'), usage: { usd: 0.01, output_tokens: 10 } }),
+    fixturesDir: FIXTURES, harnessBin: HARNESS,
+  });
+  const stored = out.results[0].runs[0].transcript;
+  assert.equal(out.results[0].verdict, 'fail');
+  assert.match(stored, /END-OF-STEP-ONE/, 'the passing step\'s ending survives');
+  assert.match(stored, /END-OF-STEP-TWO/, 'the failing step\'s ending survives');
+  assert.match(stored, /--- step 2 ---/);
+});
