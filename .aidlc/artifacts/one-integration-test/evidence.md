@@ -213,6 +213,61 @@ with no spec, awaiting its gate — once per session, with the reason — so the
 to ask is sent back to the work with the answer it needs: nobody is coming. Claude Code's Stop
 hook can return `decision: block` for exactly this.
 
+## Run 6 — 2026-09-06, commit `e8347dc`, results `2026-09-06T08-27-40-601Z.json`
+
+After `an-unattended-turn-does-not-end-on-a-question`. **Fail at sprint 3 of 5, one assertion.**
+$1.20, 9 minutes 47 seconds.
+
+| sprint | verdict | notes |
+|---|---|---|
+| 1 adopt | **pass**, 8 of 8 | |
+| 2 extend | **pass**, 5 of 5 | |
+| 3 contradict | fail, 6 of 7 | amended sprint 2's approved spec and plan, re-approved both; no `supersedes:` — F35 |
+| 4, 5 | not reached | |
+
+## F35 — an approved spec is amended, and its old `extends:` answers the new question
+
+**Component: gate 1, on re-approval of an edited approved spec. Breaks B4. F9, fifth instance.**
+
+The route this time: the agent edited `record-payment/spec.md` (sprint 2's, approved) to add
+B7 "isOverdue returns false for fully paid invoices", edited its plan to add a step, was refused
+its first product write — `an-edited-approval-awaits-its-gate` working — and then re-approved
+both. The relation gate asked nothing: `record-payment` already carried
+`extends: add-balance-functions` from sprint 2, which was true when sprint 2 wrote it and is
+false after B7. The agent's own words: "an intentional business logic refinement."
+
+Each gate so far closes a route and the next run finds the one beside it. This one is the
+amendment route: adding behaviours to an approved spec keeps its declarations and gets them
+re-approved as if nothing changed. The mechanical answer, for the next intent and not for this
+run: an approved spec's behaviour set is frozen — re-approval is refused when `### B<n>` headings
+were added since the committed approved text, with the message that new behaviours belong in a
+new change, which must declare its relation. Prose fixes stay allowed; the record of what was
+promised stays what it was. Recorded as `an-approved-spec-does-not-grow`, intent only, so that
+this change can close and the owner can decide whether to run again.
+
+## Closing, 2026-09-06
+
+Six runs, $5.24, every one under twelve minutes. The campaign has never been fully green. What
+it has done is find seven harness defects (F28–F35) in a day, each fixed by one small rule with
+a test, and prove that the fixes hold: sprints 1, 2 and 4 pass on every run that reaches them,
+sprint 3 governs itself on every route it has tried since F32, and on run 5 it recorded the link.
+
+| behaviour | state |
+|---|---|
+| B1 one brownfield fixture | proven, `test/campaign.test.mjs` |
+| B2 sprint 1 adopts | proven, six runs |
+| B3 sprint 2 extends | proven, six runs |
+| B4 sprint 3 contradicts and records it | proven once (run 5); fails by a new route on runs 1–4 and 6 |
+| B5 sprint 4 is a pure refactor | proven once (run 5); the contract answer to A3 is "a new change that extends" |
+| B6 sprint 5 states the product | not proven; reached once, refused correctly, ended on a question (F34, fixed since, unproven) |
+| B7 bounded | proven, `--dry` and `test/campaign.test.mjs` |
+| B8 the others are gone | `campaign-legacy` gone, proven; `../dunning` pending the owner's yes |
+| B9 findings to evidence | this file |
+
+Closed with B4, B5 proven once and B6 unproven, on the owner's instruction that the fix-and-run
+loop ends here. The next run is one command, and `an-approved-spec-does-not-grow` is the intent
+that names what it would find.
+
 ## Still to do in this change
 
 - Re-run once `a-draft-is-a-declaration` lands; B4, B5, B6 need that run.
