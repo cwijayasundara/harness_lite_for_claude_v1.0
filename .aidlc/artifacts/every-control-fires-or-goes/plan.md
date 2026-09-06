@@ -1,8 +1,8 @@
 ---
 status: approved
 by: cwijayasundara
-at: 2026-09-06T05:28:00.403Z
-digest: sha256:0c8f1d130497fae7601252f0148bd75259b4cd79368abec8ceef6f62fc9b1c10
+at: 2026-09-06T06:08:06.143Z
+digest: sha256:695406b016d2aa8a4a137c9fec3658549e4f51464efc28bb5ea5b3a2769d13b4
 ---
 # Plan: every-control-fires-or-goes
 
