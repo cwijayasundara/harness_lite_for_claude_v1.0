@@ -1,5 +1,8 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-06T06:52:57.120Z
+digest: sha256:e907f86da0f0d86843836508d8558e5c673b72e0f0c6cff3bb617ffc70045021
 ---
 # Spec: a-named-behaviour-is-a-link
 
