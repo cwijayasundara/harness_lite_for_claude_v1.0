@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: every-control-fires-or-goes
 

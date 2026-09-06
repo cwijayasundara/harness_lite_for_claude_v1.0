@@ -9,6 +9,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { BIN, ROOT } from './_paths.mjs';
 import { stage } from '../evals/lib/stage.mjs';
+import { run as scopeDrift } from '../.aidlc/checks/scope-drift.mjs';
 
 const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
 
@@ -35,6 +36,17 @@ test('map-drift passes after a fresh map, fails after a structural edit, and the
     // stale map never outlives the session that made it stale.
     assert.match(readFileSync(path.join(s.work, 'CODEBASE-MAP.md'), 'utf8'), /brandNew|util\.js/);
     assert.equal(stop(s.work).verdict, 'pass');
+  } finally { s.cleanup(); }
+});
+
+// The Stop hook regenerating the map means the map changes in a working copy no plan claims.
+// It is harness output, like `.aidlc/state/`, and scope-drift must not report it.
+test('a regenerated CODEBASE-MAP.md is not scope drift', async () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    writeFileSync(path.join(s.work, 'CODEBASE-MAP.md'), '# Codebase map\n');
+    const r = await scopeDrift({ layout: { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts') } });
+    assert.equal(r.verdict, 'pass', JSON.stringify(r.findings));
   } finally { s.cleanup(); }
 });
 
