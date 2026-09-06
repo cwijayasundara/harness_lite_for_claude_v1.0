@@ -1,5 +1,9 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara (conversation approval, recorded by Codex)
+at: 2026-09-06T16:44:36.132Z
+digest: sha256:11f48e1ea65ec7844be4c5f48ddf75600a360eb1ded6e1785cc9ce9000447217
+spec_digest: sha256:9f13ddb196e806b3ab156984b561338e2fabc1244febc2f9040a651d53aa91b4
 ---
 # Plan: correct-existing-mechanisms
 
