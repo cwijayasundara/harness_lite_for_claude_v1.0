@@ -17,3 +17,6 @@ node_modules/
 .env.*
 !.env.example
 .claude/worktrees/
+
+# Private product-trial snapshots and complete transcripts remain local evidence.
+.aidlc/evals/products/

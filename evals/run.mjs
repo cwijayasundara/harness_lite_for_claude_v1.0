@@ -9,9 +9,10 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, rmSync } fr
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { evaluate, KNOWN, toRegExp } from './lib/assertions.mjs';
+import { evaluate, KNOWN, toRegExp, verifyLedger, verifyService } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
-import { stage } from './lib/stage.mjs';
+import { stage, isolateStage } from './lib/stage.mjs';
+import { runProductCampaign } from './lib/campaign.mjs';
 import { parse } from '../.aidlc/lib/artifacts.mjs';
 import { approvalDriver } from './lib/approvals.mjs';
 import { loadConfig } from '../.aidlc/lib/config.mjs';
@@ -80,6 +81,7 @@ function regexesIn(name, arg) {
 }
 
 export function promptCount(t) {
+  if (t.product) return t.steps.reduce((n,s)=>n+2+Number(!!s.reject)+Number(!!s.stale)+2*Number(!!s.reviewSeed)+2,0);
   if (t.steps?.length) return t.steps.filter((s) => s.prompt).length;
   return t.prompt ? 1 : 0;
 }
@@ -133,7 +135,14 @@ export function validate(tasks, fixturesDir) {
     if (!t.id) problems.push('a task has no id');
     if (ids.has(t.id)) problems.push(`${at}: duplicate id`);
     ids.add(t.id);
-    if (t.steps) {
+    if (t.product) {
+      if (!['ledger','service'].includes(t.product)) problems.push(`${at}: unknown product`);
+      if (!t.steps?.length) problems.push(`${at}: product steps are empty`);
+      for (const step of t.steps ?? []) {
+        if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(step.slug ?? '') || !step.request || !step.behaviours?.length || !step.files?.length || !(step.level > 0)) problems.push(`${at}: invalid product step`);
+        if ((step.files ?? []).some(f => typeof f !== 'string' || path.isAbsolute(f) || f.split('/').includes('..'))) problems.push(`${at}: unsafe product file scope`);
+      }
+    } else if (t.steps) {
       if (!t.steps.length) problems.push(`${at}: steps is empty`);
       t.steps.forEach((s, i) => {
         if (!s.prompt && !s.gate) problems.push(`${at} step ${i}: must contain a prompt or gate decision`);
@@ -146,7 +155,7 @@ export function validate(tasks, fixturesDir) {
     if (!(t.timeoutMs > 0)) problems.push(`${at}: no timeout`);
     if (!existsSync(path.join(fixturesDir, t.fixture ?? ''))) problems.push(`${at}: no fixture "${t.fixture}"`);
     const asserts = assertsOf(t);
-    if (!asserts.length) problems.push(`${at}: no assertions`);
+    if (!t.product && !asserts.length) problems.push(`${at}: no assertions`);
     visitAsserts(at, asserts, problems);
   }
   return problems;
@@ -240,7 +249,7 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
   return { assertions, usage, timedOut, transcript, incomplete, approvals: approvals.events() };
 }
 
-export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {}, maxSuiteUsd = Infinity }) {
+export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {}, maxSuiteUsd = Infinity, evidenceRoot = path.join(PLUGIN_ROOT, '.aidlc/evals/products'), evaluatorModel = null }) {
   if (!(maxSuiteUsd > 0)) throw new Error('max-suite-usd must be positive');
   let remaining = maxSuiteUsd;
   const boundedInvoke = async args => {
@@ -256,13 +265,29 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
   for (const t of tasks) {
     const runs = [];
     for (let i = 0; i < (t.repeats ?? 1); i++) {
-      const s = stage(fixturesDir, t.fixture);
+      const s = stage(fixturesDir, t.fixture, {product:!!t.product});
+      const trialDir = t.product ? path.join(evidenceRoot, `${new Date().toISOString().replace(/[:.]/g,'-')}-${t.id}-${i+1}`) : null;
+      if(t.product) isolateStage(s,PLUGIN_ROOT);
       try {
-        const out = await runAttempt(t, boundedInvoke, s, harnessBin, baseline);
+        const out = t.product ? await runProductCampaign({task:t,invoke:boundedInvoke,sandbox:s,harnessBin,evaluatorModel,evidenceDir:trialDir,log,
+          evaluateProduct:async (sandbox,step)=> {
+            const checked=t.product==='ledger'?verifyLedger(sandbox,step.level):verifyService(sandbox,step.level);
+            if(t.product==='ledger' && step.level===4) {
+              if(!existsSync(path.join(sandbox.work,'src/store.mjs')))throw new Error('storage extraction is missing');
+            }
+            if(t.product==='ledger' && step.level===5) {
+              const doc=readFileSync(path.join(sandbox.work,'docs/PRODUCT.md'),'utf8');
+              if(!/partial|payment/i.test(doc)||!/paid[^\n]*(not|never)[^\n]*overdue|not overdue[^\n]*paid/i.test(doc))throw new Error('current product description misses payment or paid-invoice behaviour');
+              if(/overdue[^\n]*regardless of[^\n]*pa(id|yment)/i.test(doc))throw new Error('product description states superseded overdue rule');
+              if(existsSync(path.join(sandbox.work,'src/store.mjs')))throw new Error('external rename was incorrectly undone');
+            }
+            return checked;
+          }}) : await runAttempt(t, boundedInvoke, s, harnessBin, baseline);
         // An ungraded run is not a passing run, and an empty assertion list is not a pass
         // either — "An empty suite is not a pass" (6496934) applies to a single attempt too.
         const pass = !out.incomplete && out.assertions.length > 0 && out.assertions.every((a) => a.pass);
         runs.push({
+          ...(t.product ? {evidence:trialDir,completedSteps:out.completedSteps,totalSteps:out.totalSteps,calibration:!!t.calibration,billingComplete:out.billingComplete,candidateRevision:out.candidateRevision,phases:out.phases} : {}),
           attempt: i + 1, pass, incomplete: out.incomplete ?? null, assertions: out.assertions,
           usage: out.usage ?? {}, timedOut: !!out.timedOut, approvals: out.approvals ?? [],
           // Without the transcript, a failure can only be triaged by paying for the task again.
@@ -279,6 +304,7 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
         // then throws in a later one must still report what it approved — read before `finally`
         // deletes the working copy, same as the success path above.
         runs.push({
+          ...(t.product ? {evidence:trialDir,incomplete:{reason:'driver_error',detail:e.message}} : {}),
           attempt: i + 1, pass: false, assertions: [{ name: 'harness', pass: false, detail: e.message }], usage: e.usage ?? {}, approvals: e.approvals ?? [], transcript: String(e.transcript ?? '').slice(-TRANSCRIPT_CAP),
           unattended: unattendedApprovals(s.work),
         });
@@ -294,7 +320,8 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
       // A run nobody could grade is a third thing again: not green, and not the model's fault.
       verdict: ungraded === runs.length ? 'inconclusive'
         : passed === runs.length ? 'pass' : passed === 0 ? 'fail' : 'flaky',
-      usd: runs.reduce((n, r) => n + (r.usage.usd ?? 0), 0),
+      usd: t.product && runs.some(r=>r.billingComplete===false) ? null : runs.reduce((n, r) => n + (r.usage.usd ?? 0), 0),
+      ...(t.product?{reportedUsd:runs.reduce((n,r)=>n+(r.usage.reportedUsd??r.usage.usd??0),0),billingComplete:runs.every(r=>r.billingComplete!==false)}:{}),
       unattended: [...new Set(runs.flatMap((r) => r.unattended ?? []))],
       runs,
     });
@@ -313,20 +340,23 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
     aborted: results.reduce((n, r) => n + r.runs.filter((run) => run.incomplete).length, 0),
     usd: Number(results.reduce((n, r) => n + r.usd, 0).toFixed(4)),
   };
+  if(results.some(r=>r.billingComplete===false)){summary.reportedUsd=results.reduce((n,r)=>n+(r.reportedUsd??r.usd??0),0);summary.usd=null;summary.billingComplete=false;}
   return { summary, results };
 }
 
 // The one line a run's summary is judged by. Pulled out so the abort count beside the cost is
 // unit-testable without spawning `claude` — B5's whole point is that this line is read on its own.
 export function summaryLine(summary) {
-  return `${summary.pass} pass · ${summary.flaky} flaky · ${summary.fail} fail · ${summary.inconclusive} inconclusive · ${summary.aborted} aborted · $${summary.usd}`;
+  return `${summary.pass} pass · ${summary.flaky} flaky · ${summary.fail} fail · ${summary.inconclusive} inconclusive · ${summary.aborted} aborted · ${summary.usd===null?`cost unknown (reported $${summary.reportedUsd})`:`$${summary.usd}`}`;
 }
 
 async function main() {
   const argv = process.argv.slice(2);
   const flag = (n, d = null) => { const i = argv.indexOf(`--${n}`); return i === -1 ? d : argv[i + 1]; };
   const fixturesDir = path.join(HERE, 'fixtures');
-  let tasks = loadTasks();
+  const products=argv.includes('--products');
+  let tasks = loadTasks(products ? path.join(HERE,'products.json') : undefined);
+  if(products && flag('through')) tasks=tasks.map(t=>({...t,calibration:true,steps:t.steps.slice(0,Number(flag('through')))}));
   if (flag('id')) tasks = tasks.filter((t) => t.id === flag('id'));
   // Calibration and triage: override repeats without editing tasks.json.
   if (flag('repeats')) tasks = tasks.map((t) => ({ ...t, repeats: Number(flag('repeats')) }));
@@ -337,7 +367,7 @@ async function main() {
   if (problems.length) { console.error('tasks.json is invalid:\n  ' + problems.join('\n  ')); return 2; }
   if (argv.includes('--dry')) {
     const ceiling = tasks.reduce((n, t) => n + t.budgetUsd * t.repeats * promptCount(t), 0);
-    console.log(`${tasks.length} tasks valid; ${ceiling.toFixed(2)} USD ceiling if run`);
+    console.log(`${tasks.length} tasks valid; ${Math.min(ceiling,Number(flag('max-suite-usd',products?20:Infinity))).toFixed(2)} USD ceiling if run`);
     return 0;
   }
 
@@ -358,26 +388,30 @@ async function main() {
   }
 
   const { claudeInvoker } = await import('./lib/invoker.mjs');
+  const models=loadConfig(PLUGIN_ROOT).models;
+  if(products && (!models?.generator || !models?.evaluator))throw new Error('product trials require explicit capable generator and evaluator models');
   // B12. The model the suite drives, from the one registry that names it.
   let evalModel = null;
   try {
     const { loadConfig } = await import('../.aidlc/lib/config.mjs');
     evalModel = loadConfig(PLUGIN_ROOT).models?.evals ?? null;
   } catch { /* no registry: the CLI default is a defensible fallback */ }
+  if(products)evalModel=models.generator;
   if (evalModel) console.log(`model: ${evalModel}`);
   const baselineFile = path.join(HERE, 'baseline.json');
   const baseline = existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, 'utf8')) : {};
   const out = await runSuite({
-    tasks, fixturesDir, baseline, maxSuiteUsd: Number(flag('max-suite-usd', Infinity)),
+    tasks, fixturesDir, baseline, maxSuiteUsd: Number(flag('max-suite-usd', products?20:Infinity)), evaluatorModel:models.evaluator,
     harnessBin: path.join(PLUGIN_ROOT, '.aidlc', 'bin', 'harness'),
-    invoke: claudeInvoker({ pluginDir: PLUGIN_ROOT, model: evalModel }),
+    invoke: args => claudeInvoker({ pluginDir: PLUGIN_ROOT, model: products && args.phase==='review' ? models.evaluator : evalModel })(args),
     log: (m) => console.log(m),
   });
 
   // Results are harness output about a repo, not part of the eval suite, so they stay under
   // .aidlc/ where indicators.mjs reads them and where a target repo keeps its own. The
   // suite moved to the repo root; its results did not.
-  const dir = path.join(path.dirname(HERE), '.aidlc', 'evals', 'results');
+  const dir = path.join(path.dirname(HERE), '.aidlc', 'evals', products?'products':'results');
+  if(products){out.kind='product-campaigns';out.calibration=tasks.some(t=>t.calibration);out.models=models;}
   mkdirSync(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   writeFileSync(path.join(dir, `${stamp}.json`), JSON.stringify(out, null, 2));
@@ -400,4 +434,4 @@ async function main() {
   return out.summary.fail || out.summary.flaky || out.summary.inconclusive ? 1 : 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main().then((c) => process.exit(c ?? 0));
+if (import.meta.url === `file://${process.argv[1]}`) main().then((c) => process.exit(c ?? 0)).catch(error=>{console.error(error.message);process.exitCode=2;});

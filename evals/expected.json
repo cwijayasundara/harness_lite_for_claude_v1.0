@@ -12,10 +12,6 @@
       "verdict": "pass",
       "usd": 0.4873630500000001
     },
-    "campaign-ledger": {
-      "verdict": "fail",
-      "usd": 1.6240206000000001
-    },
     "clarify-ambiguous": {
       "verdict": "fail",
       "usd": 0.16447065000000005
@@ -99,6 +95,13 @@
     "verifier-does-not-repair": {
       "verdict": "pass",
       "usd": 0.0137383
+    }
+  },
+  "retired_tasks": {
+    "campaign-ledger": {
+      "verdict": "fail",
+      "usd": 1.6240206000000001,
+      "reason": "Moved from transcript-driven golden task to isolated product campaign in evals/products.json. Historical verdict retained; no new model result asserted."
     }
   }
 }

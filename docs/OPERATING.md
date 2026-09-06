@@ -71,52 +71,55 @@ It applies the kill criteria and prints a decision per control:
 regresses it was not doing anything. That is the whole argument for having built the eval suite
 first, and it is the mechanism v6 never had — which is why v6 could only grow.
 
-## Campaigns — before a release, not a per-change gate
+## Automated product campaigns
 
-The 22-task suite grades one prompt against one fixture. A campaign grades the harness across a
-product's whole arc: `evals/tasks.json` tasks with a `steps` array run several sprints against
-the *same* staged working copy, in order, so later sprints inherit what earlier ones built —
-including their mistakes. One ships with the harness, and it is the integration test:
+`evals/products.json` contains two capable-model campaigns run by the existing eval runner.
+The golden tasks stay in `evals/tasks.json`; the old transcript-driven ledger task has moved
+out of that suite, with its historical expectation retained under `retired_tasks`.
 
-`campaign-ledger` — five sprints against one brownfield working copy: an invoicing ledger that
-already has customers, invoices, a late-fee module with a defect no sprint mentions, one smoke
-test and no artifact chain.
+The ledger campaign characterizes existing APIs, adds partial payments, reverses the overdue
+rule, extracts storage and repairs an external rename before documenting the current product.
+The service campaign creates HTTP endpoints, validates requests, persists data, changes a limit,
+repairs a seeded parsing defect and handles an observed local storage failure. Session restarts,
+rejected and stale approvals, a missing optional tool and independent seeded-defect review are
+part of these sequences. Current requirements arrive one at a time.
 
-1. **Adopt.** Characterise what exists, then add two behaviours. The first product write needs
-   an approved plan, and the fee module must survive untouched.
-2. **Extend.** Partial payments. Sprint 1's tests are edited, not replaced.
-3. **Contradict.** A paid invoice is never overdue, which reverses a behaviour sprint 1 approved:
-   the new spec records `supersedes:`, and every product file changed belongs to the current
-   change's plan — not to an earlier sprint's.
-4. **Refactor.** Storage moves to its own module with no behaviour change. What the agent does
-   to the contract is recorded, not prescribed.
-5. **Describe.** `docs/PRODUCT.md` states what the ledger does today, graded against the folded
-   `supersedes:` chain.
+The parent writes driver-authored draft proposals, then actual Claude Code reads them and pauses.
+Scripted decisions use the ordinary approval function and committed artifact path. The parent
+retains full-artifact receipts; all decisions say `simulated-test-driver`. This proves the
+protocol, not human judgment. Planning cannot write product source; approved implementation
+cannot edit artifacts, Git metadata, configuration or the plugin. Native tools exclude Bash;
+public tests and hooks still execute inside the isolated container.
 
-Campaigns must return control at human gates. The former `AIDLC_UNATTENDED` and `AIDLC_EVAL`
-self-approval exceptions have been removed. The existing ledger prompts need a scripted gate
-sequence before they can again be described as unattended product trials.
+Docker mounts only the disposable product, a sanitized read-only plugin and session storage.
+It does not mount this repository, private assertions, future scenarios, the Docker socket or
+parent receipt state. The Claude container receives only the credentials needed for its model
+connection; credentials are absent from network-disabled product/runtime containers. No host
+paths beyond the explicit mounts or privileged runtime are granted. Private assertions run in
+the parent and communicate with separate product processes through API/HTTP transports; they
+are never imported beside untrusted product modules. Each runtime starts from a fresh source
+snapshot. This is bounded container isolation, not a claim against container-runtime exploits.
 
-The runner accepts explicit decision steps, supplied by the test author outside the staged repo:
+Build once and run:
 
-```json
-{"gate":{"slug":"addition","kind":"spec","decision":"reject","reason":"Include negative inputs"}}
-{"prompt":"Revise the spec to include negative inputs, commit it, then pause."}
-{"gate":{"slug":"addition","kind":"spec","decision":"approve"}}
-{"prompt":"Prepare and commit the implementation plan, then pause."}
-{"gate":{"slug":"addition","kind":"plan","decision":"approve"}}
-{"prompt":"Implement the approved plan and run the tests.","implement":"addition"}
+```sh
+docker build -t lean-harness-product:2.1.263 - < evals/Dockerfile
+HARNESS_PRODUCT_DOCKER=1 node --test test/product-trials.test.mjs
+node evals/run.mjs --products --dry --max-suite-usd 20
+node evals/run.mjs --products --id campaign-ledger --through 1 --max-suite-usd 3 --require-auth
+node evals/run.mjs --products --max-suite-usd 20 --require-auth
 ```
 
-The parent calls the ordinary approval function and commits only that artifact. Its in-memory
-receipts bind the complete approved artifact and the plan's spec digest. The `implement` step
-rejects missing, rejected, fabricated or stale receipts. A restart needs decisions from the
-external authority again, never reconstruction from agent-written metadata. All decisions are
-labelled `simulated-test-driver`; they do not establish that a human reviewed the design.
-This verifies the launch protocol. It is not an OS sandbox: an agent with arbitrary shell access
-can still write files before a requested pause. Run untrusted trials in isolated containers with
-the driver, grading tests and credentials outside the writable mount. Disposable directories and
-regex hooks are not that boundary.
+`--through` is calibration only and is labelled in results. All attempts retain phase outputs,
+actual model/CLI metadata, image and commit identities, simulated decisions, private check
+results and replayable product snapshots under `.aidlc/evals/products/`. These results cannot
+replace a full golden-suite result. Costs omitted by the provider stay unknown; allowances are
+reserved conservatively. Timeouts and budget exhaustion remain incomplete. There are at most
+two automatic product repairs per step. CLI and product containers have bounded lifetimes.
+
+The deterministic Docker job runs on GitHub without model credentials. Actual product campaigns
+are opt-in local runs using the configured generator/evaluator; they do not silently substitute
+a cheaper model or claim success without credentials. Deployment is local and disposable.
 
 ## Independent review
 

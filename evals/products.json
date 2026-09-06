@@ -1,0 +1,183 @@
+{
+  "defaults": {
+    "timeoutMs": 240000,
+    "budgetUsd": 1.5,
+    "repeats": 1
+  },
+  "tasks": [
+    {
+      "id": "campaign-ledger",
+      "fixture": "campaign-ledger",
+      "product": "ledger",
+      "steps": [
+        {
+          "slug": "ledger-characterize",
+          "request": "Characterize the existing ledger, then add balance and overdue queries. Keep unrelated late-fee code unchanged.",
+          "behaviours": [
+            "Preserve addCustomer, addInvoice and listInvoices including the unknown-customer error. Add characterization tests before changes.",
+            "outstandingBalance(customerId) returns the sum of that customer's invoice amounts; other customers do not affect it. A customer with no invoices, including an unknown customer ID, has balance zero.",
+            "isOverdue(invoiceId, today = current UTC YYYY-MM-DD) returns whether dueDate is lexically before today, regardless of payment. Use an exported function declaration. An unknown invoice ID throws an unknown invoice error."
+          ],
+          "files": [
+            "src/ledger.mjs",
+            "tests/ledger.test.mjs"
+          ],
+          "level": 1,
+          "characterize": true
+        },
+        {
+          "slug": "ledger-payments",
+          "request": "Support partial payments while retaining original invoice amounts and existing API behaviour.",
+          "behaviours": [
+            "recordPayment(invoiceId, amountCents) accepts a positive integer no greater than the outstanding amount; reject zero, negative, fractional and excessive payments without mutation. outstandingBalance accounts for payments; listInvoices retains original amountCents."
+          ],
+          "files": [
+            "src/ledger.mjs",
+            "tests/ledger.test.mjs"
+          ],
+          "level": 2,
+          "reject": "The spec must explicitly reject overpayments and fractional cents without changing the balance.",
+          "stale": true,
+          "initialBehaviours": [
+            "recordPayment(invoiceId, amountCents) records positive integer payments and outstandingBalance reflects them. listInvoices retains original amountCents."
+          ]
+        },
+        {
+          "slug": "ledger-overdue",
+          "request": "A fully paid invoice must no longer be overdue. Preserve partial-payment and customer behaviour.",
+          "behaviours": [
+            "isOverdue returns false when outstanding amount reaches zero, even for a past dueDate; otherwise it compares dueDate with today as before."
+          ],
+          "files": [
+            "src/ledger.mjs",
+            "tests/ledger.test.mjs"
+          ],
+          "level": 3,
+          "supersedes": "ledger-characterize#B3",
+          "restart": true,
+          "reviewSeed": true
+        },
+        {
+          "slug": "ledger-storage",
+          "request": "Extract all ledger storage into src/store.mjs, leaving public rules in src/ledger.mjs with unchanged exports and behaviour.",
+          "behaviours": [
+            "Storage lives in src/store.mjs; ledger imports it. All existing observable behaviour and regression coverage remains."
+          ],
+          "files": [
+            "src/ledger.mjs",
+            "tests/ledger.test.mjs",
+            "src/store.mjs"
+          ],
+          "level": 4
+        },
+        {
+          "slug": "ledger-description",
+          "request": "An external tool renamed src/store.mjs to src/storage.mjs. Repair affected imports and write docs/PRODUCT.md describing the current API, payments, validation and overdue rule, naming sources. Do not restore the old storage filename.",
+          "behaviours": [
+            "The ledger loads after the external rename and preserves every current API behaviour.",
+            "Product documentation describes the current APIs, payment validation and fully-paid-not-overdue rule, with source references and no superseded rule stated as current."
+          ],
+          "files": [
+            "src/ledger.mjs",
+            "tests/ledger.test.mjs",
+            "src/storage.mjs",
+            "docs/PRODUCT.md"
+          ],
+          "level": 5,
+          "rename": [
+            "src/store.mjs",
+            "src/storage.mjs"
+          ],
+          "restart": true
+        }
+      ]
+    },
+    {
+      "id": "campaign-service",
+      "fixture": "campaign-service",
+      "product": "service",
+      "steps": [
+        {
+          "slug": "service-create",
+          "request": "Create a plain Node.js HTTP item service with no external packages. Start with node src/server.mjs using PORT (default 3000).",
+          "behaviours": [
+            "GET /health returns HTTP 200 JSON {ok:true}. GET /items returns an array, initially empty.",
+            "POST /items accepts JSON {title:string}, trims the title, returns HTTP 201 JSON {id:number,title,done:false}, and lists it in GET /items. Keep items in memory."
+          ],
+          "files": [
+            "src/server.mjs",
+            "tests/server.test.mjs"
+          ],
+          "level": 1
+        },
+        {
+          "slug": "service-validate",
+          "request": "Add input validation and completion updates to the item service.",
+          "behaviours": [
+            "POST /items requires a string title with trimmed length 1 through 80; invalid title or malformed JSON returns HTTP 400 JSON without creating an item.",
+            "PATCH /items/:id accepts JSON {done:boolean}, returns HTTP 200 with the updated item; invalid done returns 400 and missing id returns 404. Unknown routes return 404 JSON."
+          ],
+          "files": [
+            "src/server.mjs",
+            "tests/server.test.mjs"
+          ],
+          "level": 2,
+          "missingTool": true
+        },
+        {
+          "slug": "service-persist",
+          "request": "Persist items and completion state to JSON at DATA_FILE when set. Create parent directories when writable. Without DATA_FILE the service remains in memory.",
+          "behaviours": [
+            "After a successful write and process restart, GET /items retains items, titles and done status. IDs remain unique and increasing after restart."
+          ],
+          "files": [
+            "src/server.mjs",
+            "tests/server.test.mjs"
+          ],
+          "level": 3,
+          "restart": true
+        },
+        {
+          "slug": "service-limit",
+          "request": "Change the maximum trimmed title length from 80 to 40 characters. Existing stored items remain readable.",
+          "behaviours": [
+            "New titles of length 1 through 40 are accepted; longer titles return 400 without mutation. Other validation and update behaviour remains."
+          ],
+          "files": [
+            "src/server.mjs",
+            "tests/server.test.mjs"
+          ],
+          "level": 4,
+          "supersedes": "service-validate#B1"
+        },
+        {
+          "slug": "service-repair",
+          "request": "Diagnose and repair the seeded JSON parsing regression. First reproduce that posting a title fails to preserve that title, then restore correct API behaviour with a regression test.",
+          "behaviours": [
+            "JSON request parsing preserves submitted fields and malformed JSON is rejected; all current validation, updates and persisted state still work."
+          ],
+          "files": [
+            "src/server.mjs",
+            "tests/server.test.mjs"
+          ],
+          "level": 5,
+          "seed": "JSON.parse = () => ({title: \"corrupted\"});\n",
+          "restart": true
+        },
+        {
+          "slug": "service-operate",
+          "request": "An observed local storage-write failure is linked to this incident and intent. Handle unavailable storage without crashing or reporting a successful write.",
+          "behaviours": [
+            "If DATA_FILE points to an unwritable location, POST /items returns HTTP 503 JSON, GET /health remains healthy, and GET /items does not include an unpersisted item. Normal persistence and restart remain correct."
+          ],
+          "files": [
+            "src/server.mjs",
+            "tests/server.test.mjs"
+          ],
+          "level": 6,
+          "incident": true
+        }
+      ]
+    }
+  ]
+}

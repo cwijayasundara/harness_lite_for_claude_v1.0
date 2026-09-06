@@ -38,7 +38,7 @@ test('campaign-ledger passes harness check --stage stop as staged, before any sp
 // one-integration-test B1 and B8. One fixture, brownfield: working code, one smoke test, a file
 // with a deliberate defect no sprint asks about, notes, and no artifact chain. And one campaign:
 // `campaign-legacy` is gone, and nothing else has steps.
-test('the one fixture is brownfield and artifact-free, and it is the only campaign', () => {
+test('the ledger remains brownfield and product campaigns are separate from golden tasks', () => {
   const s = stage(FIXTURES, 'campaign-ledger');
   try {
     for (const f of ['NOTES.md', 'src/ledger.mjs', 'src/fees.mjs', 'tests/smoke.test.mjs', '.aidlc/harness.toml']) {
@@ -55,10 +55,11 @@ test('the one fixture is brownfield and artifact-free, and it is the only campai
   assert.ok(!existsSync(path.join(FIXTURES, 'campaign-legacy')));
   const tasks = JSON.parse(readFileSync(path.join(ROOT, 'evals', 'tasks.json'), 'utf8')).tasks;
   const campaigns = tasks.filter((t) => t.steps);
-  assert.deepEqual(campaigns.map((t) => t.id), ['campaign-ledger']);
-  const [c] = campaigns;
-  assert.equal(c.steps.length, 5, 'B7: five sprints');
-  assert.ok(c.budgetUsd <= 1 && c.timeoutMs <= 360000, 'B7: a dollar and six minutes per sprint');
+  assert.deepEqual(campaigns, [], 'retired transcript-driven campaign is not a golden task');
+  const products=JSON.parse(readFileSync(path.join(ROOT,'evals/products.json'),'utf8')).tasks;
+  assert.deepEqual(products.map(t=>t.id),['campaign-ledger','campaign-service']);
+  assert.equal(products[0].steps.length,5);
+  assert.equal(products[1].steps.length,6);
 });
 
 // B2. A later sprint's requirement must not be reachable before its own step runs. Asserted
@@ -487,6 +488,7 @@ test('diffOwnedByCurrentChange passes a file the current plan names and fails on
     spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'artifacts'], { cwd: d.root });
 
     writeFileSync(path.join(d.root, 'src/rules.mjs'), 'export const b = 2;\n');
+    writeFileSync(path.join(d.root,'CODEBASE-MAP.md'),'generated map output');
     const owned = diffOwnedByCurrentChange(d.root, before);
     assert.equal(owned.ok, true, owned.violations.join('; '));
     assert.equal(owned.current, 'sprint-3');

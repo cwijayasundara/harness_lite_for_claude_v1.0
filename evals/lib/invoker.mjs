@@ -1,13 +1,26 @@
 // The real invoker. It is injected rather than imported by the runner, so the runner and the
 // assertion engine are unit-testable with no model, no key and no spend.
 import { spawnSync } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
+import { productDockerArgs } from './stage.mjs';
 
 // lean-v2 B12. `model` comes from `[models] evals` — Haiku 4.5 — and is cheap on purpose. What
 // the suite measures is whether the *harness* steers a model to the right answer; running a
 // frontier model here would flatter the guides and price the suite out of running on every
 // steering change, which is the one trigger Law 9 actually requires.
 // The argument list, as a pure function, so the unit suite can read it without spawning.
-export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null }) {
+export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null, product = false, sessionId = null, review = false }) {
+  if (product && review) return ['-p', prompt, '--model', model, '--tools', 'Read,Grep,Glob',
+    '--safe-mode', '--permission-mode', 'dontAsk', '--setting-sources', '', '--strict-mcp-config',
+    '--mcp-config', '{"mcpServers":{}}', '--settings', '{"disableAllHooks":true}',
+    '--no-session-persistence', '--output-format', 'json', '--max-budget-usd', String(budgetUsd)];
+  if (product) return [
+    '-p', prompt, '--model', model, '--tools', 'Read,Grep,Glob,Write,Edit',
+    '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
+    '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
+    '--output-format', 'json', '--plugin-dir', '/plugin',
+    '--max-budget-usd', String(budgetUsd), ...(sessionId ? ['--resume', sessionId] : []),
+  ];
   return [
       '-p', prompt,
       ...(model ? ['--model', model] : []),
@@ -40,25 +53,33 @@ export function invokerEnv({ pluginDir = null, base = {} }) {
 }
 
 export function claudeInvoker({ pluginDir, model = null }) {
-  return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task }) {
-    const args = invokerArgs({ prompt, model, pluginDir, budgetUsd });
+  return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task, sandbox = null, phase = 'plan', sessionId = null }) {
+    const args = invokerArgs({ prompt, model, pluginDir, budgetUsd, product: !!sandbox, sessionId, review: phase === 'review' });
     const env = invokerEnv({ task, pluginDir, base: process.env });
-    const r = spawnSync('claude', args, { cwd, env, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
+    const name = sandbox ? `harness-agent-${randomUUID()}` : null;
+    const credentials = Object.fromEntries(['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL', 'CLAUDE_CODE_OAUTH_TOKEN'].filter(k => env[k]).map(k => [k, undefined]));
+    const command = sandbox ? 'docker' : 'claude';
+    const commandArgs = sandbox ? [...productDockerArgs(sandbox, { phase, name, network: true, env: credentials }), 'claude', ...args] : args;
+    const r = spawnSync(command, commandArgs, { cwd, env, encoding: 'utf8', timeout: timeoutMs,
+      killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024 });
+    if (sandbox && (r.error || r.signal)) spawnSync('docker', ['rm', '-f', name], { encoding: 'utf8', timeout: 10000 });
     // A missing CLI is not a failed task — it is a broken harness, and twenty tasks failing
     // with empty transcripts is the least useful way to say so. Same lesson as exit 127 in the
     // check runner: never let an absent tool masquerade as a verdict.
     if (r.error?.code === 'ENOENT') {
       return { notInstalled: true, transcript: '', usage: {}, exitCode: -1, error: 'the `claude` CLI is not on PATH' };
     }
-    const timedOut = r.error?.code === 'ETIMEDOUT' || r.signal === 'SIGTERM';
+    const timedOut = r.error?.code === 'ETIMEDOUT' || ['SIGTERM', 'SIGKILL'].includes(r.signal);
     const raw = `${r.stdout ?? ''}${r.stderr ?? ''}`;
     let usage = {};
     let transcript = raw;
     let incomplete = null;
+    let session = null, modelUsage = null, turns = null;
     try {
       const parsed = JSON.parse(r.stdout);
       transcript = [parsed.result, JSON.stringify(parsed)].filter(Boolean).join('\n');
-      usage = { usd: parsed.total_cost_usd, output_tokens: parsed.usage?.output_tokens };
+      usage = { usd: parsed.total_cost_usd, ...parsed.usage };
+      session = parsed.session_id; modelUsage = parsed.modelUsage; turns = parsed.num_turns;
       const denied = (parsed.permission_denials ?? []).map((d) => d.tool_input?.command ?? d.tool_name);
       if (denied.length) transcript = `[permission denied: ${denied.join(' | ')}]\n${transcript}`;
 
@@ -80,6 +101,7 @@ export function claudeInvoker({ pluginDir, model = null }) {
         transcript = '';
       }
     } catch { /* not JSON: grade the raw transcript, which is still honest */ }
-    return { transcript, usage, exitCode: r.status ?? -1, timedOut, incomplete };
+    if (sandbox && !incomplete && (timedOut || r.status !== 0 || !session)) incomplete = { reason: timedOut ? 'timed_out' : 'cli_incomplete', detail: raw.slice(-2000) };
+    return { transcript, usage, exitCode: r.status ?? -1, timedOut, incomplete, sessionId: session, modelUsage, turns };
   };
 }
