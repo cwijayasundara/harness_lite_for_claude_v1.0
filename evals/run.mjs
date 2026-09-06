@@ -256,7 +256,9 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
   const boundedInvoke = async args => {
     if (remaining <= 0) return { incomplete: { reason: 'suite_budget_exhausted' }, usage: {usd:0}, transcript: '' };
     const allowance = Math.min(args.budgetUsd, remaining);
-    const out = await invoke({ ...args, budgetUsd: allowance });
+    let out;
+    try { out = await invoke({ ...args, budgetUsd: allowance }); }
+    catch(error) { remaining=Math.max(0,remaining-allowance);throw error; }
     const reported = out.usage?.usd;
     // Reserve the whole allowance if the CLI omits billing. Never treat missing usage as free.
     remaining = Math.max(0, remaining - (Number.isFinite(reported) && reported >= 0 ? reported : allowance));

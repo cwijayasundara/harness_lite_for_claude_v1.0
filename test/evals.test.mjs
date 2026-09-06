@@ -370,3 +370,12 @@ test('suite spend allowance reaches each CLI call and exhaustion cannot pass', a
 test('product dry-run ceiling includes characterization, gate corrections, review and bounded repairs',()=>{
   assert.equal(promptCount({product:'ledger',steps:[{characterize:true,reject:true,stale:true,reviewSeed:true}]}),9);
 });
+
+test('an invocation exception reserves its allowance before another attempt can spend',async()=>{
+  let calls=0;
+  const out=await runSuite({tasks:[{id:'transport',fixture:'clean-app',prompt:'x',repeats:2,timeoutMs:1000,
+    budgetUsd:1,assert:[{workdir_unchanged:true}]}],fixturesDir:FIXTURES,harnessBin:HARNESS,maxSuiteUsd:1,
+    invoke:()=>{calls++;throw new Error('transport disconnected; billing unavailable');}});
+  assert.equal(calls,1);assert.equal(out.results[0].runs[1].incomplete.reason,'suite_budget_exhausted');
+  assert.notEqual(out.results[0].verdict,'pass');
+});
