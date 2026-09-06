@@ -47,6 +47,16 @@ Two questions:
 .aidlc/bin/harness ledger audit
 ```
 
+A control that never fires is a deterrent standing at its limit or a control that checks
+nothing, and rows alone cannot tell them apart. `[deterrents]` in `harness.toml` maps a control
+to the test that plants the defect its `why:` names; the audit checks the file exists and names
+the control, and reads `deterrent — keep — proven by <file>` instead of `never-fired — decide`.
+Telemetry rows (`graph-refresh`) are not judged, and a name nothing reaches that has recorded
+nothing for a week is listed once as `Retired:` and never asked about again.
+
+```
+```
+
 It applies the kill criteria and prints a decision per control:
 
 | Verdict | Meaning | Do |

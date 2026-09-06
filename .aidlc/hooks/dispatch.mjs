@@ -239,7 +239,14 @@ export async function dispatch(event) {
             const started = Date.now();
             const d = codemap.drift(cfg, g);
             ledger.append({ stage: 'stop', control: 'map-drift', rule: d.drifted ? 'stale-map' : null, verdict: d.drifted ? 'fail' : 'pass', ms: Date.now() - started, findings: d.drifted ? 1 : 0 }, cfg.layout);
-            if (d.drifted) notes.push(`${d.reason}${d.gone?.length ? ` (gone: ${d.gone.join(', ')})` : ''} — run: ${invocation(cfg)} map`);
+            // every-control-fires-or-goes B5. 86 of 86 Stops recorded `stale-map`, because this
+            // line only ever *said* to run `harness map` and nobody did — the F6 shape again. The
+            // verdict above is the measurement (did this session change the tree's shape?); the
+            // write below is the repair, so a stale map never outlives the session that made it.
+            if (d.drifted) {
+              codemap.write(cfg, g);
+              notes.push(`${d.reason}${d.gone?.length ? ` (gone: ${d.gone.join(', ')})` : ''} — ${codemap.MAP_FILE} regenerated; commit it with your change`);
+            }
           }
         } catch (e) { ledger.errored('map-drift', 'stop', e.message, cfg.layout); }
 

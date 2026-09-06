@@ -22,6 +22,14 @@ moves on every Stop, or is never rewritten. The test reproduces it first: build 
 run `harness map`, run the Stop action, assert the recorded verdict is `pass`. Only then read
 `map.mjs` for the cause. The fix stays inside `map.mjs` or `dispatch.mjs`.
 
+Amended 2026-09-06, during implementation: `[deterrents]` reaches the audit through
+`loadConfig`, which drops tables it does not know, so `.aidlc/lib/config.mjs` is a file this
+change touches and the first draft missed it. And the architecture sensor's layer table still
+names `contract`, deleted by `lean-v2`, and names neither `artifacts` nor `map`, so those two
+modules are not checked at all — a one-line table fix in `.aidlc/sensors/architecture.mjs`,
+proven by `test/arch.test.mjs` running the sensor against the real kernel. Both refused by the
+guard until this plan is re-approved, which is `a-diff-belongs-to-one-change` doing its job.
+
 Rejected: recording proof in plan `Proof` rows and having the audit read plans. The audit is a
 ledger question; plans are a change question; and `harness.toml` is the one registry that already
 names controls.
@@ -32,6 +40,8 @@ that errors must stay visible.
 ## Files
 
 - `.aidlc/lib/ledger.mjs`
+- `.aidlc/lib/config.mjs`
+- `.aidlc/sensors/architecture.mjs`
 - `.aidlc/lib/map.mjs`
 - `.aidlc/hooks/dispatch.mjs`
 - `.aidlc/harness.toml`

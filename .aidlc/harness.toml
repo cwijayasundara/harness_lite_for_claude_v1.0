@@ -74,6 +74,15 @@ hooks           = 5
 hook_loc        = 600
 claude_md_lines = 120
 
+# A control that has never fired is a deterrent standing at its limit or a control that checks
+# nothing, and the ledger cannot tell which. Each entry names the test that plants the defect the
+# control's why: describes; the audit checks the file exists and names the control, and reads
+# `deterrent — keep` instead of `never-fired — decide`.
+[deterrents]
+budget       = "test/budget.test.mjs"
+arch         = "test/arch.test.mjs"
+test_quality = "test/unit.test.mjs"
+
 [guard]
 protected_paths = ["evals/fixtures"]
 require_contract = true

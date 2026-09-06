@@ -145,3 +145,22 @@ test('the self-install measures the harness itself, not a record', () => {
   assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 7, agents: 3, hooks: 4 });
   assert.ok(m.hook_loc > 0, `hook_loc = ${m.hook_loc}`);
 });
+
+// every-control-fires-or-goes B2. The budget's why: is Law 5 — you cannot add a control without
+// deleting one. 163 invocations and zero fires because nobody crossed the line, which the audit
+// cannot tell from a control that checks nothing. So cross it: an eighth skill in an installed
+// project is a failing verdict that names the surface.
+test('an eighth skill is refused by name', () => {
+  const root = installed();
+  try {
+    assert.equal(budgetOf(root).verdict, 'pass', 'a fresh install sits inside the budget');
+    mkdirSync(path.join(root, '.claude', 'skills', 'one-too-many'), { recursive: true });
+    writeFileSync(path.join(root, '.claude', 'skills', 'one-too-many', 'SKILL.md'), '---\nname: one-too-many\n---\n');
+    const b = budgetOf(root);
+    assert.equal(b.verdict, 'fail');
+    assert.notEqual(b.status, 0, 'the stage must go red');
+    const finding = b.findings.find((f) => f.rule === 'budget/skills');
+    assert.ok(finding, 'the finding names skills');
+    assert.match(finding.message, /skills = \d+, limit \d+/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});

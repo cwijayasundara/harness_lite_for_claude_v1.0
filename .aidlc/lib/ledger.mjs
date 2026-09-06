@@ -62,7 +62,28 @@ export const KILL = {
 // Controls reached by a hook binding rather than a stage. They are wired — the ledger sees them
 // more often than anything else — they are just not named in `[stages]`. Judging reachability by
 // stages alone condemned the three busiest controls in the repository.
-const HOOK_CONTROLS = ['bash-guard', 'write-guard', 'graph-refresh'];
+const HOOK_CONTROLS = ['bash-guard', 'write-guard', 'map-drift'];
+
+// every-control-fires-or-goes B3. Rows that exist so a failure is visible, not so a verdict can
+// be reached: `graph-refresh` has no defect to fire on, and judging it produced a permanent
+// "decide" nobody could decide. Its errors are read from `staleSince`, not from here.
+const TELEMETRY = new Set(['graph-refresh']);
+
+// B4. A name no stage, hook or deterrent entry reaches, and nothing has recorded for this long,
+// is a deleted control's afterlife in the ledger — listed once, never asked about.
+const RETIRED_AFTER_MS = 7 * 864e5;
+
+// B1. A control that never fired is a deterrent or a corpse. `[deterrents]` in harness.toml
+// names the test that plants the defect its why: describes; a file that exists and names the
+// control is proof, and anything less leaves `never-fired` standing.
+function provenBy(control, deterrents, root, warnings) {
+  const file = deterrents?.[control];
+  if (!file) return null;
+  const abs = root ? path.join(root, file) : file;
+  if (!existsSync(abs)) { warnings.push(`${control}: [deterrents] names ${file}, which does not exist`); return null; }
+  if (!readFileSync(abs, 'utf8').includes(control)) { warnings.push(`${control}: [deterrents] names ${file}, which never mentions ${control}`); return null; }
+  return file;
+}
 
 // What actually runs. A control reachable from neither a stage nor a hook never executes during a
 // check, so the ledger sees a stray invocation or two and advises "wait for fifty" forever.
@@ -100,15 +121,18 @@ export function flag(L = layout(), { rule, run = null, value = true } = {}) {
   return marked;
 }
 
-export function report(L = layout(), { days = 30, staged = null } = {}) {
-  const since = Date.now() - days * 864e5;
-  const rows = read(L).filter((r) => Date.parse(r.ts) >= since);
+export function report(L = layout(), { days = 30, staged = null, deterrents = null, root = null } = {}) {
+  const now = Date.now();
+  const since = now - days * 864e5;
+  const rows = read(L).filter((r) => Date.parse(r.ts) >= since && !TELEMETRY.has(r.control));
   const runs = new Set(rows.map((r) => r.run)).size;
+  const warnings = [];
   const by = new Map();
   for (const r of rows) {
     const k = r.control;
-    const c = by.get(k) ?? { control: k, invocations: 0, fired: 0, errored: 0, skipped: 0, findings: 0, ms: 0 };
+    const c = by.get(k) ?? { control: k, invocations: 0, fired: 0, errored: 0, skipped: 0, findings: 0, ms: 0, last: 0 };
     c.invocations++;
+    c.last = Math.max(c.last, Date.parse(r.ts) || 0);
     if (r.verdict === 'fail') c.fired++;
     if (r.verdict === 'errored') c.errored++;
     if (r.verdict === 'skipped') c.skipped++;
@@ -127,8 +151,11 @@ export function report(L = layout(), { days = 30, staged = null } = {}) {
     }
     by.set(k, c);
   }
-  const controls = [...by.values()].map((c) => ({
+  const reachable = (c) => !staged || staged.has(c.control) || !!deterrents?.[c.control];
+  const retired = [...by.values()].filter((c) => !reachable(c) && now - c.last > RETIRED_AFTER_MS).map((c) => c.control);
+  const controls = [...by.values()].filter((c) => !retired.includes(c.control)).map((c) => ({
     ...c,
+    proof: c.fired === 0 && c.invocations >= KILL.min_sessions ? provenBy(c.control, deterrents, root, warnings) : null,
     // A rule whose fires are more than half called false is noise wearing a control's badge.
     rules: [...(c.rules?.values() ?? [])]
       .map((entry) => ({ ...entry, noisy: entry.fired >= 3 && entry.false / entry.fired > 0.5 }))
@@ -142,17 +169,17 @@ export function report(L = layout(), { days = 30, staged = null } = {}) {
     verdict: staged && !staged.has(c.control) ? 'unwired'
       : c.invocations < KILL.min_sessions ? 'insufficient-data'
         : c.errored / c.invocations > KILL.max_error_rate ? 'unreliable'
-          : c.fired === 0 ? 'never-fired'
+          : c.fired === 0 ? (provenBy(c.control, deterrents, root, []) ? 'deterrent' : 'never-fired')
             : c.fired / c.invocations < KILL.min_fire_rate ? 'rarely-fires'
               : 'earning-its-place',
   })).sort((a, b) => b.invocations - a.invocations);
-  return { days, runs, rows: rows.length, controls };
+  return { days, runs, rows: rows.length, controls, retired, warnings };
 }
 
 // The monthly audit. Turns the ledger into a list of decisions a person can act on in minutes,
 // which is the only reason any of this instrumentation exists.
-export function audit(L = layout(), { days = 30, staged = null } = {}) {
-  const r = report(L, { days, staged });
+export function audit(L = layout(), { days = 30, staged = null, deterrents = null, root = null } = {}) {
+  const r = report(L, { days, staged, deterrents, root });
   const action = {
     'earning-its-place': 'keep',
     'rarely-fires': 'review — does it catch anything the eval suite would miss?',
@@ -161,7 +188,7 @@ export function audit(L = layout(), { days = 30, staged = null } = {}) {
     unreliable: 'FIX OR DELETE — errors too often to be trusted',
     'insufficient-data': `wait — ${KILL.min_sessions} invocations needed`,
   };
-  const controls = r.controls.map((c) => ({ ...c, action: action[c.verdict] }));
+  const controls = r.controls.map((c) => ({ ...c, action: c.verdict === 'deterrent' ? `keep — proven by ${c.proof}` : action[c.verdict] }));
   return {
     ...r,
     thresholds: KILL,

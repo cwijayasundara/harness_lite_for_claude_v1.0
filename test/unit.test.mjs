@@ -482,3 +482,87 @@ test('tamper: a raised threshold, a bare suppression and a deleted test are each
       'a suppression inside a string is a mention, not a suppression');
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+// every-control-fires-or-goes B1. A control that never fired in production is a deterrent or a
+// corpse, and the ledger cannot tell which. `[deterrents]` in harness.toml names the test that
+// plants the defect the control's why: describes; the audit checks the file exists and names the
+// control, and only then says `deterrent`. A missing or silent file leaves `never-fired` standing.
+test('a never-fired control with a named, existing proof test reads deterrent; without one, never-fired', async () => {
+  const { audit } = await import('../.aidlc/lib/ledger.mjs');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-deterrent-proof-'));
+  const L = { state: root, ledger: path.join(root, 'ledger.jsonl'), runId: path.join(root, 'run-id') };
+  const now = new Date().toISOString();
+  const rows = [];
+  for (const control of ['budget', 'arch', 'ghost']) for (let i = 0; i < 60; i++) rows.push({ ts: now, run: 'r', control, verdict: 'pass', ms: 1, findings: 0 });
+  fs.writeFileSync(L.ledger, rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
+  fs.mkdirSync(path.join(root, 'test'));
+  fs.writeFileSync(path.join(root, 'test/budget.test.mjs'), "test('budget refuses an eighth skill', () => {});\n");
+  fs.writeFileSync(path.join(root, 'test/silent.test.mjs'), "test('says nothing about the control', () => {});\n");
+
+  const staged = new Set(['budget', 'arch', 'ghost']);
+  const a = audit(L, { staged, root, deterrents: { budget: 'test/budget.test.mjs', arch: 'test/silent.test.mjs', ghost: 'test/missing.test.mjs' } });
+  const by = Object.fromEntries(a.controls.map((c) => [c.control, c]));
+  assert.equal(by.budget.verdict, 'deterrent');
+  assert.match(by.budget.action, /keep — proven by test\/budget\.test\.mjs/);
+  assert.equal(by.arch.verdict, 'never-fired', 'a proof file that never names the control proves nothing');
+  assert.equal(by.ghost.verdict, 'never-fired', 'a proof file that does not exist proves nothing');
+  assert.deepEqual(a.decide.sort(), ['arch', 'ghost']);
+  assert.match(a.warnings.join('\n'), /arch.*silent\.test\.mjs/);
+  assert.match(a.warnings.join('\n'), /ghost.*missing\.test\.mjs/);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// B3 and B4. `graph-refresh` is telemetry — it has no defect to fire on, so it is not judged.
+// A name no stage, hook or deterrent entry reaches, whose last row is older than seven days, is
+// retired: listed once on a trailing line, never asked about again. The same name with a row
+// today is `unwired`, because something is still recording it.
+test('telemetry is not classified, and a control nothing reaches ages out as retired', async () => {
+  const { audit, wiredControls } = await import('../.aidlc/lib/ledger.mjs');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-retired-'));
+  const L = { state: root, ledger: path.join(root, 'ledger.jsonl'), runId: path.join(root, 'run-id') };
+  const now = Date.now();
+  const at = (daysAgo) => new Date(now - daysAgo * 864e5).toISOString();
+  const rows = [];
+  for (let i = 0; i < 60; i++) rows.push({ ts: at(1), run: 'r', control: 'graph-refresh', verdict: 'pass', ms: 1, findings: 0 });
+  for (let i = 0; i < 20; i++) rows.push({ ts: at(8), run: 'r', control: 'plan-drift', verdict: 'fail', ms: 1, findings: 1 });
+  rows.push({ ts: at(9), run: 'r', control: 'hook:pre-bash', verdict: 'pass', ms: 0, findings: 0 });
+  for (let i = 0; i < 3; i++) rows.push({ ts: at(0), run: 'r', control: 'offstage', verdict: 'pass', ms: 1, findings: 0 });
+  for (let i = 0; i < 60; i++) rows.push({ ts: at(0), run: 'r', control: 'map-drift', verdict: i % 2 ? 'fail' : 'pass', rule: i % 2 ? 'stale-map' : null, ms: 1, findings: i % 2 });
+  fs.writeFileSync(L.ledger, rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
+
+  const staged = wiredControls({ stages: { commit: ['secrets'] } });
+  assert.ok(staged.has('map-drift'), 'B5: map-drift is recorded at Stop, so it is a hook control');
+  const a = audit(L, { staged, root });
+  const names = a.controls.map((c) => c.control);
+  assert.ok(!names.includes('graph-refresh'), 'B3: telemetry is not judged');
+  assert.ok(!names.includes('plan-drift') && !names.includes('hook:pre-bash'), 'B4: stale, unreachable names are not in the table');
+  assert.deepEqual(a.retired.sort(), ['hook:pre-bash', 'plan-drift']);
+  assert.equal(a.controls.find((c) => c.control === 'offstage').verdict, 'unwired', 'a row today keeps the question open');
+  assert.equal(a.controls.find((c) => c.control === 'map-drift').verdict, 'earning-its-place');
+  assert.deepEqual(a.decide, ['offstage']);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// B2, test_quality: the sensor's why: is a test directory that executes nothing. Plant it.
+test('test-quality fails a test directory with no executable test', async () => {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { spawnSync } = await import('node:child_process');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-tq-'));
+  fs.mkdirSync(path.join(root, 'test'));
+  fs.writeFileSync(path.join(root, 'test/empty.test.mjs'), '// a file named like a test that asserts nothing\n');
+  const sensor = new URL('../.aidlc/sensors/test-quality.mjs', import.meta.url).pathname;
+  const planted = spawnSync(process.execPath, [sensor], { cwd: root, encoding: 'utf8' });
+  assert.notEqual(planted.status, 0, 'a test directory that executes nothing must be red');
+  assert.match(planted.stderr, /no executable/);
+  fs.writeFileSync(path.join(root, 'test/real.test.mjs'), "import { test } from 'node:test';\ntest('x', () => {});\n");
+  assert.equal(spawnSync(process.execPath, [sensor], { cwd: root, encoding: 'utf8' }).status, 0);
+  fs.rmSync(root, { recursive: true, force: true });
+});
