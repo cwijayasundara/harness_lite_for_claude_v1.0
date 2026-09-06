@@ -1,5 +1,9 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara (conversation approval, recorded by Codex)
+at: 2026-09-06T19:44:54.038Z
+digest: sha256:336b799b9f009cb4cdb4d0257731f747c150a686c89aea454f86b89600336124
+spec_digest: sha256:fc9c7d16cec4ead1c4683026dd87fd4fc4c39c7f831eb660c38819741ef2219e
 ---
 # Plan: simplify-daily-guidance
 
