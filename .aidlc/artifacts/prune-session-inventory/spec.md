@@ -1,6 +1,6 @@
 ---
 status: draft
-extends: compare-native-claude
+extends: compare-native-claude, close-the-harness, correct-existing-mechanisms
 ---
 # Spec: prune-session-inventory
 
