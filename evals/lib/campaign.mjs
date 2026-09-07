@@ -399,8 +399,10 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
       if(cfg)prepareProductChange(s,step);
       const initial=(step.initialBehaviours??step.behaviours).join('\n');
       const scope=`Approved implementation scope when permission arrives: ${step.files.join(', ')}. Preserve other files and existing public behaviour. No dependencies or deployment.`;
-      const pause=await call(`Current proposal: ${step.request}\n${initial}\n${scope}\nInspect relevant source and propose your approach. Request approval and stop before implementation. The external driver supplies simulated decisions. ${cfg?`Read .aidlc/artifacts/${step.slug}/{intent,spec,plan}.md.`:''}`);
-      assert.match(pause.transcript,/approv/i,'must pause at approval');
+      await call(`Current proposal: ${step.request}\n${initial}\n${scope}\nInspect relevant source and propose your approach. Request approval and stop before implementation. The external driver supplies simulated decisions. ${cfg?`Read .aidlc/artifacts/${step.slug}/{intent,spec,plan}.md.`:''}`);
+      // The completed planning turn and unchanged source/approval metadata prove the pause.
+      // Natural requests such as 'Should I proceed?' must not fail a keyword test.
+      event('planning-paused',{slug:step.slug,sessionId});
       if(cfg)assert.ok(existsSync(path.join(s.work,'.aidlc/state/current-run-id')),'plugin did not load');
       if(step.reject){result.decisions.push({slug:step.slug,decision:'reject',simulated:true});await call(`Simulated decision: rejected. ${step.reject}\nExplain the corrected approach and request fresh approval; do not implement.`);}
       if(cfg) {
@@ -437,7 +439,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
           validateScope();const publicOutput=publicCheck();const proof=await evaluateProduct(s,step);
           if(config.evaluate){const verdict=await review(base,step);if(verdict.verdict!=='accept')throw new Error(`Independent evaluation: ${verdict.findings.join('; ')}`);}
           result.assertions.push(proof);event('product-proof',{slug:step.slug,publicOutput,...proof});break;
-        }catch(error){if(error.incomplete)throw error;result.verificationFailures++;result.regressions=null;event('product-proof-failed',{slug:step.slug,detail:error.message});if(attempt===2)throw error;result.retries++;await call(`Repair within the same approved scope. External verification failed: ${error.message}`,'implement');}
+        }catch(error){if(error.incomplete)throw error;result.verificationFailures++;result.regressions=null;event('product-proof-failed',{slug:step.slug,candidateRevision:commit('Failed verification candidate'),detail:error.message});if(attempt===2)throw error;result.retries++;await call(`Repair within the same approved scope. External verification failed: ${error.message}`,'implement');}
       }
       if(step.reviewSeed){const accepted=commit('Accepted before seed');const file=path.join(s.work,'src/ledger.mjs');writeFileSync(file,readFileSync(file,'utf8')+'\nisOverdue = () => true;\n');
         let failed=false;try{await evaluateProduct(s,step);}catch{failed=true;}assert.ok(failed,'seed must fail acceptance');

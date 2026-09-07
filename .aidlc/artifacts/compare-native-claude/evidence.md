@@ -38,4 +38,33 @@ entry must resolve to an actual definition. The competent baseline searches decl
 `rg`, falls back to literal references, and charges visible search hits plus bounded reads.
 Whole-file totals remain historical context. Lookup recall alone does not establish product benefit.
 
-Final corrected-run results and delivery checks will be appended after verification completes.
+## Final outcome
+
+The normal-shell run at `af5ee31` was gracefully stopped. Its 48 scheduled campaign attempts
+are retained: 5 passed, 1 failed the overly narrow approval wording check, 2 are incomplete
+(one model timeout and one operator stop), and 40 are explicitly unmeasured. The native ledger
+passed all five changes; the native service completed five changes before its valid "Should I
+proceed?" request was falsely rejected. The final implementation removes this keyword gate;
+source and approval metadata remain checked before external authorization. A deterministic
+Docker regression reproduced the false failure and then passed with ordinary wording.
+
+The initial retired run retains six passed campaigns and one abandoned partial campaign. Do
+not pool its restricted shell policy with the corrected configuration to infer a model winner.
+Across retained runs, reported spend is $7.45033505. One timeout has unknown billing; $1.50 was
+reserved for it, giving $8.95033505 of reported/reserved allowance. No further paid trials were
+launched after the user's runtime feedback.
+
+A 30-minute default suite deadline now limits each new model invocation to the remaining time
+and marks remaining scheduled attempts unmeasured. Private verification and cleanup can finish
+after the deadline. An injected-clock regression verifies no further model calls are launched.
+Failed verification candidates now receive a disposable Git commit before repair for replay.
+
+Verification: 35 targeted tests and all 11 Docker tests passed after the final fixes. The earlier
+hosted run at `af5ee31` passed unit/graph, Docker and Python cost jobs. Its unit job had 271 passes
+and 11 skips: ten Docker cases are covered by the separate Docker job, and the Python fixture
+check (skipped for missing ruff/pytest there) passed locally. Full local commit checks also pass.
+Final hosted delivery is recorded below after push.
+
+Comparative acceptance remains incomplete. The graph and generation-strategy product matrix
+is unmeasured, unnecessary-question totals remain unclassified, and no superiority or general
+reliability conclusion is justified. Item 5 pruning remains outside this delivery.

@@ -130,3 +130,13 @@ test('operator abandonment retains the complete schedule and launches no model c
     assert.ok(out.attempts.every(a=>a.status==='unmeasured'&&a.reason==='operator_abandoned'));
   }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
 });
+
+
+test('suite deadline stops further model calls and preserves scheduled unmeasured attempts',async()=>{
+  const evidenceRoot=mkdtempSync(path.join(tmpdir(),'comparison-deadline-'));let clock=0,calls=0;
+  try{const out=await runComparisons({tasks:[{id:'ledger',fixture:'campaign-ledger',steps:[{}]}],models,root,fixturesDir:FIXTURES,evidenceRoot,maxUsd:1,maxMinutes:1,now:()=>clock,
+    invokeFactory:()=>async args=>{calls++;assert.equal(args.timeoutMs,60000);clock=60001;return {usage:{usd:.001}};},
+    runCampaign:async({invoke})=>{await invoke({budgetUsd:.1,timeoutMs:240000});return {pass:true,billingComplete:true,completedSteps:1,usage:{usd:.001},phases:[{name:'model-plan'}]};}});
+    assert.equal(calls,1);assert.equal(out.attempts.length,24);assert.ok(out.attempts.slice(1).every(a=>a.reason==='suite_time_exhausted'));
+  }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
+});

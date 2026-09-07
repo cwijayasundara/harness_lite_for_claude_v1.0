@@ -181,7 +181,7 @@ test('comparison campaigns grade both configurations and detect unapproved write
         invoke:async({phase})=>{
           if(!native)writeFileSync(path.join(s.work,'.aidlc/state/current-run-id'),'test');
           if(phase==='implement'||premature){const file=path.join(s.work,'src/ledger.mjs');writeFileSync(file,readFileSync(file,'utf8')+`\nexport function outstandingBalance(id){return listInvoices(id).reduce((n,i)=>n+i.amountCents,0);}\nexport function isOverdue(id,today){if(!invoices.has(id))throw new Error('unknown invoice');return invoices.get(id).dueDate<today;}\n`);}
-          return {sessionId:'deterministic',transcript:'Request approval.',exitCode:0,usage:{usd:0}};
+          return {sessionId:'deterministic',transcript:'Should I proceed with this implementation?',exitCode:0,usage:{usd:0}};
         }});
       assert.equal(out.pass,!premature);assert.equal(out.approvalViolations,Number(premature));
       assert.equal(out.completedSteps,premature?0:1);assert.ok(existsSync(path.join(evidence,'phases.json')));

@@ -116,7 +116,7 @@ after repeatable product evidence shows it necessary.
 | A | Complete for item 1 | Honest execution/reporting, hosted CI and explicit read-only evaluator verified |
 | B | Implemented and tested | Daily guidance simplified; bounded comparison found no regression, but friction reduction remains unproven |
 | C | Implemented and tested | Both live campaigns passed all 11 changes; private API/HTTP acceptance, failure recovery, saved-revision replay and hosted Docker checks passed |
-| D | Pending | Comparative model/graph trials and evidence-based pruning |
+| D | Item 4 infrastructure implemented; comparisons incomplete | Native/model/graph comparison runner and bounded evidence delivered; full paired trials and item 5 pruning remain pending |
 
 First implementation slice: runner aggregation, malformed structured reports, full-run selection,
 absolute result reporting and CI conditions/trigger coverage. Files: .aidlc/lib/runner.mjs,
@@ -327,3 +327,42 @@ smoke passed. The code change is delivered under the user's explicit merge/push 
 Three independent candidate-review attempts timed out; no candidate-review approval is claimed.
 The paired sample found no regression but did not establish the requested friction reduction.
 These limitations remain recorded rather than being reported as completed acceptance evidence.
+
+### Item 4 implementation, 2026-09-07
+
+The existing eval CLI now supports `--compare`: native/harness at a constant capable model,
+harness with/without supplied graph context, then strong implementation versus economical
+generation with strong independent evaluation. Both product campaigns use private grading and
+external simulated decisions. Native has ordinary project instructions and normal shell tools
+inside the same restricted Docker boundary, with no installed harness or mounted plugin.
+
+The runner records the full schedule, first-change calibration, three paired repetitions by
+default, actual model usage, tool versions, fixture/plugin identity, candidate revisions, cost,
+latency, retries, approval violations and unclassified metrics. Missing billing is unknown and
+reserves the invocation allowance. `--max-suite-minutes` defaults to 30; a stop file permits
+gracious abandonment after the current call. The complete 48-campaign matrix is an extended
+benchmark, not an automatic merge gate. Private verification/cleanup can finish after the deadline.
+
+Graph freshness now reconciles content and paths after shell edits, deletions, renames and branch
+changes. The deleted-symbol benchmark entry was repaired and golden definitions are validated.
+Both graph packs and declaration-first bounded rg achieved 10/10 lookup recall: 5,743 versus
+3,436 estimated tokens. This lookup sample does not establish comparative product benefit.
+
+Live trials were stopped after the user flagged excessive runtime. The initial restricted-shell
+configuration and the later natural-language approval grading failure remain in the evidence.
+The final driver verifies unchanged source/approval metadata across planning instead of requiring
+a particular word in the response. Failed verification candidates are saved before repair.
+**Full comparative acceptance remains incomplete.** Graph/model-strategy product repetitions
+are unmeasured; no winner, universal reliability or item 5 pruning is claimed.
+
+Portable evidence is in `.aidlc/evals/comparison-summary.json`; complete private phases and source
+histories remain under ignored `.aidlc/evals/comparisons/`. Total reported spend was **$7.45033505**;
+one timeout omitted billing, so total cost is unknown. Reported spend plus reserved allowance
+was $8.95033505. Failed, abandoned and unmeasured attempts are retained, not rounded into passes.
+
+Targeted tests, all eleven deterministic Docker tests, the graph benchmark and full commit checks
+passed. Hosted unit/graph, Docker and Python cost jobs passed at
+[af5ee31](https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34088585911).
+The final wording/deadline fixes receive separate deterministic verification; they are not claimed
+as a newly completed paid campaign. Earlier approvals and the pre-existing CODEBASE-MAP.md edit
+remain unchanged. Detailed delivery checks are recorded in the change's evidence artifact.

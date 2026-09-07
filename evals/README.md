@@ -107,3 +107,14 @@ To abandon a running suite without interrupting billing collection, pass `--stop
 and create that file when needed. The driver finishes its current call and records remaining attempts
 as unmeasured. The full schedule is persisted before the first call, so unexpected termination also
 leaves pending attempts visible. Do not reuse an existing stop file for a new run.
+
+Comparisons default to a **30-minute suite time limit** (`--max-suite-minutes`). Each model call
+receives the remaining time, and no new call starts after the deadline. Private verification and
+cleanup may finish after it. Remaining scheduled trials are explicitly unmeasured. A complete
+three-pair, two-product matrix is an extended benchmark; use `--dry` to inspect its 48 campaign
+attempts and set a longer time limit deliberately when that run is affordable.
+
+Approval pauses are verified through completed planning turns with unchanged product source
+and approval metadata, followed by an external decision. They do not require a magic word in
+the model's response. Failed verification candidates are committed to the disposable product's
+Git history before repair, so their exact source remains replayable.

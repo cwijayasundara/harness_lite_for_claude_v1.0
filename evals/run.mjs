@@ -372,9 +372,9 @@ async function main() {
   if (problems.length) { console.error('tasks.json is invalid:\n  ' + problems.join('\n  ')); return 2; }
   if (argv.includes('--dry') && comparisons) {
     const {comparisonPairs}=await import('./lib/comparison.mjs');
-    const pairs=comparisonPairs(loadConfig(PLUGIN_ROOT).models), repeats=Number(flag('repeats',3)), budget=Number(flag('max-suite-usd',40));
-    if(!Number.isInteger(repeats)||repeats<1||!Number.isFinite(budget)||budget<=0)throw new Error('comparison repeats must be a positive integer and budget finite and positive');
-    console.log(JSON.stringify({pairs,products:tasks.map(t=>t.id),smokes:pairs.length*2*tasks.length,pairedAttempts:pairs.length*2*tasks.length*repeats,maxUsd:budget},null,2));return 0;
+    const pairs=comparisonPairs(loadConfig(PLUGIN_ROOT).models), repeats=Number(flag('repeats',3)), budget=Number(flag('max-suite-usd',40)),minutes=Number(flag('max-suite-minutes',30));
+    if(!Number.isInteger(repeats)||repeats<1||!Number.isFinite(budget)||budget<=0||!Number.isFinite(minutes)||minutes<=0)throw new Error('comparison repeats must be a positive integer and budget/time limits finite and positive');
+    console.log(JSON.stringify({pairs,products:tasks.map(t=>t.id),smokes:pairs.length*2*tasks.length,pairedAttempts:pairs.length*2*tasks.length*repeats,maxUsd:budget,maxMinutes:minutes},null,2));return 0;
   }
   if (argv.includes('--dry')) {
     const ceiling = tasks.reduce((n, t) => n + t.budgetUsd * t.repeats * promptCount(t), 0);
@@ -391,7 +391,7 @@ async function main() {
     const stamp=new Date().toISOString().replace(/[:.]/g,'-');
     const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',stamp);
     const out=await runComparisons({tasks,models,root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),
-      maxUsd:Number(flag('max-suite-usd',40)),repetitions:Number(flag('repeats',3)),
+      maxUsd:Number(flag('max-suite-usd',40)),maxMinutes:Number(flag('max-suite-minutes',30)),repetitions:Number(flag('repeats',3)),
       invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true})(args),
       log:console.log});
     console.log(JSON.stringify({evidenceRoot,summary:out.summary,calibrations:out.calibrations},null,2));

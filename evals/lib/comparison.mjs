@@ -53,8 +53,10 @@ export async function gradeComparisonProduct(s,step,product) {
   return proof;
 }
 
-export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=isolateStage}) {
+export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,maxMinutes=30,now=Date.now,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=isolateStage}) {
   if(!Number.isFinite(maxUsd)||maxUsd<=0)throw new Error('comparison budget must be finite and positive');
+  if(!Number.isFinite(maxMinutes)||maxMinutes<=0)throw new Error('comparison time limit must be finite and positive');
+  const deadline=now()+maxMinutes*60000;
   if(!Number.isInteger(repetitions)||repetitions<1)throw new Error('repetitions must be a positive integer');
   mkdirSync(evidenceRoot,{recursive:true});
   let pairs;
@@ -62,16 +64,17 @@ export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot
   const revision=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
   const out={kind:'native-comparisons',started:new Date().toISOString(),harnessRevision:revision,
     tools:{node:process.version,git:spawnSync('git',['--version'],{encoding:'utf8'}).stdout?.trim()??null,docker:spawnSync('docker',['--version'],{encoding:'utf8'}).stdout?.trim()??null},
-    scenarioDigest:createHash('sha256').update(JSON.stringify(tasks)).digest('hex'),models,maxUsd,repetitions,attempts:[],calibrations:[],remainingUsd:maxUsd};
+    scenarioDigest:createHash('sha256').update(JSON.stringify(tasks)).digest('hex'),models,maxUsd,maxMinutes,repetitions,attempts:[],calibrations:[],remainingUsd:maxUsd};
   out.scheduledAttempts=pairs.flatMap(pair=>[0,...Array.from({length:repetitions},(_,i)=>i+1)].flatMap(repeat=>pair.arms.flatMap(config=>tasks.map(task=>`${pair.id}-${config.id}-${repeat?'paired':'smoke'}-${repeat}-${task.id}`))));
-  const unavailable=()=>shouldStop()?'operator_abandoned':!available?'credentials_or_isolation_unavailable':remaining<=0?'budget_exhausted':null;
+  const unavailable=()=>shouldStop()?'operator_abandoned':now()>=deadline?'suite_time_exhausted':!available?'credentials_or_isolation_unavailable':remaining<=0?'budget_exhausted':null;
   const save=()=>{out.summary=summarizeComparisons(out.attempts);out.pendingAttempts=out.scheduledAttempts.length-out.attempts.length;out.economics=summarizeComparisons(out.attempts.map(a=>({...a,kind:'all'})));writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify(out,null,2)+'\n');};
   let remaining=maxUsd;
   const bounded=invoke=>async args=>{
     if(shouldStop())return {exitCode:1,incomplete:{reason:'operator_abandoned'},usage:{usd:0}};
+    if(now()>=deadline)return {exitCode:1,incomplete:{reason:'suite_time_exhausted'},usage:{usd:0}};
     if(remaining<=0)return {exitCode:1,incomplete:{reason:'comparison_budget_exhausted'},usage:{usd:0}};
     const allowance=Math.min(args.budgetUsd,remaining);let result;
-    try{result=await invoke({...args,budgetUsd:allowance});}catch(error){remaining-=allowance;out.remainingUsd=remaining;save();throw error;}
+    try{result=await invoke({...args,budgetUsd:allowance,timeoutMs:Math.min(args.timeoutMs??240000,Math.max(1,deadline-now()))});}catch(error){remaining-=allowance;out.remainingUsd=remaining;save();throw error;}
     const cost=result.usage?.usd;
     remaining=Math.max(0,remaining-(Number.isFinite(cost)&&cost>=0?cost:allowance));out.remainingUsd=remaining;save();return result;
   };
