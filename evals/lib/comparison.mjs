@@ -7,15 +7,16 @@ import {stage,isolateStage} from './stage.mjs';
 import {runComparisonCampaign,walk} from './campaign.mjs';
 import {verifyLedger,verifyService,ledgerDescriptionExplainsPaidRule} from './assertions.mjs';
 
-export function comparisonPairs(models, {prune=false,pruneArm=null}={}) {
+export function comparisonPairs(models, {prune=false,pruneArm=null,pair=null}={}) {
   for(const key of (prune?['generator','evaluator']:['generator','evaluator','evals']))if(!models?.[key])throw new Error(`comparison requires explicit ${key} model; no substitution`);
   if(pruneArm && (!prune || !['baseline','lean'].includes(pruneArm)))throw new Error('prune-arm must be baseline or lean, with --prune');
+  if(pair && (prune || !['native','graph','generation'].includes(pair)))throw new Error('comparison pair must be native, graph or generation, without --prune');
   if(prune)return [{id:'session-inventory',arms:[{id:'baseline',model:models.generator,prune:false},{id:'lean',model:models.generator,prune:true}].filter(arm=>!pruneArm||arm.id===pruneArm)}];
   return [
     {id:'native',arms:[{id:'native',native:true,model:models.generator},{id:'harness',model:models.generator}]},
     {id:'graph',arms:[{id:'without-graph',model:models.generator},{id:'with-graph',model:models.generator,graph:true}]},
     {id:'generation',arms:[{id:'strong',model:models.evaluator},{id:'economical-evaluated',model:models.evals,evaluate:true}]},
-  ];
+  ].filter(p=>!pair||p.id===pair);
 }
 
 export function summarizeComparisons(attempts) {
@@ -86,14 +87,14 @@ export async function gradeComparisonProduct(s,step,product) {
   return proof;
 }
 
-export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,maxMinutes=30,prune=false,pruneArm=null,now=Date.now,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=isolateStage}) {
+export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,maxMinutes=30,prune=false,pruneArm=null,pair=null,now=Date.now,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=isolateStage}) {
   if(!Number.isFinite(maxUsd)||maxUsd<=0)throw new Error('comparison budget must be finite and positive');
   if(!Number.isFinite(maxMinutes)||maxMinutes<=0)throw new Error('comparison time limit must be finite and positive');
   const deadline=now()+maxMinutes*60000;
   if(!Number.isInteger(repetitions)||repetitions<1)throw new Error('repetitions must be a positive integer');
   mkdirSync(evidenceRoot,{recursive:true});
   let pairs;
-  try{pairs=comparisonPairs(models,{prune,pruneArm});}catch(error){writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify({kind:prune?'pruning-comparison':'native-comparisons',status:'unmeasured',reason:error.message.startsWith('prune-arm')?'invalid_prune_arm':'models_unconfigured',detail:error.message,models,attempts:[]},null,2)+'\n');throw error;}
+  try{pairs=comparisonPairs(models,{prune,pruneArm,pair});}catch(error){writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify({kind:prune?'pruning-comparison':'native-comparisons',status:'unmeasured',reason:error.message.startsWith('prune-arm')?'invalid_prune_arm':error.message.startsWith('comparison pair')?'invalid_comparison_pair':'models_unconfigured',detail:error.message,models,attempts:[]},null,2)+'\n');throw error;}
   const revision=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
   const out={kind:prune?'pruning-comparison':'native-comparisons',started:new Date().toISOString(),harnessRevision:revision,
     tools:{node:process.version,git:spawnSync('git',['--version'],{encoding:'utf8'}).stdout?.trim()??null,docker:spawnSync('docker',['--version'],{encoding:'utf8'}).stdout?.trim()??null},

@@ -65,6 +65,21 @@ test('missing credentials retain every scheduled smoke and paired attempt as unm
   }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
 });
 
+test('focused comparison preserves both arms and all repetitions without invoking other pairs',async()=>{
+  const evidenceRoot=mkdtempSync(path.join(tmpdir(),'comparison-focused-'));
+  try{
+    assert.deepEqual(comparisonPairs(models,{pair:'native'}).map(p=>p.id),['native']);
+    assert.throws(()=>comparisonPairs(models,{pair:'unknown'}),/comparison pair/);
+    assert.throws(()=>comparisonPairs(models,{pair:'native',prune:true}),/comparison pair/);
+    const out=await runComparisons({tasks:[{id:'ledger',fixture:'campaign-ledger',steps:[{}]}],models,root,fixturesDir:FIXTURES,evidenceRoot,pair:'graph',available:false,invokeFactory:()=>{throw new Error('must not invoke');}});
+    assert.equal(out.attempts.length,8);
+    assert.ok(out.attempts.every(a=>a.pair==='graph'&&a.status==='unmeasured'));
+    assert.equal(out.attempts.filter(a=>a.kind==='smoke').length,2);
+    assert.equal(out.attempts.filter(a=>a.kind==='paired').length,6);
+    assert.deepEqual([...new Set(out.attempts.map(a=>a.config.id))],['without-graph','with-graph']);
+  }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
+});
+
 test('graph reconciles shell edits with unchanged mtime, deleted symbols, rename and branch checkout',()=>{
   const s=stage(FIXTURES,'campaign-ledger');
   try{

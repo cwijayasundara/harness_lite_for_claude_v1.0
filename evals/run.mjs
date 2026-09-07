@@ -359,6 +359,7 @@ async function main() {
   const fixturesDir = path.join(HERE, 'fixtures');
   const prune=argv.includes('--prune');
   const comparisons=argv.includes('--compare')||prune;
+  if(flag('comparison') && !argv.includes('--compare'))throw new Error('--comparison requires --compare');
   if(flag('prune-arm') && !prune)throw new Error('--prune-arm requires --prune');
   const products=argv.includes('--products')||comparisons;
   if(comparisons && flag('through'))throw new Error('--compare calibrates first changes itself; --through would truncate paired campaigns');
@@ -374,7 +375,7 @@ async function main() {
   if (problems.length) { console.error('tasks.json is invalid:\n  ' + problems.join('\n  ')); return 2; }
   if (argv.includes('--dry') && comparisons) {
     const {comparisonPairs}=await import('./lib/comparison.mjs');
-    const pairs=comparisonPairs(loadConfig(PLUGIN_ROOT).models,{prune,pruneArm:flag('prune-arm')}), repeats=Number(flag('repeats',prune?1:3)), budget=Number(flag('max-suite-usd',prune?9:40)),minutes=Number(flag('max-suite-minutes',prune?40:30));
+    const pairs=comparisonPairs(loadConfig(PLUGIN_ROOT).models,{prune,pruneArm:flag('prune-arm'),pair:flag('comparison')}), repeats=Number(flag('repeats',prune?1:3)), budget=Number(flag('max-suite-usd',prune?9:40)),minutes=Number(flag('max-suite-minutes',prune?40:30));
     if(!Number.isInteger(repeats)||repeats<1||!Number.isFinite(budget)||budget<=0||!Number.isFinite(minutes)||minutes<=0)throw new Error('comparison repeats must be a positive integer and budget/time limits finite and positive');
     console.log(JSON.stringify({pairs,products:tasks.map(t=>t.id),smokes:pairs.reduce((n,p)=>n+p.arms.length,0)*tasks.length,pairedAttempts:pairs.reduce((n,p)=>n+p.arms.length,0)*tasks.length*repeats,maxUsd:budget,maxMinutes:minutes},null,2));return 0;
   }
@@ -392,7 +393,7 @@ async function main() {
     const available=claudeAuthenticated(process.env,spawnSync,{product:true})&&spawnSync('docker',['info'],{stdio:'ignore',timeout:15000}).status===0;
     const stamp=new Date().toISOString().replace(/[:.]/g,'-');
     const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',prune?`prune-${stamp}`:stamp);
-    const out=await runComparisons({tasks,models,prune,pruneArm:flag('prune-arm'),root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),
+    const out=await runComparisons({tasks,models,prune,pruneArm:flag('prune-arm'),pair:flag('comparison'),root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),
       maxUsd:Number(flag('max-suite-usd',prune?9:40)),maxMinutes:Number(flag('max-suite-minutes',prune?40:30)),repetitions:Number(flag('repeats',prune?1:3)),
       invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true})(args),
       log:console.log});

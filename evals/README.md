@@ -103,6 +103,11 @@ separate. Failed verification attempts are counted separately from confirmed reg
 a failure has not been classified as new behaviour versus a regression, the regression count is
 unknown. Original public/private failure evidence remains available for classification.
 
+Use `--compare --comparison native` (or `graph`, `generation`) to retry one complete comparison
+group after an incomplete calibration, preserving both arms, smoke checks and all repetitions.
+Retain the original attempt and include its spend when reporting recovery. The selector cannot
+be combined with `--prune`; omitting it retains the full sequential matrix.
+
 To abandon a running suite without interrupting billing collection, pass `--stop-file /tmp/stop-comparison`
 and create that file when needed. The driver finishes its current call and records remaining attempts
 as unmeasured. The full schedule is persisted before the first call, so unexpected termination also
