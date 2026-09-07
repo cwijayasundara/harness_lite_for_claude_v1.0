@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 extends: close-the-harness, correct-existing-mechanisms, compare-native-claude, prune-session-inventory
+by: cwijayasundara (conversation authorization, recorded by Codex)
+at: 2026-09-07T14:30:55.566Z
+digest: sha256:0870c8dd9a85a6aa9937626b625f3ba0ab16cf000ac5d5ccf6593dc24a1c6858
 ---
 # Spec: complete-native-comparisons
 
