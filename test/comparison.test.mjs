@@ -88,3 +88,28 @@ test('bounded rg retrieval uses source hits and rejects deleted-symbol golden en
   const found=boundedSearch(cfg,'place_order');assert.ok(found.tokens<=1200);assert.ok(found.included.some(p=>p.module==='src/app/service.py'));
   assert.throws(()=>bench([{root:fixture,term:'deleted_symbol',answer:'src/app/service.py'}]),/golden symbol missing/);
 });
+
+test('comparison budget reserves unknown billing and never launches an extra paid call',async()=>{
+  const evidenceRoot=mkdtempSync(path.join(tmpdir(),'comparison-budget-'));let calls=0;
+  try{
+    const out=await runComparisons({tasks:[{id:'ledger',fixture:'campaign-ledger',steps:[{}]}],models,root,fixturesDir:FIXTURES,evidenceRoot,maxUsd:.1,
+      invokeFactory:()=>async args=>{calls++;assert.equal(args.budgetUsd,.1);return {usage:{}};},
+      runCampaign:async({invoke})=>{const r=await invoke({budgetUsd:1.5});return {pass:false,billingComplete:false,usage:r.usage,phases:[]};}});
+    assert.equal(calls,1);assert.equal(out.remainingUsd,0);
+    assert.ok(out.attempts.slice(1).every(a=>a.status==='unmeasured'));
+    assert.equal(out.attempts.length,24);
+  }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
+});
+
+test('successful calibration runs three pairs in alternating order and retains all outcomes',async()=>{
+  const evidenceRoot=mkdtempSync(path.join(tmpdir(),'comparison-pairs-'));
+  try{
+    const out=await runComparisons({tasks:[{id:'ledger',fixture:'campaign-ledger',steps:[{}]}],models,root,fixturesDir:FIXTURES,evidenceRoot,maxUsd:1,
+      invokeFactory:()=>async()=>({usage:{usd:.001}}),
+      runCampaign:async({invoke})=>{await invoke({budgetUsd:.1});return {pass:true,completedSteps:1,billingComplete:true,usage:{usd:.001},phases:[{name:'model-plan'}]};}});
+    assert.equal(out.attempts.length,24);assert.ok(out.attempts.every(a=>a.status==='pass'));
+    assert.deepEqual(out.attempts.filter(a=>a.pair==='native'&&a.kind==='paired').map(a=>a.config.id),['native','harness','harness','native','native','harness']);
+    assert.ok(out.calibrations.every(c=>c.successful&&c.projectedUsd>0));
+    assert.ok(Math.abs(out.remainingUsd-.976)<1e-9);
+  }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
+});

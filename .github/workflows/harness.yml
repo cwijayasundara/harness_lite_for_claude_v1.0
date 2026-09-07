@@ -96,7 +96,7 @@ jobs:
             exit 0
           fi
           git diff --name-only "origin/$BASE_REF...HEAD" \
-            | grep -E '^(\.aidlc/(bin/|instructions\.md|harness\.toml|skills/|roles/|policies/|adapters/|checks/|sensors/|lib/|hooks/|templates/)|\.claude/(CLAUDE\.md|settings\.json)|\.claude-plugin/|\.github/workflows/harness\.yml|evals/(tasks\.json|products\.json|Dockerfile|expected\.json|fixtures/|lib/|run\.mjs|agent-mechanisms\.mjs))' \
+            | grep -E '^(\.aidlc/(bin/|instructions\.md|harness\.toml|skills/|roles/|policies/|adapters/|checks/|sensors/|lib/|hooks/|templates/)|\.claude/(CLAUDE\.md|settings\.json)|\.claude-plugin/|\.github/workflows/harness\.yml|evals/(tasks\.json|products\.json|Dockerfile|expected\.json|fixtures/|lib/|bench/|run\.mjs|agent-mechanisms\.mjs))' \
             && echo "run=true" >> "$GITHUB_OUTPUT" || echo "run=false" >> "$GITHUB_OUTPUT"
 
       # Without a key the job says so and stops. It does not pass quietly: a steering change that

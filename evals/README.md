@@ -48,3 +48,52 @@ one change and explicitly records a partial trial. `HARNESS_PRODUCT_DOCKER=1 nod
  test/product-trials.test.mjs` exercises isolation and grading with no model calls.
 Every attempt retains source snapshots and phase evidence under `.aidlc/evals/products/`, even
 when it fails. Those private outputs are not mounted into the agent container.
+
+## Native, graph and model comparisons
+
+```
+node evals/run.mjs --compare --max-suite-usd 40
+```
+
+This extends the existing runner. It runs these experiments **sequentially**, using both products:
+
+1. Native Claude Code versus the harness, both using `[models].generator`.
+2. The harness without versus with fresh bounded graph context, using that same generator.
+3. `[models].evaluator` implementing directly versus `[models].evals` implementing with fresh,
+   read-only `[models].evaluator` evaluation of each candidate and bounded repair feedback.
+
+Each experiment starts with a first-change infrastructure smoke for each arm and product. Known
+smoke spend per model call is scaled to the campaign's planned calls and multiplied by two before
+starting three paired repetitions. Arm order alternates between repetitions. The suite cap includes
+smokes, failures and repairs; missing billing reserves the entire invocation allowance. Calibration
+failure, missing credentials/isolation and insufficient remaining budget produce explicit unmeasured
+records for the scheduled repetitions. Provider/model errors remain incomplete, with no fallback.
+The CLI exits nonzero if any scheduled attempt is failed, incomplete or unmeasured.
+
+Native staging installs no harness and mounts no plugin. Its ordinary `CLAUDE.md` describes the
+project workflow, test command and compatibility expectations. Both arms can use Read/Grep/Glob,
+Write/Edit, `rg`, bounded `sed` reads and `node --test`. Planning source and Git metadata are read-only;
+implementation cannot alter Git or harness approval artifacts. The driver owns simulated decisions,
+private acceptance and commits. These are scoped, unattended Claude Code trials, not unrestricted
+interactive desktop sessions. Native approval is an explicit conversational driver decision; harness
+approval additionally uses the ordinary artifact/receipt protocol. Consequential questions remain
+possible; the driver does not invent answers outside the scenario.
+
+For the graph experiment, both disposable harness plugin copies suppress automatic cached maps.
+The graph arm gets fresh source packs (up to 1,200 estimated tokens per affected source file) in its
+implementation prompt; both arms retain `rg` and bounded reads. This measures supplied retrieval
+assistance, not whether an agent voluntarily chooses graph tools. The copied plugin is experimental;
+production configuration and controls remain unchanged. `node evals/bench/pack-bench.mjs` separately
+compares graph packs against literal `rg` results with bounded reads under the same 1,200-token
+budget. Historical whole-file totals are context, not evidence that graph assistance earns its cost.
+Golden entries must identify a real source symbol, so deleted symbols cannot silently count as hits.
+
+Every invocation and attempt is saved under `.aidlc/evals/comparisons/<timestamp>/`, including a
+started record before a call, requested and actual model usage (including CLI auxiliary models),
+tool versions, harness/scenario/fixture/candidate identity, latency, token/cache usage when supplied,
+public/private verification, retries and external decisions. Full transcripts and product Git histories
+remain local private evidence. The comparison summary groups smoke and paired results separately
+and computes cost per accepted change using **all** attempts' spend. Unknown billing yields unknown
+cost per accepted change. Unnecessary-question counts are null until independently classified;
+transcript punctuation is not a valid proxy. Three repetitions inform a decision, not a general
+reliability estimate. The comparison does not implement item 5 pruning.
