@@ -72,9 +72,9 @@ The CLI exits nonzero if any scheduled attempt is failed, incomplete or unmeasur
 
 Native staging installs no harness and mounts no plugin. Its ordinary `CLAUDE.md` describes the
 project workflow, test command and compatibility expectations. Both arms can use Read/Grep/Glob,
-Write/Edit, `rg`, bounded `sed` reads and `node --test`. Planning source and Git metadata are read-only;
+Write/Edit and normal Bash access, including `rg`, bounded reads, local runtime probes and process cleanup. Planning source and Git metadata are read-only;
 implementation cannot alter Git or harness approval artifacts. The driver owns simulated decisions,
-private acceptance and commits. These are scoped, unattended Claude Code trials, not unrestricted
+private acceptance and commits. These are isolated, unattended Claude Code trials, not unrestricted
 interactive desktop sessions. Native approval is an explicit conversational driver decision; harness
 approval additionally uses the ordinary artifact/receipt protocol. Consequential questions remain
 possible; the driver does not invent answers outside the scenario.
@@ -84,9 +84,9 @@ The graph arm gets fresh source packs (up to 1,200 estimated tokens per affected
 implementation prompt; both arms retain `rg` and bounded reads. This measures supplied retrieval
 assistance, not whether an agent voluntarily chooses graph tools. The copied plugin is experimental;
 production configuration and controls remain unchanged. `node evals/bench/pack-bench.mjs` separately
-compares graph packs against literal `rg` results with bounded reads under the same 1,200-token
+compares graph packs against declaration-first `rg` results with bounded reads under the same 1,200-token
 budget. Historical whole-file totals are context, not evidence that graph assistance earns its cost.
-Golden entries must identify a real source symbol, so deleted symbols cannot silently count as hits.
+Both visible search hits and source reads count toward the budget. Golden entries must identify a real source symbol, so deleted symbols cannot silently count as hits.
 
 Every invocation and attempt is saved under `.aidlc/evals/comparisons/<timestamp>/`, including a
 started record before a call, requested and actual model usage (including CLI auxiliary models),
@@ -97,3 +97,13 @@ and computes cost per accepted change using **all** attempts' spend. Unknown bil
 cost per accepted change. Unnecessary-question counts are null until independently classified;
 transcript punctuation is not a valid proxy. Three repetitions inform a decision, not a general
 reliability estimate. The comparison does not implement item 5 pruning.
+
+`economics` combines smoke and paired spend per configuration; `summary` keeps the two kinds
+separate. Failed verification attempts are counted separately from confirmed regressions: if
+a failure has not been classified as new behaviour versus a regression, the regression count is
+unknown. Original public/private failure evidence remains available for classification.
+
+To abandon a running suite without interrupting billing collection, pass `--stop-file /tmp/stop-comparison`
+and create that file when needed. The driver finishes its current call and records remaining attempts
+as unmeasured. The full schedule is persisted before the first call, so unexpected termination also
+leaves pending attempts visible. Do not reuse an existing stop file for a new run.

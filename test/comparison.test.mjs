@@ -8,7 +8,7 @@ import {comparisonPairs,summarizeComparisons,configureComparison,runComparisons}
 import {stage,isolateStage,productDockerArgs,FIXTURES} from '../evals/lib/stage.mjs';
 import {invokerArgs} from '../evals/lib/invoker.mjs';
 import {loadConfig} from '../.aidlc/lib/config.mjs';
-import {ensure} from '../.aidlc/lib/graph.mjs';
+import {ensure,load} from '../.aidlc/lib/graph.mjs';
 import {refresh} from '../.aidlc/lib/refresh.mjs';
 import {boundedSearch,bench} from '../evals/bench/pack-bench.mjs';
 const root=path.resolve('.');
@@ -32,7 +32,7 @@ test('native staging has normal instructions, public tests and no harness plugin
     const mounts=productDockerArgs(s,{phase:'implement'}).join(' ');
     assert.ok(!mounts.includes('dst=/plugin'));assert.ok(mounts.includes('dst=/work/.git,readonly'));
     const args=invokerArgs({product:true,native:true,comparison:true,model:'capable',budgetUsd:1});
-    assert.ok(!args.includes('--plugin-dir'));assert.ok(args.includes('Bash(rg *)'));assert.ok(args.includes('Bash(node --test*)'));
+    assert.ok(!args.includes('--plugin-dir'));assert.equal(args[args.indexOf('--allowedTools')+1],'Bash');
     const review=invokerArgs({product:true,review:true,comparison:true,model:'strong',budgetUsd:1});
     assert.ok(!review.join(' ').includes('Bash'));assert.ok(review.includes('--safe-mode'));
   }finally{s.cleanup();}
@@ -70,6 +70,7 @@ test('graph reconciles shell edits with unchanged mtime, deleted symbols, rename
     const cfg=loadConfig(s.work),file=path.join(s.work,'src/ledger.mjs');
     const before=ensure(cfg);const st=statSync(file);
     writeFileSync(file,readFileSync(file,'utf8').replaceAll('addCustomer','newCustomer'));utimesSync(file,st.atime,st.mtime);
+    assert.equal(load(cfg),null,'advisory cache reads must reject stale source');
     const edited=ensure(cfg);assert.notEqual(edited.fingerprint,before.fingerprint);
     assert.ok(!edited.modules['src/ledger.mjs'].symbols.some(s=>s.name==='addCustomer'));
     renameSync(file,path.join(s.work,'src/moved.mjs'));
@@ -111,5 +112,21 @@ test('successful calibration runs three pairs in alternating order and retains a
     assert.deepEqual(out.attempts.filter(a=>a.pair==='native'&&a.kind==='paired').map(a=>a.config.id),['native','harness','harness','native','native','harness']);
     assert.ok(out.calibrations.every(c=>c.successful&&c.projectedUsd>0));
     assert.ok(Math.abs(out.remainingUsd-.976)<1e-9);
+  }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
+});
+
+
+test('abandoned and started attempts remain incomplete with unknown billing',()=>{
+  const g=summarizeComparisons([{pair:'graph',config:{id:'with'},kind:'paired',status:'started'},
+    {pair:'graph',config:{id:'with'},kind:'paired',status:'abandoned'}])['graph/with/paired'];
+  assert.equal(g.incomplete,2);assert.equal(g.usd,null);assert.equal(g.costPerAcceptedChange,null);
+});
+
+
+test('operator abandonment retains the complete schedule and launches no model calls',async()=>{
+  const evidenceRoot=mkdtempSync(path.join(tmpdir(),'comparison-stop-'));
+  try{const out=await runComparisons({tasks:[{id:'ledger',fixture:'campaign-ledger',steps:[{}]}],models,root,fixturesDir:FIXTURES,evidenceRoot,maxUsd:1,shouldStop:()=>true,invokeFactory:()=>{throw new Error('must not invoke');}});
+    assert.equal(out.scheduledAttempts.length,24);assert.equal(out.attempts.length,24);assert.equal(out.pendingAttempts,0);
+    assert.ok(out.attempts.every(a=>a.status==='unmeasured'&&a.reason==='operator_abandoned'));
   }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
 });

@@ -4,7 +4,7 @@ import {spawnSync,execFileSync} from 'node:child_process';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {stage,isolateStage} from './stage.mjs';
-import {runComparisonCampaign} from './campaign.mjs';
+import {runComparisonCampaign,walk} from './campaign.mjs';
 import {verifyLedger,verifyService} from './assertions.mjs';
 
 export function comparisonPairs(models) {
@@ -20,9 +20,9 @@ export function summarizeComparisons(attempts) {
   const groups={};
   for(const a of attempts){
     const key=`${a.pair}/${a.config.id}/${a.kind}`;
-    const g=groups[key]??={attempts:0,passed:0,incomplete:0,unmeasured:0,acceptedChanges:0,regressions:0,approvalViolations:0,retries:0,reportedUsd:0,billingComplete:true,latencyMs:0,unnecessaryQuestions:null};
-    g.attempts++;g.passed+=Number(!!a.result?.pass);g.incomplete+=Number(!!a.result?.incomplete);g.unmeasured+=Number(a.status==='unmeasured');
-    g.acceptedChanges+=a.result?.completedSteps??0;g.regressions+=a.result?.regressions??0;g.approvalViolations+=a.result?.approvalViolations??0;g.retries+=a.result?.retries??0;
+    const g=groups[key]??={attempts:0,passed:0,incomplete:0,unmeasured:0,acceptedChanges:0,regressions:0,verificationFailures:0,approvalViolations:0,retries:0,reportedUsd:0,billingComplete:true,latencyMs:0,unnecessaryQuestions:null};
+    g.attempts++;g.passed+=Number(!!a.result?.pass);g.incomplete+=Number(!!a.result?.incomplete||['started','incomplete','abandoned'].includes(a.status));g.unmeasured+=Number(a.status==='unmeasured');
+    g.acceptedChanges+=a.result?.completedSteps??0;g.regressions=g.regressions===null||a.result?.regressions===null?null:g.regressions+(a.result?.regressions??0);g.verificationFailures+=a.result?.verificationFailures??0;g.approvalViolations+=a.result?.approvalViolations??0;g.retries+=a.result?.retries??0;
     g.reportedUsd+=a.result?.usage?.reportedUsd??a.result?.usage?.usd??0;
     g.billingComplete&&=!!a.result&&a.result.billingComplete!==false;g.latencyMs+=a.result?.latencyMs??0;
   }
@@ -53,17 +53,22 @@ export async function gradeComparisonProduct(s,step,product) {
   return proof;
 }
 
-export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,repetitions=3,invokeFactory,available=true,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=isolateStage}) {
+export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=isolateStage}) {
   if(!Number.isFinite(maxUsd)||maxUsd<=0)throw new Error('comparison budget must be finite and positive');
   if(!Number.isInteger(repetitions)||repetitions<1)throw new Error('repetitions must be a positive integer');
-  const pairs=comparisonPairs(models);
   mkdirSync(evidenceRoot,{recursive:true});
+  let pairs;
+  try{pairs=comparisonPairs(models);}catch(error){writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify({kind:'native-comparisons',status:'unmeasured',reason:'models_unconfigured',detail:error.message,models,attempts:[]},null,2)+'\n');throw error;}
   const revision=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
   const out={kind:'native-comparisons',started:new Date().toISOString(),harnessRevision:revision,
+    tools:{node:process.version,git:spawnSync('git',['--version'],{encoding:'utf8'}).stdout?.trim()??null,docker:spawnSync('docker',['--version'],{encoding:'utf8'}).stdout?.trim()??null},
     scenarioDigest:createHash('sha256').update(JSON.stringify(tasks)).digest('hex'),models,maxUsd,repetitions,attempts:[],calibrations:[],remainingUsd:maxUsd};
-  const save=()=>{out.summary=summarizeComparisons(out.attempts);writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify(out,null,2)+'\n');};
+  out.scheduledAttempts=pairs.flatMap(pair=>[0,...Array.from({length:repetitions},(_,i)=>i+1)].flatMap(repeat=>pair.arms.flatMap(config=>tasks.map(task=>`${pair.id}-${config.id}-${repeat?'paired':'smoke'}-${repeat}-${task.id}`))));
+  const unavailable=()=>shouldStop()?'operator_abandoned':!available?'credentials_or_isolation_unavailable':remaining<=0?'budget_exhausted':null;
+  const save=()=>{out.summary=summarizeComparisons(out.attempts);out.pendingAttempts=out.scheduledAttempts.length-out.attempts.length;out.economics=summarizeComparisons(out.attempts.map(a=>({...a,kind:'all'})));writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify(out,null,2)+'\n');};
   let remaining=maxUsd;
   const bounded=invoke=>async args=>{
+    if(shouldStop())return {exitCode:1,incomplete:{reason:'operator_abandoned'},usage:{usd:0}};
     if(remaining<=0)return {exitCode:1,incomplete:{reason:'comparison_budget_exhausted'},usage:{usd:0}};
     const allowance=Math.min(args.budgetUsd,remaining);let result;
     try{result=await invoke({...args,budgetUsd:allowance});}catch(error){remaining-=allowance;out.remainingUsd=remaining;save();throw error;}
@@ -72,11 +77,14 @@ export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot
   };
   const attempt=async(pair,config,task,kind,repeat,reason=null)=>{
     const id=`${pair.id}-${config.id}-${kind}-${repeat}-${task.id}`;
-    const row={id,pair:pair.id,config,task:task.id,kind,repeat,status:reason?'unmeasured':'started',reason,evidence:path.join(evidenceRoot,id)};
+    const fixtureRoot=path.join(fixturesDir,task.fixture);
+    const fixtureDigest=createHash('sha256').update(JSON.stringify(walk(fixtureRoot).map(f=>[f,createHash('sha256').update(readFileSync(path.join(fixtureRoot,f))).digest('hex')]))).digest('hex');
+    const row={id,fixtureDigest,pair:pair.id,config,task:task.id,kind,repeat,status:reason?'unmeasured':'started',reason,evidence:path.join(evidenceRoot,id)};
     out.attempts.push(row);save();if(reason)return row;
     let s;
     try{
       s=stageTrial(fixturesDir,task.fixture,{product:true,native:!!config.native});isolate(s,root);configureComparison(s);
+      row.pluginDigest=s.native?null:createHash('sha256').update(JSON.stringify(walk(s.plugin).map(f=>[f,createHash('sha256').update(readFileSync(path.join(s.plugin,f))).digest('hex')]))).digest('hex');
       const invoke=bounded(invokeFactory(config));
       row.result=await runCampaign({task,config,invoke,sandbox:s,evidenceDir:row.evidence,evaluateProduct:(sandbox,step)=>gradeComparisonProduct(sandbox,step,task.product),log});
       row.status=row.result.incomplete?'incomplete':row.result.pass?'pass':'fail';
@@ -85,19 +93,19 @@ export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot
   };
   for(const pair of pairs){
     const smoke=[];
-    for(const config of pair.arms)for(const task of tasks)smoke.push(await attempt(pair,config,{...task,steps:task.steps.slice(0,1)},'smoke',0,!available?'credentials_or_isolation_unavailable':remaining<=0?'budget_exhausted':null));
+    for(const config of pair.arms)for(const task of tasks)smoke.push(await attempt(pair,config,{...task,steps:task.steps.slice(0,1)},'smoke',0,unavailable()));
     const successful=smoke.every(a=>a.result?.pass&&a.result.billingComplete);
     // First-change spend per phase, scaled by known campaign call counts, plus a 2x margin.
     const smokeCalls=smoke.flatMap(a=>a.result?.phases??[]).filter(p=>p.name?.startsWith('model-')).length;
     const smokeCost=smoke.reduce((n,a)=>n+(a.result?.usage?.usd??0),0);
     const calls=tasks.reduce((n,t)=>n+t.steps.reduce((m,s)=>m+2+Number(!!s.reject)+Number(!!s.stale)+Number(!!s.characterize)+2*Number(!!s.reviewSeed)+Number(pair.arms.some(c=>c.evaluate)),0),0);
     const projectedUsd=smokeCalls?2*smokeCost/smokeCalls*calls*2*repetitions:null;
-    const reason=!available?'credentials_or_isolation_unavailable':!successful?'calibration_failed_or_unknown_billing':projectedUsd>remaining?'calibrated_suite_unaffordable':null;
+    const reason=unavailable()??(!successful?'calibration_failed_or_unknown_billing':projectedUsd>remaining?'calibrated_suite_unaffordable':null);
     out.calibrations.push({pair:pair.id,successful,smokeCost,projectedUsd,remainingUsd:remaining,reason});save();
     for(let repeat=1;repeat<=repetitions;repeat++){
       // Alternate order within pairs to reduce systematic time/order bias.
       const arms=repeat%2?pair.arms:[...pair.arms].reverse();
-      for(const config of arms)for(const task of tasks)await attempt(pair,config,task,'paired',repeat,reason??(remaining<=0?'budget_exhausted':null));
+      for(const config of arms)for(const task of tasks)await attempt(pair,config,task,'paired',repeat,unavailable()??reason);
     }
   }
   out.finished=new Date().toISOString();save();return out;

@@ -32,10 +32,10 @@ export const GOLDEN = [
 
 const cfgFor = (root) => ({
   layout: { root, graph: path.join(root, '.aidlc', 'state', 'graph.json'), state: path.join(root, '.aidlc', 'state') },
-  graph: { include: ['.', '.aidlc'], exclude: ['node_modules', '.venv', 'dist', '.git', '__pycache__', 'fixtures'] },
+  graph: { include: ['.', '.aidlc'], exclude: ['node_modules', '.venv', 'dist', '.git', '__pycache__', 'fixtures', 'products', 'comparisons'] },
 });
 
-// The baseline an agent without a graph actually pays: every file mentioning the term, whole.
+// Historical whole-file baseline, retained for continuity; not a competent retrieval strategy.
 function naiveTokens(cfg, term) {
   let total = 0;
   let files = 0;
@@ -49,25 +49,34 @@ function naiveTokens(cfg, term) {
   return { total, files };
 }
 
-// Competent non-graph navigation: literal rg hits with bounded surrounding reads.
+// Competent non-graph navigation: declaration search, then bounded surrounding reads.
 // Same discoverable files and 1,200-token ceiling; no expected answer influences retrieval.
 export function boundedSearch(cfg, term, budget = 1200) {
   const files=discover(cfg);
-  const out=spawnSync('rg',['--json','--fixed-strings','--',term,...files],{cwd:cfg.layout.root,encoding:'utf8',maxBuffer:32e6});
-  if(out.error || ![0,1].includes(out.status))throw new Error(`rg unavailable: ${out.error?.message??out.stderr}`);
-  const matches=out.stdout.split('\n').filter(Boolean).map(line=>JSON.parse(line)).filter(row=>row.type==='match');
-  const pieces=[];let tokens=0;
-  // Definitions first, then references. This ranking uses source syntax, not golden answers.
-  matches.sort((a,b)=>Number(/(?:function|def|const|class)\s/.test(b.data.lines.text))-Number(/(?:function|def|const|class)\s/.test(a.data.lines.text)));
+  if(!files.length)return {tokens:0,included:[],search:''};
+  const escaped=term.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const definition=`(?:function|def|class|const|let|var)\\s+${escaped}\\b`;
+  const run=args=>{
+    const out=spawnSync('rg',['--json',...args,'--',...files],{cwd:cfg.layout.root,encoding:'utf8',maxBuffer:32e6});
+    if(out.error||![0,1].includes(out.status))throw new Error(`rg unavailable: ${out.error?.message??out.stderr}`);
+    return out.stdout.split('\n').filter(Boolean).map(line=>JSON.parse(line)).filter(row=>row.type==='match');
+  };
+  // Search declarations first, as a competent agent can do directly with rg. Fall back to
+  // literal references when there is no declaration. No golden answer affects selection.
+  let matches=run(['--regexp',definition]);
+  if(!matches.length)matches=run(['--fixed-strings','--regexp',term]);
+  const pieces=[];let tokens=0,search='';
   for(const {data} of matches){
     const file=data.path.text;if(pieces.some(p=>p.module===file))continue;
+    const hit=`${file}:${data.line_number}:${data.lines.text}`;
     const lines=readFileSync(path.join(cfg.layout.root,file),'utf8').split('\n');
     const start=Math.max(0,data.line_number-4),end=Math.min(lines.length,data.line_number+12);
     const text=`${file}:${start+1}-${end}\n${lines.slice(start,end).join('\n')}`;
-    const cost=estimateTokens(text);if(tokens+cost>budget)continue;
-    tokens+=cost;pieces.push({module:file,text});
+    // Charge both the visible search hit and bounded read. Limit returned search output too.
+    const cost=estimateTokens(hit+text);if(tokens+cost>budget)continue;
+    tokens+=cost;search+=hit;pieces.push({module:file,text});
   }
-  return {tokens,included:pieces};
+  return {tokens,included:pieces,search};
 }
 
 export function bench(golden = GOLDEN) {

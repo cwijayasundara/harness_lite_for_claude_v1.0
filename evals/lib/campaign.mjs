@@ -337,16 +337,18 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
   mkdirSync(evidenceDir,{recursive:true});
   const cfg=s.native?null:loadConfig(s.work), approvals=cfg?approvalDriver(cfg):null;
   const result={assertions:[],phases:[],decisions:[],completedSteps:0,totalSteps:t.steps.length,
-    usage:{usd:0},billingComplete:true,approvalViolations:0,retries:0,regressions:0,unnecessaryQuestions:null};
+    usage:{usd:0},billingComplete:true,approvalViolations:0,retries:0,regressions:0,verificationFailures:0,unnecessaryQuestions:null};
   let sessionId=null;
   const started=Date.now();
   const git=(...args)=>execFileSync('git',['-c','core.hooksPath=/dev/null','-c','commit.gpgsign=false',...args],{cwd:s.work,encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
   const commit=message=>{assertProductTree(s.work);git('add','-A');if(git('status','--porcelain'))git('commit','-qm',message);return git('rev-parse','HEAD');};
   const save=()=>writeFileSync(path.join(evidenceDir,'phases.json'),JSON.stringify(result,null,2)+'\n');
-  const event=(name,extra={})=>{result.phases.push({name,...extra});save();log(`${config.id}/${t.id}: ${name}`);};
-  const sourceDigest=()=>walk(s.work).filter(f=>!f.startsWith('.aidlc/')&&f!=='CODEBASE-MAP.md').map(f=>[f,createHash('sha256').update(readFileSync(path.join(s.work,f))).digest('hex')]);
+  const event=(name,extra={})=>{result.phases.push({...extra,...(extra.name?{check:extra.name}:{}),name});save();log(`${config.id}/${t.id}: ${name}`);};
+  const sourceDigest=()=>walk(s.work).filter(f=>s.native||(!f.startsWith('.aidlc/')&&f!=='CODEBASE-MAP.md')).map(f=>[f,createHash('sha256').update(readFileSync(path.join(s.work,f))).digest('hex')]);
   const call=async(prompt,phase='plan',sandbox=s)=>{
     const before=phase==='plan'?sourceDigest():null;
+    const approvalFields=()=>cfg?walk(s.work).filter(f=>/^\.aidlc\/artifacts\/[^/]+\/(spec|plan)\.md$/.test(f)).map(f=>{const {front}=parse(readFileSync(path.join(s.work,f),'utf8'));return [f,...['status','by','at','digest','spec_digest'].map(k=>front[k]??null)];}):[];
+    const beforeApprovals=phase==='plan'?approvalFields():null;
     event('invocation-started',{phase,prompt});
     let out;
     try { out=await invoke({prompt,phase,sandbox,cwd:s.work,sessionId:phase==='review'?null:sessionId,timeoutMs:t.timeoutMs,budgetUsd:t.budgetUsd,task:t}); }
@@ -357,7 +359,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
     assert.ok(out.sessionId,'actual CLI session required');
     if(phase!=='review')sessionId=out.sessionId;
     assertProductTree(s.work);
-    if(before) {try{assert.deepEqual(sourceDigest(),before);}catch(error){result.approvalViolations++;throw new Error('product changed before approval');}}
+    if(before) {try{assert.deepEqual(sourceDigest(),before);assert.deepEqual(approvalFields(),beforeApprovals);}catch(error){result.approvalViolations++;throw new Error('product or approval metadata changed before driver authorization');}}
     return out;
   };
   const publicCheck=()=>{
@@ -373,9 +375,9 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
     writeFileSync(path.join(exported,'candidate.diff'),git('diff',base,candidate));
     const out=await call(`Independently review exact candidate ${candidate}, base ${base}. Read candidate.diff and affected source against this requirement: ${step.request}\n${step.behaviours.join('\n')}\nReturn JSON only: {"verdict":"accept" or "changes-requested","findings":["concrete defect with file evidence"]}. Do not claim tests ran.`, 'review',{...s,work:exported});
     let parsed;try{const raw=JSON.parse(out.transcript.slice(out.transcript.indexOf('{')));parsed=raw;}catch{
-      const matches=out.transcript.match(/\{\s*"verdict"\s*:[\s\S]*?"findings"\s*:\s*\[[\s\S]*?\]\s*\}/);if(matches)parsed=JSON.parse(matches[0]);
+      const matches=out.transcript.match(/\{\s*"verdict"\s*:[\s\S]*?"findings"\s*:\s*\[[\s\S]*?\]\s*\}/);if(matches){try{parsed=JSON.parse(matches[0]);}catch{/* Invalid evaluator JSON is incomplete below. */}}
     }
-    assert.ok(['accept','changes-requested'].includes(parsed?.verdict)&&Array.isArray(parsed.findings),'unparseable independent review');
+    if(!['accept','changes-requested'].includes(parsed?.verdict)||!Array.isArray(parsed.findings)||!parsed.findings.every(f=>typeof f==='string')||(parsed.verdict==='changes-requested'&&!parsed.findings.length))throw Object.assign(new Error('unparseable independent review'),{incomplete:{reason:'review_incomplete'}});
     event('independent-verdict',{base,candidate,...parsed});
     if(seeded)assert.equal(parsed.verdict,'changes-requested','seeded defect missed');
     return parsed;
@@ -410,7 +412,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
         await call('The proposed scope was clarified after the earlier decision: failed payments must not mutate state. Previous approval is stale. Request fresh approval and stop.');
         if(cfg){commit('Driver clarification');for(const kind of ['spec','plan'])approvals.decide({slug:step.slug,kind,decision:'approve'});}
       }
-      result.decisions.push({slug:step.slug,decision:'approve',simulated:true});
+      result.decisions.push({slug:step.slug,decision:'approve',simulated:true,revision:git('rev-parse','HEAD'),requirementsDigest:createHash('sha256').update(JSON.stringify({request:step.request,behaviours:step.behaviours,files:step.files})).digest('hex')});
       if(cfg)approvals.assertImplementation(step.slug);
       const authorized=sourceDigest();
       if(step.missingTool){const out=spawnSync('docker',[...productDockerArgs(s),'missing-product-tool'],{encoding:'utf8',timeout:15000});assert.notEqual(out.status,0);event('missing-tool-reproduced');}
@@ -435,14 +437,14 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
           validateScope();const publicOutput=publicCheck();const proof=await evaluateProduct(s,step);
           if(config.evaluate){const verdict=await review(base,step);if(verdict.verdict!=='accept')throw new Error(`Independent evaluation: ${verdict.findings.join('; ')}`);}
           result.assertions.push(proof);event('product-proof',{slug:step.slug,publicOutput,...proof});break;
-        }catch(error){result.regressions++;event('product-proof-failed',{slug:step.slug,detail:error.message});if(attempt===2)throw error;result.retries++;await call(`Repair within the same approved scope. External verification failed: ${error.message}`,'implement');}
+        }catch(error){if(error.incomplete)throw error;result.verificationFailures++;result.regressions=null;event('product-proof-failed',{slug:step.slug,detail:error.message});if(attempt===2)throw error;result.retries++;await call(`Repair within the same approved scope. External verification failed: ${error.message}`,'implement');}
       }
       if(step.reviewSeed){const accepted=commit('Accepted before seed');const file=path.join(s.work,'src/ledger.mjs');writeFileSync(file,readFileSync(file,'utf8')+'\nisOverdue = () => true;\n');
         let failed=false;try{await evaluateProduct(s,step);}catch{failed=true;}assert.ok(failed,'seed must fail acceptance');
         const verdict=await review(accepted,step,true);await call(`Repair independently reviewed regression within approved scope: ${verdict.findings.join('; ')}`,'implement');validateScope();publicCheck();await evaluateProduct(s,step);
       }
       if(cfg){const file=path.join(s.work,'.aidlc/artifacts',step.slug,'intent.md');writeFileSync(file,readFileSync(file,'utf8').replace('status: draft','status: closed'));}
-      result.candidateRevision=commit(`Accepted ${step.slug}`);result.completedSteps++;save();
+      result.candidateRevision=commit(`Accepted ${step.slug}`);result.completedSteps++;event('accepted-change',{slug:step.slug,candidateRevision:result.candidateRevision});
     }
   }catch(error){if(error.incomplete)result.incomplete=error.incomplete;else result.assertions.push({name:'comparison-campaign',pass:false,detail:error.message});event('campaign-stopped',{error:error.message});}
   finally {
@@ -451,6 +453,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
     result.pass=!result.incomplete&&result.completedSteps===result.totalSteps&&result.assertions.length>0&&result.assertions.every(a=>a.pass);
     save();cpSync(s.work,path.join(evidenceDir,'product'),{recursive:true,dereference:false,verbatimSymlinks:true});
     cpSync(s.data,path.join(evidenceDir,'runtime-data'),{recursive:true});
+    if(existsSync(path.join(s.root,'service-v3-data')))cpSync(path.join(s.root,'service-v3-data'),path.join(evidenceDir,'service-v3-data'),{recursive:true});
   }
   return result;
 }

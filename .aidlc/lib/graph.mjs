@@ -222,7 +222,7 @@ export function build(cfg, { only = null, previous = null } = {}) {
   for (const [rel, m] of Object.entries(modules)) {
     m.imports = [...new Set(m.raw_imports.map((s) => resolve(rel, s)).filter((x) => x && x !== rel))];
   }
-  return { fingerprint: fingerprint(cfg), version: GRAPH_VERSION, built_at: new Date().toISOString(), root, modules };
+  return { fingerprint: only ? null : fingerprint(cfg), version: GRAPH_VERSION, built_at: new Date().toISOString(), root, modules };
 }
 
 function symbolTable(g) {
@@ -341,7 +341,7 @@ export function load(cfg) {
   if (!existsSync(cfg.layout.graph)) return null;
   try {
     const g = JSON.parse(readFileSync(cfg.layout.graph, 'utf8'));
-    return g.version === GRAPH_VERSION ? g : null;
+    return g.version === GRAPH_VERSION && g.fingerprint === fingerprint(cfg) ? g : null;
   } catch { return null; }
 }
 
@@ -349,7 +349,7 @@ export function load(cfg) {
 // one machine where someone had run the builder by hand.
 export function ensure(cfg) {
   const existing = load(cfg);
-  if (existing && existing.fingerprint === fingerprint(cfg)) return existing;
+  if (existing) return existing;
   const g = build(cfg);
   save(cfg, g);
   return g;

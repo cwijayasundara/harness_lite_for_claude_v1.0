@@ -12,7 +12,7 @@ export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd 
     '--no-session-persistence', '--output-format', 'json', '--max-budget-usd', String(budgetUsd)];
   if (product) return [
     '-p', prompt, '--model', model, '--tools', comparison ? 'Read,Grep,Glob,Write,Edit,Bash' : 'Read,Grep,Glob,Write,Edit',
-    ...(comparison ? ['--allowedTools','Bash(rg *)','Bash(sed *)','Bash(node --test*)'] : []),
+    ...(comparison ? ['--allowedTools','Bash'] : []),
     '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
     '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
     '--output-format', 'json', ...(native ? [] : ['--plugin-dir','/plugin']),
@@ -72,13 +72,14 @@ export function claudeInvoker({ pluginDir, model = null, native = false, compari
     let usage = {};
     let transcript = raw;
     let incomplete = null;
-    let session = null, modelUsage = null, turns = null;
+    let session = null, modelUsage = null, turns = null, permissionDenials = [];
     try {
       const parsed = JSON.parse(r.stdout);
       transcript = [parsed.result, JSON.stringify(parsed)].filter(Boolean).join('\n');
       usage = { usd: parsed.total_cost_usd, ...parsed.usage };
       session = parsed.session_id; modelUsage = parsed.modelUsage; turns = parsed.num_turns;
-      const denied = (parsed.permission_denials ?? []).map((d) => d.tool_input?.command ?? d.tool_name);
+      permissionDenials = parsed.permission_denials ?? [];
+      const denied = permissionDenials.map((d) => d.tool_input?.command ?? d.tool_name);
       if (denied.length) transcript = `[permission denied: ${denied.join(' | ')}]\n${transcript}`;
 
       // A run that stopped before writing a result has no model output to grade. The 2026-09-02
@@ -100,6 +101,6 @@ export function claudeInvoker({ pluginDir, model = null, native = false, compari
       }
     } catch { /* not JSON: grade the raw transcript, which is still honest */ }
     if (sandbox && !incomplete && (timedOut || r.status !== 0 || !session)) incomplete = { reason: timedOut ? 'timed_out' : 'cli_incomplete', detail: raw.slice(-2000) };
-    return { latencyMs:Date.now()-started, requestedModel:model, transcript, usage, exitCode: r.status ?? -1, timedOut, incomplete, sessionId: session, modelUsage, turns };
+    return { latencyMs:Date.now()-started, requestedModel:model, transcript, usage, exitCode: r.status ?? -1, timedOut, incomplete, sessionId: session, modelUsage, turns, permissionDenials };
   };
 }

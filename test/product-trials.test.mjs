@@ -188,3 +188,31 @@ test('comparison campaigns grade both configurations and detect unapproved write
     }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
   }
 });
+
+test('unparseable independent comparison review is incomplete and does not request implementation repairs', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+  const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
+  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native:true}),ROOT);
+  const evidence=mkdtempSync(path.join(tmpdir(),'comparison-review-'));let implementations=0;
+  try{
+    const task={id:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'keep-api',request:'Preserve current behaviour',behaviours:['Keep API'],files:['src/ledger.mjs'],level:1}]};
+    const out=await runComparisonCampaign({task,config:{id:'evaluated',evaluate:true},sandbox:s,evidenceDir:evidence,evaluateProduct:()=>({name:'preserved',pass:true}),invoke:async({phase,sandbox,sessionId})=>{
+      if(phase==='implement')implementations++;
+      if(phase==='review'){assert.notEqual(sandbox.work,s.work);assert.equal(sessionId,null);}
+      return {sessionId:'test',exitCode:0,usage:{usd:0},transcript:phase==='review'?'not a review verdict':'Request approval.'};
+    }});
+    assert.equal(out.incomplete?.reason,'review_incomplete');assert.equal(implementations,1);assert.equal(out.retries,0);
+  }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
+});
+
+test('comparison detects agent self-approval before the driver replaces its proposal', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+  const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
+  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'comparison-forged-'));
+  try{
+    const task={id:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'keep-api',request:'Preserve API',behaviours:['Preserve API'],files:['src/ledger.mjs'],level:1}]};
+    const out=await runComparisonCampaign({task,config:{id:'harness'},sandbox:s,evidenceDir:evidence,evaluateProduct:()=>{throw new Error('must not reach acceptance');},invoke:async()=>{
+      const f=path.join(s.work,'.aidlc/artifacts/keep-api/spec.md');writeFileSync(f,readFileSync(f,'utf8').replace('status: draft','status: approved'));
+      return {sessionId:'test',exitCode:0,usage:{usd:0},transcript:'Approval recorded.'};
+    }});
+    assert.equal(out.pass,false);assert.equal(out.approvalViolations,1);assert.equal(out.decisions.length,0);
+  }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
+});

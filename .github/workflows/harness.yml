@@ -35,6 +35,7 @@ jobs:
         with: { node-version: '22' }
       # The harness has no package dependencies. Its CLI-presence test needs Claude installed;
       # no model requests or credentials are used by this job.
+      - run: sudo apt-get update && sudo apt-get install -y ripgrep
       - run: npm install --global @anthropic-ai/claude-code@2.1.263
       # Includes lifecycle-cli.test.mjs, which creates a real git repository and proves
       # committed approvals, failure exit codes, install idempotency, and incident SLA closure.
