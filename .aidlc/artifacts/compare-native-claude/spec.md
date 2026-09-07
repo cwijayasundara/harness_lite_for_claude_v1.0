@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 extends: automated-product-trials, close-the-harness, correct-existing-mechanisms
+by: cwijayasundara (conversation authorization, recorded by Codex)
+at: 2026-09-07T05:02:44.289Z
+digest: sha256:24a0a918389c9ad645e7a892edd6190ef9c2399481f298eead24ea99def507b3
 ---
 # Spec: compare-native-claude
 
