@@ -194,6 +194,14 @@ export function ledgerCalls(s, calls) {
   } finally {source.dispose();}
 }
 
+// Supporting documentation heuristic, not a semantic correctness proof. The private API
+// cases below prove the rule. Accept code-formatted, wrapped descriptions of returning false
+// at zero balance: item 5 retained a correct document falsely rejected by the old phrase check.
+export function ledgerDescriptionExplainsPaidRule(doc) {
+  const text=doc.replace(/[`*_]/g,'').replace(/\s+/g,' ');
+  return /paid[^.]*(?:not|never)[^.]*overdue|not overdue[^.]*paid|returns? false (?:once|when|if)[^.]*outstanding[^.]*zero \(fully paid\)/i.test(text);
+}
+
 export function verifyLedger(s, level) {
   const calls = [
     {fn:'addInvoice',args:[999,100,'2000-01-01']},

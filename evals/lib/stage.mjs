@@ -1,10 +1,13 @@
 // Staging: _base, then the fixture on top, then a pristine snapshot to diff against.
 // The work copy is a real git repo, because scope-drift and the commit stage read the diff.
-import { cpSync, mkdtempSync, existsSync, rmSync, mkdirSync, chmodSync, readdirSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, existsSync, rmSync, mkdirSync, chmodSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+export const PRODUCT_TEST_ARGS = ['--test', '--test-timeout=10000'];
+export const PRODUCT_TEST_COMMAND = `node ${PRODUCT_TEST_ARGS.join(' ')}`;
 
 export const FIXTURES = path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), 'fixtures');
 
@@ -19,12 +22,18 @@ export function stage(fixturesDir, name, { product = false, native = false } = {
   else cpSync(base, work, { recursive: true });
   cpSync(fx, work, { recursive: true });
   rmSync(path.join(work, 'README.md'), { force: true });
+  // Failed generated HTTP tests may leak listening servers. Bound the existing check inside
+  // disposable product trials so a seeded defect cannot consume an entire planning turn.
+  if(product){
+    const config=path.join(work,'.aidlc/harness.toml');
+    if(existsSync(config))writeFileSync(config,readFileSync(config,'utf8').replace(/(^test\s*=\s*")node --test(?=[" ])/m,`$1${PRODUCT_TEST_COMMAND}`));
+  }
   // Install through the real boundary. Hand-building only the shim omitted the inventory record
   // after Phase 1B, so the budget correctly failed every model task on an unaccounted surface.
   const realBin = path.join(path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url)))), '.aidlc', 'bin', 'harness');
   if (native) {
     rmSync(path.join(work, '.aidlc'), {recursive:true, force:true});
-    writeFileSync(path.join(work, 'CLAUDE.md'), 'Use existing code patterns and meaningful regression tests. Run node --test. Use rg and bounded source reads for navigation. Preserve public compatibility except explicit requirement changes. Ask about consequential ambiguity; routine implementation choices are yours. Follow the external driver’s current approval decision. No dependencies or remote deployment.\n');
+    writeFileSync(path.join(work, 'CLAUDE.md'), `Use existing code patterns and meaningful regression tests. Run ${PRODUCT_TEST_COMMAND}. Use rg and bounded source reads for navigation. Preserve public compatibility except explicit requirement changes. Ask about consequential ambiguity; routine implementation choices are yours. Follow the external driver’s current approval decision. No dependencies or remote deployment.\n`);
   }
   const installed = native ? {status:0} : spawnSync(process.execPath, [realBin, 'init', '--into', work], { cwd: work, encoding: 'utf8' });
   if (installed.status !== 0) throw new Error(`fixture harness install failed: ${installed.stderr || installed.stdout}`);

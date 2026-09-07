@@ -216,3 +216,14 @@ test('comparison detects agent self-approval before the driver replaces its prop
     assert.equal(out.pass,false);assert.equal(out.approvalViolations,1);assert.equal(out.decisions.length,0);
   }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
 });
+
+test('failed product tests with leaked servers return findings before the invocation deadline', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},()=>{
+  const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT);
+  try{
+    writeFileSync(path.join(s.work,'tests/leaked-server.test.mjs'),"import test from 'node:test'; import assert from 'node:assert/strict'; import http from 'node:http'; test('failure before cleanup',()=>{http.createServer().listen(0);assert.fail('seeded failure');});\n");
+    const out=runProductCheck(s,25000);
+    assert.equal(out.error,undefined,'the outer invocation must not time out');
+    assert.equal(out.status,1,'the failed test must remain a failure');
+    assert.match(out.stdout,/FAIL\s+test/);
+  }finally{s.cleanup();}
+});

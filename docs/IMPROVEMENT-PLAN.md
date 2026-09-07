@@ -116,7 +116,7 @@ after repeatable product evidence shows it necessary.
 | A | Complete for item 1 | Honest execution/reporting, hosted CI and explicit read-only evaluator verified |
 | B | Implemented and tested | Daily guidance simplified; bounded comparison found no regression, but friction reduction remains unproven |
 | C | Implemented and tested | Both live campaigns passed all 11 changes; private API/HTTP acceptance, failure recovery, saved-revision replay and hosted Docker checks passed |
-| D | Item 4 infrastructure implemented; comparisons incomplete | Native/model/graph comparison runner and bounded evidence delivered; full paired trials and item 5 pruning remain pending |
+| D | Item 5 validated; item 4 comparisons incomplete | The matched pruning experiment completed both products in both arms; retain the baseline because the simpler arm showed no operational benefit |
 
 First implementation slice: runner aggregation, malformed structured reports, full-run selection,
 absolute result reporting and CI conditions/trigger coverage. Files: .aidlc/lib/runner.mjs,
@@ -366,3 +366,57 @@ passed. Hosted unit/graph, Docker and Python cost jobs passed at
 The final wording/deadline fixes receive separate deterministic verification; they are not claimed
 as a newly completed paid campaign. Earlier approvals and the pre-existing CODEBASE-MAP.md edit
 remain unchanged. Detailed delivery checks are recorded in the change's evidence artifact.
+
+
+### Item 5 validated, 2026-09-07
+
+The existing eval CLI supports `--prune`: baseline and lean disposable configurations differ only
+in the automatic SessionStart budget inventory. Ledger warnings, approval context, graph and
+executable controls remain identical. A single arm can be rerun with `--prune-arm`. The validated
+command is `node evals/run.mjs --prune --max-suite-usd 9 --max-suite-minutes 40`; these are now the
+pruning defaults. Other comparison defaults and production control limits are unchanged.
+
+**The matched experiment is complete; retain the production baseline.** Both configurations
+passed all five ledger and six service changes. Each had zero verification failures, unplanned
+repair invocations and realized approval violations, with no manual product intervention.
+
+| Full paired campaigns | Baseline | Lean |
+|---|---:|---:|
+| Accepted product changes | 11 / 11 | 11 / 11 |
+| Reported USD | 2.6533 | 2.7860 |
+| USD per accepted change | 0.2412 | 0.2533 |
+| Campaign latency | 752.4 s | 844.4 s |
+| Unplanned repair invocations | 0 | 0 |
+| Realized approval violations | 0 | 0 |
+
+The lean arm cost 5.0% more and took 12.2% longer in this sample. Those differences are not a
+statistical reliability claim, but they do not justify adopting the simpler banner. Tool denials
+also require interpretation: baseline had four denied scratch-reproduction attempts; lean had
+a denied help-only `harness approve --help` request. Neither is an actual approval mutation.
+Firing counts alone therefore cannot determine which controls earn their place. Unnecessary
+questions remain unclassified; no causal autonomy improvement is claimed.
+
+The fresh run passed all four calibrations and four full campaigns, reporting **USD 6.1403661**
+in 30 minutes 25 seconds. Earlier attempts remain recorded: unavailable Docker, a calibration
+projection above the first USD 8 cap, and a 20-minute run that completed the baseline ledger
+and four service changes before an unbilled timeout. Across all attempts, reported spend is
+**USD 9.92484655**, and reported plus reserved allowance is **USD 11.42484655**. Actual total
+billing remains unknown because of that earlier timeout.
+
+Validation repaired two existing evaluation problems before the fresh matched run. A correct
+zero-balance description had been falsely rejected by the documentation phrase heuristic;
+its failed candidate and retry cost remain saved, and a regression test protects the correction.
+The saved seeded service tests also reproduced a hang after failed assertions leaked servers.
+Disposable staged checks and comparison commands now use Node's 10-second test timeout. The
+original fixtures, private behavioral assertions and production timeout settings are unchanged.
+The original model timeout lacked a tool trace, so the reproduced hang is not claimed as its
+conclusively proven cause. Both repairs apply equally to the matched arms.
+
+All twelve deterministic Docker checks passed, including isolation, external approvals,
+seeded-defect rejection, HTTP recovery and failure-with-leaked-server reporting. Full local
+stop/commit results are recorded in `.aidlc/artifacts/prune-session-inventory/evidence.md`.
+The user authorized merging all changes and pushing to main on 2026-09-07. Spec and plan
+approvals are committed, and all final commit checks passed; earlier approvals were not rewritten.
+No hosted CI or separate whole-change model review is claimed. The existing CODEBASE-MAP.md
+edit is unchanged. Portable outcomes are in `.aidlc/evals/pruning-summary.json`; full phases,
+product histories and the captured driver patch are in ignored `.aidlc/evals/comparisons/prune-*`.

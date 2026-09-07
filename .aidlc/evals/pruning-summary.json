@@ -1,0 +1,2001 @@
+{
+  "kind": "item-5-pruning-evidence",
+  "status": "complete: bounded pruning experiment validated",
+  "mechanism": "automatic session-start budget inventory",
+  "productionDecision": "retain baseline: equivalent correctness and recovery, but the lean arm had higher observed cost and latency",
+  "runs": [
+    {
+      "started": "2026-09-07T08:28:37.646Z",
+      "finished": "2026-09-07T08:28:37.759Z",
+      "harnessRevision": "e0f94328adbc38c31b92f619d3db32f810a63dfb",
+      "scenarioDigest": "195e7b79a65c283d0d1fb72d122bb04936ff99841d3d75a2a43143703a863407",
+      "tools": {
+        "node": "v24.1.0",
+        "git": "git version 2.51.2",
+        "docker": "Docker version 29.7.2, build a7dcaa6"
+      },
+      "maxUsd": 8,
+      "maxMinutes": 20,
+      "repetitions": 1,
+      "remainingUsd": 8,
+      "calibrations": [
+        {
+          "pair": "session-inventory",
+          "successful": false,
+          "smokeCost": 0,
+          "projectedUsd": null,
+          "remainingUsd": 8,
+          "reason": "credentials_or_isolation_unavailable"
+        }
+      ],
+      "summary": {
+        "session-inventory/baseline/smoke": {
+          "attempts": 2,
+          "passed": 0,
+          "incomplete": 0,
+          "unmeasured": 2,
+          "acceptedChanges": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0,
+          "billingComplete": false,
+          "latencyMs": 0,
+          "unnecessaryQuestions": null,
+          "usd": null,
+          "costPerAcceptedChange": null
+        },
+        "session-inventory/lean/smoke": {
+          "attempts": 2,
+          "passed": 0,
+          "incomplete": 0,
+          "unmeasured": 2,
+          "acceptedChanges": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0,
+          "billingComplete": false,
+          "latencyMs": 0,
+          "unnecessaryQuestions": null,
+          "usd": null,
+          "costPerAcceptedChange": null
+        },
+        "session-inventory/baseline/paired": {
+          "attempts": 2,
+          "passed": 0,
+          "incomplete": 0,
+          "unmeasured": 2,
+          "acceptedChanges": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0,
+          "billingComplete": false,
+          "latencyMs": 0,
+          "unnecessaryQuestions": null,
+          "usd": null,
+          "costPerAcceptedChange": null
+        },
+        "session-inventory/lean/paired": {
+          "attempts": 2,
+          "passed": 0,
+          "incomplete": 0,
+          "unmeasured": 2,
+          "acceptedChanges": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0,
+          "billingComplete": false,
+          "latencyMs": 0,
+          "unnecessaryQuestions": null,
+          "usd": null,
+          "costPerAcceptedChange": null
+        }
+      },
+      "source": ".aidlc/evals/comparisons/prune-2026-09-07T08-28-37-637Z/comparison.json",
+      "attempts": [
+        {
+          "id": "session-inventory-baseline-smoke-0-campaign-ledger",
+          "kind": "smoke",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-ledger",
+          "status": "unmeasured",
+          "reason": "credentials_or_isolation_unavailable",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-28-37-637Z/session-inventory-baseline-smoke-0-campaign-ledger",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-baseline-smoke-0-campaign-service",
+          "kind": "smoke",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-service",
+          "status": "unmeasured",
+          "reason": "credentials_or_isolation_unavailable",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-28-37-637Z/session-inventory-baseline-smoke-0-campaign-service",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-smoke-0-campaign-ledger",
+          "kind": "smoke",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-ledger",
+          "status": "unmeasured",
+          "reason": "credentials_or_isolation_unavailable",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-28-37-637Z/session-inventory-lean-smoke-0-campaign-ledger",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-smoke-0-campaign-service",
+          "kind": "smoke",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-service",
+          "status": "unmeasured",
+          "reason": "credentials_or_isolation_unavailable",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-28-37-637Z/session-inventory-lean-smoke-0-campaign-service",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-baseline-paired-1-campaign-ledger",
+          "kind": "paired",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-ledger",
+          "status": "unmeasured",
+          "reason": "credentials_or_isolation_unavailable",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-28-37-637Z/session-inventory-baseline-paired-1-campaign-ledger",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-baseline-paired-1-campaign-service",
+          "kind": "paired",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-service",
+          "status": "unmeasured",
+          "reason": "credentials_or_isolation_unavailable",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-28-37-637Z/session-inventory-baseline-paired-1-campaign-service",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-paired-1-campaign-ledger",
+          "kind": "paired",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-ledger",
+          "status": "unmeasured",
+          "reason": "credentials_or_isolation_unavailable",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-28-37-637Z/session-inventory-lean-paired-1-campaign-ledger",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-paired-1-campaign-service",
+          "kind": "paired",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-service",
+          "status": "unmeasured",
+          "reason": "credentials_or_isolation_unavailable",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-28-37-637Z/session-inventory-lean-paired-1-campaign-service",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        }
+      ]
+    },
+    {
+      "started": "2026-09-07T08:33:37.697Z",
+      "finished": "2026-09-07T08:37:41.910Z",
+      "harnessRevision": "e0f94328adbc38c31b92f619d3db32f810a63dfb",
+      "scenarioDigest": "195e7b79a65c283d0d1fb72d122bb04936ff99841d3d75a2a43143703a863407",
+      "tools": {
+        "node": "v24.1.0",
+        "git": "git version 2.51.2",
+        "docker": "Docker version 29.7.2, build a7dcaa6"
+      },
+      "maxUsd": 8,
+      "maxMinutes": 20,
+      "repetitions": 1,
+      "remainingUsd": 7.307827199999999,
+      "calibrations": [
+        {
+          "pair": "session-inventory",
+          "successful": true,
+          "smokeCost": 0.6921728,
+          "projectedUsd": 7.47546624,
+          "remainingUsd": 7.307827199999999,
+          "reason": "calibrated_suite_unaffordable"
+        }
+      ],
+      "summary": {
+        "session-inventory/baseline/smoke": {
+          "attempts": 2,
+          "passed": 2,
+          "incomplete": 0,
+          "unmeasured": 0,
+          "acceptedChanges": 2,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0.3501926,
+          "billingComplete": true,
+          "latencyMs": 123434,
+          "unnecessaryQuestions": null,
+          "usd": 0.3501926,
+          "costPerAcceptedChange": 0.1750963
+        },
+        "session-inventory/lean/smoke": {
+          "attempts": 2,
+          "passed": 2,
+          "incomplete": 0,
+          "unmeasured": 0,
+          "acceptedChanges": 2,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0.3419802,
+          "billingComplete": true,
+          "latencyMs": 118097,
+          "unnecessaryQuestions": null,
+          "usd": 0.3419802,
+          "costPerAcceptedChange": 0.1709901
+        },
+        "session-inventory/baseline/paired": {
+          "attempts": 2,
+          "passed": 0,
+          "incomplete": 0,
+          "unmeasured": 2,
+          "acceptedChanges": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0,
+          "billingComplete": false,
+          "latencyMs": 0,
+          "unnecessaryQuestions": null,
+          "usd": null,
+          "costPerAcceptedChange": null
+        },
+        "session-inventory/lean/paired": {
+          "attempts": 2,
+          "passed": 0,
+          "incomplete": 0,
+          "unmeasured": 2,
+          "acceptedChanges": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0,
+          "billingComplete": false,
+          "latencyMs": 0,
+          "unnecessaryQuestions": null,
+          "usd": null,
+          "costPerAcceptedChange": null
+        }
+      },
+      "source": ".aidlc/evals/comparisons/prune-2026-09-07T08-33-37-689Z/comparison.json",
+      "attempts": [
+        {
+          "id": "session-inventory-baseline-smoke-0-campaign-ledger",
+          "kind": "smoke",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-ledger",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "2aa24a088940b06fcabd0f7aedf9bd5093b5008ab8840fc062260398037d2069",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-33-37-689Z/session-inventory-baseline-smoke-0-campaign-ledger",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "64c9881e534d737050dd5c259cb7e821ddc8df6d",
+          "fixtureRevision": "9ffa23282d758aa41633896d641328da56e1bab0",
+          "reportedUsd": 0.20787080000000002,
+          "billingComplete": true,
+          "latencyMs": 73812,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 22,
+            "output_tokens": 5866,
+            "cache_creation_input_tokens": 41526,
+            "cache_read_input_tokens": 226759
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-baseline-smoke-0-campaign-service",
+          "kind": "smoke",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-service",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "2aa24a088940b06fcabd0f7aedf9bd5093b5008ab8840fc062260398037d2069",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-33-37-689Z/session-inventory-baseline-smoke-0-campaign-service",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "fff72e64ee19ad420395f0ec5c2334a0bf50c4fa",
+          "fixtureRevision": "b309cb3367c4b96abe738e3238e072d775fce7db",
+          "reportedUsd": 0.1423218,
+          "billingComplete": true,
+          "latencyMs": 49622,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 24,
+            "output_tokens": 3812,
+            "cache_creation_input_tokens": 22662,
+            "cache_read_input_tokens": 237494
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-smoke-0-campaign-ledger",
+          "kind": "smoke",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-ledger",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "ed4d82b06704cddc0db4b3813d6491372350e251a57ab6913ba95baae60525ae",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-33-37-689Z/session-inventory-lean-smoke-0-campaign-ledger",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "24b4e250d956735ece7fb9772f8cc5140b8e492f",
+          "fixtureRevision": "862e82bd152e009136e6281d2189372ad563a9d7",
+          "reportedUsd": 0.2038354,
+          "billingComplete": true,
+          "latencyMs": 68045,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 22,
+            "output_tokens": 5668,
+            "cache_creation_input_tokens": 40822,
+            "cache_read_input_tokens": 225282
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-smoke-0-campaign-service",
+          "kind": "smoke",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-service",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "ed4d82b06704cddc0db4b3813d6491372350e251a57ab6913ba95baae60525ae",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-33-37-689Z/session-inventory-lean-smoke-0-campaign-service",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "aa8d315391b57f0f2b72d22e4087b091a24ad8b5",
+          "fixtureRevision": "cb0929a838cdaa19d8a886653c5089318cf8d367",
+          "reportedUsd": 0.1381448,
+          "billingComplete": true,
+          "latencyMs": 50052,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 24,
+            "output_tokens": 3713,
+            "cache_creation_input_tokens": 21782,
+            "cache_read_input_tokens": 232559
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-baseline-paired-1-campaign-ledger",
+          "kind": "paired",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-ledger",
+          "status": "unmeasured",
+          "reason": "calibrated_suite_unaffordable",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-33-37-689Z/session-inventory-baseline-paired-1-campaign-ledger",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-baseline-paired-1-campaign-service",
+          "kind": "paired",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-service",
+          "status": "unmeasured",
+          "reason": "calibrated_suite_unaffordable",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-33-37-689Z/session-inventory-baseline-paired-1-campaign-service",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-paired-1-campaign-ledger",
+          "kind": "paired",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-ledger",
+          "status": "unmeasured",
+          "reason": "calibrated_suite_unaffordable",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-33-37-689Z/session-inventory-lean-paired-1-campaign-ledger",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-paired-1-campaign-service",
+          "kind": "paired",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-service",
+          "status": "unmeasured",
+          "reason": "calibrated_suite_unaffordable",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T08-33-37-689Z/session-inventory-lean-paired-1-campaign-service",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        }
+      ]
+    },
+    {
+      "started": "2026-09-07T09:18:59.660Z",
+      "finished": "2026-09-07T09:39:00.902Z",
+      "harnessRevision": "e0f94328adbc38c31b92f619d3db32f810a63dfb",
+      "scenarioDigest": "195e7b79a65c283d0d1fb72d122bb04936ff99841d3d75a2a43143703a863407",
+      "tools": {
+        "node": "v24.1.0",
+        "git": "git version 2.51.2",
+        "docker": "Docker version 29.7.2, build a7dcaa6"
+      },
+      "maxUsd": 9,
+      "maxMinutes": 20,
+      "repetitions": 1,
+      "remainingUsd": 4.40769235,
+      "calibrations": [
+        {
+          "pair": "session-inventory",
+          "successful": true,
+          "smokeCost": 0.7427421000000001,
+          "projectedUsd": 8.02161468,
+          "remainingUsd": 8.257257899999999,
+          "reason": null
+        }
+      ],
+      "summary": {
+        "session-inventory/baseline/smoke": {
+          "attempts": 2,
+          "passed": 2,
+          "incomplete": 0,
+          "unmeasured": 0,
+          "acceptedChanges": 2,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0.3995962,
+          "billingComplete": true,
+          "latencyMs": 139747,
+          "unnecessaryQuestions": null,
+          "usd": 0.3995962,
+          "costPerAcceptedChange": 0.1997981
+        },
+        "session-inventory/lean/smoke": {
+          "attempts": 2,
+          "passed": 2,
+          "incomplete": 0,
+          "unmeasured": 0,
+          "acceptedChanges": 2,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0.3431459,
+          "billingComplete": true,
+          "latencyMs": 131709,
+          "unnecessaryQuestions": null,
+          "usd": 0.3431459,
+          "costPerAcceptedChange": 0.17157295
+        },
+        "session-inventory/baseline/paired": {
+          "attempts": 2,
+          "passed": 1,
+          "incomplete": 1,
+          "unmeasured": 0,
+          "acceptedChanges": 9,
+          "regressions": null,
+          "verificationFailures": 1,
+          "approvalViolations": 0,
+          "retries": 1,
+          "reportedUsd": 2.3495655500000003,
+          "billingComplete": false,
+          "latencyMs": 925554,
+          "unnecessaryQuestions": null,
+          "usd": null,
+          "costPerAcceptedChange": null
+        },
+        "session-inventory/lean/paired": {
+          "attempts": 2,
+          "passed": 0,
+          "incomplete": 0,
+          "unmeasured": 2,
+          "acceptedChanges": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0,
+          "billingComplete": false,
+          "latencyMs": 0,
+          "unnecessaryQuestions": null,
+          "usd": null,
+          "costPerAcceptedChange": null
+        }
+      },
+      "source": ".aidlc/evals/comparisons/prune-2026-09-07T09-18-59-623Z/comparison.json",
+      "attempts": [
+        {
+          "id": "session-inventory-baseline-smoke-0-campaign-ledger",
+          "kind": "smoke",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-ledger",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "2aa24a088940b06fcabd0f7aedf9bd5093b5008ab8840fc062260398037d2069",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T09-18-59-623Z/session-inventory-baseline-smoke-0-campaign-ledger",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "238674b3f1372caa80281a6bdb88e2d3592885c3",
+          "fixtureRevision": "c459fd02f78f60bd0abb35fc53abeac10fa8ab66",
+          "reportedUsd": 0.23175990000000002,
+          "billingComplete": true,
+          "latencyMs": 71235,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 32,
+            "output_tokens": 5470,
+            "cache_creation_input_tokens": 43597,
+            "cache_read_input_tokens": 340017
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-baseline-smoke-0-campaign-service",
+          "kind": "smoke",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-service",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "2aa24a088940b06fcabd0f7aedf9bd5093b5008ab8840fc062260398037d2069",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T09-18-59-623Z/session-inventory-baseline-smoke-0-campaign-service",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "141277f6023e8c08259f5d4f2fb62f4891cc25fa",
+          "fixtureRevision": "bde81f43bf270797e376a188cee509af762c4771",
+          "reportedUsd": 0.1678363,
+          "billingComplete": true,
+          "latencyMs": 68512,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 26,
+            "output_tokens": 4962,
+            "cache_creation_input_tokens": 25677,
+            "cache_read_input_tokens": 269859
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-smoke-0-campaign-ledger",
+          "kind": "smoke",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-ledger",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "ed4d82b06704cddc0db4b3813d6491372350e251a57ab6913ba95baae60525ae",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T09-18-59-623Z/session-inventory-lean-smoke-0-campaign-ledger",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "d97994ee3ecfe3bfbf7d752e81ca26cca976e8ed",
+          "fixtureRevision": "e40316871a2ccd6c93eb3fc83f83862e8325cf62",
+          "reportedUsd": 0.19471899999999998,
+          "billingComplete": true,
+          "latencyMs": 71804,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 24,
+            "output_tokens": 4867,
+            "cache_creation_input_tokens": 38820,
+            "cache_read_input_tokens": 244755
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-smoke-0-campaign-service",
+          "kind": "smoke",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-service",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "ed4d82b06704cddc0db4b3813d6491372350e251a57ab6913ba95baae60525ae",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T09-18-59-623Z/session-inventory-lean-smoke-0-campaign-service",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "c93cd8d9c0536f4d8611653eb21edc7ee2604949",
+          "fixtureRevision": "5aaa35ca956122cc09d2e863de470fb249f740b5",
+          "reportedUsd": 0.14842690000000003,
+          "billingComplete": true,
+          "latencyMs": 59905,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 24,
+            "output_tokens": 4107,
+            "cache_creation_input_tokens": 23695,
+            "cache_read_input_tokens": 240357
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-baseline-paired-1-campaign-ledger",
+          "kind": "paired",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-ledger",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "2aa24a088940b06fcabd0f7aedf9bd5093b5008ab8840fc062260398037d2069",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T09-18-59-623Z/session-inventory-baseline-paired-1-campaign-ledger",
+          "completedSteps": 5,
+          "totalSteps": 5,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "0d34e823155f6f5cd42c1c19f7aeae5b983444e7",
+          "fixtureRevision": "7b012db7fffd8997f4bb5169ae2fce038b39f828",
+          "reportedUsd": 1.5814754500000003,
+          "billingComplete": true,
+          "latencyMs": 447881,
+          "retries": 1,
+          "regressions": null,
+          "verificationFailures": 1,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5",
+            "claude-haiku-4-5-20251001": "claude-haiku-4-5",
+            "claude-opus-5": "claude-opus-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 154,
+            "output_tokens": 34513,
+            "cache_creation_input_tokens": 302164,
+            "cache_read_input_tokens": 1974852
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 1,
+          "seededReviewDetected": true
+        },
+        {
+          "id": "session-inventory-baseline-paired-1-campaign-service",
+          "kind": "paired",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-service",
+          "status": "incomplete",
+          "reason": null,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "2aa24a088940b06fcabd0f7aedf9bd5093b5008ab8840fc062260398037d2069",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T09-18-59-623Z/session-inventory-baseline-paired-1-campaign-service",
+          "completedSteps": 4,
+          "totalSteps": 6,
+          "pass": false,
+          "incomplete": {
+            "reason": "timed_out",
+            "detail": "Ignoring 4 permissions.allow entries from .claude/settings.json: this workspace has not been trusted. Run Claude Code interactively here once and accept the trust dialog, or set projects[\"/work\"].hasTrustDialogAccepted: true in /session/.claude.json.\n"
+          },
+          "candidateRevision": "432dda6cb9dfa4e452bb946cc6b479b34db804d7",
+          "fixtureRevision": "faf01e4eb211dbb2c85ac420109911a1c95a3e89",
+          "reportedUsd": 0.7680901,
+          "billingComplete": false,
+          "latencyMs": 477673,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 76,
+            "output_tokens": 20374,
+            "cache_creation_input_tokens": 150023,
+            "cache_read_input_tokens": 945703
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-paired-1-campaign-ledger",
+          "kind": "paired",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-ledger",
+          "status": "unmeasured",
+          "reason": "suite_time_exhausted",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T09-18-59-623Z/session-inventory-lean-paired-1-campaign-ledger",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-paired-1-campaign-service",
+          "kind": "paired",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-service",
+          "status": "unmeasured",
+          "reason": "suite_time_exhausted",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": null,
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T09-18-59-623Z/session-inventory-lean-paired-1-campaign-service",
+          "completedSteps": 0,
+          "totalSteps": null,
+          "pass": false,
+          "incomplete": null,
+          "candidateRevision": null,
+          "fixtureRevision": null,
+          "reportedUsd": 0,
+          "billingComplete": null,
+          "latencyMs": null,
+          "retries": null,
+          "regressions": null,
+          "verificationFailures": null,
+          "approvalViolations": null,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [],
+          "actualModels": {},
+          "tokenUsage": {},
+          "cli": null,
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": null,
+          "seededReviewDetected": false
+        }
+      ]
+    },
+    {
+      "started": "2026-09-07T12:09:53.541Z",
+      "finished": "2026-09-07T12:40:19.011Z",
+      "harnessRevision": "e0f94328adbc38c31b92f619d3db32f810a63dfb",
+      "scenarioDigest": "195e7b79a65c283d0d1fb72d122bb04936ff99841d3d75a2a43143703a863407",
+      "tools": {
+        "node": "v24.1.0",
+        "git": "git version 2.51.2",
+        "docker": "Docker version 29.7.2, build a7dcaa6"
+      },
+      "maxUsd": 9,
+      "maxMinutes": 40,
+      "repetitions": 1,
+      "remainingUsd": 2.8596339000000004,
+      "calibrations": [
+        {
+          "pair": "session-inventory",
+          "successful": true,
+          "smokeCost": 0.7010875000000001,
+          "projectedUsd": 7.571745000000001,
+          "remainingUsd": 8.2989125,
+          "reason": null
+        }
+      ],
+      "summary": {
+        "session-inventory/baseline/smoke": {
+          "attempts": 2,
+          "passed": 2,
+          "incomplete": 0,
+          "unmeasured": 0,
+          "acceptedChanges": 2,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0.343828,
+          "billingComplete": true,
+          "latencyMs": 104959,
+          "unnecessaryQuestions": null,
+          "usd": 0.343828,
+          "costPerAcceptedChange": 0.171914
+        },
+        "session-inventory/lean/smoke": {
+          "attempts": 2,
+          "passed": 2,
+          "incomplete": 0,
+          "unmeasured": 0,
+          "acceptedChanges": 2,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 0.3572595,
+          "billingComplete": true,
+          "latencyMs": 117908,
+          "unnecessaryQuestions": null,
+          "usd": 0.3572595,
+          "costPerAcceptedChange": 0.17862975
+        },
+        "session-inventory/baseline/paired": {
+          "attempts": 2,
+          "passed": 2,
+          "incomplete": 0,
+          "unmeasured": 0,
+          "acceptedChanges": 11,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 2.65329365,
+          "billingComplete": true,
+          "latencyMs": 752364,
+          "unnecessaryQuestions": null,
+          "usd": 2.65329365,
+          "costPerAcceptedChange": 0.24120851363636364
+        },
+        "session-inventory/lean/paired": {
+          "attempts": 2,
+          "passed": 2,
+          "incomplete": 0,
+          "unmeasured": 0,
+          "acceptedChanges": 11,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "retries": 0,
+          "reportedUsd": 2.7859849500000005,
+          "billingComplete": true,
+          "latencyMs": 844444,
+          "unnecessaryQuestions": null,
+          "usd": 2.7859849500000005,
+          "costPerAcceptedChange": 0.25327135909090914
+        }
+      },
+      "source": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/comparison.json",
+      "attempts": [
+        {
+          "id": "session-inventory-baseline-smoke-0-campaign-ledger",
+          "kind": "smoke",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-ledger",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "2aa24a088940b06fcabd0f7aedf9bd5093b5008ab8840fc062260398037d2069",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/session-inventory-baseline-smoke-0-campaign-ledger",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "0e2dc4ed3074edd74941919c135b7b806f94e27f",
+          "fixtureRevision": "87c2d85a637dff4b3bbd476f435f710948c2ebfc",
+          "reportedUsd": 0.21917950000000003,
+          "billingComplete": true,
+          "latencyMs": 56989,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 30,
+            "output_tokens": 4757,
+            "cache_creation_input_tokens": 43081,
+            "cache_read_input_tokens": 319235
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-baseline-smoke-0-campaign-service",
+          "kind": "smoke",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-service",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "2aa24a088940b06fcabd0f7aedf9bd5093b5008ab8840fc062260398037d2069",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/session-inventory-baseline-smoke-0-campaign-service",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "6b955072bfbd933eec2a1c10d0d7453d17b1cfca",
+          "fixtureRevision": "0569e6268dcb6ab42c32511f6c55fe0f80feb72b",
+          "reportedUsd": 0.1246485,
+          "billingComplete": true,
+          "latencyMs": 47970,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 16,
+            "output_tokens": 3744,
+            "cache_creation_input_tokens": 22665,
+            "cache_read_input_tokens": 152570
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-smoke-0-campaign-ledger",
+          "kind": "smoke",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-ledger",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "ed4d82b06704cddc0db4b3813d6491372350e251a57ab6913ba95baae60525ae",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/session-inventory-lean-smoke-0-campaign-ledger",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "bd57c0cd04622021a01f5e8269e0fccc59bac2af",
+          "fixtureRevision": "5e819ecc8dd06ae730625e140d16924948f7a637",
+          "reportedUsd": 0.20649810000000002,
+          "billingComplete": true,
+          "latencyMs": 63400,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 28,
+            "output_tokens": 4576,
+            "cache_creation_input_tokens": 40645,
+            "cache_read_input_tokens": 295348
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-smoke-0-campaign-service",
+          "kind": "smoke",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-service",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "ed4d82b06704cddc0db4b3813d6491372350e251a57ab6913ba95baae60525ae",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/session-inventory-lean-smoke-0-campaign-service",
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "cd4019e192b5e16741fe64beb0b8b62b1c21e3ab",
+          "fixtureRevision": "22cfea29f3c5ab142c29739049e72438d86a139a",
+          "reportedUsd": 0.1507614,
+          "billingComplete": true,
+          "latencyMs": 54508,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 22,
+            "output_tokens": 4498,
+            "cache_creation_input_tokens": 24430,
+            "cache_read_input_tokens": 223312
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 0,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-baseline-paired-1-campaign-ledger",
+          "kind": "paired",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-ledger",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "2aa24a088940b06fcabd0f7aedf9bd5093b5008ab8840fc062260398037d2069",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/session-inventory-baseline-paired-1-campaign-ledger",
+          "completedSteps": 5,
+          "totalSteps": 5,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "1e64781b4c6957eb1f66036ae76dc8dd02ebe692",
+          "fixtureRevision": "f8288cd8a24e502271c0c37629336518c704797c",
+          "reportedUsd": 1.43271445,
+          "billingComplete": true,
+          "latencyMs": 385659,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 2,
+          "guardDenials": [
+            {
+              "control": "bash-guard",
+              "rule": "contract-scope"
+            }
+          ],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5",
+            "claude-haiku-4-5-20251001": "claude-haiku-4-5",
+            "claude-opus-5": "claude-opus-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 148,
+            "output_tokens": 29910,
+            "cache_creation_input_tokens": 278867,
+            "cache_read_input_tokens": 1886084
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 1,
+          "seededReviewDetected": true
+        },
+        {
+          "id": "session-inventory-baseline-paired-1-campaign-service",
+          "kind": "paired",
+          "config": {
+            "id": "baseline",
+            "model": "claude-sonnet-5",
+            "prune": false
+          },
+          "task": "campaign-service",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "2aa24a088940b06fcabd0f7aedf9bd5093b5008ab8840fc062260398037d2069",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/session-inventory-baseline-paired-1-campaign-service",
+          "completedSteps": 6,
+          "totalSteps": 6,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "f1120026a9acca6cc699484b55c96131907ab422",
+          "fixtureRevision": "b0329032e2cf1ed03caaff9a4b7045472636dcbb",
+          "reportedUsd": 1.2205792,
+          "billingComplete": true,
+          "latencyMs": 366705,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 2,
+          "guardDenials": [
+            {
+              "control": "bash-guard",
+              "rule": "contract-scope"
+            }
+          ],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 118,
+            "output_tokens": 29332,
+            "cache_creation_input_tokens": 243702,
+            "cache_read_input_tokens": 1588841
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 2,
+          "seededReviewDetected": false
+        },
+        {
+          "id": "session-inventory-lean-paired-1-campaign-ledger",
+          "kind": "paired",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-ledger",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "ed4d82b06704cddc0db4b3813d6491372350e251a57ab6913ba95baae60525ae",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/session-inventory-lean-paired-1-campaign-ledger",
+          "completedSteps": 5,
+          "totalSteps": 5,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "2967730d7069a2cf483720b1a0e44be02949fb03",
+          "fixtureRevision": "0a67615e1067d90a0a7bc4c446b96c8e6a0efd99",
+          "reportedUsd": 1.3307279500000002,
+          "billingComplete": true,
+          "latencyMs": 382702,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 0,
+          "guardDenials": [],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            },
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5",
+            "claude-haiku-4-5-20251001": "claude-haiku-4-5",
+            "claude-opus-5": "claude-opus-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 126,
+            "output_tokens": 29306,
+            "cache_creation_input_tokens": 273048,
+            "cache_read_input_tokens": 1597853
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 1,
+          "seededReviewDetected": true
+        },
+        {
+          "id": "session-inventory-lean-paired-1-campaign-service",
+          "kind": "paired",
+          "config": {
+            "id": "lean",
+            "model": "claude-sonnet-5",
+            "prune": true
+          },
+          "task": "campaign-service",
+          "status": "pass",
+          "reason": null,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "ed4d82b06704cddc0db4b3813d6491372350e251a57ab6913ba95baae60525ae",
+          "evidence": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/session-inventory-lean-paired-1-campaign-service",
+          "completedSteps": 6,
+          "totalSteps": 6,
+          "pass": true,
+          "incomplete": null,
+          "candidateRevision": "ff224bc61c3726dc755b8ea8f11090ff8b3568ef",
+          "fixtureRevision": "a6fa060e3c487e5daeb1e59a7db4fd6c458aa895",
+          "reportedUsd": 1.455257,
+          "billingComplete": true,
+          "latencyMs": 461742,
+          "retries": 0,
+          "regressions": 0,
+          "verificationFailures": 0,
+          "approvalViolations": 0,
+          "permissionDenials": 1,
+          "guardDenials": [
+            {
+              "control": "bash-guard",
+              "rule": "approve-is-the-humans"
+            }
+          ],
+          "hookErrors": [
+            {
+              "control": "map-drift",
+              "error": "EROFS: read-only file system, open '/work/CODEBASE-MAP.md'"
+            }
+          ],
+          "actualModels": {
+            "claude-sonnet-5": "claude-sonnet-5"
+          },
+          "tokenUsage": {
+            "input_tokens": 146,
+            "output_tokens": 37997,
+            "cache_creation_input_tokens": 263516,
+            "cache_read_input_tokens": 2081025
+          },
+          "cli": "2.1.263 (Claude Code)",
+          "unnecessaryQuestions": null,
+          "recoveredInjectedFailures": 2,
+          "seededReviewDetected": false
+        }
+      ]
+    }
+  ],
+  "reportedUsd": 9.92484655,
+  "billingComplete": false,
+  "totalUsd": null,
+  "budgetChargedOrReservedUsd": 11.424846550000002,
+  "matchedRun": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/comparison.json",
+  "matchedRunReportedUsd": 6.1403661,
+  "matchedRunBillingComplete": true,
+  "comparison": {
+    "baseline": {
+      "attempts": 2,
+      "passed": 2,
+      "incomplete": 0,
+      "unmeasured": 0,
+      "acceptedChanges": 11,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 2.65329365,
+      "billingComplete": true,
+      "latencyMs": 752364,
+      "unnecessaryQuestions": null,
+      "usd": 2.65329365,
+      "costPerAcceptedChange": 0.24120851363636364
+    },
+    "lean": {
+      "attempts": 2,
+      "passed": 2,
+      "incomplete": 0,
+      "unmeasured": 0,
+      "acceptedChanges": 11,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 2.7859849500000005,
+      "billingComplete": true,
+      "latencyMs": 844444,
+      "unnecessaryQuestions": null,
+      "usd": 2.7859849500000005,
+      "costPerAcceptedChange": 0.25327135909090914
+    },
+    "costDeltaPercent": 5.00100318711425,
+    "latencyDeltaPercent": 12.238756771988024,
+    "pairedRepetitions": 1,
+    "manualProductInterventions": {
+      "baseline": 0,
+      "lean": 0
+    },
+    "permissionDeniedToolAttempts": {
+      "baseline": 4,
+      "lean": 1
+    },
+    "unnecessaryQuestions": null
+  },
+  "confirmedFalseBlocks": [
+    {
+      "run": ".aidlc/evals/comparisons/prune-2026-09-07T09-18-59-623Z/comparison.json",
+      "attempt": "session-inventory-baseline-paired-1-campaign-ledger",
+      "candidateRevision": "e8e4e1bf3f0fed5f86a952a6c41738296067efc4",
+      "reason": "The document correctly said isOverdue returns false once outstanding reaches zero (fully paid); the phrase heuristic rejected it.",
+      "regradedBy": "ledgerDescriptionExplainsPaidRule; test/comparison.test.mjs",
+      "originalRetryRetained": true
+    },
+    {
+      "run": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/comparison.json",
+      "attempt": "session-inventory-lean-paired-1-campaign-service",
+      "reason": "approve-is-the-humans denied a help-only harness approve --help command. This was not an attempted approval mutation.",
+      "productionGuardChanged": false
+    }
+  ],
+  "limitations": [
+    "One matched repetition of each full product per arm is a bounded decision sample, not a universal reliability estimate or a statistically established performance difference.",
+    "All 22 matched product changes passed with zero verification failures, unplanned repair invocations or realized approval violations. Manual product intervention was unnecessary in both arms.",
+    "Baseline had four denied scratch-reproduction tool attempts; lean had one denied help request. These observations do not establish a causal autonomy improvement from removing the inventory banner.",
+    "Unnecessary-question counts remain unclassified. The observed cost and latency increases do not justify adopting the lean arm.",
+    "Both arms retained advisory map-write errors on read-only planning mounts. Their frequency is not evidence of benefit or authorization to remove a boundary.",
+    "The fresh matched run used the repaired documentation heuristic and disposable 10-second test timeout for both arms. All original failures and costs remain unchanged.",
+    "The prior model timeout omitted billing; total cost across all attempts is unknown. Its allowance remains reserved.",
+    "Production controls and earlier approvals are unchanged. The user authorized delivery on 2026-09-07; committed spec and plan approvals resolve the earlier scope failure. No hosted CI or separate independent whole-change review is claimed."
+  ],
+  "matchedDriverIdentity": {
+    "source": ".aidlc/evals/comparisons/prune-2026-09-07T12-09-53-533Z/driver-identity.json",
+    "baseRevision": "e0f94328adbc38c31b92f619d3db32f810a63dfb",
+    "patchSha256": "01123add92a4952e76ef09c070776c1b1b6af2fd0062e7de5e4e7bdfb66aded3",
+    "files": {
+      "evals/run.mjs": "5f9ad408bda45a834fa938bdedfabb639c7901035b96696fd02614b96feca957",
+      "evals/lib/comparison.mjs": "31c3d78a20820837ba94830fe4abdefedaa740b60502b80ef6837a1714d4a397",
+      "evals/lib/campaign.mjs": "fc481516d75abbd0e17f3f71e35b1aca482412b71c663e4b258ae858a848ba38",
+      "evals/lib/stage.mjs": "e5c6fe21548de435079188bf688341bf3f7d268f1ad9723d848e518edfd67c3b",
+      "evals/lib/assertions.mjs": "15382093d5ca6b8488fdc5ffb392521024853f59e40497c360cbfd2af3f3f04b",
+      "test/comparison.test.mjs": "bffb6ffe66fb5811b01795f01907f633c82d5b58aaef5e400038ac8d3098da73",
+      "test/product-trials.test.mjs": "0676ade552398fa1f348ec3ab3f4d3f8ff688a6d6d99d1125b35967ed76bf414"
+    }
+  },
+  "verification": {
+    "stop": [
+      "PASS  secrets     457ms",
+      "PASS  test        21942ms"
+    ],
+    "commit": [
+      "PASS  secrets     825ms",
+      "PASS  test        58141ms",
+      "PASS  scope-drift 138ms",
+      "PASS  budget      2ms",
+      "PASS  tamper      40ms",
+      "PASS  arch        31ms",
+      "PASS  test_quality 117ms"
+    ],
+    "dockerTests": {
+      "total": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0
+    },
+    "scopeStatus": "approved and committed; scope-drift passed",
+    "independentWholeChangeReview": false,
+    "hostedCi": false,
+    "userMapChecksum": "unchanged",
+    "preAuthorizationCommit": [
+      "PASS  secrets     786ms",
+      "PASS  test        28538ms",
+      "FAIL  scope-drift 227ms",
+      "PASS  budget      3ms",
+      "PASS  tamper      71ms",
+      "PASS  arch        29ms",
+      "PASS  test_quality 120ms"
+    ]
+  }
+}

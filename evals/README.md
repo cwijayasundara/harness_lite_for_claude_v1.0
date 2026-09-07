@@ -118,3 +118,37 @@ Approval pauses are verified through completed planning turns with unchanged pro
 and approval metadata, followed by an external decision. They do not require a magic word in
 the model's response. Failed verification candidates are committed to the disposable product's
 Git history before repair, so their exact source remains replayable.
+
+
+## Outcome-based pruning (item 5)
+
+`node evals/run.mjs --prune --dry` previews the session-inventory experiment.
+`node evals/run.mjs --prune` runs four first-change calibrations and one paired repetition
+of both complete products, capped by default at USD 9 and 40 minutes. Existing `--repeats`,
+`--max-suite-usd`, `--max-suite-minutes` and `--stop-file` options apply. Evidence is saved in
+`.aidlc/evals/comparisons/prune-<timestamp>/comparison.json` and per-attempt directories.
+
+The baseline restores the original inventory line if production has already been pruned; all
+other code comes from the current plugin. The lean disposable copy removes only the
+automatic budget inventory from SessionStart. Graph behavior, ledger error warnings, approval
+context and all executable checks remain identical. Source-shape validation refuses an outdated
+experiment instead of silently testing identical arms. The experiment does not infer value from
+hook firing frequency. Inspect complete product correctness, recovery attempts, approval
+violations, cost per accepted change, latency and transcripts before retaining a simpler version.
+Failed calibration and incomplete campaigns cannot justify production pruning; missing billing
+and unclassified unnecessary questions remain unknown. One pair supports a bounded decision,
+not a general reliability claim. The retention decision and limitations belong in
+`.aidlc/evals/pruning-summary.json`.
+
+Use `--prune-arm baseline` or `--prune-arm lean` to rerun one side without repeating the
+other side's completed work. A single-arm result is not a complete paired comparison: retain
+and compare matching model, fixture, plugin and scenario identities across the evidence files.
+The completed item 5 matched run passed all eleven changes in each arm. Production retains the
+baseline: the lean arm showed higher observed cost and latency, with identical completion and
+recovery results in this single pair. Prior failed, unmeasured and unbilled attempts remain in
+`.aidlc/evals/pruning-summary.json`. This is a bounded decision, not a general reliability claim.
+Documentation phrase checks are supporting heuristics; private API assertions establish overdue
+behavior. Disposable product checks use `node --test --test-timeout=10000`, so a failed generated
+test that leaks a server can return findings before the model invocation expires. Fixtures and
+production configuration are unchanged. The full validation command took about 30 minutes;
+`--prune-arm` and `--id` support focused reruns when only one campaign remains.

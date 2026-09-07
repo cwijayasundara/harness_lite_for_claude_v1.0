@@ -5,10 +5,12 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {stage,isolateStage} from './stage.mjs';
 import {runComparisonCampaign,walk} from './campaign.mjs';
-import {verifyLedger,verifyService} from './assertions.mjs';
+import {verifyLedger,verifyService,ledgerDescriptionExplainsPaidRule} from './assertions.mjs';
 
-export function comparisonPairs(models) {
-  for(const key of ['generator','evaluator','evals'])if(!models?.[key])throw new Error(`comparison requires explicit ${key} model; no substitution`);
+export function comparisonPairs(models, {prune=false,pruneArm=null}={}) {
+  for(const key of (prune?['generator','evaluator']:['generator','evaluator','evals']))if(!models?.[key])throw new Error(`comparison requires explicit ${key} model; no substitution`);
+  if(pruneArm && (!prune || !['baseline','lean'].includes(pruneArm)))throw new Error('prune-arm must be baseline or lean, with --prune');
+  if(prune)return [{id:'session-inventory',arms:[{id:'baseline',model:models.generator,prune:false},{id:'lean',model:models.generator,prune:true}].filter(arm=>!pruneArm||arm.id===pruneArm)}];
   return [
     {id:'native',arms:[{id:'native',native:true,model:models.generator},{id:'harness',model:models.generator}]},
     {id:'graph',arms:[{id:'without-graph',model:models.generator},{id:'with-graph',model:models.generator,graph:true}]},
@@ -30,7 +32,38 @@ export function summarizeComparisons(attempts) {
   return groups;
 }
 
-export function configureComparison(s) {
+// Exactly one experimental mechanism: automatic budget inventory at session start.
+// Keep the ledger error warnings, approval context, graph and executable budget check.
+export function pruneSessionInventory(source) {
+  const lines=source.split('\n');
+  const remove=["import { measure } from '../checks/", 'const m = measure(cfg);', '`budget: ${Object.entries(m)'];
+  for(const marker of remove)if(lines.filter(l=>l.includes(marker)).length!==1)throw new Error(`session inventory experiment source drift: ${marker}`);
+  return lines.filter(l=>!remove.some(marker=>l.includes(marker))).join('\n');
+}
+
+// Keep the experiment repeatable if the lean banner is retained in production. Restore only
+// these three historical lines, never an old whole hook that could undo later guard repairs.
+export function restoreSessionInventory(source) {
+  if(source.includes('const m = measure(cfg);')){pruneSessionInventory(source);return source;}
+  const insertions=[
+    ["import * as ledger from '../lib/ledger.mjs';", "import { measure } from '../checks/budget.mjs';"],
+    ['        ledger.newRun(cfg.layout);', '        const m = measure(cfg);'],
+    ['          `check:  ${invocation(cfg)} check --stage fast --changed`,', '          `budget: ${Object.entries(m).map(([k, v]) => `${k} ${v}/${cfg.limits[k] ?? \'-\'}`).join(\' · \')}`,'],
+  ];
+  for(const [anchor,line] of insertions){
+    if(source.split(anchor).length!==2)throw new Error(`session inventory experiment source drift: ${anchor}`);
+    source=source.replace(anchor,`${anchor}\n${line}`);
+  }
+  pruneSessionInventory(source);return source;
+}
+
+export function configureComparison(s, config={}) {
+  if(config.prune!==undefined){
+    const file=path.join(s.plugin,'.aidlc/hooks/dispatch.mjs');
+    const baseline=restoreSessionInventory(readFileSync(file,'utf8'));
+    writeFileSync(file,config.prune?pruneSessionInventory(baseline):baseline);
+    return;
+  }
   if(s.native)return;
   // Experimental isolation only. Both harness arms suppress automatic cached map assistance;
   // the graph arm receives fresh bounded packs in its prompt. No production flags/controls.
@@ -47,22 +80,22 @@ export async function gradeComparisonProduct(s,step,product) {
   if(product==='ledger'&&step.level===4&&!existsSync(path.join(s.work,'src/store.mjs')))throw new Error('storage extraction missing');
   if(product==='ledger'&&step.level===5){
     const doc=readFileSync(path.join(s.work,'docs/PRODUCT.md'),'utf8');
-    if(!/partial|payment/i.test(doc)||!/paid[^\n]*(not|never)[^\n]*overdue|not overdue[^\n]*paid/i.test(doc))throw new Error('current product description misses payment/overdue rule');
+    if(!/partial|payment/i.test(doc)||!ledgerDescriptionExplainsPaidRule(doc))throw new Error('current product description misses payment/overdue rule');
     if(existsSync(path.join(s.work,'src/store.mjs')))throw new Error('external rename undone');
   }
   return proof;
 }
 
-export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,maxMinutes=30,now=Date.now,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=isolateStage}) {
+export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,maxMinutes=30,prune=false,pruneArm=null,now=Date.now,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=isolateStage}) {
   if(!Number.isFinite(maxUsd)||maxUsd<=0)throw new Error('comparison budget must be finite and positive');
   if(!Number.isFinite(maxMinutes)||maxMinutes<=0)throw new Error('comparison time limit must be finite and positive');
   const deadline=now()+maxMinutes*60000;
   if(!Number.isInteger(repetitions)||repetitions<1)throw new Error('repetitions must be a positive integer');
   mkdirSync(evidenceRoot,{recursive:true});
   let pairs;
-  try{pairs=comparisonPairs(models);}catch(error){writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify({kind:'native-comparisons',status:'unmeasured',reason:'models_unconfigured',detail:error.message,models,attempts:[]},null,2)+'\n');throw error;}
+  try{pairs=comparisonPairs(models,{prune,pruneArm});}catch(error){writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify({kind:prune?'pruning-comparison':'native-comparisons',status:'unmeasured',reason:error.message.startsWith('prune-arm')?'invalid_prune_arm':'models_unconfigured',detail:error.message,models,attempts:[]},null,2)+'\n');throw error;}
   const revision=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
-  const out={kind:'native-comparisons',started:new Date().toISOString(),harnessRevision:revision,
+  const out={kind:prune?'pruning-comparison':'native-comparisons',started:new Date().toISOString(),harnessRevision:revision,
     tools:{node:process.version,git:spawnSync('git',['--version'],{encoding:'utf8'}).stdout?.trim()??null,docker:spawnSync('docker',['--version'],{encoding:'utf8'}).stdout?.trim()??null},
     scenarioDigest:createHash('sha256').update(JSON.stringify(tasks)).digest('hex'),models,maxUsd,maxMinutes,repetitions,attempts:[],calibrations:[],remainingUsd:maxUsd};
   out.scheduledAttempts=pairs.flatMap(pair=>[0,...Array.from({length:repetitions},(_,i)=>i+1)].flatMap(repeat=>pair.arms.flatMap(config=>tasks.map(task=>`${pair.id}-${config.id}-${repeat?'paired':'smoke'}-${repeat}-${task.id}`))));
@@ -86,7 +119,7 @@ export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot
     out.attempts.push(row);save();if(reason)return row;
     let s;
     try{
-      s=stageTrial(fixturesDir,task.fixture,{product:true,native:!!config.native});isolate(s,root);configureComparison(s);
+      s=stageTrial(fixturesDir,task.fixture,{product:true,native:!!config.native});isolate(s,root);configureComparison(s,config);
       row.pluginDigest=s.native?null:createHash('sha256').update(JSON.stringify(walk(s.plugin).map(f=>[f,createHash('sha256').update(readFileSync(path.join(s.plugin,f))).digest('hex')]))).digest('hex');
       const invoke=bounded(invokeFactory(config));
       row.result=await runCampaign({task,config,invoke,sandbox:s,evidenceDir:row.evidence,evaluateProduct:(sandbox,step)=>gradeComparisonProduct(sandbox,step,task.product),log});
@@ -102,7 +135,7 @@ export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot
     const smokeCalls=smoke.flatMap(a=>a.result?.phases??[]).filter(p=>p.name?.startsWith('model-')).length;
     const smokeCost=smoke.reduce((n,a)=>n+(a.result?.usage?.usd??0),0);
     const calls=tasks.reduce((n,t)=>n+t.steps.reduce((m,s)=>m+2+Number(!!s.reject)+Number(!!s.stale)+Number(!!s.characterize)+2*Number(!!s.reviewSeed)+Number(pair.arms.some(c=>c.evaluate)),0),0);
-    const projectedUsd=smokeCalls?2*smokeCost/smokeCalls*calls*2*repetitions:null;
+    const projectedUsd=smokeCalls?2*smokeCost/smokeCalls*calls*pair.arms.length*repetitions:null;
     const reason=unavailable()??(!successful?'calibration_failed_or_unknown_billing':projectedUsd>remaining?'calibrated_suite_unaffordable':null);
     out.calibrations.push({pair:pair.id,successful,smokeCost,projectedUsd,remainingUsd:remaining,reason});save();
     for(let repeat=1;repeat<=repetitions;repeat++){

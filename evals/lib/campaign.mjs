@@ -9,7 +9,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { loadConfig } from '../../.aidlc/lib/config.mjs';
 import { approvalDriver } from './approvals.mjs';
-import { assertProductTree, productDockerArgs } from './stage.mjs';
+import { assertProductTree, productDockerArgs, PRODUCT_TEST_ARGS, PRODUCT_TEST_COMMAND } from './stage.mjs';
 import { behavioursOf, proofRowsOf, testRowIn, promiseSpecs, currentChange, render, parse, ownedFiles } from '../../.aidlc/lib/artifacts.mjs';
 
 // Driver updates use atomic replacement so each new container sees the new file identity.
@@ -364,7 +364,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
   };
   const publicCheck=()=>{
     const name=`comparison-check-${randomUUID()}`;
-    const out=spawnSync('docker',[...productDockerArgs(s,{phase:'runtime',name}),'node','--test'],{encoding:'utf8',timeout:60000,killSignal:'SIGKILL'});
+    const out=spawnSync('docker',[...productDockerArgs(s,{phase:'runtime',name}),'node',...PRODUCT_TEST_ARGS],{encoding:'utf8',timeout:60000,killSignal:'SIGKILL'});
     if(out.error||out.signal)spawnSync('docker',['rm','-f',name],{timeout:10000});
     assert.equal(out.status,0,`public tests failed: ${out.stdout}${out.stderr}`);return out.stdout;
   };
@@ -399,7 +399,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
       if(cfg)prepareProductChange(s,step);
       const initial=(step.initialBehaviours??step.behaviours).join('\n');
       const scope=`Approved implementation scope when permission arrives: ${step.files.join(', ')}. Preserve other files and existing public behaviour. No dependencies or deployment.`;
-      await call(`Current proposal: ${step.request}\n${initial}\n${scope}\nInspect relevant source and propose your approach. Request approval and stop before implementation. The external driver supplies simulated decisions. ${cfg?`Read .aidlc/artifacts/${step.slug}/{intent,spec,plan}.md.`:''}`);
+      await call(`Current proposal: ${step.request}\n${initial}\n${scope}\nInspect relevant source and propose your approach. If reproducing a failure, use ${PRODUCT_TEST_COMMAND} so leaked test resources cannot stall the turn. Request approval and stop before implementation. The external driver supplies simulated decisions. ${cfg?`Read .aidlc/artifacts/${step.slug}/{intent,spec,plan}.md.`:''}`);
       // The completed planning turn and unchanged source/approval metadata prove the pause.
       // Natural requests such as 'Should I proceed?' must not fail a keyword test.
       event('planning-paused',{slug:step.slug,sessionId});
@@ -418,7 +418,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
       if(cfg)approvals.assertImplementation(step.slug);
       const authorized=sourceDigest();
       if(step.missingTool){const out=spawnSync('docker',[...productDockerArgs(s),'missing-product-tool'],{encoding:'utf8',timeout:15000});assert.notEqual(out.status,0);event('missing-tool-reproduced');}
-      if(step.characterize){await call('Simulated approval: write only tests/ledger.test.mjs to characterize addCustomer, addInvoice and listInvoices including unknown-customer errors. Keep source unchanged. Run node --test.','characterize');publicCheck();event('characterization-passed');}
+      if(step.characterize){await call(`Simulated approval: write only tests/ledger.test.mjs to characterize addCustomer, addInvoice and listInvoices including unknown-customer errors. Keep source unchanged. Run ${PRODUCT_TEST_COMMAND}.`,'characterize');publicCheck();event('characterization-passed');}
       let context='';
       if(config.graph){
         const {build}=await import('../../.aidlc/lib/graph.mjs');const {pack,renderPack}=await import('../../.aidlc/lib/pack.mjs');
@@ -426,7 +426,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
         const g=build(graphCfg);context=step.files.filter(f=>f.startsWith('src/')).map(f=>renderPack(pack(graphCfg,g,f,{budget:1200}))).join('\n');
         event('graph-context',{context,fingerprint:g.fingerprint});
       }
-      const instruction=`Simulated approval: implement ${step.request}\n${step.behaviours.join('\n')}\n${scope}\nAdd meaningful tests and run node --test. Use rg and bounded reads as needed. Do not modify approval artifacts. ${step.missingTool?'missing-product-tool is unavailable; use Node and do not install a replacement.':''}\n${context}`;
+      const instruction=`Simulated approval: implement ${step.request}\n${step.behaviours.join('\n')}\n${scope}\nAdd meaningful tests and run ${PRODUCT_TEST_COMMAND}. Use rg and bounded reads as needed. Do not modify approval artifacts. ${step.missingTool?'missing-product-tool is unavailable; use Node and do not install a replacement.':''}\n${context}`;
       await call(instruction,'implement');
       const validateScope=()=>{
         const previous=new Map(authorized),current=new Map(sourceDigest());

@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, rmSync } fr
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { evaluate, KNOWN, toRegExp, verifyLedger, verifyService } from './lib/assertions.mjs';
+import { evaluate, KNOWN, toRegExp, verifyLedger, verifyService, ledgerDescriptionExplainsPaidRule } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
 import { stage, isolateStage } from './lib/stage.mjs';
 import { runProductCampaign } from './lib/campaign.mjs';
@@ -280,7 +280,7 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
             }
             if(t.product==='ledger' && step.level===5) {
               const doc=readFileSync(path.join(sandbox.work,'docs/PRODUCT.md'),'utf8');
-              if(!/partial|payment/i.test(doc)||!/paid[^\n]*(not|never)[^\n]*overdue|not overdue[^\n]*paid/i.test(doc))throw new Error('current product description misses payment or paid-invoice behaviour');
+              if(!/partial|payment/i.test(doc)||!ledgerDescriptionExplainsPaidRule(doc))throw new Error('current product description misses payment or paid-invoice behaviour');
               if(/overdue[^\n]*regardless of[^\n]*pa(id|yment)/i.test(doc))throw new Error('product description states superseded overdue rule');
               if(existsSync(path.join(sandbox.work,'src/store.mjs')))throw new Error('external rename was incorrectly undone');
             }
@@ -357,7 +357,9 @@ async function main() {
   const argv = process.argv.slice(2);
   const flag = (n, d = null) => { const i = argv.indexOf(`--${n}`); return i === -1 ? d : argv[i + 1]; };
   const fixturesDir = path.join(HERE, 'fixtures');
-  const comparisons=argv.includes('--compare');
+  const prune=argv.includes('--prune');
+  const comparisons=argv.includes('--compare')||prune;
+  if(flag('prune-arm') && !prune)throw new Error('--prune-arm requires --prune');
   const products=argv.includes('--products')||comparisons;
   if(comparisons && flag('through'))throw new Error('--compare calibrates first changes itself; --through would truncate paired campaigns');
   let tasks = loadTasks(products ? path.join(HERE,'products.json') : undefined);
@@ -372,9 +374,9 @@ async function main() {
   if (problems.length) { console.error('tasks.json is invalid:\n  ' + problems.join('\n  ')); return 2; }
   if (argv.includes('--dry') && comparisons) {
     const {comparisonPairs}=await import('./lib/comparison.mjs');
-    const pairs=comparisonPairs(loadConfig(PLUGIN_ROOT).models), repeats=Number(flag('repeats',3)), budget=Number(flag('max-suite-usd',40)),minutes=Number(flag('max-suite-minutes',30));
+    const pairs=comparisonPairs(loadConfig(PLUGIN_ROOT).models,{prune,pruneArm:flag('prune-arm')}), repeats=Number(flag('repeats',prune?1:3)), budget=Number(flag('max-suite-usd',prune?9:40)),minutes=Number(flag('max-suite-minutes',prune?40:30));
     if(!Number.isInteger(repeats)||repeats<1||!Number.isFinite(budget)||budget<=0||!Number.isFinite(minutes)||minutes<=0)throw new Error('comparison repeats must be a positive integer and budget/time limits finite and positive');
-    console.log(JSON.stringify({pairs,products:tasks.map(t=>t.id),smokes:pairs.length*2*tasks.length,pairedAttempts:pairs.length*2*tasks.length*repeats,maxUsd:budget,maxMinutes:minutes},null,2));return 0;
+    console.log(JSON.stringify({pairs,products:tasks.map(t=>t.id),smokes:pairs.reduce((n,p)=>n+p.arms.length,0)*tasks.length,pairedAttempts:pairs.reduce((n,p)=>n+p.arms.length,0)*tasks.length*repeats,maxUsd:budget,maxMinutes:minutes},null,2));return 0;
   }
   if (argv.includes('--dry')) {
     const ceiling = tasks.reduce((n, t) => n + t.budgetUsd * t.repeats * promptCount(t), 0);
@@ -389,9 +391,9 @@ async function main() {
     const models=loadConfig(PLUGIN_ROOT).models;
     const available=claudeAuthenticated(process.env,spawnSync,{product:true})&&spawnSync('docker',['info'],{stdio:'ignore',timeout:15000}).status===0;
     const stamp=new Date().toISOString().replace(/[:.]/g,'-');
-    const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',stamp);
-    const out=await runComparisons({tasks,models,root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),
-      maxUsd:Number(flag('max-suite-usd',40)),maxMinutes:Number(flag('max-suite-minutes',30)),repetitions:Number(flag('repeats',3)),
+    const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',prune?`prune-${stamp}`:stamp);
+    const out=await runComparisons({tasks,models,prune,pruneArm:flag('prune-arm'),root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),
+      maxUsd:Number(flag('max-suite-usd',prune?9:40)),maxMinutes:Number(flag('max-suite-minutes',prune?40:30)),repetitions:Number(flag('repeats',prune?1:3)),
       invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true})(args),
       log:console.log});
     console.log(JSON.stringify({evidenceRoot,summary:out.summary,calibrations:out.calibrations},null,2));

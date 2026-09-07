@@ -4,9 +4,10 @@ import {readFileSync,writeFileSync,existsSync,mkdtempSync,rmSync,renameSync,utim
 import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {comparisonPairs,summarizeComparisons,configureComparison,runComparisons} from '../evals/lib/comparison.mjs';
+import {comparisonPairs,summarizeComparisons,configureComparison,pruneSessionInventory,restoreSessionInventory,runComparisons} from '../evals/lib/comparison.mjs';
 import {stage,isolateStage,productDockerArgs,FIXTURES} from '../evals/lib/stage.mjs';
 import {invokerArgs} from '../evals/lib/invoker.mjs';
+import {ledgerDescriptionExplainsPaidRule} from '../evals/lib/assertions.mjs';
 import {loadConfig} from '../.aidlc/lib/config.mjs';
 import {ensure,load} from '../.aidlc/lib/graph.mjs';
 import {refresh} from '../.aidlc/lib/refresh.mjs';
@@ -138,5 +139,69 @@ test('suite deadline stops further model calls and preserves scheduled unmeasure
     invokeFactory:()=>async args=>{calls++;assert.equal(args.timeoutMs,60000);clock=60001;return {usage:{usd:.001}};},
     runCampaign:async({invoke})=>{await invoke({budgetUsd:.1,timeoutMs:240000});return {pass:true,billingComplete:true,completedSteps:1,usage:{usd:.001},phases:[{name:'model-plan'}]};}});
     assert.equal(calls,1);assert.equal(out.attempts.length,24);assert.ok(out.attempts.slice(1).every(a=>a.reason==='suite_time_exhausted'));
+  }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
+});
+
+
+test('pruning changes only automatic session inventory in the isolated lean arm',()=>{
+  const original=readFileSync('.aidlc/hooks/dispatch.mjs','utf8');
+  const baseline=restoreSessionInventory(original);
+  assert.equal(restoreSessionInventory(pruneSessionInventory(baseline)),baseline);
+  const pairs=comparisonPairs(models,{prune:true});
+  assert.equal(pairs.length,1);assert.equal(pairs[0].arms[0].model,pairs[0].arms[1].model);
+  for(const config of pairs[0].arms){
+    const s=stage(FIXTURES,'campaign-ledger',{product:true});
+    try{
+      isolateStage(s,root);configureComparison(s,config);
+      const dispatch=readFileSync(path.join(s.plugin,'.aidlc/hooks/dispatch.mjs'),'utf8');
+      assert.equal(dispatch,config.prune?pruneSessionInventory(baseline):baseline);
+      assert.equal(readFileSync(path.join(s.plugin,'.aidlc/lib/graph.mjs'),'utf8'),readFileSync('.aidlc/lib/graph.mjs','utf8'));
+      assert.ok(dispatch.includes('ledger.report('));assert.ok(dispatch.includes('currentLine(cfg)'));
+      const banner=JSON.parse(execFileSync(process.execPath,[path.join(s.plugin,'.aidlc/bin/harness'),'hook','session-start'],{cwd:s.work,encoding:'utf8',input:JSON.stringify({cwd:s.work})})).hookSpecificOutput.additionalContext;
+      assert.equal(/^budget:/m.test(banner),!config.prune);
+      assert.match(banner,/contract:/);assert.match(banner,/^check:/m);assert.match(banner,/^ledger:/m);
+
+    }finally{s.cleanup();}
+  }
+  assert.equal(readFileSync('.aidlc/hooks/dispatch.mjs','utf8'),original);
+  assert.throws(()=>pruneSessionInventory('changed source'),/source drift/);
+});
+
+
+test('pruning schedules only the matched product pair and preserves missing attempts',async()=>{
+  const evidenceRoot=mkdtempSync(path.join(tmpdir(),'pruning-schedule-'));
+  try{
+    const out=await runComparisons({tasks:[{id:'ledger',fixture:'campaign-ledger',steps:[{}]},{id:'service',fixture:'campaign-service',steps:[{}]}],models:{generator:'capable',evaluator:'strong'},root,fixturesDir:FIXTURES,evidenceRoot,prune:true,repetitions:1,maxUsd:8,available:false,invokeFactory:()=>{throw new Error('must not invoke');}});
+    assert.equal(out.kind,'pruning-comparison');assert.equal(out.attempts.length,8);
+    assert.deepEqual([...new Set(out.attempts.map(a=>a.config.id))],['baseline','lean']);
+    assert.ok(out.attempts.every(a=>a.status==='unmeasured'));assert.equal(out.remainingUsd,8);
+  }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
+});
+
+
+test('ledger description accepts the retained correct zero-balance wording and rejects the old rule',()=>{
+  assert.equal(ledgerDescriptionExplainsPaidRule("Returns `false` once the invoice's outstanding amount reaches zero (fully paid), regardless of\n how far past its `dueDate` that is."),true);
+  assert.equal(ledgerDescriptionExplainsPaidRule('Fully paid invoices are never overdue.'),true);
+  assert.equal(ledgerDescriptionExplainsPaidRule('Invoices are overdue regardless of payment.'),false);
+  assert.equal(ledgerDescriptionExplainsPaidRule('Returns true once the outstanding amount reaches zero (fully paid).'),false);
+});
+
+
+test('a pruning arm can be rerun without paying to repeat its completed counterpart',()=>{
+  const pairs=comparisonPairs(models,{prune:true,pruneArm:'lean'});
+  assert.deepEqual(pairs[0].arms.map(a=>a.id),['lean']);
+  assert.throws(()=>comparisonPairs(models,{prune:true,pruneArm:'unknown'}),/prune-arm/);
+  assert.throws(()=>comparisonPairs(models,{pruneArm:'lean'}),/prune-arm/);
+});
+
+
+test('single-arm calibration budgets only its scheduled campaigns',async()=>{
+  const evidenceRoot=mkdtempSync(path.join(tmpdir(),'pruning-arm-budget-'));
+  try{
+    const out=await runComparisons({tasks:[{id:'ledger',fixture:'campaign-ledger',steps:[{}]}],models,root,fixturesDir:FIXTURES,evidenceRoot,prune:true,pruneArm:'lean',repetitions:1,maxUsd:1,
+      invokeFactory:()=>async()=>({usage:{usd:.001}}),
+      runCampaign:async({invoke})=>{await invoke({budgetUsd:.1});return {pass:true,completedSteps:1,billingComplete:true,usage:{usd:.001},phases:[{name:'model-plan'}]};}});
+    assert.equal(out.attempts.length,2);assert.ok(out.attempts.every(a=>a.config.id==='lean'&&a.status==='pass'));
+    assert.equal(out.calibrations[0].projectedUsd,.004);
   }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
 });
