@@ -51,16 +51,14 @@ export function refresh(cfg, { force = false } = {}) {
   try {
     const dirty = drainDirty(cfg.layout.graphDirty);
     const previous = graph.load(cfg);
-    if (!dirty.length && previous && !force) return { skipped: 'clean' };
+    if (!dirty.length && previous && previous.fingerprint === graph.fingerprint(cfg) && !force) return { skipped: 'clean' };
 
-    // Incremental when we have a previous graph and a bounded dirty list; full otherwise.
-    const g = (previous && dirty.length && dirty.length < 200 && !force)
-      ? graph.build(cfg, { only: dirty, previous })
-      : graph.build(cfg);
+    // Hooks are hints: a shell edit or branch switch can change files outside the dirty list.
+    const g = graph.build(cfg);
     graph.save(cfg, g);
     try { writeFileSync(stampPath(cfg), ''); } catch { /* fail open */ }
     ledger.append({ stage: 'stop', control: 'graph-refresh', verdict: 'pass', ms: Date.now() - started, findings: 0, changed_files: dirty.length }, cfg.layout);
-    return { modules: Object.keys(g.modules).length, dirty: dirty.length, incremental: g !== previous && dirty.length > 0, ms: Date.now() - started };
+    return { modules: Object.keys(g.modules).length, dirty: dirty.length, incremental: false, ms: Date.now() - started };
   } catch (e) {
     // A failed refresh must be VISIBLE. v6's renders failed into silence, and the planners
     // downstream went on trusting a map that had stopped moving.

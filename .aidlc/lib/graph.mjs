@@ -11,10 +11,11 @@
 // the harness invisible to it; test/graph.test.mjs asserts the opposite.
 
 import { readFileSync, readdirSync, statSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
-export const GRAPH_VERSION = 3;
+export const GRAPH_VERSION = 4;
 
 const LANG_BY_EXT = {
   '.py': 'py', '.js': 'js', '.mjs': 'js', '.cjs': 'js', '.jsx': 'js',
@@ -221,7 +222,7 @@ export function build(cfg, { only = null, previous = null } = {}) {
   for (const [rel, m] of Object.entries(modules)) {
     m.imports = [...new Set(m.raw_imports.map((s) => resolve(rel, s)).filter((x) => x && x !== rel))];
   }
-  return { version: GRAPH_VERSION, built_at: new Date().toISOString(), root, modules };
+  return { fingerprint: only ? null : fingerprint(cfg), version: GRAPH_VERSION, built_at: new Date().toISOString(), root, modules };
 }
 
 function symbolTable(g) {
@@ -340,7 +341,7 @@ export function load(cfg) {
   if (!existsSync(cfg.layout.graph)) return null;
   try {
     const g = JSON.parse(readFileSync(cfg.layout.graph, 'utf8'));
-    return g.version === GRAPH_VERSION ? g : null;
+    return g.version === GRAPH_VERSION && g.fingerprint === fingerprint(cfg) ? g : null;
   } catch { return null; }
 }
 
@@ -352,4 +353,14 @@ export function ensure(cfg) {
   const g = build(cfg);
   save(cfg, g);
   return g;
+}
+
+// Content and path identity catch shell writes, deletions, renames and branch switches,
+// including same-size writes with preserved mtimes. No dependence on edit-hook delivery.
+export function fingerprint(cfg) {
+  const hash = createHash('sha256');
+  for (const rel of discover(cfg)) {
+    hash.update(rel).update('\0').update(readFileSync(path.join(cfg.layout.root, rel))).update('\0');
+  }
+  return hash.digest('hex');
 }

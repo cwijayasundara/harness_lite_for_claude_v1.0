@@ -215,7 +215,6 @@ export async function dispatch(event) {
         // Waiting for a human gate is a legitimate end of a turn, including in trials.
         // The external test driver supplies the next decision; a Stop hook cannot approve it.
 
-        if (!existsSync(cfg.layout.graphDirty)) return 0;
         const r = refresh(cfg);
         const report = await check(cfg, { stage: 'stop', files: [] });
         const notes = [];

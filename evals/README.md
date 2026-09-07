@@ -48,3 +48,73 @@ one change and explicitly records a partial trial. `HARNESS_PRODUCT_DOCKER=1 nod
  test/product-trials.test.mjs` exercises isolation and grading with no model calls.
 Every attempt retains source snapshots and phase evidence under `.aidlc/evals/products/`, even
 when it fails. Those private outputs are not mounted into the agent container.
+
+## Native, graph and model comparisons
+
+```
+node evals/run.mjs --compare --max-suite-usd 40
+```
+
+This extends the existing runner. It runs these experiments **sequentially**, using both products:
+
+1. Native Claude Code versus the harness, both using `[models].generator`.
+2. The harness without versus with fresh bounded graph context, using that same generator.
+3. `[models].evaluator` implementing directly versus `[models].evals` implementing with fresh,
+   read-only `[models].evaluator` evaluation of each candidate and bounded repair feedback.
+
+Each experiment starts with a first-change infrastructure smoke for each arm and product. Known
+smoke spend per model call is scaled to the campaign's planned calls and multiplied by two before
+starting three paired repetitions. Arm order alternates between repetitions. The suite cap includes
+smokes, failures and repairs; missing billing reserves the entire invocation allowance. Calibration
+failure, missing credentials/isolation and insufficient remaining budget produce explicit unmeasured
+records for the scheduled repetitions. Provider/model errors remain incomplete, with no fallback.
+The CLI exits nonzero if any scheduled attempt is failed, incomplete or unmeasured.
+
+Native staging installs no harness and mounts no plugin. Its ordinary `CLAUDE.md` describes the
+project workflow, test command and compatibility expectations. Both arms can use Read/Grep/Glob,
+Write/Edit and normal Bash access, including `rg`, bounded reads, local runtime probes and process cleanup. Planning source and Git metadata are read-only;
+implementation cannot alter Git or harness approval artifacts. The driver owns simulated decisions,
+private acceptance and commits. These are isolated, unattended Claude Code trials, not unrestricted
+interactive desktop sessions. Native approval is an explicit conversational driver decision; harness
+approval additionally uses the ordinary artifact/receipt protocol. Consequential questions remain
+possible; the driver does not invent answers outside the scenario.
+
+For the graph experiment, both disposable harness plugin copies suppress automatic cached maps.
+The graph arm gets fresh source packs (up to 1,200 estimated tokens per affected source file) in its
+implementation prompt; both arms retain `rg` and bounded reads. This measures supplied retrieval
+assistance, not whether an agent voluntarily chooses graph tools. The copied plugin is experimental;
+production configuration and controls remain unchanged. `node evals/bench/pack-bench.mjs` separately
+compares graph packs against declaration-first `rg` results with bounded reads under the same 1,200-token
+budget. Historical whole-file totals are context, not evidence that graph assistance earns its cost.
+Both visible search hits and source reads count toward the budget. Golden entries must identify a real source symbol, so deleted symbols cannot silently count as hits.
+
+Every invocation and attempt is saved under `.aidlc/evals/comparisons/<timestamp>/`, including a
+started record before a call, requested and actual model usage (including CLI auxiliary models),
+tool versions, harness/scenario/fixture/candidate identity, latency, token/cache usage when supplied,
+public/private verification, retries and external decisions. Full transcripts and product Git histories
+remain local private evidence. The comparison summary groups smoke and paired results separately
+and computes cost per accepted change using **all** attempts' spend. Unknown billing yields unknown
+cost per accepted change. Unnecessary-question counts are null until independently classified;
+transcript punctuation is not a valid proxy. Three repetitions inform a decision, not a general
+reliability estimate. The comparison does not implement item 5 pruning.
+
+`economics` combines smoke and paired spend per configuration; `summary` keeps the two kinds
+separate. Failed verification attempts are counted separately from confirmed regressions: if
+a failure has not been classified as new behaviour versus a regression, the regression count is
+unknown. Original public/private failure evidence remains available for classification.
+
+To abandon a running suite without interrupting billing collection, pass `--stop-file /tmp/stop-comparison`
+and create that file when needed. The driver finishes its current call and records remaining attempts
+as unmeasured. The full schedule is persisted before the first call, so unexpected termination also
+leaves pending attempts visible. Do not reuse an existing stop file for a new run.
+
+Comparisons default to a **30-minute suite time limit** (`--max-suite-minutes`). Each model call
+receives the remaining time, and no new call starts after the deadline. Private verification and
+cleanup may finish after it. Remaining scheduled trials are explicitly unmeasured. A complete
+three-pair, two-product matrix is an extended benchmark; use `--dry` to inspect its 48 campaign
+attempts and set a longer time limit deliberately when that run is affordable.
+
+Approval pauses are verified through completed planning turns with unchanged product source
+and approval metadata, followed by an external decision. They do not require a magic word in
+the model's response. Failed verification candidates are committed to the disposable product's
+Git history before repair, so their exact source remains replayable.

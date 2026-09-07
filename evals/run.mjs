@@ -357,7 +357,9 @@ async function main() {
   const argv = process.argv.slice(2);
   const flag = (n, d = null) => { const i = argv.indexOf(`--${n}`); return i === -1 ? d : argv[i + 1]; };
   const fixturesDir = path.join(HERE, 'fixtures');
-  const products=argv.includes('--products');
+  const comparisons=argv.includes('--compare');
+  const products=argv.includes('--products')||comparisons;
+  if(comparisons && flag('through'))throw new Error('--compare calibrates first changes itself; --through would truncate paired campaigns');
   let tasks = loadTasks(products ? path.join(HERE,'products.json') : undefined);
   if(products && flag('through')) tasks=tasks.map(t=>({...t,calibration:true,steps:t.steps.slice(0,Number(flag('through')))}));
   if (flag('id')) tasks = tasks.filter((t) => t.id === flag('id'));
@@ -368,10 +370,32 @@ async function main() {
   if (!(Number(flag('max-suite-usd', Infinity)) > 0)) { console.error('--max-suite-usd must be positive'); return 2; }
   const problems = validate(tasks, fixturesDir);
   if (problems.length) { console.error('tasks.json is invalid:\n  ' + problems.join('\n  ')); return 2; }
+  if (argv.includes('--dry') && comparisons) {
+    const {comparisonPairs}=await import('./lib/comparison.mjs');
+    const pairs=comparisonPairs(loadConfig(PLUGIN_ROOT).models), repeats=Number(flag('repeats',3)), budget=Number(flag('max-suite-usd',40)),minutes=Number(flag('max-suite-minutes',30));
+    if(!Number.isInteger(repeats)||repeats<1||!Number.isFinite(budget)||budget<=0||!Number.isFinite(minutes)||minutes<=0)throw new Error('comparison repeats must be a positive integer and budget/time limits finite and positive');
+    console.log(JSON.stringify({pairs,products:tasks.map(t=>t.id),smokes:pairs.length*2*tasks.length,pairedAttempts:pairs.length*2*tasks.length*repeats,maxUsd:budget,maxMinutes:minutes},null,2));return 0;
+  }
   if (argv.includes('--dry')) {
     const ceiling = tasks.reduce((n, t) => n + t.budgetUsd * t.repeats * promptCount(t), 0);
     console.log(`${tasks.length} tasks valid; ${Math.min(ceiling,Number(flag('max-suite-usd',products?20:Infinity))).toFixed(2)} USD ceiling if run`);
     return 0;
+  }
+
+  if (comparisons) {
+    const {runComparisons}=await import('./lib/comparison.mjs');
+    const {claudeInvoker}=await import('./lib/invoker.mjs');
+    loadDotEnv(PLUGIN_ROOT);
+    const models=loadConfig(PLUGIN_ROOT).models;
+    const available=claudeAuthenticated(process.env,spawnSync,{product:true})&&spawnSync('docker',['info'],{stdio:'ignore',timeout:15000}).status===0;
+    const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+    const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',stamp);
+    const out=await runComparisons({tasks,models,root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),
+      maxUsd:Number(flag('max-suite-usd',40)),maxMinutes:Number(flag('max-suite-minutes',30)),repetitions:Number(flag('repeats',3)),
+      invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true})(args),
+      log:console.log});
+    console.log(JSON.stringify({evidenceRoot,summary:out.summary,calibrations:out.calibrations},null,2));
+    return out.attempts.every(a=>a.status==='pass')?0:1;
   }
 
   // Claude may store OAuth credentials in an OS keychain rather than a repository-visible file.

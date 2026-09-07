@@ -1,0 +1,2175 @@
+{
+  "kind": "item-4-delivery-evidence",
+  "status": "implementation tested; comparative acceptance incomplete",
+  "reason": "Full matrix stopped following user latency feedback; no comparative winner claimed. Final approval-grading and suite-time-limit fixes are deterministic-tested, not a new paid campaign.",
+  "defaultSuiteMinutes": 30,
+  "fullMatrix": {
+    "smokeCampaigns": 12,
+    "pairedCampaigns": 36,
+    "pairedRepetitions": 3
+  },
+  "reportedUsd": 7.45033505,
+  "billingComplete": false,
+  "totalUsd": null,
+  "budgetChargedOrReservedUsd": 8.950335049999978,
+  "limitations": [
+    "One model timeout returned no billing; its full allowance was reserved.",
+    "Graph and generation-strategy product comparisons remain unmeasured.",
+    "Unnecessary-question counts remain unclassified; complete transcripts are retained locally.",
+    "An initial shell allowlist caused operational permission questions and was retired.",
+    "One valid natural-language approval request was falsely rejected; the final driver checks source and approval state instead.",
+    "Small samples and scripted approvals do not establish universal reliability or human judgment quality."
+  ],
+  "hostedVerification": "https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34088585911",
+  "runs": [
+    {
+      "source": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/comparison.json",
+      "harnessRevision": "1f68a1c8e6a56c83c995ab3edce299c295b9494b",
+      "finished": "2026-09-07T05:03:20.143Z",
+      "retired": true,
+      "statusCounts": {
+        "unmeasured": 48
+      },
+      "reportedUsd": 0,
+      "billingComplete": true,
+      "budgetChargedOrReservedUsd": 0,
+      "calibrations": [
+        {
+          "pair": "native",
+          "successful": false,
+          "smokeCost": 0,
+          "projectedUsd": null,
+          "remainingUsd": 60,
+          "reason": "credentials_or_isolation_unavailable"
+        },
+        {
+          "pair": "graph",
+          "successful": false,
+          "smokeCost": 0,
+          "projectedUsd": null,
+          "remainingUsd": 60,
+          "reason": "credentials_or_isolation_unavailable"
+        },
+        {
+          "pair": "generation",
+          "successful": false,
+          "smokeCost": 0,
+          "projectedUsd": null,
+          "remainingUsd": 60,
+          "reason": "credentials_or_isolation_unavailable"
+        }
+      ],
+      "attempts": [
+        {
+          "id": "native-native-smoke-0-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-smoke-0-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-smoke-0-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-smoke-0-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-smoke-0-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-smoke-0-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-smoke-0-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-smoke-0-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-paired-1-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-1-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-paired-1-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-1-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-paired-1-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-1-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-paired-1-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-1-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-paired-2-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-paired-2-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-paired-2-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-paired-2-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-paired-3-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-paired-3-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-3-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-paired-3-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-paired-3-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-3-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-smoke-0-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-smoke-0-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-smoke-0-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-smoke-0-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-smoke-0-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-smoke-0-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-smoke-0-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-smoke-0-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-1-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-1-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-1-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-1-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-1-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-1-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-1-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-1-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-2-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-2-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-2-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-2-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-3-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-3-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-3-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-3-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-3-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-3-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-smoke-0-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-smoke-0-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-smoke-0-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-smoke-0-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-smoke-0-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-smoke-0-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-smoke-0-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-smoke-0-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-1-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-1-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-1-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-1-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-1-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-1-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-1-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-1-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-2-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-2-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-2-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-2-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-3-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-3-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-3-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-3-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-3-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "credentials_or_isolation_unavailable",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-3-campaign-service",
+          "reportedUsd": 0
+        }
+      ]
+    },
+    {
+      "source": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/comparison.json",
+      "harnessRevision": "1f68a1c8e6a56c83c995ab3edce299c295b9494b",
+      "finished": null,
+      "retired": true,
+      "statusCounts": {
+        "pass": 6,
+        "abandoned": 1
+      },
+      "reportedUsd": 3.98860035,
+      "billingComplete": true,
+      "budgetChargedOrReservedUsd": 3.9886003499999703,
+      "calibrations": [
+        {
+          "pair": "native",
+          "successful": true,
+          "smokeCost": 0.6461475,
+          "projectedUsd": 20.935178999999998,
+          "remainingUsd": 59.3538525,
+          "reason": null
+        }
+      ],
+      "attempts": [
+        {
+          "id": "native-native-smoke-0-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-smoke-0-campaign-ledger",
+          "reportedUsd": 0.145036,
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "343fce9e72fa433476227e4764658870090180ef",
+          "fixtureRevision": "610a72b7ddc7645ed7f05773d1c516171ed4ddda",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 47163,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-haiku-4-5-20251001",
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-native-smoke-0-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-smoke-0-campaign-service",
+          "reportedUsd": 0.1269713,
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "0ffd3678d7795241e8902bddaefd40a26393d195",
+          "fixtureRevision": "2ac13a2580e04d52e42007d436506c8172bfae90",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 51647,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-haiku-4-5-20251001",
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-harness-smoke-0-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-harness-smoke-0-campaign-ledger",
+          "reportedUsd": 0.17781290000000002,
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "52b9e4272cfb77ce8db6c7e2f2c3e555bfdc3430",
+          "fixtureRevision": "20c112e5c74cf9ecd3f5736e84fec18a66e715d3",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 45876,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-harness-smoke-0-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-harness-smoke-0-campaign-service",
+          "reportedUsd": 0.1963273,
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "80b8b1e8082cd301c91c518ce43679a32e288fad",
+          "fixtureRevision": "ba85fd0cbae100b6017f789d14ac62b34a56684c",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 82181,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-native-paired-1-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-paired-1-campaign-ledger",
+          "reportedUsd": 0.9266216500000001,
+          "completedSteps": 5,
+          "totalSteps": 5,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "652727657c922ac2cc5e8256f98fadb53b49831f",
+          "fixtureRevision": "7cb3d03c502b57a10ffb6905cc8dc74d5e15e8cc",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 301249,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-haiku-4-5-20251001",
+            "claude-opus-5",
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-native-paired-1-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-paired-1-campaign-service",
+          "reportedUsd": 0.9866908,
+          "completedSteps": 6,
+          "totalSteps": 6,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "1d68ee26dac5183e963a01139418033d1b714ef0",
+          "fixtureRevision": "2c6afe589662a73919dbd3e88370d32b2c95e9c7",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 539952,
+          "retries": 1,
+          "approvalViolations": 0,
+          "verificationFailures": 1,
+          "actualModels": [
+            "claude-haiku-4-5-20251001",
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-harness-paired-1-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "status": "abandoned",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-harness-paired-1-campaign-ledger",
+          "reportedUsd": 1.4291404,
+          "completedSteps": 4,
+          "totalSteps": 5,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "48d275fa1adf1c30eacbf58e5f84d0846a27df5f",
+          "fixtureRevision": "156469ce4d367a99849f52b149524c0356e4e4d0",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": null,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-haiku-4-5-20251001",
+            "claude-opus-5",
+            "claude-sonnet-5"
+          ],
+          "interpretation": "Retired restricted shell configuration after observed avoidable permission friction"
+        }
+      ]
+    },
+    {
+      "source": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/comparison.json",
+      "harnessRevision": "af5ee3120172b2779f5dc0608e71c6686843c9c8",
+      "finished": "2026-09-07T06:24:54.858Z",
+      "retired": true,
+      "statusCounts": {
+        "pass": 5,
+        "fail": 1,
+        "incomplete": 2,
+        "unmeasured": 40
+      },
+      "reportedUsd": 3.4617347,
+      "billingComplete": false,
+      "budgetChargedOrReservedUsd": 4.961734700000008,
+      "calibrations": [
+        {
+          "pair": "native",
+          "successful": true,
+          "smokeCost": 0.6196712,
+          "projectedUsd": 20.07734688,
+          "remainingUsd": 55.380328799999994,
+          "reason": null
+        },
+        {
+          "pair": "graph",
+          "successful": false,
+          "smokeCost": 0,
+          "projectedUsd": null,
+          "remainingUsd": 51.03826529999999,
+          "reason": "operator_abandoned"
+        },
+        {
+          "pair": "generation",
+          "successful": false,
+          "smokeCost": 0,
+          "projectedUsd": null,
+          "remainingUsd": 51.03826529999999,
+          "reason": "operator_abandoned"
+        }
+      ],
+      "attempts": [
+        {
+          "id": "native-native-smoke-0-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-smoke-0-campaign-ledger",
+          "reportedUsd": 0.1533984,
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "475172f60ba00c224fdc7df9ffbb72c4758a491b",
+          "fixtureRevision": "53db4e3ed956f3a5c13df031d56d584aa19b6e02",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 50960,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-haiku-4-5-20251001",
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-native-smoke-0-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-smoke-0-campaign-service",
+          "reportedUsd": 0.12551120000000002,
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "fa0f0b01da5ce591bec5f6090e0730d50b20e382",
+          "fixtureRevision": "8ddcc6089a446b71ef701cba741344358f3ca74f",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 55374,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-haiku-4-5-20251001",
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-harness-smoke-0-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-smoke-0-campaign-ledger",
+          "reportedUsd": 0.20195420000000003,
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "94b596975e7ea41222add59a2ca7421b9cb25b51",
+          "fixtureRevision": "03323d2179b799ec7d159dc3d4f6ce30c73b765d",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 60965,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-harness-smoke-0-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-smoke-0-campaign-service",
+          "reportedUsd": 0.1388074,
+          "completedSteps": 1,
+          "totalSteps": 1,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "76027009bcc95b1ea3f19fcc785a1d47cd446ed0",
+          "fixtureRevision": "8478639b4be841b1605ec7eee1298011819575a3",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 50309,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-native-paired-1-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "pass",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-1-campaign-ledger",
+          "reportedUsd": 1.0566451000000001,
+          "completedSteps": 5,
+          "totalSteps": 5,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "0735f5e51d84f8dd3a7c189e93e40878debad7b0",
+          "fixtureRevision": "654d6865ef2104106270d00380769e97418cbda9",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 360006,
+          "retries": 1,
+          "approvalViolations": 0,
+          "verificationFailures": 1,
+          "actualModels": [
+            "claude-haiku-4-5-20251001",
+            "claude-opus-5",
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-native-paired-1-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "fail",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-1-campaign-service",
+          "reportedUsd": 0.8730638,
+          "completedSteps": 5,
+          "totalSteps": 6,
+          "billingComplete": true,
+          "incomplete": null,
+          "candidateRevision": "1d8f67bfed0ae288d9f1273c6518259a712ae232",
+          "fixtureRevision": "b3b18b54d12c6e9855ca655d52ff6d83983a8e56",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 321896,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-haiku-4-5-20251001",
+            "claude-sonnet-5"
+          ],
+          "interpretation": "False grading failure: model requested permission with Should I proceed; source unchanged. Keyword gate removed in final implementation."
+        },
+        {
+          "id": "native-harness-paired-1-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
+          "status": "incomplete",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-1-campaign-ledger",
+          "reportedUsd": 0.050319600000000006,
+          "completedSteps": 0,
+          "totalSteps": 5,
+          "billingComplete": false,
+          "incomplete": {
+            "reason": "timed_out",
+            "detail": "Ignoring 4 permissions.allow entries from .claude/settings.json: this workspace has not been trusted. Run Claude Code interactively here once and accept the trust dialog, or set projects[\"/work\"].hasTrustDialogAccepted: true in /session/.claude.json.\n"
+          },
+          "candidateRevision": null,
+          "fixtureRevision": "75790cba00f58fadba72be6f3c9c899c3fba5070",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 677023,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-harness-paired-1-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
+          "status": "incomplete",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-1-campaign-service",
+          "reportedUsd": 0.862035,
+          "completedSteps": 5,
+          "totalSteps": 6,
+          "billingComplete": true,
+          "incomplete": {
+            "reason": "operator_abandoned"
+          },
+          "candidateRevision": "66eb13794af2efbfb6aafb1b3da121484e34dfb8",
+          "fixtureRevision": "adac01baf649215adccd2aa2028d4481ae24d25b",
+          "tools": {
+            "cli": "2.1.263 (Claude Code)",
+            "node": "v22.16.0",
+            "rg": "ripgrep 13.0.0\n-SIMD -AVX (compiled)"
+          },
+          "latencyMs": 251233,
+          "retries": 0,
+          "approvalViolations": 0,
+          "verificationFailures": 0,
+          "actualModels": [
+            "claude-sonnet-5"
+          ]
+        },
+        {
+          "id": "native-harness-paired-2-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-paired-2-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-paired-2-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-paired-2-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-paired-3-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-native-paired-3-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "native",
+            "native": true,
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-3-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-paired-3-campaign-ledger",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "native-harness-paired-3-campaign-service",
+          "pair": "native",
+          "config": {
+            "id": "harness",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-3-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-smoke-0-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-smoke-0-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-smoke-0-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-smoke-0-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-smoke-0-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-smoke-0-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-smoke-0-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-smoke-0-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-1-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-1-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-1-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-1-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-1-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-1-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-1-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-1-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-2-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-2-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-2-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-2-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-3-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-without-graph-paired-3-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "without-graph",
+            "model": "claude-sonnet-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-3-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-3-campaign-ledger",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "graph-with-graph-paired-3-campaign-service",
+          "pair": "graph",
+          "config": {
+            "id": "with-graph",
+            "model": "claude-sonnet-5",
+            "graph": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-3-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-smoke-0-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-smoke-0-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-smoke-0-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-smoke-0-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-smoke-0-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-ledger",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-smoke-0-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-smoke-0-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-service",
+          "kind": "smoke",
+          "repeat": 0,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-smoke-0-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-1-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-1-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-1-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-1-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-1-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-1-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-1-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 1,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-1-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-2-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-2-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-2-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-2-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-2-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 2,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-2-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-3-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-strong-paired-3-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "strong",
+            "model": "claude-opus-5"
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-3-campaign-service",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-3-campaign-ledger",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-ledger",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-3-campaign-ledger",
+          "reportedUsd": 0
+        },
+        {
+          "id": "generation-economical-evaluated-paired-3-campaign-service",
+          "pair": "generation",
+          "config": {
+            "id": "economical-evaluated",
+            "model": "claude-haiku-4-5-20251001",
+            "evaluate": true
+          },
+          "task": "campaign-service",
+          "kind": "paired",
+          "repeat": 3,
+          "reason": "operator_abandoned",
+          "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
+          "status": "unmeasured",
+          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-3-campaign-service",
+          "reportedUsd": 0
+        }
+      ]
+    }
+  ],
+  "graphLookupBenchmark": {
+    "rows": [
+      {
+        "term": "place_order",
+        "answer": "src/app/service.py",
+        "recall": true,
+        "bounded_tokens": 75,
+        "bounded_recall": true,
+        "pack_tokens": 107,
+        "naive_tokens": 172,
+        "naive_files": 3,
+        "reduction": 0.37790697674418605
+      },
+      {
+        "term": "find_user",
+        "answer": "src/app/repo.py",
+        "recall": true,
+        "bounded_tokens": 87,
+        "bounded_recall": true,
+        "pack_tokens": 60,
+        "naive_tokens": 158,
+        "naive_files": 2,
+        "reduction": 0.620253164556962
+      },
+      {
+        "term": "slugify",
+        "answer": "web/util.js",
+        "recall": true,
+        "bounded_tokens": 38,
+        "bounded_recall": true,
+        "pack_tokens": 39,
+        "naive_tokens": 49,
+        "naive_files": 2,
+        "reduction": 0.20408163265306123
+      },
+      {
+        "term": "handle",
+        "answer": "src/app/api.py",
+        "recall": true,
+        "bounded_tokens": 73,
+        "bounded_recall": true,
+        "pack_tokens": 50,
+        "naive_tokens": 68,
+        "naive_files": 1,
+        "reduction": 0.2647058823529411
+      },
+      {
+        "term": "normalize",
+        "answer": ".aidlc/lib/normalize.mjs",
+        "recall": true,
+        "bounded_tokens": 467,
+        "bounded_recall": true,
+        "pack_tokens": 766,
+        "naive_tokens": 39301,
+        "naive_files": 14,
+        "reduction": 0.9805094017963919
+      },
+      {
+        "term": "refresh",
+        "answer": ".aidlc/lib/refresh.mjs",
+        "recall": true,
+        "bounded_tokens": 914,
+        "bounded_recall": true,
+        "pack_tokens": 1108,
+        "naive_tokens": 65473,
+        "naive_files": 22,
+        "reduction": 0.9830769935698684
+      },
+      {
+        "term": "toRegExp",
+        "answer": "evals/lib/assertions.mjs",
+        "recall": true,
+        "bounded_tokens": 471,
+        "bounded_recall": true,
+        "pack_tokens": 1012,
+        "naive_tokens": 29459,
+        "naive_files": 8,
+        "reduction": 0.9656471706439458
+      },
+      {
+        "term": "measure",
+        "answer": ".aidlc/checks/budget.mjs",
+        "recall": true,
+        "bounded_tokens": 521,
+        "bounded_recall": true,
+        "pack_tokens": 1185,
+        "naive_tokens": 137302,
+        "naive_files": 41,
+        "reduction": 0.9913693901035673
+      },
+      {
+        "term": "resolveStage",
+        "answer": ".aidlc/lib/config.mjs",
+        "recall": true,
+        "bounded_tokens": 419,
+        "bounded_recall": true,
+        "pack_tokens": 698,
+        "naive_tokens": 23904,
+        "naive_files": 8,
+        "reduction": 0.9707998661311914
+      },
+      {
+        "term": "renderPack",
+        "answer": ".aidlc/lib/pack.mjs",
+        "recall": true,
+        "bounded_tokens": 371,
+        "bounded_recall": true,
+        "pack_tokens": 718,
+        "naive_tokens": 33494,
+        "naive_files": 8,
+        "reduction": 0.9785633247745865
+      }
+    ],
+    "recall": 1,
+    "pack_tokens": 5743,
+    "naive_tokens": 329380,
+    "reduction": 0.9825642115489708
+  }
+}

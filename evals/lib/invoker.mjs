@@ -4,21 +4,18 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { productDockerArgs } from './stage.mjs';
 
-// lean-v2 B12. `model` comes from `[models] evals` — Haiku 4.5 — and is cheap on purpose. What
-// the suite measures is whether the *harness* steers a model to the right answer; running a
-// frontier model here would flatter the guides and price the suite out of running on every
-// steering change, which is the one trigger Law 9 actually requires.
-// The argument list, as a pure function, so the unit suite can read it without spawning.
-export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null, product = false, sessionId = null, review = false }) {
+// Comparison models are explicit; unavailable models are never substituted.
+export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null, product = false, sessionId = null, review = false, native = false, comparison = false }) {
   if (product && review) return ['-p', prompt, '--model', model, '--tools', 'Read,Grep,Glob',
     '--safe-mode', '--permission-mode', 'dontAsk', '--setting-sources', '', '--strict-mcp-config',
     '--mcp-config', '{"mcpServers":{}}', '--settings', '{"disableAllHooks":true}',
     '--no-session-persistence', '--output-format', 'json', '--max-budget-usd', String(budgetUsd)];
   if (product) return [
-    '-p', prompt, '--model', model, '--tools', 'Read,Grep,Glob,Write,Edit',
+    '-p', prompt, '--model', model, '--tools', comparison ? 'Read,Grep,Glob,Write,Edit,Bash' : 'Read,Grep,Glob,Write,Edit',
+    ...(comparison ? ['--allowedTools','Bash'] : []),
     '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
     '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
-    '--output-format', 'json', '--plugin-dir', '/plugin',
+    '--output-format', 'json', ...(native ? [] : ['--plugin-dir','/plugin']),
     '--max-budget-usd', String(budgetUsd), ...(sessionId ? ['--resume', sessionId] : []),
   ];
   return [
@@ -52,9 +49,10 @@ export function invokerEnv({ pluginDir = null, base = {} }) {
   return env;
 }
 
-export function claudeInvoker({ pluginDir, model = null }) {
+export function claudeInvoker({ pluginDir, model = null, native = false, comparison = false }) {
   return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task, sandbox = null, phase = 'plan', sessionId = null }) {
-    const args = invokerArgs({ prompt, model, pluginDir, budgetUsd, product: !!sandbox, sessionId, review: phase === 'review' });
+    const args = invokerArgs({ prompt, model, pluginDir, budgetUsd, product: !!sandbox, sessionId, review: phase === 'review', native, comparison });
+    const started = Date.now();
     const env = invokerEnv({ task, pluginDir, base: process.env });
     const name = sandbox ? `harness-agent-${randomUUID()}` : null;
     const credentials = Object.fromEntries(['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL', 'CLAUDE_CODE_OAUTH_TOKEN'].filter(k => env[k]).map(k => [k, undefined]));
@@ -74,13 +72,14 @@ export function claudeInvoker({ pluginDir, model = null }) {
     let usage = {};
     let transcript = raw;
     let incomplete = null;
-    let session = null, modelUsage = null, turns = null;
+    let session = null, modelUsage = null, turns = null, permissionDenials = [];
     try {
       const parsed = JSON.parse(r.stdout);
       transcript = [parsed.result, JSON.stringify(parsed)].filter(Boolean).join('\n');
       usage = { usd: parsed.total_cost_usd, ...parsed.usage };
       session = parsed.session_id; modelUsage = parsed.modelUsage; turns = parsed.num_turns;
-      const denied = (parsed.permission_denials ?? []).map((d) => d.tool_input?.command ?? d.tool_name);
+      permissionDenials = parsed.permission_denials ?? [];
+      const denied = permissionDenials.map((d) => d.tool_input?.command ?? d.tool_name);
       if (denied.length) transcript = `[permission denied: ${denied.join(' | ')}]\n${transcript}`;
 
       // A run that stopped before writing a result has no model output to grade. The 2026-09-02
@@ -102,6 +101,6 @@ export function claudeInvoker({ pluginDir, model = null }) {
       }
     } catch { /* not JSON: grade the raw transcript, which is still honest */ }
     if (sandbox && !incomplete && (timedOut || r.status !== 0 || !session)) incomplete = { reason: timedOut ? 'timed_out' : 'cli_incomplete', detail: raw.slice(-2000) };
-    return { transcript, usage, exitCode: r.status ?? -1, timedOut, incomplete, sessionId: session, modelUsage, turns };
+    return { latencyMs:Date.now()-started, requestedModel:model, transcript, usage, exitCode: r.status ?? -1, timedOut, incomplete, sessionId: session, modelUsage, turns, permissionDenials };
   };
 }
