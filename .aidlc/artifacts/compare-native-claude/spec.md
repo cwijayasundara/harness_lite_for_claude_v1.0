@@ -1,6 +1,6 @@
 ---
 status: draft
-extends: automated-product-trials
+extends: automated-product-trials, close-the-harness, correct-existing-mechanisms
 ---
 # Spec: compare-native-claude
 
