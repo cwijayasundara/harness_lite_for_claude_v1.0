@@ -20,3 +20,5 @@ node_modules/
 
 # Private product-trial snapshots and complete transcripts remain local evidence.
 .aidlc/evals/products/
+
+.aidlc/evals/comparisons/

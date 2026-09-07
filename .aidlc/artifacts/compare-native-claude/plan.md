@@ -1,5 +1,9 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara (conversation authorization, recorded by Codex)
+at: 2026-09-07T05:03:11.903Z
+digest: sha256:d8e30c4fbc6d93f8cc13efd37c097181c21ff9c227faf4a60604e8498e9f6c21
+spec_digest: sha256:24a0a918389c9ad645e7a892edd6190ef9c2399481f298eead24ea99def507b3
 ---
 # Plan: compare-native-claude
 

@@ -357,7 +357,8 @@ async function main() {
   const argv = process.argv.slice(2);
   const flag = (n, d = null) => { const i = argv.indexOf(`--${n}`); return i === -1 ? d : argv[i + 1]; };
   const fixturesDir = path.join(HERE, 'fixtures');
-  const products=argv.includes('--products');
+  const comparisons=argv.includes('--compare');
+  const products=argv.includes('--products')||comparisons;
   let tasks = loadTasks(products ? path.join(HERE,'products.json') : undefined);
   if(products && flag('through')) tasks=tasks.map(t=>({...t,calibration:true,steps:t.steps.slice(0,Number(flag('through')))}));
   if (flag('id')) tasks = tasks.filter((t) => t.id === flag('id'));
@@ -372,6 +373,22 @@ async function main() {
     const ceiling = tasks.reduce((n, t) => n + t.budgetUsd * t.repeats * promptCount(t), 0);
     console.log(`${tasks.length} tasks valid; ${Math.min(ceiling,Number(flag('max-suite-usd',products?20:Infinity))).toFixed(2)} USD ceiling if run`);
     return 0;
+  }
+
+  if (comparisons) {
+    const {runComparisons}=await import('./lib/comparison.mjs');
+    const {claudeInvoker}=await import('./lib/invoker.mjs');
+    loadDotEnv(PLUGIN_ROOT);
+    const models=loadConfig(PLUGIN_ROOT).models;
+    const available=claudeAuthenticated(process.env,spawnSync,{product:true})&&spawnSync('docker',['info'],{stdio:'ignore',timeout:15000}).status===0;
+    const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+    const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',stamp);
+    const out=await runComparisons({tasks,models,root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,
+      maxUsd:Number(flag('max-suite-usd',40)),repetitions:Number(flag('repeats',3)),
+      invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true})(args),
+      log:console.log});
+    console.log(JSON.stringify({evidenceRoot,summary:out.summary,calibrations:out.calibrations},null,2));
+    return out.attempts.every(a=>a.status==='pass')?0:1;
   }
 
   // Claude may store OAuth credentials in an OS keychain rather than a repository-visible file.

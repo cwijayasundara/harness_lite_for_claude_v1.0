@@ -1,6 +1,6 @@
 // Staging: _base, then the fixture on top, then a pristine snapshot to diff against.
 // The work copy is a real git repo, because scope-drift and the commit stage read the diff.
-import { cpSync, mkdtempSync, existsSync, rmSync, mkdirSync, chmodSync, readdirSync } from 'node:fs';
+import { cpSync, mkdtempSync, existsSync, rmSync, mkdirSync, chmodSync, readdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 export const FIXTURES = path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), 'fixtures');
 
-export function stage(fixturesDir, name, { product = false } = {}) {
+export function stage(fixturesDir, name, { product = false, native = false } = {}) {
   const base = path.join(fixturesDir, '_base');
   const fx = path.join(fixturesDir, name);
   if (!existsSync(fx)) throw new Error(`no fixture "${name}" in ${fixturesDir}`);
@@ -22,7 +22,11 @@ export function stage(fixturesDir, name, { product = false } = {}) {
   // Install through the real boundary. Hand-building only the shim omitted the inventory record
   // after Phase 1B, so the budget correctly failed every model task on an unaccounted surface.
   const realBin = path.join(path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url)))), '.aidlc', 'bin', 'harness');
-  const installed = spawnSync(process.execPath, [realBin, 'init', '--into', work], { cwd: work, encoding: 'utf8' });
+  if (native) {
+    rmSync(path.join(work, '.aidlc'), {recursive:true, force:true});
+    writeFileSync(path.join(work, 'CLAUDE.md'), 'Use existing code patterns and meaningful regression tests. Run node --test. Use rg and bounded source reads for navigation. Preserve public compatibility except explicit requirement changes. Ask about consequential ambiguity; routine implementation choices are yours. Follow the external driver’s current approval decision. No dependencies or remote deployment.\n');
+  }
+  const installed = native ? {status:0} : spawnSync(process.execPath, [realBin, 'init', '--into', work], { cwd: work, encoding: 'utf8' });
   if (installed.status !== 0) throw new Error(`fixture harness install failed: ${installed.stderr || installed.stdout}`);
 
   const git = (...a) => spawnSync('git', a, { cwd: work, encoding: 'utf8' });
@@ -34,7 +38,7 @@ export function stage(fixturesDir, name, { product = false } = {}) {
   // The baseline compares source bytes, not repository internals. Copying .git adds mutable
   // object/maintenance state and produced intermittent copy failures on the hosted runner.
   cpSync(work, pristine, { recursive: true, filter: source => path.basename(source) !== '.git' });
-  return { root, work, pristine, cleanup: () => rmSync(root, { recursive: true, force: true }) };
+  return { root, work, pristine, native, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
 // Product trials mount an allowlisted plugin, never the repository containing private scenarios.
@@ -43,7 +47,7 @@ export function isolateStage(s, pluginRoot) {
   s.plugin = path.join(s.root, 'plugin');
   s.home = path.join(s.root, 'session');
   s.data = path.join(s.root, 'data');
-  for (const dir of [s.plugin, s.home, s.data, path.join(s.work, '.aidlc/state'), path.join(s.work, '.aidlc/artifacts')]) mkdirSync(dir, { recursive: true });
+  for (const dir of [s.plugin, s.home, s.data, ...(s.native ? [] : [path.join(s.work, '.aidlc/state'), path.join(s.work, '.aidlc/artifacts')])]) mkdirSync(dir, { recursive: true });
   for (const rel of ['.claude-plugin/plugin.json', ...['bin', 'lib', 'checks', 'sensors', 'skills', 'roles', 'templates', 'hooks', 'adapters', 'policies', 'instructions.md'].map(p => `.aidlc/${p}`)]) {
     const target = path.join(s.plugin, rel);
     mkdirSync(path.dirname(target), { recursive: true });
@@ -68,6 +72,12 @@ export function productDockerArgs(s, { phase = 'runtime', name, network = false,
     '--network', network ? 'bridge' : 'none', '--tmpfs', '/tmp:rw,nosuid,nodev,size=128m,mode=1777',
     '--env', 'GIT_CONFIG_COUNT=1', '--env', 'GIT_CONFIG_KEY_0=safe.directory', '--env', 'GIT_CONFIG_VALUE_0=/work',
     '--workdir', '/work', ...bind(s.work, '/work', phase !== 'implement')];
+  if (s.native && !['runtime','review'].includes(phase)) {
+    args.push(...bind(s.home,'/session',false), ...bind(path.join(s.work,'.git'),'/work/.git'), '--env','HOME=/session', '--env','HARNESS_HOME=');
+    if (phase === 'characterize') args.push(...bind(path.join(s.work,'tests'),'/work/tests',false));
+    for (const [key,value] of Object.entries(env)) args.push('--env',value === undefined ? key : `${key}=${value}`);
+    return [...args,s.image];
+  }
   if (phase === 'characterize') args.push(...bind(path.join(s.work,'tests'),'/work/tests',false));
   if (!['runtime', 'review'].includes(phase)) {
     args.push(...bind(s.plugin, '/plugin'), ...bind(s.home, '/session', false),
