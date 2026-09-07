@@ -1,5 +1,9 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara (conversation authorization, recorded by Codex)
+at: 2026-09-07T13:51:11.968Z
+digest: sha256:68bffa531733811497f36630c41212945e59fe68bfd27063e399b159849754a0
+spec_digest: sha256:23951116a6fa0c80345345880e0da9e571bc40225d0db98d44d8cf16759ba2ff
 ---
 # Plan: prune-session-inventory
 
