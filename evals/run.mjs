@@ -359,7 +359,10 @@ async function main() {
   const fixturesDir = path.join(HERE, 'fixtures');
   const prune=argv.includes('--prune');
   const comparisons=argv.includes('--compare')||prune;
-  if(flag('comparison') && !argv.includes('--compare'))throw new Error('--comparison requires --compare');
+  if(argv.includes('--comparison')){
+    if(!argv.includes('--compare'))throw new Error('--comparison requires --compare');
+    if(!['native','graph','generation'].includes(flag('comparison')))throw new Error('--comparison requires native, graph or generation');
+  }
   if(flag('prune-arm') && !prune)throw new Error('--prune-arm requires --prune');
   const products=argv.includes('--products')||comparisons;
   if(comparisons && flag('through'))throw new Error('--compare calibrates first changes itself; --through would truncate paired campaigns');

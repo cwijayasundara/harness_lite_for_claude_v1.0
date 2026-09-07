@@ -80,6 +80,12 @@ test('focused comparison preserves both arms and all repetitions without invokin
   }finally{rmSync(evidenceRoot,{recursive:true,force:true});}
 });
 
+test('CLI rejects incomplete or incompatible comparison selectors before scheduling',()=>{
+  for(const args of [['--compare','--comparison'],['--compare','--comparison','--dry'],['--comparison','native','--dry'],['--compare','--prune','--comparison','native','--dry']]){
+    assert.throws(()=>execFileSync(process.execPath,['evals/run.mjs',...args],{cwd:root,stdio:'pipe'}),error=>error.status===2&&/comparison/.test(error.stderr.toString()));
+  }
+});
+
 test('graph reconciles shell edits with unchanged mtime, deleted symbols, rename and branch checkout',()=>{
   const s=stage(FIXTURES,'campaign-ledger');
   try{
