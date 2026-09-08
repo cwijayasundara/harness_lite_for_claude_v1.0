@@ -10,10 +10,11 @@ export function identityTools(fs, path, crypto, cp) {
   const roots = ['.aidlc/bin', '.aidlc/lib', '.aidlc/checks', '.aidlc/sensors', '.aidlc/hooks', '.aidlc/adapters', '.aidlc/skills', '.aidlc/roles', '.aidlc/templates', '.aidlc/policies', '.aidlc/instructions.md', '.claude-plugin'];
   const hash = value => 'sha256:' + crypto.createHash('sha256').update(value).digest('hex');
   const covered = p => roots.some(r => p === r || p.startsWith(r + '/'));
-  const git = (root, args) => cp.execFileSync('git', ['--no-replace-objects', '-c', 'core.fsmonitor=false', '-C', root, ...args], {
+  const git = (root, args) => { try { return cp.execFileSync('git', ['--no-replace-objects', '-c', 'core.fsmonitor=false', '-C', root, ...args], {
     encoding: 'utf8', timeout: 10000, maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR', 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES'].includes(key))), GIT_NO_LAZY_FETCH: '1', GIT_TERMINAL_PROMPT: '0' },
-  });
+  }); } catch { throw new Error('Git identity unavailable (' + args[0] + ')'); } };
+  const diagnostic = e => e.code ? 'identity read unavailable (' + e.code + ')' : e.message;
   function safeRead(root, rel) {
     let p = root;
     for (const part of rel.split('/')) {
@@ -68,12 +69,12 @@ export function identityTools(fs, path, crypto, cp) {
       const seen = observe(root);
       return { version: 1, status: seen.committed ? 'verified' : 'unverified', commit: seen.commit, manifest: seen.content,
         method: seen.committed ? 'git-and-content' : 'unverified-source' };
-    } catch (e) { return { version: 1, status: 'unverified', commit: null, error: e.message }; }
+    } catch (e) { return { version: 1, status: 'unverified', commit: null, error: diagnostic(e) }; }
   }
   function verify(project, root, self = false) {
     const remedy = 'Use the recorded clean runtime commit; upgrade deliberately with init from a clean checkout.';
     let observed;
-    try { observed = observe(root); } catch (e) { return { status: 'mismatch', method: 'unavailable', error: e.message, remedy }; }
+    try { observed = observe(root); } catch (e) { return { status: 'mismatch', method: 'unavailable', error: diagnostic(e), remedy }; }
     if (self) return { status: observed.committed ? 'verified' : 'development', method: 'self-checkout', observed, expected: null, remedy: null };
     let record;
     try { const data = safeRead(project, '.aidlc/harness-install.json'); record = JSON.parse(data.bytes.toString('utf8')); } catch { /* explicit unavailable below */ }
@@ -84,7 +85,7 @@ export function identityTools(fs, path, crypto, cp) {
     const matches = JSON.stringify(expected.manifest) === JSON.stringify(observed.content) && (!observed.commit || observed.commit === expected.commit && observed.committed);
     return { status: matches ? 'verified' : 'mismatch', method: observed.commit ? 'git-and-content' : 'pinned-content', expected, observed, remedy: matches ? null : remedy };
   }
-  return { roots, hash, git, safeRead, manifest, observe, installation, verify };
+  return { roots, hash, git, safeRead, manifest, observe, installation, verify, diagnostic };
 }
 const api = identityTools(fs, path, crypto, cp);
 export const RUNTIME_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -111,7 +112,7 @@ export function policyIdentity(root) {
       }) ? 'committed' : 'dirty';
     } catch { /* no Git */ }
     return { version: 1, digest: api.hash(JSON.stringify(entries)), entries, state };
-  } catch (e) { return { version: 1, digest: null, state: 'unavailable', error: e.message }; }
+  } catch (e) { return { version: 1, digest: null, state: 'unavailable', error: api.diagnostic(e) }; }
 }
 export function repositoryIdentity(root) {
   try { return { head: api.git(root, ['rev-parse', '--verify', 'HEAD']).trim(), dirty: Boolean(api.git(root, ['status', '--porcelain', '--untracked-files=normal']).trim()) }; }

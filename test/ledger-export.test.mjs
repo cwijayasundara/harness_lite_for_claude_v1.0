@@ -75,3 +75,11 @@ test('export refuses symlinks instead of reading outside the evidence directory'
   symlinkSync(cfg.layout.ledger + '.saved', cfg.layout.ledger);
   assert.throws(() => exportInvocation(cfg.layout, r.provenance.invocation), /symlink/);
 });
+
+test('malformed actor provenance cannot be exported as an attributable observation', async t => {
+  const cfg = setup(t); const r = await check(cfg, { stage: 'trial', actor: 'simulated' });
+  const rows = readFileSync(cfg.layout.ledger, 'utf8').trim().split('\n').map(JSON.parse);
+  for (const row of rows) row.provenance.actor = {};
+  writeFileSync(cfg.layout.ledger, rows.map(JSON.stringify).join('\n') + '\n');
+  assert.throws(() => exportInvocation(cfg.layout, r.provenance.invocation), /malformed/);
+});

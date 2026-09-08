@@ -96,3 +96,11 @@ test('policy committed state checks raw blobs even when Git index hides edits', 
   writeFileSync(path.join(f.project, '.aidlc/instructions.md'), 'Changed despite index flag\n');
   assert.equal(policyIdentity(f.project).state, 'dirty');
 });
+
+test('unavailable Git identity is explicit without exporting local machine paths', t => {
+  const f = fixture(t);
+  rmSync(path.join(f.runtime, '.git/HEAD'));
+  const result = runtimeIdentity(f.project, f.runtime);
+  assert.equal(result.status, 'mismatch'); assert.match(result.error, /Git identity unavailable/);
+  assert.equal(JSON.stringify(result).includes(f.dir), false);
+});
