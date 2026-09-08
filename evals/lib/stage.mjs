@@ -60,7 +60,7 @@ export function isolateStage(s, pluginRoot) {
   s.home = path.join(s.root, 'session');
   s.data = path.join(s.root, 'data');
   for (const dir of [s.plugin, s.home, s.data, ...(s.native ? [] : [path.join(s.work, '.aidlc/state'), path.join(s.work, '.aidlc/artifacts')])]) mkdirSync(dir, { recursive: true });
-  for (const rel of ['.claude-plugin/plugin.json', ...['bin', 'lib', 'checks', 'sensors', 'skills', 'roles', 'templates', 'hooks', 'adapters', 'policies', 'instructions.md'].map(p => `.aidlc/${p}`)]) {
+  for (const rel of ['.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', ...['bin', 'lib', 'checks', 'sensors', 'skills', 'roles', 'templates', 'hooks', 'adapters', 'policies', 'instructions.md'].map(p => `.aidlc/${p}`)]) {
     const target = path.join(s.plugin, rel);
     mkdirSync(path.dirname(target), { recursive: true });
     cpSync(path.join(pluginRoot, rel), target, { recursive: true });

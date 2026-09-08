@@ -6,7 +6,8 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { A, C, BIN } from './_paths.mjs';
-import { measure, RECORD } from '../.aidlc/checks/budget.mjs';
+import { loadConfig } from '../.aidlc/lib/config.mjs';
+import { measure, run as budgetRun, RECORD } from '../.aidlc/checks/budget.mjs';
 
 const LIMITS = { skills: 7, agents: 3, hooks: 4, hook_loc: 600, claude_md_lines: 120 };
 
@@ -80,17 +81,20 @@ test('a project inherits a spent budget, not an empty one', () => {
 
 // The defect in one assertion. A control that cannot measure must be louder than a control that
 // measured zero — and `errored` will not do, because a stage is ok when nothing is `fail`.
-test('a budget that cannot account for a surface is red, not green', () => {
+test('a budget that cannot account for a surface is red, not green', async () => {
   const root = installed();
   try {
     rmSync(path.join(root, '.aidlc', RECORD));
-    const b = budgetOf(root);
+    const b = await budgetRun(loadConfig(root));
     assert.equal(b.verdict, 'fail');
-    assert.notEqual(b.status, 0, 'the stage must go red');
     assert.match(JSON.stringify(b.findings), /skills/, 'the finding names the surface');
     const shim = path.join(root, '.aidlc', 'bin', 'harness');
     const doctor = spawnSync('bash', [shim, 'doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A } });
-    assert.match(doctor.stdout, /skills=\?\/7/, 'doctor must not print a confident zero either');
+    assert.notEqual(doctor.status, 0);
+    assert.match(doctor.stderr, /unverified/, 'missing runtime pin refuses before execution');
+    const direct = spawnSync(process.execPath, [BIN, 'doctor'], { cwd: root, encoding: 'utf8' });
+    assert.notEqual(direct.status, 0);
+    assert.match(direct.stdout, /skills=\?\/7/, 'direct doctor still exposes unknown inventory');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -114,7 +118,9 @@ test('re-running init refreshes the recorded inventory', () => {
   try {
     const record = path.join(root, '.aidlc', RECORD);
     writeFileSync(record, JSON.stringify({ shipped: { skills: 1, agents: 1 } }) + '\n');
-    assert.equal(budgetOf(root).measured.skills, 1, 'the under-count should be believed first');
+    const legacy = spawnSync('bash', [path.join(root, '.aidlc/bin/harness'), 'doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A } });
+    assert.notEqual(legacy.status, 0, 'a legacy inventory cannot establish runtime identity');
+    assert.match(legacy.stderr, /unverified/);
     const again = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
     assert.equal(again.status, 0, again.stderr);
     assert.equal(budgetOf(root).measured.skills, 7);

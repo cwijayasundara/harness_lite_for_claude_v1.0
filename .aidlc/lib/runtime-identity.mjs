@@ -10,9 +10,9 @@ export function identityTools(fs, path, crypto, cp) {
   const roots = ['.aidlc/bin', '.aidlc/lib', '.aidlc/checks', '.aidlc/sensors', '.aidlc/hooks', '.aidlc/adapters', '.aidlc/skills', '.aidlc/roles', '.aidlc/templates', '.aidlc/policies', '.aidlc/instructions.md', '.claude-plugin'];
   const hash = value => 'sha256:' + crypto.createHash('sha256').update(value).digest('hex');
   const covered = p => roots.some(r => p === r || p.startsWith(r + '/'));
-  const git = (root, args) => cp.execFileSync('git', ['--no-replace-objects', '-C', root, ...args], {
+  const git = (root, args) => cp.execFileSync('git', ['--no-replace-objects', '-c', 'core.fsmonitor=false', '-C', root, ...args], {
     encoding: 'utf8', timeout: 10000, maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, GIT_NO_LAZY_FETCH: '1', GIT_TERMINAL_PROMPT: '0' },
+    env: { ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR', 'GIT_OBJECT_DIRECTORY', 'GIT_ALTERNATE_OBJECT_DIRECTORIES'].includes(key))), GIT_NO_LAZY_FETCH: '1', GIT_TERMINAL_PROMPT: '0' },
   });
   function safeRead(root, rel) {
     let p = root;
@@ -89,6 +89,7 @@ export function identityTools(fs, path, crypto, cp) {
 const api = identityTools(fs, path, crypto, cp);
 export const RUNTIME_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const installationIdentity = api.installation;
+export const RUNTIME_PATHS = api.roots;
 export function runtimeIdentity(project, runtime = RUNTIME_ROOT) {
   return api.verify(project, runtime, fs.realpathSync(project) === fs.realpathSync(runtime));
 }
@@ -98,9 +99,16 @@ export function policyIdentity(root) {
     const entries = paths.sort().map(p => { const data = api.safeRead(root, p); return { path: p, digest: data ? api.hash(data.bytes) : null }; });
     let state = 'unavailable';
     try {
-      const tracked = new Set(api.git(root, ['ls-files', '-z', '--', ...paths]).split('\0').filter(Boolean));
-      const dirty = api.git(root, ['diff', '--name-only', 'HEAD', '--', ...paths]).trim();
-      state = dirty || entries.some(e => e.digest && !tracked.has(e.path)) ? 'dirty' : 'committed';
+      const tree = new Map(api.git(root, ['ls-tree', '-rz', 'HEAD', '--', ...paths]).split('\0').filter(Boolean).map(line => {
+        const tab = line.indexOf('\t'); return [line.slice(tab + 1), line.slice(0, tab).split(' ')];
+      }));
+      state = entries.every(e => {
+        const record = tree.get(e.path), data = api.safeRead(root, e.path);
+        if (!data) return !record;
+        if (!record || record[1] !== 'blob' || record[0] !== data.mode) return false;
+        const oid = crypto.createHash(record[2].length === 64 ? 'sha256' : 'sha1').update(Buffer.from('blob ' + data.bytes.length + '\0')).update(data.bytes).digest('hex');
+        return oid === record[2];
+      }) ? 'committed' : 'dirty';
     } catch { /* no Git */ }
     return { version: 1, digest: api.hash(JSON.stringify(entries)), entries, state };
   } catch (e) { return { version: 1, digest: null, state: 'unavailable', error: e.message }; }

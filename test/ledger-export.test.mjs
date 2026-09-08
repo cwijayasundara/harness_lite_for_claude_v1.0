@@ -56,3 +56,22 @@ test('direct consumer check refuses invalid runtime and policy mutation invalida
   assert.equal(exportInvocation(cfg.layout, invalid.provenance.invocation).summary.ok, false);
   await assert.rejects(check(cfg, { stage: 'trial', actor: true }), /actor/);
 });
+
+test('unknown actor is not backfilled; empty stages still have an exportable invocation', async t => {
+  const cfg = setup(t); cfg.stages.empty = [];
+  const previous = process.env.GITHUB_ACTOR; delete process.env.GITHUB_ACTOR;
+  let r;
+  try { r = await check(cfg, { stage: 'empty' }); }
+  finally { if (previous !== undefined) process.env.GITHUB_ACTOR = previous; }
+  assert.deepEqual(r.provenance.actor, { label: null, provenance: 'unknown', authenticated: false });
+  const exported = exportInvocation(cfg.layout, r.provenance.invocation);
+  assert.equal(exported.controls.length, 0); assert.equal(exported.report_state, 'available');
+});
+
+test('export refuses symlinks instead of reading outside the evidence directory', async t => {
+  const cfg = setup(t); const r = await check(cfg, { stage: 'trial' });
+  const { symlinkSync, renameSync } = await import('node:fs');
+  renameSync(cfg.layout.ledger, cfg.layout.ledger + '.saved');
+  symlinkSync(cfg.layout.ledger + '.saved', cfg.layout.ledger);
+  assert.throws(() => exportInvocation(cfg.layout, r.provenance.invocation), /symlink/);
+});
