@@ -440,3 +440,24 @@ session are not claimed. Empty optional capabilities were explicitly skipped.
 Portable outcomes, identities, costs and retained failed attempts are in
 `.aidlc/evals/comparison-summary.json`; findings and limitations are recorded in
 `.aidlc/artifacts/complete-native-comparisons/evidence.md`.
+
+
+### Bounded gap follow-up — 2026-09-08
+
+The user authorized one matched pair per gap on a minimal two-sprint task-list app,
+with a shared USD 10 / 30-minute ceiling and no automatic repair loops.
+Old and current guidance each passed both sprints with zero questions and workflow stops:
+a tie, not proof of reduced friction. Strong-model implementation passed both sprints.
+Cheaper generation passed both runtime checks and its first independent review; the final
+review was refused before invocation because the shared deadline had expired. Therefore,
+no complete generation-strategy comparison or cost winner is claimed.
+
+The experiment used tool-free source generation, driver-owned simulated approvals and actual
+harness scope/commit checks plus external runtime assertions. It did not run a Claude host-hook
+session or use Docker. Driver faults required correcting a macOS path permission check and
+extracting one valid JSON fence from surrounding prose. A replay-input mistake also repeated
+two calls and started a third before termination. These extra attempts remain recorded.
+Reported spend was USD 0.86280005; charged/reserved spend USD 1.66280005 includes the
+interrupted call's USD 0.80 allowance, whose actual billing is unknown. The final review made
+no call. Details are under `boundedGapFollowup` in `.aidlc/evals/comparison-summary.json`.
+The original empirical gaps remain qualified; no production defaults were changed.

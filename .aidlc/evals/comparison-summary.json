@@ -12142,5 +12142,81 @@
       "No independent model review or real Claude host hook session",
       "Unconfigured lint, formatting, typecheck, architecture and test-quality capabilities explicitly skipped"
     ]
+  },
+  "boundedGapFollowup": {
+    "status": "stopped at shared deadline; final planned review not invoked",
+    "source": ".aidlc/evals/comparisons/bounded-gap-check-2026-09-08/final-evidence.json",
+    "sourceSha256": "afefef3521651c9bd8a963ff74588198da9443a16713c1541a4b273a6e8f7ec1",
+    "harnessRevision": "3c79375b2a332de1a557168d5d8f4929d1e30642",
+    "guidanceBaseline": "d320e94c4182d9b90205a708a436554c6d746564",
+    "started": "2026-09-08T07:00:52.524Z",
+    "finished": "2026-09-08T07:56:00.032164+00:00",
+    "reportedUsd": 0.8628000499999999,
+    "budgetChargedOrReservedUsd": 1.66280005,
+    "actualProviderTotalUsd": null,
+    "actualInvocations": 12,
+    "plannedInvocations": 10,
+    "armSummary": [
+      {
+        "arm": "guidance-old",
+        "model": "claude-sonnet-5",
+        "reviewModel": null,
+        "sprintsPassingRuntime": 2,
+        "sprintsAccepted": 2,
+        "questions": 0,
+        "workflowStops": 0,
+        "reportedUsd": 0.1088961,
+        "modelLatencyMs": 32211
+      },
+      {
+        "arm": "guidance-current",
+        "model": "claude-sonnet-5",
+        "reviewModel": null,
+        "sprintsPassingRuntime": 2,
+        "sprintsAccepted": 2,
+        "questions": 0,
+        "workflowStops": 0,
+        "reportedUsd": 0.1035626,
+        "modelLatencyMs": 32085
+      },
+      {
+        "arm": "generation-strong",
+        "model": "claude-opus-5",
+        "reviewModel": null,
+        "sprintsPassingRuntime": 2,
+        "sprintsAccepted": 2,
+        "questions": 0,
+        "workflowStops": 0,
+        "reportedUsd": 0.3603375,
+        "modelLatencyMs": 82958
+      },
+      {
+        "arm": "generation-economical-reviewed",
+        "model": "claude-haiku-4-5-20251001",
+        "reviewModel": "claude-opus-5",
+        "sprintsPassingRuntime": 2,
+        "sprintsAccepted": 1,
+        "questions": 0,
+        "workflowStops": 0,
+        "reportedUsd": 0.17326125,
+        "modelLatencyMs": 99957
+      }
+    ],
+    "driverCorrections": [
+      "External Node permission check initially failed on the macOS /tmp symlink; cwd-relative permissions passed on the same saved candidates. Initial failures retained.",
+      "Cheaper sprint 2 returned prose followed by one valid JSON fence. Exact JSON was extracted unchanged; formatting deviation retained.",
+      "Wrong replay input inadvertently repeated two calls and started a third. Driver was stopped. Duplicate costs retained; interrupted call billing unknown with $0.80 reserved."
+    ],
+    "conclusions": [
+      "Old/current guidance tied: both completed two sprints without questions or workflow stops. No reduction in friction demonstrated.",
+      "Strong implementation completed both sprints. Cheaper implementation passed both runtime checks but has only one independent review; comparison incomplete. No cost winner declared.",
+      "No production control, model default or acceptance assertion was changed."
+    ],
+    "harnessCi": {
+      "revision": "3c79375b2a332de1a557168d5d8f4929d1e30642",
+      "url": "https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34196406606",
+      "conclusion": "success on failed-job rerun",
+      "initialFailure": "ENOTEMPTY in temporary fixture cleanup; no code changed for rerun"
+    }
   }
 }
