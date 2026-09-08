@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 extends: correct-existing-mechanisms, correct-paid-rule-heuristic, compare-native-claude, complete-native-comparisons, close-the-harness, prune-session-inventory
+by: cwijayasundara (cleanup authorization in conversation, recorded by Codex)
+at: 2026-09-08T08:23:21.965Z
+digest: sha256:ab33c7f8b0042c9394c4e5fc4b48304e6d062f3a92fcc6eaf91a37cfccf01538
 ---
 # Spec: clean-project-scaffold
 
