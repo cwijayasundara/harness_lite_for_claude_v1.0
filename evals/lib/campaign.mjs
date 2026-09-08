@@ -10,7 +10,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { loadConfig } from '../../.aidlc/lib/config.mjs';
 import { approvalDriver } from './approvals.mjs';
 import { assertProductTree, productDockerArgs, PRODUCT_TEST_ARGS, PRODUCT_TEST_COMMAND } from './stage.mjs';
-import { behavioursOf, proofRowsOf, testRowIn, promiseSpecs, currentChange, render, parse, ownedFiles } from '../../.aidlc/lib/artifacts.mjs';
+import { behavioursOf, proofRowsOf, testRowIn, promiseSpecs, currentChange, currentLine, selectChange, render, parse, ownedFiles } from '../../.aidlc/lib/artifacts.mjs';
 
 // Driver updates use atomic replacement so each new container sees the new file identity.
 const writeFileSync=(file,text)=>{const temp=`${file}.driver-tmp-${process.pid}`;writeRaw(temp,text);renameSync(temp,file);};
@@ -123,8 +123,8 @@ export function diffOwnedByCurrentChange(dir, previous) {
   const current = currentChange(cfg);
   const slug = current?.slug ?? null;
   if (!changed.length) return { ok: true, violations: [], current: slug };
-  if (!current) return { ok: false, violations: [`${changed.join(', ')} changed with no current change — no open change has an approved spec`], current: slug };
-  if (!current.plan) return { ok: false, violations: [`${changed.join(', ')} changed under "${slug}", whose plan is not approved (${current.planState})`], current: slug };
+  if (!current) return { ok: false, violations: [`${changed.join(', ')} changed with no current change — ${currentLine(cfg)}`], current: slug };
+  if (!current.plan) return { ok: false, violations: [`${changed.join(', ')} changed under "${slug}", ${currentLine(cfg)}`], current: slug };
   const owned = (f) => current.plan.owns.some((d) => f === d || f.startsWith(d.replace(/\/$/, '') + '/'));
   const unowned = changed.filter((f) => !owned(f));
   return {
@@ -168,6 +168,7 @@ export function prepareProductChange(s, step) {
   const dir=path.join(s.work,'.aidlc/artifacts',step.slug); mkdirSync(dir,{recursive:true});
   writeFileSync(path.join(dir,'intent.md'),render({status:'draft'},`# ${step.slug}\n\n${step.request}\n${step.incident?`Source: local incident .aidlc/artifacts/incident/${step.slug}.md`:''}\n`));
   const behaviours=(step.initialBehaviours??step.behaviours).map((b,i)=>`### B${i+1}\n${b}`).join('\n\n');
+  selectChange({ layout: { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts') } }, step.slug);
   writeFileSync(path.join(dir,'spec.md'),render({status:'draft',...(step.supersedes?{supersedes:step.supersedes}:{})},
     `# ${step.slug}\n\n${behaviours}\n\n## Safeguards\nPreserve existing public behaviour except the explicitly superseded requirement. No dependencies or remote deployment.\n`));
   writeFileSync(path.join(dir,'plan.md'),render({status:'draft'},`# ${step.slug}\n\n## Approach\nUse existing patterns and small behavioural slices. Run public regression tests and the external driver's runtime proof.\n\n## Files\n${step.files.map(f=>'`'+f+'`').join('\n')}\n\n## Order\n1. Inspect existing code and reproduce the required change.\n2. Implement and add regression coverage.\n\n## Proof\n| Behaviour | Evidence |\n|---|---|\n${step.behaviours.map((_,i)=>`| B${i+1} | External driver runtime acceptance and public regression suite |`).join('\n')}\n`));

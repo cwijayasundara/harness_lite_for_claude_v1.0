@@ -69,10 +69,7 @@ export async function run(cfg) {
   // `governingPlans` drops both, so a plan cannot widen its own scope after the fact.
   const owned = [...new Set(plans.flatMap((p) => p.owns))];
 
-  // a-diff-belongs-to-one-change B5. `governingPlans` is the current change's plan or nothing,
-  // so an empty list has two causes and they need different remedies: no open change has an
-  // approved spec, or the current change's plan is not approved. Sending the agent to approve a
-  // plan in the first case approves a plan for a change that is not current.
+  // Distinguish unavailable selection from the selected change's own pending gate.
   if (!plans.length) {
     const current = artifacts.currentChange(cfg);
     const drafts = artifacts.draftsAwaitingGate(cfg);
@@ -86,13 +83,13 @@ export async function run(cfg) {
       : current
       ? {
           rule: 'no-approved-plan',
-          message: `changed under the current change "${current.slug}", whose plan is not approved (${current.planState})`,
-          fix: `harness approve ${current.slug} plan --by <you> and commit, or close "${current.slug}" if that work is done`,
+          message: `changed under the current change "${current.slug}" — ${artifacts.currentLine(cfg)}`,
+          fix: artifacts.currentLine(cfg),
         }
       : {
           rule: 'no-current-change',
-          message: 'changed with no current change — no open change has an approved spec',
-          fix: 'harness approve <slug> spec --by <you>, then plan, and commit each',
+          message: `changed with no executable selection — ${artifacts.currentLine(cfg)}`,
+          fix: 'harness status --change <slug>; approve its spec and plan and commit each',
         };
     return { verdict: 'fail', findings: [...product.map((f) => ({ file: f, line: 0, ...finding })), ...proofFindings] };
   }

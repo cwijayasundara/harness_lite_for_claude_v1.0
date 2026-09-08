@@ -411,81 +411,91 @@ export function slugs(cfg) {
     .map((e) => e.name).sort();
 }
 
-// a-diff-belongs-to-one-change B1. Which change a diff belongs to: the open change whose spec
-// was approved most recently. Approving a spec is the one act in the chain that means "this is
-// the work now"; closing a change (`status: closed` in intent.md) or approving the next spec is
-// how it stops. Nothing is declared and nothing goes stale on its own.
-//
-// Three instances of one gap chose this. A branch convention fails for campaigns that never
-// branch; "most recently approved plan" lands on sprint 2 in exactly the F26 case, where sprint
-// 3's plan was refused and its work went through on sprint 2's authority; a declared current
-// change is one more thing to forget, and forgetting it refuses every write with no change
-// named, which is F2's dead end by another road.
-//
-// `plan` is the current change's approved committed plan, or null when there is none — and a
-// current change with no approved plan governs nothing, which is the point (B3).
-export function currentChange(cfg) {
-  let best = null;
-  for (const slug of slugs(cfg)) {
-    if (read(cfg, slug, 'intent')?.front.status === 'closed') continue;
-    const spec = read(cfg, slug, 'spec');
-    if (!spec || spec.state !== 'approved' || !spec.front.at) continue;
-    if (!best || String(spec.front.at) > String(best.at)) best = { slug, at: String(spec.front.at) };
-  }
-  if (!best) return null;
-  const plan = read(cfg, best.slug, 'plan');
-  const governs = plan?.state === 'approved' && isCommitted(cfg.layout.root, plan.file);
-  return {
-    slug: best.slug,
-    at: best.at,
-    planState: !plan ? 'absent' : plan.state === 'approved' && !governs ? 'uncommitted' : plan.state,
-    plan: governs ? { slug: best.slug, file: plan.file, owns: ownedFiles(plan.body) } : null,
-  };
+// Worktree-change-selection: the product fixture's unrelated future-report intent stopped
+// hyphen-titlecase; timestamps also moved its scope. Selection is local, never an approval.
+const validChangeSlug = slug => typeof slug === 'string' && /^[a-z0-9][a-z0-9-]{0,62}$/.test(slug);
+const selectionRemedy = 'select or reselect an open change with harness status --change <slug>; drafting and read-only investigation remain available';
+function selectionLocation(cfg) {
+  const git = (...args) => execFileSync('git', args, { cwd: cfg.layout.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  const file = path.join(git('rev-parse', '--absolute-git-dir'), 'aidlc-change.json');
+  let branch;
+  try { branch = git('symbolic-ref', '-q', 'HEAD'); } catch { branch = `HEAD:${git('rev-parse', 'HEAD')}`; }
+  return { file, branch };
 }
 
-// a-draft-is-a-declaration B1, B2. F30: a sprint wrote a real spec, approved nothing, and edited
-// product code under the previous sprint's still-open plan. Writing a spec *is* declaring the
-// work — gate 1 is what a filled-in spec is waiting for — so while one waits, nothing governs.
-// The scaffold `harness new` leaves (placeholders, the bare `### B1`) declares nothing, by the
-// same `templateMarkers` the approval gate uses to tell a scaffold from a spec.
-//
-// an-edited-approval-awaits-its-gate: an approved spec or plan that has been edited (F32 —
-// sprint 3 appended behaviours to sprint 2's approved spec, the approval went stale, the stale
-// spec was no longer current, and sprint 1's plan governed the write) is the same declaration
-// made the other way round, and waits at the same gate. Entries: `{ slug, kind, reason }`,
-// `reason` is `draft` or `stale`.
-export function draftsAwaitingGate(cfg) {
-  const waiting = [];
-  for (const slug of slugs(cfg)) {
-    if (read(cfg, slug, 'intent')?.front.status === 'closed') continue;
-    const spec = read(cfg, slug, 'spec');
-    // an-unattended-turn-does-not-end-on-a-question B1, B2 (F34): a written intent with no spec
-    // yet is declared work too — the sprint that wrote one and stopped to ask.
+export function selectChange(cfg, slug) {
+  if (!validChangeSlug(slug)) throw new Error('change slug must be 1-63 lowercase letters, digits, or hyphens; it cannot contain paths');
+  const intent = read(cfg, slug, 'intent');
+  if (!intent || intent.front.status === 'closed') throw new Error(`change "${slug}" is missing or closed — ${selectionRemedy}`);
+  const { file, branch } = selectionLocation(cfg);
+  replaceAtomic(file, JSON.stringify({ version: 1, slug, branch }) + '\n');
+  return selectionState(cfg);
+}
+
+export function clearSelection(cfg) {
+  rmSync(selectionLocation(cfg).file, { force: true });
+}
+
+// Unavailable bindings are data, not exceptions: callers must never fall back to other plans.
+export function selectionState(cfg) {
+  let slug = null;
+  const unavailable = reason => ({ slug, ok: false, reason, remedy: selectionRemedy });
+  try {
+    const { file, branch } = selectionLocation(cfg);
+    let binding;
+    try { binding = JSON.parse(readFileSync(file, 'utf8')); }
+    catch (error) { return unavailable(error.code === 'ENOENT' ? 'no selection in this worktree' : 'selection is unreadable or malformed'); }
+    if (!binding || binding.version !== 1 || !validChangeSlug(binding.slug) || typeof binding.branch !== 'string') return unavailable('invalid selection');
+    slug = binding.slug;
+    if (binding.branch !== branch) return unavailable(`selection belongs to ${binding.branch}, not this branch/HEAD (${branch})`);
     const intent = read(cfg, slug, 'intent');
-    const specWritten = spec && (spec.state !== 'draft' || !templateMarkers('spec', spec.body).length);
-    if (!specWritten) {
-      if (intent && !templateMarkers('intent', intent.body).length) waiting.push({ slug, kind: 'spec', reason: 'unwritten' });
-      continue;
-    }
-    if (spec.state === 'stale-approval') { waiting.push({ slug, kind: 'spec', reason: 'stale' }); continue; }
-    if (spec.state === 'draft') { waiting.push({ slug, kind: 'spec', reason: 'draft' }); continue; }
+    if (!intent) return unavailable('selected change is missing');
+    if (intent.front.status === 'closed') return unavailable('selected change is closed');
+    return { slug, ok: true, branch };
+  } catch { return unavailable('cannot resolve selection in this Git worktree'); }
+}
+
+export function currentChange(cfg) {
+  const selection = selectionState(cfg);
+  if (!selection.ok) return null;
+  const { slug } = selection;
+  try {
+    const spec = read(cfg, slug, 'spec');
     const plan = read(cfg, slug, 'plan');
-    if (plan?.state === 'stale-approval') waiting.push({ slug, kind: 'plan', reason: 'stale' });
-  }
-  return waiting;
+    const gateState = artifact => !artifact ? 'absent' : artifact.state === 'approved' && !isCommitted(cfg.layout.root, artifact.file) ? 'uncommitted' : artifact.state;
+    const specState = gateState(spec), planState = gateState(plan);
+    return { slug, at: spec?.front.at ?? null, specState, planState,
+      plan: specState === 'approved' && planState === 'approved' ? { slug, file: plan.file, owns: ownedFiles(plan.body) } : null };
+  } catch { return { slug, specState: 'unreadable', planState: 'unreadable', plan: null }; }
+}
+
+// Only the selected change awaits an execution gate. Backlog state remains visible via state().
+export function draftsAwaitingGate(cfg) {
+  const current = currentChange(cfg);
+  if (!current) return [];
+  const { slug, specState, planState } = current;
+  const spec = specState === 'draft' ? read(cfg, slug, 'spec') : null;
+  const unwritten = specState === 'absent' || (spec && templateMarkers('spec', spec.body).length > 0);
+  if (specState !== 'approved') return [{ slug, kind: 'spec', reason: specState === 'stale-approval' ? 'stale' : unwritten ? 'unwritten' : specState }];
+  if (planState === 'stale-approval') return [{ slug, kind: 'plan', reason: 'stale' }];
+  return [];
 }
 
 // One wording for what a waiting entry is and how it is cleared, shared by the guard, the check
 // and the two reporters.
 export function awaitingGateLine(entry) {
   const gate = entry.kind === 'plan' ? 2 : 1;
-  const what = entry.reason === 'stale' ? `${entry.kind} edited after approval`
+  const what = entry.reason === 'uncommitted' ? `${entry.kind} approval not committed`
+    : entry.reason === 'unreadable' ? `${entry.kind} unreadable`
+    : entry.reason === 'stale' ? `${entry.kind} edited after approval`
     : entry.reason === 'unwritten' ? 'intent written, spec not yet'
       : 'spec written and not approved';
   return `awaiting gate ${gate}: ${entry.slug} (${what})`;
 }
 export function awaitingGateRemedy(entry) {
   const approve = `harness approve ${entry.slug} ${entry.kind} --by <you>`;
+  if (entry.reason === 'uncommitted') return `${entry.slug}/${entry.kind}.md approval is not committed. Commit the approved artifact before product writes.`;
+  if (entry.reason === 'unreadable') return `restore readable artifacts for ${entry.slug} and verify its approvals before product writes.`;
   if (entry.reason === 'unwritten') {
     return `the change "${entry.slug}" has a written intent and no spec yet. Write its spec, approve it (${approve}) and its plan, and commit; or close the change (status: closed in its intent.md).`;
   }
@@ -495,13 +505,8 @@ export function awaitingGateRemedy(entry) {
   return `the change "${entry.slug}" has a written spec that awaits gate 1. Approve it (${approve}) and commit, or close the change (status: closed in its intent.md).`;
 }
 
-// Every plan a guard or a check may honour. Exactly one or none: the current change's plan,
-// approved, committed, and unchanged since approval. It used to return every such plan in the
-// repository, which is how a closed change's plan authorised an edit two days later (B4) and a
-// refused plan's work went through on another plan's ownership (F26). And none at all while a
-// written spec awaits gate 1 (a-draft-is-a-declaration).
+// At most one plan, from the explicitly selected change with both committed gates intact.
 export function governingPlans(cfg) {
-  if (draftsAwaitingGate(cfg).length) return [];
   const current = currentChange(cfg);
   return current?.plan ? [current.plan] : [];
 }
@@ -509,11 +514,19 @@ export function governingPlans(cfg) {
 // B6. One wording for `harness status` and `SessionStart`, so the two cannot drift apart.
 export function currentLine(cfg) {
   const current = currentChange(cfg);
+  if (!current) {
+    const selected = selectionState(cfg);
+    return `current: ${selected.slug ?? 'none'} — ${selected.reason}; ${selected.remedy}`;
+  }
   const lines = [];
-  if (!current) lines.push('current: none — approve a spec (harness approve <slug> spec --by <you>) before product files change');
-  else if (current.plan) lines.push(`current: ${current.slug} (plan approved) — only its ## Files may change`);
-  else lines.push(`current: ${current.slug} — plan not approved (${current.planState}); product writes are refused until it is, or the change is closed`);
-  for (const entry of draftsAwaitingGate(cfg)) lines.push(`${awaitingGateLine(entry)} — product writes are refused until it is`);
+  if (current.plan) lines.push(`current: ${current.slug} (plan approved) — only its ## Files may change`);
+  else if (current.specState !== 'approved') lines.push(`current: ${current.slug} — spec not approved (${current.specState}); product writes are refused`);
+  else {
+    const remedy = current.planState === 'uncommitted' ? 'commit its plan approval'
+      : `write or restore its plan, approve it (harness approve ${current.slug} plan --by <you>) and commit`;
+    lines.push(`current: ${current.slug} — plan not approved (${current.planState}); ${remedy}, or close the change and select the next`);
+  }
+  for (const entry of draftsAwaitingGate(cfg)) lines.push(`${awaitingGateLine(entry)} — ${awaitingGateRemedy(entry)}`);
   return lines.join('\n');
 }
 

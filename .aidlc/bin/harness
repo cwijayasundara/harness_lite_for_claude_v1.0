@@ -425,6 +425,10 @@ async function main() {
 
     case 'status': {
       const cfg = loadConfig(findRepoRoot());
+      if (has('change') && has('clear-change')) throw new Error('use --change <slug> or --clear-change, not both');
+      if (has('change')) artifacts.selectChange(cfg, flag('change'));
+      if (has('clear-change')) artifacts.clearSelection(cfg);
+
       const requested = argv[1] && !argv[1].startsWith('--') ? argv[1] : null;
       const all = (requested ? [requested] : artifacts.slugs(cfg)).map((slug) => artifacts.state(cfg, slug));
       // Closed changes are history. `--all` when you want the history.
@@ -434,7 +438,8 @@ async function main() {
       // after it. Computed from every approved spec's `supersedes:` link, not filtered by
       // `--all` — the superseded spec's own row can be closed while the fact still matters.
       const superseded = [...artifacts.supersededBy(cfg)];
-      if (has('json')) { console.log(JSON.stringify({ changes: rows, superseded: Object.fromEntries(superseded) }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
+      if (has('json')) { console.log(JSON.stringify({ current: artifacts.currentChange(cfg), selection: artifacts.selectionState(cfg), changes: rows, superseded: Object.fromEntries(superseded) }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
+      console.log(artifacts.currentLine(cfg));
       if (!rows.length) {
         console.log(`changes  none open${hidden ? `  (${hidden} closed; --all to list)` : ''}`);
         for (const [link, by] of superseded) console.log(`  SUPERSEDED ${link} — superseded by ${by.join(', ')}`);
@@ -442,7 +447,6 @@ async function main() {
       }
       // a-diff-belongs-to-one-change B6: which change a product write belongs to right now, and
       // whether it can permit one. Same wording as the SessionStart line, from one function.
-      console.log(artifacts.currentLine(cfg));
       console.log('changes\n\n  change                         next                 spec       plan');
       for (const row of rows) {
         const mark = (kind) => row.artifacts[kind]?.state ?? 'absent';
@@ -466,7 +470,8 @@ async function main() {
   harness approve <slug> spec|plan --by <identity>
   harness review --base <commit> --candidate <commit> --out <file>
                                  independent read-only model review
-  harness status [slug] [--json]  where each change is, and whether its approvals still hold
+  harness status [slug] [--json]  backlog, selection and approvals
+    --change <slug> | --clear-change  select execution in this worktree (never approves)
   harness ledger [audit] [--days 30]
   harness evals gate [--update]    grade the newest run against evals/expected.json
   harness baseline capture|check

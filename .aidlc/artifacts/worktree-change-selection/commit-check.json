@@ -1,0 +1,63 @@
+{
+  "stage": "commit",
+  "ok": true,
+  "changed_files": [],
+  "controls": [
+    {
+      "control": "secrets",
+      "verdict": "pass",
+      "ms": 67,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "test",
+      "verdict": "pass",
+      "ms": 18203,
+      "findings": [],
+      "command": "node --test --test-reporter=tap test/*.test.mjs"
+    },
+    {
+      "control": "scope-drift",
+      "verdict": "pass",
+      "ms": 77,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "budget",
+      "verdict": "pass",
+      "ms": 1,
+      "findings": [],
+      "command": "",
+      "measured": {
+        "skills": 7,
+        "agents": 3,
+        "hooks": 4,
+        "hook_loc": 255,
+        "claude_md_lines": 87
+      }
+    },
+    {
+      "control": "tamper",
+      "verdict": "pass",
+      "ms": 58,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "arch",
+      "verdict": "pass",
+      "ms": 28,
+      "findings": [],
+      "command": "node .aidlc/sensors/architecture.mjs"
+    },
+    {
+      "control": "test_quality",
+      "verdict": "pass",
+      "ms": 29,
+      "findings": [],
+      "command": "node .aidlc/sensors/test-quality.mjs"
+    }
+  ]
+}

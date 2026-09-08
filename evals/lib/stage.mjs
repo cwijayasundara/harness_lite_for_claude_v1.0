@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { selectChange } from '../../.aidlc/lib/artifacts.mjs';
 
 export const PRODUCT_TEST_ARGS = ['--test', '--test-timeout=10000'];
 export const PRODUCT_TEST_COMMAND = `node ${PRODUCT_TEST_ARGS.join(' ')}`;
@@ -44,6 +45,8 @@ export function stage(fixturesDir, name, { product = false, native = false } = {
   git('config', 'user.name', 'eval');
   git('add', '-A');
   git('-c', 'commit.gpgsign=false', 'commit', '-qm', 'fixture');
+  // This existing fixture represents execution of this named change, not backlog inference.
+  if (!native && name === 'contract-planned') selectChange({ layout: { root: work, artifacts: path.join(work, '.aidlc/artifacts') } }, 'hyphen-titlecase');
   // The baseline compares source bytes, not repository internals. Copying .git adds mutable
   // object/maintenance state and produced intermittent copy failures on the hosted runner.
   cpSync(work, pristine, { recursive: true, filter: source => path.basename(source) !== '.git' });

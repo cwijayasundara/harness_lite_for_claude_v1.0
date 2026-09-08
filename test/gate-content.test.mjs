@@ -211,6 +211,7 @@ test('check --stage commit fails when an approved plan\'s proof row names a test
     commit(root, 'spec approved');
     assert.equal(run(root, 'approve', 'unkept-promise', 'plan', '--by', 'tester').status, 0);
     commit(root, 'plan approved');
+    assert.equal(run(root, 'status', '--change', 'unkept-promise').status, 0);
     assert.equal(existsSync(path.join(root, 'test/unkept-promise.test.mjs')), false, 'the promised test was never written');
 
     const result = run(root, 'check', '--stage', 'commit');
@@ -234,6 +235,7 @@ test('check --stage commit passes once the promised test file exists', () => {
     commit(root, 'spec approved');
     assert.equal(run(root, 'approve', 'kept-promise', 'plan', '--by', 'tester').status, 0);
     commit(root, 'plan approved');
+    assert.equal(run(root, 'status', '--change', 'kept-promise').status, 0);
 
     const result = run(root, 'check', '--stage', 'commit');
     assert.equal(result.status, 0, result.stdout + result.stderr);

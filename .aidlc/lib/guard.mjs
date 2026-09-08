@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { PREFIX_CACHE_PATHS } from './paths.mjs';
-import { governingPlans, currentChange, draftsAwaitingGate, awaitingGateRemedy } from './artifacts.mjs';
+import { governingPlans, currentLine, currentChange, draftsAwaitingGate, awaitingGateRemedy } from './artifacts.mjs';
 
 // One reader of ownership, shared with `scope-drift`. Two readers is how the guard and the check
 // came to disagree about which file was owned by what. `current` is the change the diff belongs
@@ -9,8 +9,8 @@ import { governingPlans, currentChange, draftsAwaitingGate, awaitingGateRemedy }
 // another change's plan names is not owned — F10 and F26 were both routed through exactly that.
 function contractScopeState(cfg) {
   try {
-    return { declared: governingPlans(cfg).flatMap((p) => p.owns), current: currentChange(cfg), drafts: draftsAwaitingGate(cfg), parseError: false };
-  } catch { return { declared: [], current: null, drafts: [], parseError: true }; }
+    return { declared: governingPlans(cfg).flatMap((p) => p.owns), current: currentChange(cfg), drafts: draftsAwaitingGate(cfg), line: currentLine(cfg), parseError: false };
+  } catch { return { declared: [], current: null, drafts: [], line: "execution state unreadable — restore the selected change and run harness status --change <slug>", parseError: true }; }
 }
 
 // The refusal must name the way forward and keep the guard on. evidence.md F2: the old message
@@ -22,10 +22,8 @@ function contractRefusal(norm, scope) {
     const [first, ...rest] = drafts;
     return `${norm}: no product file may change yet — ${awaitingGateRemedy(first)}${rest.length ? ` Also waiting: ${rest.map((d) => `${d.slug}/${d.kind}.md`).join(', ')}.` : ''}`;
   }
-  if (!current) return `${norm}: no open change has an approved spec, so no product file may change yet. Approve a spec (harness approve <slug> spec --by <you>), then its plan, and commit each.`;
-  if (!declared.length || !current.plan) {
-    return `${norm}: the current change "${current.slug}" has an approved spec but its plan is not approved (${current.planState}). Approve it (harness approve ${current.slug} plan --by <you>) and commit, or close the change (status: closed in its intent.md) if that work is done.`;
-  }
+  if (current?.plan && !declared.length) return `${norm}: the selected change "${current.slug}" has an empty ## Files section. Name the paths and re-approve its plan before product writes.`;
+  if (!current || !declared.length || !current.plan) return `${norm}: no product file may change yet — ${scope.line}`;
   return `${norm} is outside the current change "${current.slug}" — its approved plan's ## Files does not name this path. Add the path and re-approve the plan, or close "${current.slug}" if that work is done.`;
 }
 
@@ -61,7 +59,7 @@ export function writeBlocked(rel, cfg) {
   for (const p of PREFIX_CACHE_PATHS) {
     if (norm === p) {
       if (owned()) break;
-      return `${p} configures agent instructions or permissions. Name it in the approved plan before changing it; reload the session to apply instruction changes.`;
+      return `${p} configures agent instructions or permissions. Name it in the approved plan before changing it; reload the session to apply instruction changes. ${scope?.line ?? ""}`;
     }
   }
 
@@ -73,7 +71,7 @@ export function writeBlocked(rel, cfg) {
   for (const p of protectedPaths) {
     if (norm === p || norm.startsWith(p.replace(/\/$/, '') + '/')) {
       if (owned()) break;
-      return `${p} is listed in harness.toml [guard].protected_paths. Only a committed approved contract that names this exact path may change it.`;
+      return `${p} is listed in harness.toml [guard].protected_paths. Only a committed approved contract that names this exact path may change it. ${scope?.line ?? ""}`;
     }
   }
   const lock = path.join(cfg.layout.state, 'test-lock.json');
@@ -89,7 +87,7 @@ export function writeBlocked(rel, cfg) {
     try {
       if (!scope) scope = contractScopeState(cfg);
       const { declared, parseError } = scope;
-      if (parseError && !declared.length) return null;
+      if (parseError && !declared.length) return contractRefusal(norm, scope);
       if (!declared.length || !matchesDeclared(norm, declared)) return contractRefusal(norm, scope);
     } catch { return null; }
   }
@@ -207,10 +205,10 @@ export function bashContractBlocked(cmd, cfg) {
     .filter((t) => t && !t.startsWith('/dev/') && !artifactOrState(t));
   if (!targets.length) return null;
   try {
-    const { declared, parseError } = contractScopeState(cfg);
-    if (parseError || declared.length) return null;
-  } catch { return null; }
-  return 'require_contract: a writeish shell command has no committed approved contract covering product files. Use the Write tool or approve a contract first.';
+    const scope = contractScopeState(cfg);
+    if (!scope.parseError && scope.declared.length) return null;
+    return contractRefusal(targets[0], scope);
+  } catch { return `${targets[0]}: execution state unreadable — run harness status --change <slug> and verify its approvals`; }
 }
 
 export function lockTests(cfg, { patterns = ['tests'], why = 'bug fix in progress' } = {}) {

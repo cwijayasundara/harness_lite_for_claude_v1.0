@@ -10,6 +10,10 @@ Users start or resume in natural language: “Take this through the Lean AIDLC w
 
 `intent -> spec (gate 1) -> plan (gate 2) -> implement -> review -> merge (gate 3)`
 
+Select the intended change with `harness status --change <slug>` in each worktree before
+implementation. Selection is local and never approves a gate; backlog drafts do not block it.
+After switching branches, explicitly reselect. Use `--clear-change` to end execution.
+
 Invoke harness commands yourself; never make the user drive the workflow through the CLI. The
 one exception is `approve`, which is theirs to run — the gate is the point.
 

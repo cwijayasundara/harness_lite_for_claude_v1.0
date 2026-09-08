@@ -10,7 +10,9 @@ what fails today, the desired outcome and real constraints. Keep the intent conc
 belongs in the spec and implementation scope belongs in the plan.
 
 Use `harness new <slug>` to create the artifact chain. Record the source and any decisions
-already made. Ask only unresolved questions whose answers could materially change behaviour,
+already made. Capturing backlog work does not select it for execution. Use
+`harness status --change <slug>` when this is the change the worktree will execute; selection
+is not intake acceptance or approval. Ask only unresolved questions whose answers could materially change behaviour,
 design, safeguards or scope. Group closely related questions when that makes them easier to
 answer. Resolve repository facts by reading the repository. A sufficiently clear request or
 PRD needs no interview; write `None` under Open questions when none block progress.

@@ -29,4 +29,4 @@ control ceilings. No scheduling, trace schema or full PR-diff validation.
 
 ## Open questions
 
-None about implementation design. Spec and plan approval remain outstanding.
+None. The user approved the spec and plan in the follow-up conversation; see evidence.md.

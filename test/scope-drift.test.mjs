@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { run } from '../.aidlc/checks/scope-drift.mjs';
-import { parse, render, bodyDigest } from '../.aidlc/lib/artifacts.mjs';
+import { parse, render, bodyDigest, selectChange } from '../.aidlc/lib/artifacts.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 
 const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts') } });
@@ -14,9 +14,7 @@ const commit = (root, message) => {
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', message], { cwd: root });
 };
 
-// A change as a human would leave it: spec and plan approved, digested, committed. The spec's
-// `at:` is what makes the change current (a-diff-belongs-to-one-change B1), so it is later than
-// the fixture's own 2026-09-01 approval by default.
+// Simulated approvals followed by an explicit execution selection; timestamps are audit data.
 function approvedPlan(root, slug, files, { commitIt = true, at = '2026-09-02T00:00:00.000Z' } = {}) {
   const dir = path.join(root, '.aidlc/artifacts', slug);
   mkdirSync(dir, { recursive: true });
@@ -29,6 +27,7 @@ function approvedPlan(root, slug, files, { commitIt = true, at = '2026-09-02T00:
   const text = readFileSync(file, 'utf8');
   writeFileSync(file, render({ ...parse(text).front, status: 'approved', by: 'tester', at, digest: bodyDigest(text) }, parse(text).body));
   if (commitIt) commit(root, `plan approved: ${slug}`);
+  selectChange(cfg(root), slug);
   return file;
 }
 
@@ -49,8 +48,8 @@ test('the approved plan owns the working diff', async () => {
 // a-diff-belongs-to-one-change B5. This test used to assert the opposite: that a file owned by
 // *any* approved committed plan was in scope. That is the rule F10 and F26 were routed through —
 // sprint 3 wrote product code under sprint 2's plan, and a generator edited a file under a change
-// closed two days earlier. Ownership is now a property of the current change — the open change
-// whose spec was approved most recently — and the guard reads the same function, so the two
+// closed two days earlier. Ownership is a property of the explicitly selected change,
+// and the guard reads the same function, so the two
 // cannot disagree the way they did.
 test('only the current change\'s plan owns the working diff; an older plan\'s file is a finding', async () => {
   const s = stage(FIXTURES, 'contract-planned');
@@ -72,7 +71,7 @@ test('only the current change\'s plan owns the working diff; an older plan\'s fi
   } finally { s.cleanup(); }
 });
 
-// B5: a diff with no current change reports why — no open change has an approved spec — rather
+// B5: a diff with no valid selection reports that selection problem rather
 // than `no-approved-plan`, which would send the agent to approve a plan for a change that is not
 // current. B3's shape: a current change whose plan is not approved is `no-approved-plan`.
 test('no current change is a different finding from an unapproved plan', async () => {
@@ -132,7 +131,7 @@ test('an uncommitted or stale approval owns nothing', async () => {
 });
 
 // a-draft-is-a-declaration B3: the check asks the same question as the guard.
-test('a filled-in draft spec makes every product change a draft-awaits-gate finding', async () => {
+test('a selected draft spec makes every product change a draft-awaits-gate finding', async () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
     const dir = path.join(s.work, '.aidlc/artifacts/paid-never-overdue');
@@ -140,6 +139,7 @@ test('a filled-in draft spec makes every product change a draft-awaits-gate find
     writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
     writeFileSync(path.join(dir, 'spec.md'), render({ status: 'draft' }, '# Spec\n\n### B1\n\nGiven a paid invoice\nWhen isOverdue is asked\nThen it answers false\n'));
     commit(s.work, 'a declaration, not yet gated');
+    selectChange(cfg(s.work), 'paid-never-overdue');
     writeFileSync(path.join(s.work, 'src/app/text.py'), '# written under a waiting draft\n');
     const r = await run(cfg(s.work));
     assert.equal(r.verdict, 'fail');

@@ -1,3 +1,4 @@
+import { selectChange } from '../.aidlc/lib/artifacts.mjs';
 // Campaign assertions: pure functions over a staged working copy, no model, no spend. If this
 // file is green, a multi-sprint eval that names these checks is grading something real.
 import { test } from 'node:test';
@@ -489,6 +490,7 @@ test('diffOwnedByCurrentChange passes a file the current plan names and fails on
 
     writeFileSync(path.join(d.root, 'src/rules.mjs'), 'export const b = 2;\n');
     writeFileSync(path.join(d.root,'CODEBASE-MAP.md'),'generated map output');
+    selectChange({ layout: { root: d.root, artifacts: path.join(d.root, '.aidlc/artifacts') } }, 'sprint-3');
     const owned = diffOwnedByCurrentChange(d.root, before);
     assert.equal(owned.ok, true, owned.violations.join('; '));
     assert.equal(owned.current, 'sprint-3');

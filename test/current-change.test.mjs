@@ -1,7 +1,5 @@
-// a-diff-belongs-to-one-change. evidence.md F10 and F26: three instances of ownership answering
-// "is this path claimed?" when the question was "is it claimed by the change being made?". The
-// current change is the open change whose spec was approved most recently, and its approved
-// committed plan is the only plan that governs a product write.
+// Explicit selection replaces timestamp authority. Preserve the original borrowing and
+// stale-approval regressions while making their intended execution change explicit.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -9,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { BIN } from './_paths.mjs';
-import { render, bodyDigest, currentChange, governingPlans } from '../.aidlc/lib/artifacts.mjs';
+import { render, bodyDigest, currentChange, governingPlans, selectChange } from '../.aidlc/lib/artifacts.mjs';
 
 const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts') } });
 
@@ -31,8 +29,8 @@ const approved = (body, at) => {
   return render({ status: 'approved', by: 'tester', at, digest: bodyDigest(draft) }, body);
 };
 
-// A change as the harness would leave it after each gate. `specAt` is the approval timestamp
-// that decides which open change is current; `plan` is `approved`, `draft`, or `absent`.
+// Simulated gate records followed by explicit selection for these sequential tests.
+// `specAt` is audit metadata only; `plan` is approved, draft, or absent.
 function change(root, slug, { closed = false, spec = 'approved', specAt = '2026-09-01T00:00:00.000Z', plan = 'approved', owns = [`src/${slug}.mjs`] } = {}) {
   const dir = path.join(root, '.aidlc/artifacts', slug);
   mkdirSync(dir, { recursive: true });
@@ -44,14 +42,18 @@ function change(root, slug, { closed = false, spec = 'approved', specAt = '2026-
   if (plan === 'approved') writeFileSync(path.join(dir, 'plan.md'), approved(planBody, specAt));
   else if (plan === 'draft') writeFileSync(path.join(dir, 'plan.md'), render({ status: 'draft' }, planBody));
   commit(root, `${slug} written`);
+  if (!closed) selectChange(cfg(root), slug); // explicit sequential test setup
 }
 
-// B1: the open change with the most recent approved spec is current; the rest are not.
-test('the open change whose spec was approved most recently is current', () => {
+// B1: selecting an older or newer change, never its timestamp, determines authority.
+test('explicit selection chooses authority independently of approval order', () => {
   const root = repo();
   try {
     change(root, 'older', { specAt: '2026-09-01T00:00:00.000Z' });
     change(root, 'newer', { specAt: '2026-09-02T00:00:00.000Z' });
+    selectChange(cfg(root), 'older');
+    assert.equal(currentChange(cfg(root)).slug, 'older');
+    selectChange(cfg(root), 'newer');
     const current = currentChange(cfg(root));
     assert.equal(current.slug, 'newer');
     assert.deepEqual(current.plan.owns, ['src/newer.mjs']);
@@ -59,19 +61,19 @@ test('the open change whose spec was approved most recently is current', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-// B1: a draft spec is never current, however new. Approving the spec is the act that makes a
-// change the work now.
-test('a draft spec is never current, and no approved open spec means no current change', () => {
+// Selecting a draft declares execution intent but grants no write authority.
+test('a selected draft is current but cannot borrow an approved plan', () => {
   const root = repo();
   try {
     change(root, 'approved-old', { specAt: '2026-09-01T00:00:00.000Z' });
     change(root, 'drafted-new', { spec: 'draft', plan: 'absent' });
-    assert.equal(currentChange(cfg(root)).slug, 'approved-old');
+    assert.equal(currentChange(cfg(root)).slug, 'drafted-new');
+    assert.deepEqual(governingPlans(cfg(root)), []);
 
     const empty = repo();
     try {
       change(empty, 'only-draft', { spec: 'draft', plan: 'absent' });
-      assert.equal(currentChange(cfg(empty)), null);
+      assert.equal(currentChange(cfg(empty)).slug, 'only-draft');
       assert.deepEqual(governingPlans(cfg(empty)), []);
     } finally { rmSync(empty, { recursive: true, force: true }); }
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -140,7 +142,7 @@ function draftSpec(root, slug, body) {
   commit(root, `${slug} drafted`);
 }
 
-test('a filled-in draft spec awaits gate 1 and suspends every plan; a scaffold declares nothing', async () => {
+test('unselected drafts do not block; selecting one waits at its own gate', async () => {
   const { draftsAwaitingGate } = await import('../.aidlc/lib/artifacts.mjs');
   const root = repo();
   try {
@@ -150,13 +152,16 @@ test('a filled-in draft spec awaits gate 1 and suspends every plan; a scaffold d
     assert.deepEqual(governingPlans(cfg(root)).map((p) => p.slug), ['sprint-2']);
 
     draftSpec(root, 'sprint-3', 'Given a paid invoice\nWhen isOverdue is asked\nThen it answers false');
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), []);
+    assert.deepEqual(governingPlans(cfg(root)).map(p => p.slug), ['sprint-2']);
+    selectChange(cfg(root), 'sprint-3');
     assert.deepEqual(draftsAwaitingGate(cfg(root)).map((d) => d.slug), ['sprint-3']);
-    assert.equal(currentChange(cfg(root)).slug, 'sprint-2', 'the current change does not move');
+    assert.equal(currentChange(cfg(root)).slug, 'sprint-3');
     assert.deepEqual(governingPlans(cfg(root)), [], 'but nothing governs while a declaration waits');
 
     const closed = path.join(root, '.aidlc/artifacts/sprint-3/intent.md');
     writeFileSync(closed, '---\nstatus: closed\n---\n# Intent: sprint-3\n');
-    assert.deepEqual(draftsAwaitingGate(cfg(root)), [], 'closing lifts it');
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), [], 'closed selection has no execution gate or authority');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -166,6 +171,7 @@ test('harness status and SessionStart name a draft awaiting gate 1', () => {
     assert.equal(spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' }).status, 0);
     change(root, 'sprint-2', { specAt: '2026-09-02T00:00:00.000Z' });
     draftSpec(root, 'sprint-3', 'Given a paid invoice\nWhen isOverdue is asked\nThen it answers false');
+    selectChange(cfg(root), 'sprint-3');
     const status = spawnSync(process.execPath, [BIN, 'status'], { cwd: root, encoding: 'utf8' });
     assert.match(status.stdout, /awaiting gate 1: sprint-3/);
     const hook = spawnSync(process.execPath, [BIN, 'hook', 'session-start'], { cwd: root, encoding: 'utf8', input: JSON.stringify({ cwd: root }) });
@@ -176,7 +182,7 @@ test('harness status and SessionStart name a draft awaiting gate 1', () => {
 // an-edited-approval-awaits-its-gate B2, B3, B5. F32: sprint 3 appended behaviours to sprint 2's
 // approved spec; the approval went stale, the stale spec was no longer current, and sprint 1's
 // plan governed the write. An edited approval is a declaration that the promise changed.
-test('an edited approved spec or plan on an open change awaits its gate and suspends every plan', async () => {
+test('the selected change’s stale spec or plan awaits its gate and cannot borrow another plan', async () => {
   const { draftsAwaitingGate } = await import('../.aidlc/lib/artifacts.mjs');
   const root = repo();
   try {
@@ -224,7 +230,7 @@ test('harness status and SessionStart name an edited approval and its gate', () 
 // an-unattended-turn-does-not-end-on-a-question B1, B2. F34: sprint 5 wrote an intent, stopped
 // to ask, and nobody answered. A written intent with no spec yet is declared work; the scaffold
 // `harness new` leaves is not.
-test('a written intent with a scaffold spec awaits gate 1 as unwritten; a scaffold intent does not', async () => {
+test('unselected intents are backlog; selecting an intent with a scaffold spec awaits gate 1', async () => {
   const { draftsAwaitingGate } = await import('../.aidlc/lib/artifacts.mjs');
   const root = repo();
   try {
@@ -236,6 +242,8 @@ test('a written intent with a scaffold spec awaits gate 1 as unwritten; a scaffo
 
     const intent = path.join(root, '.aidlc/artifacts/product-docs/intent.md');
     writeFileSync(intent, '---\nstatus: draft\n---\n# Intent: product-docs\n\n## Problem\n\nNo customer-facing statement of what the ledger does.\n\n## Proposed outcome\n\ndocs/PRODUCT.md exists and is true of the code.\n');
+    assert.deepEqual(draftsAwaitingGate(cfg(root)), [], 'unselected intent does not block');
+    selectChange(cfg(root), 'product-docs');
     assert.deepEqual(draftsAwaitingGate(cfg(root)), [{ slug: 'product-docs', kind: 'spec', reason: 'unwritten' }]);
     assert.deepEqual(governingPlans(cfg(root)), []);
     const status = spawnSync(process.execPath, [BIN, 'status'], { cwd: root, encoding: 'utf8' });

@@ -331,3 +331,25 @@ node evals/run.mjs --dry
 
 Worked examples: [`examples/scratch-py`](examples/scratch-py),
 [`examples/scratch-ts`](examples/scratch-ts).
+
+### Execution in a worktree
+
+Run `harness status --change <slug>` to select the existing open change this worktree will
+execute. This selects its scope; it does not accept its intent or approve its spec or plan.
+Both gates must be approved, unchanged and committed. The guard, local scope check, session
+context and campaign checks use that same selection. Unrelated backlog drafts and approvals
+cannot block or switch it. `harness new` only captures backlog work.
+
+The binding is `aidlc-change.json` in the worktree's own Git directory, including linked
+worktrees. It survives session restarts and commits on the same branch. A branch switch needs
+explicit reselection; a detached selection is valid only at its exact HEAD. Returning to the
+original branch restores its binding only while the selected change and approvals remain valid.
+Missing, malformed, deleted-target and closed-target selections grant no scope. Status and
+refusals explain the remedy; investigation and artifact drafting remain possible.
+
+Compatibility: selection is now required, including in a repository with one open change.
+There is no latest-approval fallback. Select each successive change explicitly, and use
+`harness status --clear-change` to clear execution. `status --json` includes `selection` and
+`current` alongside the backlog; backlog approval issues can still make status exit nonzero.
+Historical artifacts retain their original approvals and meanings. The local scope check
+still examines working changes only; full committed PR-candidate validation is separate work.

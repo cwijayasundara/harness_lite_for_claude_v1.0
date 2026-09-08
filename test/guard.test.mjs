@@ -6,7 +6,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { C, BIN } from './_paths.mjs';
 import { writeBlocked, productionDenied, lockTests, clearLock, bashTouchesProtected, bashContractBlocked, writeTargets } from '../.aidlc/lib/guard.mjs';
-import { render, bodyDigest } from '../.aidlc/lib/artifacts.mjs';
+import { render, bodyDigest, selectChange } from '../.aidlc/lib/artifacts.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 
 
@@ -23,8 +23,7 @@ function tmp(prefix) {
   return { root, layout, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
-// A change as a human leaves it after the gates: approved spec (its `at:` is what makes the
-// change current), approved or draft plan, committed. Same shape as test/scope-drift.test.mjs.
+// A simulated approved spec and approved/draft plan, committed and explicitly selected.
 function approvedChange(root, slug, files, specAt, { plan = 'approved' } = {}) {
   const dir = path.join(root, '.aidlc/artifacts', slug);
   mkdirSync(dir, { recursive: true });
@@ -38,6 +37,7 @@ function approvedChange(root, slug, files, specAt, { plan = 'approved' } = {}) {
   writeFileSync(path.join(dir, 'plan.md'), plan === 'approved' ? seal(planBody, specAt) : render({ status: 'draft' }, planBody));
   spawnSync('git', ['add', '-A'], { cwd: root });
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', `${slug} written`], { cwd: root });
+  selectChange({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts') } }, slug);
 }
 
 // Spec behaviour 14. The old check asked whether the command contained `>` *anywhere* and then
@@ -267,8 +267,8 @@ test('a current change with no approved plan refuses every product write and nam
 
     for (const rel of ['src/app/text.py', 'src/app/handlers.py']) {
       const refusal = String(writeBlocked(rel, cfg));
-      assert.match(refusal, /"sprint-3"/);
-      assert.match(refusal, /plan is not approved/);
+      assert.match(refusal, /sprint-3/);
+      assert.match(refusal, /plan not approved/);
       assert.match(refusal, /harness approve sprint-3 plan/);
       assert.match(refusal, /close/);
       assert.doesNotMatch(refusal, /require_contract = false/);
@@ -310,7 +310,7 @@ test('a malformed contract fails closed for product writes', () => {
     f.layout.contracts = path.join(f.root, '.aidlc/artifacts/contracts'); mkdirSync(f.layout.contracts, { recursive: true });
     writeFileSync(path.join(f.layout.contracts, 'change.md'), '# malformed contract\n');
     const refusal = String(writeBlocked('src/app.py', { layout: f.layout, guard: { require_contract: true } }));
-    assert.match(refusal, /no open change has an approved spec/);
+    assert.match(refusal, /cannot resolve selection/);
     assert.doesNotMatch(refusal, /require_contract = false/);
   } finally { f.cleanup(); }
 });
@@ -371,8 +371,8 @@ test('lock tests writes a lock the write guard honors, and clear removes it', ()
 
 // a-draft-is-a-declaration B1 and B5. F30: a real spec, unapproved, beside an open approved
 // change whose plan owns the file. The write is refused naming the draft and gate 1, never the
-// switch; approving the draft's spec or closing it lifts the refusal.
-test('a filled-in draft spec refuses every product write until it is approved or closed', () => {
+// switch; only its own gates or explicit reselection can restore execution.
+test('a selected draft refuses writes until its gates pass or another change is explicitly selected', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
     const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
     const cfg = { layout, guard: { require_contract: true } };
@@ -384,6 +384,8 @@ test('a filled-in draft spec refuses every product write until it is approved or
     const body = '# Spec: paid-never-overdue\n\n### B1\n\nGiven a paid invoice\nWhen isOverdue is asked\nThen it answers false\n';
     writeFileSync(path.join(dir, 'spec.md'), render({ status: 'draft' }, body));
 
+    assert.equal(writeBlocked('src/app/text.py', cfg), null, 'unselected draft cannot block');
+    selectChange(cfg, 'paid-never-overdue');
     const refusal = String(writeBlocked('src/app/text.py', cfg));
     assert.match(refusal, /"paid-never-overdue"/);
     assert.match(refusal, /awaits gate 1/);
@@ -392,15 +394,21 @@ test('a filled-in draft spec refuses every product write until it is approved or
     assert.doesNotMatch(refusal, /require_contract = false/);
     assert.equal(writeBlocked('.aidlc/artifacts/paid-never-overdue/spec.md', cfg), null, 'the draft itself stays writable');
 
-    // Closing lifts it, and the current change's plan decides again.
+    // Closing never borrows another plan; explicitly select the previous work.
     writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: closed\n---\n# Intent\n');
+    assert.match(writeBlocked('src/app/text.py', cfg), /closed/);
+    selectChange(cfg, 'hyphen-titlecase');
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
 
     // Reopen and approve instead: the draft becomes current, and its (absent) plan governs nothing.
     writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
     const draft = render({ status: 'draft' }, body);
     writeFileSync(path.join(dir, 'spec.md'), render({ status: 'approved', by: 'tester', at: '2026-09-03T00:00:00.000Z', digest: bodyDigest(draft) }, body));
-    assert.match(String(writeBlocked('src/app/text.py', cfg)), /"paid-never-overdue" has an approved spec but its plan is not approved/);
+    selectChange(cfg, 'paid-never-overdue');
+    assert.match(String(writeBlocked('src/app/text.py', cfg)), /approval is not committed/);
+    spawnSync('git', ['add', '-A'], { cwd: s.work });
+    spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'simulated spec approval'], { cwd: s.work });
+    assert.match(String(writeBlocked('src/app/text.py', cfg)), /paid-never-overdue — plan not approved/);
   } finally { s.cleanup(); }
 });
 

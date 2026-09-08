@@ -8,7 +8,9 @@ model: claude-sonnet-5
 # Implement the approved plan
 
 Read the current spec, plan, relevant code and tests. Understand callers, state and failure
-paths; follow existing patterns where they fit. Confirm approvals are current and committed.
+paths; follow existing patterns where they fit. Select this change in the worktree with
+`harness status --change <slug>`. Confirm its spec and plan approvals are current and committed.
+A missing or branch-mismatched selection requires explicit reselection; no other plan grants scope.
 Make routine implementation choices inside the approved design and owned files without
 reopening a gate.
 
