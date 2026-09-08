@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:918c9346da19648c66d0bddabf2d6cdd8f1f4a63e64d1a480b4d24df7949d263
+spec_approval_digest: sha256:75d2c7e8a76269e7ec5d727e85c0b4dd25330f2d23f69a684992346ca0d735c8
+by: cwijayasundara
+at: 2026-09-08T17:27:53.729Z
+digest: sha256:37bdf12e6f98e258039d8c559b9af5d4119f5e502ad45fe2eae9d3770a3506c1
+approval_version: 2
+approval_digest: sha256:8ce565a3ac25058dd8969e3e56ac295898030a82001bfed24ecfb234886179c7
 ---
 # Plan: graph-first-retrieval
 
