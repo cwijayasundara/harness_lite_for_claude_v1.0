@@ -86,6 +86,3 @@ test_quality = "test/unit.test.mjs"
 [guard]
 protected_paths = ["evals/fixtures"]
 require_contract = true
-
-["node", "examples/collect-ci-failure-rate.mjs"]
-timeout_ms = 300000

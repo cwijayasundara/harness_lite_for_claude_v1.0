@@ -1,13 +1,13 @@
 {
-  "captured_at": "2026-08-23T20:21:27.609Z",
+  "captured_at": "2026-09-08T09:16:08.799Z",
   "tolerance": 1.1,
-  "claude_md_tokens": 266,
-  "session_context_tokens": 51,
+  "claude_md_tokens": 558,
+  "session_context_tokens": 50,
   "check_stop_tokens": 19,
-  "wiki_index_tokens": 0,
   "pack_tokens_p50": 83,
   "pack_samples": 2,
   "graph_modules": 3,
   "graph_symbols": 2,
+  "errored_controls": [],
   "model": null
 }

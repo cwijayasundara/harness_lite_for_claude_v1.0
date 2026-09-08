@@ -66,6 +66,18 @@ fetch the exact harness commit you installed.
 
 `init` is safe to re-run.
 
+### What goes into a new repository
+
+Scaffold with `harness init --into /path/to/project`; do not copy this repository wholesale.
+The scaffold contains eight files: the project config, canonical instructions, review policy,
+`.aidlc/.gitignore`, the CLI shim and install record, plus `.claude/CLAUDE.md` and
+`.claude/settings.json`. Its artifact and runtime-state directories start empty. Your existing
+project instructions and configuration are preserved when you re-run the installer.
+
+The executable checks, skills and hooks come from the shared Claude plugin installed below.
+The scaffold is not a standalone copy of that plugin. This repository's development history,
+tests, evals, reports, examples and credentials are never copied into the new project.
+
 ### 4. Tell the harness how to build your project
 
 Open `.aidlc/harness.toml` and fill in the eight capability verbs with your project's own
@@ -296,6 +308,21 @@ intent, and no deployment code at all.
 - [Constitution](docs/CONSTITUTION.md) — the rules the harness enforces on itself
 
 ## Developing the harness itself
+
+| Directory | Purpose |
+|---|---|
+| `.aidlc/bin`, `lib`, `checks`, `hooks`, `skills`, `roles`, `templates` | Shared harness implementation and scaffold templates |
+| `.aidlc/artifacts/` | This repository's own change history and approvals; each consumer project has its own |
+| `.aidlc/state/` | Ignored runtime state and caches |
+| `test/` | Deterministic tests of the harness |
+| `evals/` | Development evaluation runners, scenarios and fixtures |
+| `evals/evidence/` | Curated development reports and historical evidence |
+| `.aidlc/evals/` | Ignored raw evaluation output; never run automatically by normal edit/stop hooks |
+| `examples/` | Small consumer projects and a maintenance recipe; not scaffold contents |
+
+During application development, hooks run the application's configured fast/stop checks.
+Paid harness evaluations run only through explicit evaluation commands or the configured
+credentialed development CI jobs. `harness evals gate` reads saved results; it makes no model call.
 
 ```bash
 node --test test/*.test.mjs

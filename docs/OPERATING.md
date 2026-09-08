@@ -213,7 +213,7 @@ when a service running behind it produces a defect, under Law 11 — not before.
 
 ```
 your-metric-command | node examples/maintain/band-to-intent.mjs
-harness contract status <slug>
+harness status <slug>
 ```
 
 This checkout is one local plugin whose portable kernel lives under `.aidlc/`. The repo-root marketplace lists that kernel
@@ -355,5 +355,5 @@ changes return to a human; artifact edits still invalidate approval digests.
 using the configured capable generator with old and current guidance. The parent grades decisions
 and executes two returned function expressions against undisclosed cases. It records questions,
 proposed unnecessary stops/splits, boundary violations, product results, model metadata and cost
-in `.aidlc/evals/smoke/guidance-comparison.json`. This is one paired decision sample, not an actual
+in `evals/evidence/smoke/guidance-comparison.json`. This is one paired decision sample, not an actual
 product campaign or a measurement of workflow-repair turns. No model calls occur in unit tests.

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: correct-existing-mechanisms
 
@@ -13,3 +13,6 @@ they do not claim a separate human CLI event or authenticated signature.
 
 The existing CODEBASE-MAP.md edit belongs to earlier work and will remain uncommitted.
 Full product campaigns, broader guidance simplification and comparison experiments are items 2–5.
+
+## Closure
+Implementation delivered and verified before the scaffold cleanup. Supporting empirical gaps remain explicitly recorded in docs/IMPROVEMENT-PLAN.md; closure does not assert new benchmark outcomes.

@@ -25,5 +25,12 @@ commit = ["stop", "secrets", "scope-drift", "budget"]
 drift  = ["deps"]
 
 [graph]
-include = [".", ".claude"]
+include = [".", ".aidlc"]
 exclude = ["node_modules", "dist", ".git"]
+
+[limits]
+skills = 7
+agents = 3
+hooks = 5
+hook_loc = 600
+claude_md_lines = 120

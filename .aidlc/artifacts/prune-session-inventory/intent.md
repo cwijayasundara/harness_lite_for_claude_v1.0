@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Prune using product outcomes
 
@@ -10,3 +10,6 @@ warnings, executable checks, control budgets and the pre-existing CODEBASE-MAP.m
 On 2026-09-07 the user explicitly instructed: "merge all the changes to main and push to github".
 This authorizes delivery of the validated implementation, its spec and plan, and inclusion of the
 existing CODEBASE-MAP.md change. Codex records this conversation authorization on the user's behalf.
+
+## Closure
+Implementation delivered and verified before the scaffold cleanup. Supporting empirical gaps remain explicitly recorded in docs/IMPROVEMENT-PLAN.md; closure does not assert new benchmark outcomes.

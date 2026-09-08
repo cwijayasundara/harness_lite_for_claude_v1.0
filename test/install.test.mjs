@@ -28,6 +28,54 @@ function installed(t) {
   return root;
 }
 
+test('a fresh scaffold contains only consumer files and empty project state', (t) => {
+  const root = installed(t);
+  const files = readdirSync(root, { recursive: true }).filter(rel =>
+    !rel.startsWith('.git/') && rel !== '.git' && statSync(path.join(root, rel)).isFile()).sort();
+  assert.deepEqual(files, [
+    '.aidlc/.gitignore', '.aidlc/bin/harness', '.aidlc/harness-install.json',
+    '.aidlc/harness.toml', '.aidlc/instructions.md', '.aidlc/policies/review.md',
+    '.claude/CLAUDE.md', '.claude/settings.json',
+  ]);
+  assert.deepEqual(readdirSync(path.join(root, '.aidlc/artifacts')), []);
+  assert.deepEqual(readdirSync(path.join(root, '.aidlc/state')), []);
+});
+
+test('fresh consumer instructions describe the executable workflow', (t) => {
+  const root = installed(t);
+  const instructions = readFileSync(path.join(root, '.claude/CLAUDE.md'), 'utf8');
+  assert.match(instructions, /intent -> spec.*-> plan.*-> implement -> review -> merge/);
+  assert.doesNotMatch(instructions, /delivery contract|spec seal|plan seal|models resolve/);
+  assert.match(instructions, /harness status/);
+  const status = spawnSync(process.execPath, [BIN, 'status', '--json'], { cwd: root, encoding: 'utf8' });
+  assert.equal(status.status, 0, status.stderr);
+  assert.doesNotMatch(readFileSync(path.join(root, '.aidlc/harness.toml'), 'utf8'), /^\[\]$|production_allowed_risks|compose_file/m);
+});
+
+test('the maintenance example creates a discoverable intent and preserves human edits', (t) => {
+  const root = installed(t);
+  const run = observed => spawnSync(process.execPath, [path.join(ROOT, 'examples/maintain/band-to-intent.mjs')], {
+    cwd: root, encoding: 'utf8', input: JSON.stringify({ bands: [{ metric: 'ci-failure-rate', observed, mean: 0, stdev: 1 }] }),
+  });
+  for (const observed of [1, 2]) {
+    const result = run(observed);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(readdirSync(path.join(root, '.aidlc/artifacts')), []);
+  }
+  const result = run(3);
+  assert.equal(result.status, 0, result.stderr);
+  const intent = path.join(root, '.aidlc/artifacts/ci-failure-rate-breach/intent.md');
+  assert.ok(existsSync(intent), result.stdout);
+  assert.match(readFileSync(intent, 'utf8'), /^---\nstatus: draft\n---/);
+  const status = spawnSync(process.execPath, [BIN, 'status', '--json'], { cwd: root, encoding: 'utf8' });
+  assert.equal(status.status, 0, status.stderr);
+  assert.match(status.stdout, /ci-failure-rate-breach/);
+  const edited = readFileSync(intent, 'utf8') + '\nHuman triage: investigate recent deployment.\n';
+  writeFileSync(intent, edited);
+  assert.equal(run(4).status, 0);
+  assert.equal(readFileSync(intent, 'utf8'), edited);
+});
+
 // Every file the installer put in the project, excluding state/, which is gitignored and holds
 // run-local scratch. What is asserted here is what a pod member would commit.
 function committedFiles(root) {
@@ -226,7 +274,17 @@ test('the shim resolves the harness from HARNESS_HOME and from the plugin cache'
   assert.equal(viaEnv.status, 0, `HARNESS_HOME did not resolve: ${viaEnv.stderr}`);
 
   // A plugin cache is <marketplace>/<plugin>/<version>, holding the harness at its root.
-  cpSync(ROOT, path.join(home, '.claude', 'plugins', 'cache', rec.marketplace, rec.plugin, rec.version), { recursive: true });
+  // Exercise plugin resolution without copying this checkout's Git history, generated
+  // campaigns or development records into the fixture on every unit-suite run.
+  cpSync(ROOT, path.join(home, '.claude', 'plugins', 'cache', rec.marketplace, rec.plugin, rec.version), {
+    recursive: true,
+    filter: source => {
+      const rel = path.relative(ROOT, source);
+      const within = dir => rel === dir || rel.startsWith(dir + path.sep);
+      return !rel || (['.aidlc', '.claude', '.claude-plugin'].some(within)
+        && !['.aidlc/artifacts', '.aidlc/evals', '.aidlc/state', '.claude/state', '.claude/worktrees'].some(within));
+    },
+  });
   const viaCache = spawnSync('bash', [shim, 'doctor'],
     { cwd: root, encoding: 'utf8', env: { ...process.env, HOME: home, HARNESS_HOME: '' } });
   assert.equal(viaCache.status, 0, `the plugin cache did not resolve: ${viaCache.stderr}`);

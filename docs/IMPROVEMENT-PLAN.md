@@ -231,7 +231,7 @@ The live smoke now loads the actual plugin for generator turns and verifies its 
 hook executed, then tests pause, rejection/correction, resumed implementation and independent
 read-only evaluation. The evaluator still uses a fresh native safe-mode session.
 
-The actual-plugin smoke passed (evidence in `.aidlc/evals/smoke/agent-mechanisms.json`). All
+The actual-plugin smoke passed (evidence in `evals/evidence/smoke/agent-mechanisms.json`). All
 commit-stage controls passed, including scope drift. The Python example's CI environment now
 installs its test dependencies and requires a successful stop stage before the cost comparison;
 token thresholds and historical outcome expectations are unchanged.
@@ -314,7 +314,7 @@ cleanup of timed-out public-test containers, and HTTP persistence/rule-change/st
 checks also passed. Credential preflight fails closed for product trials; missing billing is
 unknown, and failed invocations reserve their spend allowance.
 
-Portable results and exact evidence locations are in `.aidlc/evals/product-summary.json`.
+Portable results and exact evidence locations are in `evals/evidence/product-summary.json`.
 Full private snapshots/transcripts remain in ignored `.aidlc/evals/products/`. These are one
 complete run per campaign, not a reliability-rate estimate. Approvals test the scripted protocol;
 deployment remains local and disposable. The separate whole-change evaluator timed out twice
@@ -355,7 +355,7 @@ a particular word in the response. Failed verification candidates are saved befo
 **Full comparative acceptance remains incomplete.** Graph/model-strategy product repetitions
 are unmeasured; no winner, universal reliability or item 5 pruning is claimed.
 
-Portable evidence is in `.aidlc/evals/comparison-summary.json`; complete private phases and source
+Portable evidence is in `evals/evidence/comparison-summary.json`; complete private phases and source
 histories remain under ignored `.aidlc/evals/comparisons/`. Total reported spend was **$7.45033505**;
 one timeout omitted billing, so total cost is unknown. Reported spend plus reserved allowance
 was $8.95033505. Failed, abandoned and unmeasured attempts are retained, not rounded into passes.
@@ -418,7 +418,7 @@ stop/commit results are recorded in `.aidlc/artifacts/prune-session-inventory/ev
 The user authorized merging all changes and pushing to main on 2026-09-07. Spec and plan
 approvals are committed, and all final commit checks passed; earlier approvals were not rewritten.
 No hosted CI or separate whole-change model review is claimed. The existing CODEBASE-MAP.md
-edit is unchanged. Portable outcomes are in `.aidlc/evals/pruning-summary.json`; full phases,
+edit is unchanged. Portable outcomes are in `evals/evidence/pruning-summary.json`; full phases,
 product histories and the captured driver patch are in ignored `.aidlc/evals/comparisons/prune-*`.
 
 
@@ -438,7 +438,7 @@ were simulated for this deterministic test; independent model review and a real 
 session are not claimed. Empty optional capabilities were explicitly skipped.
 
 Portable outcomes, identities, costs and retained failed attempts are in
-`.aidlc/evals/comparison-summary.json`; findings and limitations are recorded in
+`evals/evidence/comparison-summary.json`; findings and limitations are recorded in
 `.aidlc/artifacts/complete-native-comparisons/evidence.md`.
 
 
@@ -459,5 +459,31 @@ extracting one valid JSON fence from surrounding prose. A replay-input mistake a
 two calls and started a third before termination. These extra attempts remain recorded.
 Reported spend was USD 0.86280005; charged/reserved spend USD 1.66280005 includes the
 interrupted call's USD 0.80 allowance, whose actual billing is unknown. The final review made
-no call. Details are under `boundedGapFollowup` in `.aidlc/evals/comparison-summary.json`.
+no call. Details are under `boundedGapFollowup` in `evals/evidence/comparison-summary.json`.
 The original empirical gaps remain qualified; no production defaults were changed.
+
+
+### Consumer scaffold cleanup — 2026-09-08
+
+Fresh scaffolding is verified to create only eight consumer files plus empty artifact/state
+directories. Runtime code and provider guides remain in the shared plugin; development history,
+evals, reports, examples and credentials are not copied. New-project instructions now describe
+the current workflow and commands. The template no longer advertises removed deployment/SLA
+configuration. Existing consumer instructions/configuration remain preserved on reinstall.
+
+The maintenance example now creates a discoverable draft at
+`.aidlc/artifacts/<slug>/intent.md` and preserves existing triage edits. Curated reports moved
+byte-for-byte to `evals/evidence/`; full raw runs remain ignored. Historical approved specs and
+plans are unchanged. Four delivered implementation intents were closed; the two incomplete
+comparison intents remain open and qualified by their recorded evidence.
+
+Python and TypeScript examples retain their application behavior, with current instructions,
+seven-skill inventory and no tracked runtime caches or retired adapter metadata. Legacy Python
+artifact records are preserved under `evals/evidence/examples/`. The duplicate TypeScript Node
+type dependency declaration now matches the existing lockfile, without changing its
+resolved dependency graph. Example token baselines were intentionally recaptured for the
+corrected consumer instructions with the same tolerance and successful configured checks.
+
+The plugin-cache resolution test now copies runtime files rather than the entire development
+checkout. On this machine its elapsed time fell from about 67 seconds to 0.3 seconds while
+retaining its environment/cache resolution assertions. No paid trials were run for this cleanup.

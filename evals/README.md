@@ -8,6 +8,11 @@ owned scope, testability, evidence, and refusal of work outside the approved bou
 Two isolated product campaigns live in `products.json`, separate from golden tasks. See
 `docs/OPERATING.md`, "Automated product campaigns", for boundaries and evidence semantics.
 
+This directory is development tooling for the harness, not part of a consumer scaffold.
+Normal application edit/stop hooks run configured project checks, not these model campaigns.
+Runners write raw output to ignored `.aidlc/evals/`. Curated reports live in
+[`evidence/`](evidence/README.md); older artifact records retain the reports' original paths.
+
 ## Running
 
 ```
@@ -143,7 +148,7 @@ violations, cost per accepted change, latency and transcripts before retaining a
 Failed calibration and incomplete campaigns cannot justify production pruning; missing billing
 and unclassified unnecessary questions remain unknown. One pair supports a bounded decision,
 not a general reliability claim. The retention decision and limitations belong in
-`.aidlc/evals/pruning-summary.json`.
+`evals/evidence/pruning-summary.json`.
 
 Use `--prune-arm baseline` or `--prune-arm lean` to rerun one side without repeating the
 other side's completed work. A single-arm result is not a complete paired comparison: retain
@@ -151,7 +156,7 @@ and compare matching model, fixture, plugin and scenario identities across the e
 The completed item 5 matched run passed all eleven changes in each arm. Production retains the
 baseline: the lean arm showed higher observed cost and latency, with identical completion and
 recovery results in this single pair. Prior failed, unmeasured and unbilled attempts remain in
-`.aidlc/evals/pruning-summary.json`. This is a bounded decision, not a general reliability claim.
+`evals/evidence/pruning-summary.json`. This is a bounded decision, not a general reliability claim.
 Documentation phrase checks are supporting heuristics; private API assertions establish overdue
 behavior. Disposable product checks use `node --test --test-timeout=10000`, so a failed generated
 test that leaks a server can return findings before the model invocation expires. Fixtures and

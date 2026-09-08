@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: close-the-harness
 
@@ -60,3 +60,6 @@ opened from it in this program.
 ## Open questions
 
 - None that block the spec.
+
+## Closure
+Implementation delivered and verified before the scaffold cleanup. Supporting empirical gaps remain explicitly recorded in docs/IMPROVEMENT-PLAN.md; closure does not assert new benchmark outcomes.

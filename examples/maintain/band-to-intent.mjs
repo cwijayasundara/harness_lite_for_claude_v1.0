@@ -35,15 +35,17 @@ if (!breach) { console.log('PASS  all control bands within range'); process.exit
 if (breach.tier === 2) { console.log(`WATCH  ${breach.metric} at 2σ — diagnose read-only, no intent written`); process.exit(0); }
 
 const slug = `${breach.metric}-breach`.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 63);
-const dir = path.join('.aidlc', 'artifacts', 'intent');
-const file = path.join(dir, `${slug}.md`);
+const dir = path.join('.aidlc', 'artifacts', slug);
+const file = path.join(dir, 'intent.md');
 if (existsSync(file)) { console.log(`OPEN  ${file} already exists`); process.exit(0); }
 
 mkdirSync(dir, { recursive: true });
-writeFileSync(file, `# Intent: ${slug}
+writeFileSync(file, `---
+status: draft
+---
+# Intent: ${slug}
 
 - **Date:** ${new Date().toISOString().slice(0, 10)}
-- **Status:** draft
 - **Source:** control band breach, ${breach.tier}σ
 
 ## Problem

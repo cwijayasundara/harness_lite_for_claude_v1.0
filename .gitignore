@@ -22,3 +22,7 @@ node_modules/
 .aidlc/evals/products/
 
 .aidlc/evals/comparisons/
+
+# Local eval output; curated reports live in evals/evidence/.
+.aidlc/evals/
+examples/*/.claude/state/
