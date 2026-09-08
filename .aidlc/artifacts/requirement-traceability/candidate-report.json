@@ -1,0 +1,187 @@
+{
+  "stage": "commit",
+  "revision": {
+    "base": "fecbf1466e70a9cc286b5e4cb72fe3e0857e1111",
+    "candidate": "022fb7e28bc11df7507ef2d72775f7e981d2b747",
+    "change": "requirement-traceability"
+  },
+  "trace": {
+    "version": 1,
+    "context": "candidate",
+    "change": "requirement-traceability",
+    "authority": "local-audit-labels",
+    "delivery": "not-observed",
+    "behaviours": [
+      {
+        "id": "requirement-traceability#B1",
+        "criteria": [],
+        "proof": "`test/requirement-traceability.test.mjs`: committed source and intent bindings, criterion coverage, malformed and missing inputs",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "requirement-traceability#B2",
+        "criteria": [],
+        "proof": "`test/requirement-traceability.test.mjs`: metadata/intent edits, dependent plan refusal, unrelated edits and rebase",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "requirement-traceability#B3",
+        "criteria": [],
+        "proof": "`test/requirement-traceability.test.mjs`: historical approvals, explicit upgrade, stripped/downgraded binding and migrated artifacts",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "requirement-traceability#B4",
+        "criteria": [],
+        "proof": "`test/trace-evidence.test.mjs`: real disposable pytest execution, absent/skipped/failed tests, stale reports and unsupported formats",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "requirement-traceability#B5",
+        "criteria": [],
+        "proof": "`test/review.test.mjs`: injected host responses and CLI integration for revision/policy/identity distinctions and unavailable API",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "requirement-traceability#B6",
+        "criteria": [],
+        "proof": "reproduction.json, post-fix product evidence, full stop/commit and clean candidate reports, local review and delivery record",
+        "nodeid": null,
+        "status": "unverified"
+      }
+    ],
+    "approvals": {
+      "spec": {
+        "state": "approved",
+        "binding": "legacy/unbound",
+        "digest": "sha256:5083a191e265d1880cbca34cc099944d68cf32f3750172b4c3a81c32e2c60cad",
+        "by": "cwijayasundara",
+        "at": "2026-09-08T12:26:17.743Z"
+      },
+      "plan": {
+        "state": "approved",
+        "binding": "legacy/unbound",
+        "digest": "sha256:65de00efd6481eede620ff0f56edfe2dc201bd5a18b84bd7d5ddcc78dcd39ee2",
+        "by": "cwijayasundara",
+        "at": "2026-09-08T12:26:17.858Z"
+      }
+    },
+    "source": {
+      "reference": null,
+      "revision": null,
+      "kind": "legacy/unbound",
+      "digest": null
+    },
+    "intent": {
+      "revision": null,
+      "digest": null
+    },
+    "execution": {
+      "verdict": "pass",
+      "command": "node --test --test-reporter=tap test/*.test.mjs",
+      "observations": {
+        "status": "unsupported",
+        "tests": []
+      }
+    }
+  },
+  "ok": true,
+  "changed_files": [
+    ".aidlc/artifacts/requirement-traceability/focused-tests.log",
+    ".aidlc/artifacts/requirement-traceability/intent.md",
+    ".aidlc/artifacts/requirement-traceability/plan.md",
+    ".aidlc/artifacts/requirement-traceability/post-fix.json",
+    ".aidlc/artifacts/requirement-traceability/reproduce.mjs",
+    ".aidlc/artifacts/requirement-traceability/reproduction.json",
+    ".aidlc/artifacts/requirement-traceability/spec.md",
+    ".aidlc/bin/harness",
+    ".aidlc/lib/artifacts.mjs",
+    ".aidlc/lib/normalize.mjs",
+    ".aidlc/lib/review.mjs",
+    ".aidlc/lib/runner.mjs",
+    ".aidlc/lib/trace.mjs",
+    ".aidlc/templates/intent.md",
+    ".aidlc/templates/plan.md",
+    ".aidlc/templates/spec.md",
+    "README.md",
+    "docs/SPDD-TEAM-EVOLUTION-PLAN.md",
+    "test/_trace-fixture.mjs",
+    "test/autogate.test.mjs",
+    "test/gate-content.test.mjs",
+    "test/lifecycle-cli.test.mjs",
+    "test/mechanisms.test.mjs",
+    "test/requirement-traceability.test.mjs",
+    "test/review.test.mjs",
+    "test/suite-truth.test.mjs",
+    "test/supersedes.test.mjs",
+    "test/trace-evidence.test.mjs",
+    "test/worktree-selection.test.mjs"
+  ],
+  "controls": [
+    {
+      "control": "secrets",
+      "verdict": "pass",
+      "ms": 175,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "test",
+      "verdict": "pass",
+      "ms": 28758,
+      "findings": [],
+      "command": "node --test --test-reporter=tap test/*.test.mjs",
+      "execution": {
+        "status": "unsupported",
+        "tests": []
+      }
+    },
+    {
+      "control": "scope-drift",
+      "verdict": "pass",
+      "ms": 422,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "budget",
+      "verdict": "pass",
+      "ms": 0,
+      "findings": [],
+      "command": "",
+      "measured": {
+        "skills": 7,
+        "agents": 3,
+        "hooks": 4,
+        "hook_loc": 255,
+        "claude_md_lines": 87
+      }
+    },
+    {
+      "control": "tamper",
+      "verdict": "pass",
+      "ms": 236,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "arch",
+      "verdict": "pass",
+      "ms": 27,
+      "findings": [],
+      "command": "node .aidlc/sensors/architecture.mjs"
+    },
+    {
+      "control": "test_quality",
+      "verdict": "pass",
+      "ms": 27,
+      "findings": [],
+      "command": "node .aidlc/sensors/test-quality.mjs"
+    }
+  ]
+}

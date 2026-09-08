@@ -154,16 +154,16 @@ Reuse should promote a validated technique into existing project guidance, a tem
 
 Implement A first, then B; together they form the first team-governance milestone. Item A can be implemented and reviewed independently, but does not resolve B's clean-checkout scope gap. C must precede treating new metadata as authoritative. D uses A/C; E uses C/D. F's evidence identity work supports all of them, while broad organizational integration can wait. Preserve old artifact history; use explicit legacy handling without inventing approvals. Add migration tests before changing the meaning of `closed`, `extends` or `supersedes`.
 
-**Six-step implementation checklist and fresh-session handoff.** Items 1 and 2 have now been implemented and locally validated; items 3–6 remain proposed. The numbering below matches the conversation; deliveries A–F above provide their scope and exit evidence. See the delivery record below for the implementation and limitations.
+**Six-step implementation checklist and fresh-session handoff.** Items 1–3 have now been implemented and locally validated; items 4–6 remain proposed. The numbering below matches the conversation; deliveries A–F above provide their scope and exit evidence. See the delivery records below for the implementation and limitations.
 
 1. [x] **Make execution specific to each worktree (A).** Bind execution to one change; scope pending approval checks to that change.
 2. [x] **Validate the entire PR candidate (B).** Check base-to-candidate changes, including committed files, renames and deletions.
-3. [ ] **Strengthen traceability (C).** Link requirement revisions, behaviors, approvals, executed proof and delivery revisions.
+3. [x] **Strengthen traceability (C).** Link requirement revisions, behaviors, approvals, executed proof and delivery revisions.
 4. [ ] **Support decomposition and allocation (D).** Connect bounded child outcomes, dependencies, shared interfaces and existing issue-tracker assignments.
 5. [ ] **Maintain a current product/design view (E).** Derive revision-specific context from delivered changes while retaining historical records.
 6. [ ] **Verify reuse across the team (F).** Verify runtime/policy identity and export attributable evidence; validate reuse on product work.
 
-The current authorized implementation scope is **item 2 only**, following delivery of item 1. The user approved item 2's concrete spec and plan before implementation; see its delivery record below. Items 3–6 require separate authorization. The item 1 instructions and suggested request below are retained as historical handoff context.
+The latest authorized implementation scope is **item 3 only**, now delivered following user approval of its concrete spec and plan. Items 4–6 require separate authorization. Earlier instructions and suggested requests below are retained as historical handoff context; see the delivery records for each implementation's evidence and limitations.
 
 For item 1, first inspect current repository instructions and working-tree changes, then read this document and the current versions of `.aidlc/lib/artifacts.mjs`, `.aidlc/lib/guard.mjs`, `.aidlc/checks/scope-drift.mjs`, `.aidlc/bin/harness`, and the current-change/approval tests. The research revision above is a baseline, not permission to overwrite later work.
 
@@ -350,3 +350,72 @@ through the existing approval workflow, then implement their bounded file scope 
 acceptance checks. Preserve explicit legacy handling; never promote a local audit label,
 test-file presence or unavailable host policy to verified evidence. Items 4–6 remain
 unstarted. No production implementation or host configuration has changed in preparation.
+
+**Item 3 delivery record — 8 September 2026.** Implemented only C under
+[requirement-traceability](../.aidlc/artifacts/requirement-traceability/spec.md).
+The user replied “approved, continue” to its concrete spec and plan; the existing CLI
+recorded those decisions in `20a9435`. This is a conversation decision recorded by the
+agent, not a human CLI invocation or authenticated host approval. Historical artifact
+bodies and approvals remain intact. The preparation record above describes its earlier
+state; the delivery is now complete locally.
+
+New approvals bind versioned canonical semantic inputs, committed intent/source
+revisions, and requirement-criterion-to-behaviour mappings. Plans bind the complete
+approved spec inputs. Intent corrections and relationship edits invalidate dependent
+authority; --anyway cannot waive required trace inputs. Canonical key ordering is
+locale-independent. Harmless rebases preserve bindings. Exact intent snapshots remain
+recorded, while lifecycle status alone is excluded from semantic impact so closure
+retains its established meaning and still removes execution authority.
+
+Legacy approvals remain explicitly legacy/unbound; no approval is invented or silently
+upgraded. Removing a previously committed versioned binding cannot restore legacy
+execution authority. Shallow legacy history is refused until full history is fetched.
+Current status, guard and candidate checks consume the same binding reader.
+
+Candidate reports now derive source → behaviour → proof row → current-run test
+observation with the existing base/candidate identities. Exact pytest JSON node IDs
+can establish executed proof; skipped, failed, missing, malformed, duplicate and
+unsupported observations cannot become passed proof. File presence and suite success
+alone remain insufficient. The runner clears old reports and rechecks candidate
+checkout identity after checks. The existing CI upload already preserves the report's
+trace; its scope-only invocation explicitly reports no test execution.
+
+The existing review command adds a read-only GitHub PR evidence mode. It records
+repository, PR, candidate, reviewer identities, review states, visible branch review
+policy and host merge identity when available. Two complete paginated reads must agree.
+The positive assessment covers the visible required review count and current reviewers
+with push access, together with the host review decision. It does not authenticate
+local --by labels or model recommendations. Stale/dismissed reviews, changed heads,
+insufficient reviews, unavailable policy and unsupported code-owner/last-pusher policy
+cannot produce verified approval. Rulesets-only policy visibility remains unavailable;
+full protected merge controls remain host responsibilities.
+
+Acceptance evidence:
+
+- [Original reproduction](../.aidlc/artifacts/requirement-traceability/reproduction.json)
+  preserves the pre-fix product defect, with a reusable disposable-copy script.
+- [Post-fix product evidence](../.aidlc/artifacts/requirement-traceability/post-fix.json)
+  records real pytest failures and passes, stale authority after a requirement correction,
+  simulated reapproval, and negative skipped/unexecuted proof trials. Fixture sources
+  were not changed and simulated decisions are labelled.
+- [Binding regressions](../test/requirement-traceability.test.mjs),
+  [execution regressions](../test/trace-evidence.test.mjs) and
+  [host evidence regressions](../test/review.test.mjs) cover migration, malformed input,
+  downgrade/shallow-history attacks, real rebases, source safety, exact execution identity,
+  candidate mutations, pagination, changed reviews and unavailable credentials/policy.
+  Older approval tests now supply explicit simulated inputs before committing drafts.
+- The standalone stop stage passed. All commit-stage controls passed on clean final
+  implementation candidate `022fb7e`, against pre-item-3 base `fecbf146`:
+  [exact candidate report](../.aidlc/artifacts/requirement-traceability/candidate-report.json).
+  [Evidence and local self-review](../.aidlc/artifacts/requirement-traceability/evidence.md)
+  record commands, results and compatibility limits.
+
+Limitations: external source revisions remain asserted; reviewers judge requirement
+interpretation and test adequacy. Only pytest JSON supplies individual execution
+observations initially. Reports trust the configured tools and are not signed
+attestations. Historical Git snapshot objects must remain available. Host verification
+has the policy coverage stated above, not universal organization-policy coverage.
+No hosted CI run, authenticated live PR review, remote configuration change, paid model
+campaign, merge or deployment was performed or claimed. No new control, dependency,
+hook, skill, agent or budget increase was added. The final human PR/merge gate remains
+separate. Items 4–6 have not started.
