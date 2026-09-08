@@ -154,16 +154,16 @@ Reuse should promote a validated technique into existing project guidance, a tem
 
 Implement A first, then B; together they form the first team-governance milestone. Item A can be implemented and reviewed independently, but does not resolve B's clean-checkout scope gap. C must precede treating new metadata as authoritative. D uses A/C; E uses C/D. F's evidence identity work supports all of them, while broad organizational integration can wait. Preserve old artifact history; use explicit legacy handling without inventing approvals. Add migration tests before changing the meaning of `closed`, `extends` or `supersedes`.
 
-**Six-step implementation checklist and fresh-session handoff.** Items 1–5 have now been implemented and locally validated; item 6 remains proposed. The numbering below matches the conversation; deliveries A–F above provide their scope and exit evidence. See the delivery records below for the implementation and limitations.
+**Six-step implementation checklist and fresh-session handoff.** Items 1–6 have now been implemented and locally validated. The numbering below matches the conversation; deliveries A–F above provide their scope and exit evidence. See the delivery records below for the implementation and limitations.
 
 1. [x] **Make execution specific to each worktree (A).** Bind execution to one change; scope pending approval checks to that change.
 2. [x] **Validate the entire PR candidate (B).** Check base-to-candidate changes, including committed files, renames and deletions.
 3. [x] **Strengthen traceability (C).** Link requirement revisions, behaviors, approvals, executed proof and delivery revisions.
 4. [x] **Support decomposition and allocation (D).** Connect bounded child outcomes, dependencies, shared interfaces and existing issue-tracker assignments.
 5. [x] **Maintain a current product/design view (E).** Derive revision-specific context from delivered changes while retaining historical records.
-6. [ ] **Verify reuse across the team (F).** Verify runtime/policy identity and export attributable evidence; validate reuse on product work.
+6. [x] **Verify reuse across the team (F).** Verify runtime/policy identity and export attributable evidence; validate reuse on product work.
 
-The latest authorized implementation scope is **item 5 only**, following user approval of its concrete spec and plan. Item 5 is implemented and locally validated; item 6 requires separate authorization. Earlier instructions and suggested requests below are retained as historical handoff context; see the delivery records for each implementation's evidence and limitations.
+The latest authorized implementation scope is **item 6 only**, following user approval of its concrete spec and plan. Item 6 is implemented with local reproducibility and product evidence; physical-machine and hosted-CI trials are not claimed. Earlier instructions and suggested requests below are retained as historical handoff context; see the delivery records for each implementation's evidence and limitations.
 
 For item 1, first inspect current repository instructions and working-tree changes, then read this document and the current versions of `.aidlc/lib/artifacts.mjs`, `.aidlc/lib/guard.mjs`, `.aidlc/checks/scope-drift.mjs`, `.aidlc/bin/harness`, and the current-change/approval tests. The research revision above is a baseline, not permission to overwrite later work.
 
@@ -620,3 +620,64 @@ slice using existing staging. Local installations are a two-environment simulati
 physical-machine or hosted-CI evidence. Preserve all item 1–5 authority and evidence limits,
 historical approvals and the control budget. No paid campaign or remote action is authorized
 by this preparation; the final human PR/merge gate remains separate.
+
+**Item 6 delivery record — 8 September 2026.** Implemented only F under
+[team-reuse](../.aidlc/artifacts/team-reuse/spec.md). The user replied “approved, lets proceed”;
+the existing CLI recorded the conversation decision in `3912013`, after preparation `981a0c3`.
+This is not a human CLI invocation or authenticated host approval. Historical approved bodies
+remain unchanged. The preparation record above describes the earlier draft state.
+
+The installer records versioned covered-content identity, executable modes and an exact Git
+revision. The generated consumer shim verifies before executing candidate runtime code;
+explicit HARNESS_HOME mismatch refuses without fallback, while cache discovery accepts only
+matching content. A cache without Git reports pinned-content equality, not independent Git
+provenance. Dirty, unavailable and legacy pins stay unverified until deliberate installation
+from a clean checkout. Consumer init preserves shared model guides, and existing product
+isolation includes the marketplace manifest. Self-development remains labelled and governed
+by existing approval/scope controls.
+
+Doctor text/JSON separates actual runtime identity from effective project-policy digests,
+with covered paths and committed/dirty/unavailable states. Raw blob comparison catches policy
+edits hidden by Git index flags. Reads are bounded and symlinks refused; identity diagnostics
+avoid machine-specific Git paths. The documented inventory is explicit; already-loaded
+provider prompts and arbitrary transitive tools are not observed.
+
+Each check records an invocation ID, time, change, actor provenance, runtime/policy identity,
+HEAD/dirty observation and optional CI run/job references. Existing candidate and executed-proof
+trace remain intact. Runtime mismatch or a runtime/policy change during checks makes evidence
+unsuccessful. Actor labels and CI environment values are assertions, never host review approval.
+`harness ledger export --invocation <id>` preserves the original rows and attaches last-check
+only for the matching invocation. Missing/stale reports remain unavailable; malformed,
+inconsistent or unsafe evidence fails export. Summary rows do not become new controls in
+ledger audit. The CLI drains large JSON output before exit. The consumer CI recipe and existing
+PR workflow archive exports while retaining failed-check status.
+
+Acceptance evidence:
+
+- [Pre-fix reproduction](../.aidlc/artifacts/team-reuse/reproduction.json) preserves the
+  product install that silently accepted a different runtime commit.
+- [Post-fix trial](../.aidlc/artifacts/team-reuse/post-fix.json) and its
+  [script](../.aidlc/artifacts/team-reuse/post-fix.mjs) compare two fresh isolated local installs
+  from the same exact runtime revision and policy content. Wrong commits, altered runtime
+  files and changed policies produce the expected distinctions.
+- The same trial reuses item 5's proven assertion procedure on hyphen and apostrophe product
+  slices. Each has its own simulated gates, a real failing assertion before implementation,
+  passing exact-candidate pytest proof afterward, preserved existing assertions, and exported
+  actor/change/candidate/check evidence. Fixture sources remain unchanged.
+- [Identity regressions](../test/runtime-identity.test.mjs),
+  [export regressions](../test/ledger-export.test.mjs) and installation/budget migration tests
+  cover content-only caches, no-fallback refusal, modes, symlinks, hidden policy edits,
+  in-check mutation, unavailable Git, unknown/malformed actors, legacy evidence and full CLI
+  export round trips. Existing scope, trace and product-staging regressions remain intact.
+- [Evidence](../.aidlc/artifacts/team-reuse/evidence.md) records focused/full-stage results,
+  exact-candidate validation and compatibility repairs.
+  [Local self-review](../.aidlc/artifacts/team-reuse/review.md) records findings and limits.
+
+Limits: these are two isolated environments on one host, not two physical machines or hosted
+CI. Pins, actor labels, configured test observations and exports are unsigned. Matching content
+is not publisher authentication, a sandbox or universal policy verification. Legacy consumers
+need explicit migration; full per-invocation reports should be archived before newer checks
+replace last-check. Export refuses ledgers over its documented bound rather than truncating
+history. No paid campaign, live host review, remote configuration, push, merge or deployment
+was performed. No control, dependency, hook, agent, skill or budget increase was introduced.
+The final human PR/merge gate remains separate. No work beyond item 6 was started.
