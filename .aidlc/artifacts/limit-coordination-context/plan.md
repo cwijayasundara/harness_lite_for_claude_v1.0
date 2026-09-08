@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:744a635cb819e2054aef89f65ee5d9879098b12f7a52bde49112194a85fdc41c
+spec_approval_digest: sha256:f0888f56dc527c129756794853854cac1e699f51d9e07d497994f51eda32f7eb
+by: cwijayasundara
+at: 2026-09-08T20:28:31.158Z
+digest: sha256:12047e17096aeb9f42ed31fad0e05dc0379fb458cd6c8362dcf6b3231948929b
+approval_version: 2
+approval_digest: sha256:f709ff5686d227946bdca4f7ebc8052d57ad17c26fa199d4ff372c1c8dfa5070
 ---
 # Plan: limit-coordination-context
 
