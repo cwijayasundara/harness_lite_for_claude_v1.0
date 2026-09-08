@@ -34,3 +34,14 @@ Use `harness graph query product --revision <commit>` for recorded integration c
 Review source, behavior, design, candidate/merge and executed proof links separately; archived
 unsigned host observations and graph edges cannot authenticate approval or prove correctness.
 Unmerged proposals, missing evidence and unresolved replacements must remain visible.
+
+## Reusing a proven product procedure
+
+For a second bounded change to a pure formatting function, reuse the procedure demonstrated by
+`.aidlc/artifacts/product-design-context/post-fix.mjs`: name the source criterion, approve the
+new slice's own spec/plan, retain applicable behavior assertions, add an assertion that fails
+before the change, implement, and capture exact-candidate executed proof. Apply it when the
+function and expected outputs are deterministic; it does not establish distributed-system,
+migration or deployment correctness. A changed requirement needs its own reviewed contract.
+Historical approval is never permission for the next slice. Item 6's team-reuse product trial
+records the second application, policy digest and runtime revision with its exported evidence.

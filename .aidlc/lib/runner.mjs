@@ -5,6 +5,7 @@
 // and a throwing check is recorded as `errored` and ISOLATED so it cannot silently disable the
 // checks after it.
 
+import { executionIdentity, runtimeIdentity, policyIdentity } from './runtime-identity.mjs';
 import { spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
@@ -86,7 +87,7 @@ export async function runOne(cfg, verb, files) {
 }
 
 
-export async function check(cfg, { stage = 'fast', files = [], write = true, all = false, base, candidate, change } = {}) {
+export async function check(cfg, { stage = 'fast', files = [], write = true, all = false, base, candidate, change, actor } = {}) {
   const verbs = resolveStage(cfg, stage);
   const candidateMode = base !== undefined || candidate !== undefined;
   let setupError = null;
@@ -104,13 +105,17 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
   } else if (change !== undefined) {
     throw new Error('--change on check requires both --base and --candidate; use status --change for local selection');
   }
+  const provenance = executionIdentity(cfg.layout.root, { actor, change: evidence?.change ?? artifacts.selectionState(cfg).slug });
+  const identityErrors = [];
+  if (!['verified', 'development'].includes(provenance.runtime.status)) identityErrors.push('runtime ' + provenance.runtime.status + ': ' + provenance.runtime.remedy);
+  if (!provenance.policy.digest) identityErrors.push('policy identity unavailable');
   const failFast = (cfg.check?.fail_fast ?? true) && !all;
   const results = [];
   // Verbs are ordered cheapest-first, and a single defect usually fails every verb after the
   // one that found it — a type error fails lint, typecheck AND the build step of the test
   // command. Reporting it three times costs tokens and buries the actionable line. Stop at the
   // first failure by default; `--all` when you genuinely want the full picture.
-  let stopped = null;
+  let stopped = identityErrors.length ? 'runtime/policy identity' : null;
   if (setupError) {
     results.push({ control: 'scope-drift', verdict: 'errored', ms: 0, findings: [], error: setupError.message });
     stopped = 'candidate setup';
@@ -136,15 +141,19 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
       results.push({ control: 'scope-drift', verdict: 'errored', ms: 0, findings: [], error: `candidate changed during checks: ${error.message}` });
     }
   }
+  const after = { runtime: runtimeIdentity(cfg.layout.root), policy: policyIdentity(cfg.layout.root) };
+  if (JSON.stringify(after.runtime) !== JSON.stringify(provenance.runtime) || JSON.stringify(after.policy) !== JSON.stringify(provenance.policy)) identityErrors.push('runtime or policy changed during checks');
+  provenance.consistent = identityErrors.length === 0;
+  if (!provenance.consistent) validCandidate = false;
   const trace = traceEvidence(cfg, results, { validCandidate });
   const cap = cfg.budget.max_findings;
   const report = {
-    stage,
+    stage, provenance, identity_errors: identityErrors,
     ...(evidence ? { revision: evidence } : {}),
     trace,
     // why: an unavailable configured sensor previously returned exit 0 from `check`.
     // Unconfigured capabilities stay skipped; an attempted check must actually succeed.
-    ok: results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped'),
+    ok: identityErrors.length === 0 && results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped'),
     changed_files: files,
     controls: results.map((r) => ({
       control: r.control, verdict: r.verdict, ms: r.ms,
@@ -158,8 +167,10 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
   };
 
   if (write) {
+    ledger.append({ kind: 'check-invocation', provenance, stage, ok: report.ok, identity_errors: identityErrors,
+      controls_count: results.length, ...(evidence ? { revision: evidence } : {}) }, cfg.layout);
     for (const r of results) {
-      ledger.append({
+      ledger.append({ provenance,
         stage, control: r.control, verdict: r.verdict, ms: r.ms,
         findings: (r.findings ?? []).length, changed_files: files.length,
         ...(evidence ? { revision: evidence } : {}),
@@ -181,6 +192,7 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
 // teach, and must permit a justified escape hatch rather than only suppress-or-comply.
 export function render(report, layoutPaths) {
   const lines = [];
+  for (const error of report.identity_errors ?? []) lines.push('ERR   identity    ' + error);
   if (report.revision) lines.push(`candidate ${report.revision.candidate} from ${report.revision.base} — change ${report.revision.change ?? '(unselected)'}`);
   for (const c of report.controls) {
     const mark = { pass: 'PASS', fail: 'FAIL', skipped: 'SKIP', errored: 'ERR ' }[c.verdict];

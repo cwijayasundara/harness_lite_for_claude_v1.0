@@ -1,6 +1,7 @@
 // Zero dependencies, runs on a cold clone: node --test test
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { seedRuntimeRecord } from './_runtime-fixture.mjs';
 import { ROOT } from './_paths.mjs';
 import { parseToml } from '../.aidlc/lib/toml.mjs';
 import { resolveStage, DEFAULT_STAGES } from '../.aidlc/lib/config.mjs';
@@ -89,6 +90,7 @@ test('runner inherits this process PATH instead of a login shell', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-path-'));
+  seedRuntimeRecord(root);
   fs.mkdirSync(path.join(root, '.claude', 'state'), { recursive: true });
   const cfg = {
     capabilities: { test: 'python3 -c "import pytest"' },
@@ -107,6 +109,7 @@ test('runner: a missing tool is errored, not failed', async () => {
   const fs = await import('node:fs');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-'));
+  seedRuntimeRecord(root);
   fs.mkdirSync(path.join(root, '.claude', 'state'), { recursive: true });
   const cfg = {
     capabilities: { lint: 'definitely-not-a-real-binary-xyz' },
@@ -120,7 +123,7 @@ test('runner: a missing tool is errored, not failed', async () => {
   // A configured check that could not execute has not verified the change.
   assert.equal(r.ok, false);
   const rows = fs.readFileSync(cfg.layout.ledger, 'utf8').trim().split('\n').map(JSON.parse);
-  assert.equal(rows[0].verdict, 'errored');
+  assert.equal(rows.find(r => r.control === 'lint').verdict, 'errored');
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -128,6 +131,7 @@ test('runner: an explicit secrets command overrides the built-in fallback', asyn
   const { check } = await import('../.aidlc/lib/runner.mjs');
   const fs = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-secrets-'));
+  seedRuntimeRecord(root);
   const state = path.join(root, '.aidlc/state'); fs.mkdirSync(state, { recursive: true });
   const cfg = { capabilities: { secrets: 'echo configured-scanner >&2; exit 1' }, formats: { secrets: 'generic' }, stages: { s: ['secrets'] }, check: { fail_fast: true }, budget: { max_findings: 20 }, layout: { root, state, ledger: path.join(state, 'ledger.jsonl'), lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id') } };
   const report = await check(cfg, { stage: 's' });
@@ -191,6 +195,7 @@ test('check: fail-fast stops at the first failure and records what it skipped', 
   const os = await import('node:os');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-ff-'));
+  seedRuntimeRecord(root);
   fs.mkdirSync(path.join(root, '.claude', 'state'), { recursive: true });
   const layout = { root, state: path.join(root, '.aidlc/state'), ledger: path.join(root, '.aidlc/state/ledger.jsonl'), lastCheck: path.join(root, '.aidlc/state/last.json'), runId: path.join(root, '.aidlc/state/run-id') };
   const cfg = {

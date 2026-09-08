@@ -39,11 +39,20 @@ jobs:
           BASE_SHA=$(git merge-base "$TARGET_SHA" "$CANDIDATE_SHA")
           printf 'base=%s\n' "$BASE_SHA" >> .aidlc/state/pr-revisions.txt
           .aidlc/bin/harness check --stage fast --base "$BASE_SHA" --candidate "$CANDIDATE_SHA" --pr-event "$GITHUB_EVENT_PATH" --json 2>&1 | tee .aidlc/state/pr-scope.log
+      - name: Export attributable check evidence
+        if: always()
+        shell: bash
+        run: |
+          if [ -f .aidlc/state/last-check.json ]; then
+            INVOCATION=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(".aidlc/state/last-check.json")).provenance.invocation)')
+            .aidlc/bin/harness ledger export --invocation "$INVOCATION" > .aidlc/state/check-export.json
+          fi
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: candidate-scope-evidence
           path: |
+            .aidlc/state/check-export.json
             .aidlc/state/pr-revisions.txt
             .aidlc/state/pr-scope.log
             .aidlc/state/last-check.json
@@ -92,6 +101,13 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: python -m pip install pytest==8.4.2 pytest-json-report==1.5.0 ruff==0.12.12
+      # Deliberate migration of this disposable CI example to the candidate runtime.
+      # The historical example record remains intact in source control.
+      - run: node .aidlc/bin/harness init --into examples/scratch-py
+      - run: .aidlc/bin/harness doctor --json
+        working-directory: examples/scratch-py
+        env:
+          HARNESS_HOME: ${{ github.workspace }}
       - run: .aidlc/bin/harness check --stage stop
         working-directory: examples/scratch-py
         env:

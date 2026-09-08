@@ -619,3 +619,75 @@ historical in this view only after qualified recorded integration. For a refacto
 behavior assertions and use `extends` plus the new Design section and architecture references.
 For a bug, repair code to meet the approved requirement. Do not synchronize the defect into
 that requirement. Historical source and design records remain available at their commits.
+
+### Reproducible runtime and evidence
+
+`init` records a version-1 runtime identity in `harness-install.json`. Commit that file and
+its generated shim. The manifest hashes sorted relative paths, executable modes and SHA-256
+file digests, then hashes their JSON array. Coverage is `.aidlc/{bin,lib,checks,sensors,hooks,
+adapters,skills,roles,templates,policies,instructions.md}` and `.claude-plugin/`. Mutable state,
+change artifacts and product code are excluded. Symlinks are refused. Installation from dirty
+covered content or without Git remains unverified; use a clean exact checkout to create a pin.
+Consumer initialization does not rewrite the shared runtime's model guides.
+
+The shim verifies before executing runtime code. Explicit `HARNESS_HOME` mismatch fails without
+cache fallback. Cache discovery accepts matching covered content only. A cache without Git
+reports `pinned-content`, not independently verified Git provenance. A checkout must match both
+commit and bytes/modes. Version directory names alone establish nothing. Legacy records require
+a deliberate `node <clean-runtime>/.aidlc/bin/harness init --into <project>` migration and commit;
+review generated changes. No automatic repinning occurs. This repository reports `development`
+for its own uncommitted runtime edits, retaining all existing scope and approval controls.
+
+`harness doctor --json` reports expected/observed runtime identity and actual project policy
+identity. Policy hashes configuration, canonical instructions, review policy, root CLAUDE.md
+and AGENTS.md, Claude instructions/settings/local settings and .mcp.json, including absent-file
+markers. Compare digests across machines; a changed policy is different even on the same Git
+revision. Committed/dirty/unavailable states remain visible. This observes files, not prompts
+already loaded into a session. Local pins and digests are unsigned comparison anchors, not
+publisher authentication or a security sandbox.
+
+Checks accept `--actor <label>`. Otherwise `GITHUB_ACTOR`, when set, is an environment assertion;
+missing identity stays unknown. Neither authenticates a reviewer. Reports and ledger rows carry
+a unique `provenance.invocation`, actor provenance, runtime/policy identity, selected change,
+HEAD/dirty state and optional GitHub run/job references. Candidate mode retains exact base and
+candidate commits and executed-proof trace. Runtime mismatch or policy/runtime mutation during
+checks makes evidence unsuccessful. No credentials or full environment are captured.
+
+Export an exact recorded invocation with:
+
+```sh
+.aidlc/bin/harness ledger export --invocation <uuid> > check-export.json
+```
+
+The export preserves original observations. It attaches the full last-check report only if
+that report belongs to the requested invocation; otherwise `report_state` is `unavailable`.
+Archive each report/export promptly. Legacy rows remain usable for audit without retroactive
+attribution. Corrupt or inconsistent evidence fails export. Exports remain unsigned; host review
+and merge authority still use the protected review path described above.
+
+For consumer CI, check out the product candidate with full history, read `commit` and repository
+from its reviewed installation record, fetch that exact runtime revision into a separate clean
+checkout, and set `HARNESS_HOME` to it. Treat repository location as reviewed CI configuration;
+do not interpolate arbitrary record text into a shell command. Run `doctor --json` and archive
+its identity, then the candidate check. For example, after CI resolves BASE_SHA, CANDIDATE_SHA
+and CHANGE from its trusted event inputs:
+
+```bash
+set -euo pipefail
+mkdir -p .aidlc/state
+.aidlc/bin/harness doctor --json > .aidlc/state/doctor.json
+set +e
+.aidlc/bin/harness check --stage commit --base "$BASE_SHA" --candidate "$CANDIDATE_SHA" --change "$CHANGE" --json > .aidlc/state/check.json
+check_status=$?
+set -e
+if [ -f .aidlc/state/last-check.json ]; then
+  invocation=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(".aidlc/state/last-check.json")).provenance.invocation)')
+  .aidlc/bin/harness ledger export --invocation "$invocation" > .aidlc/state/check-export.json
+fi
+exit "$check_status"
+```
+
+Start with fresh state so a setup failure cannot archive a previous invocation as this run.
+Use the host's `always()` artifact step for doctor/check logs, last-check and export, including
+failures. The repository workflow demonstrates this for its PR candidate check. Hosted execution
+and branch policy configuration are separate from local validation.

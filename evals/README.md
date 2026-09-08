@@ -168,3 +168,11 @@ The item 4 completion run reproduced another documentation false block: an expli
 supporting heuristic now recognizes that conditional, with negative regression coverage.
 Saved live verdicts and unnecessary repair costs remain unchanged; deterministic regrading
 of the original document is recorded separately from the measured campaign.
+
+Item 6's `.aidlc/artifacts/team-reuse/post-fix.mjs` uses the existing `stage` product boundary
+and simulated contract helper to exercise two isolated installations and reuse a proven product
+assertion procedure on a second slice. It executes actual Python assertions and candidate
+checks; actor and approval labels explicitly say simulation. Local installations are not two
+physical machines or hosted runs. Execute from a clean committed runtime so installation can
+verify its provenance. Source fixtures are never edited. Outputs record runtime/policy digests,
+pre-fix failure, post-fix proof and exact invocation exports.

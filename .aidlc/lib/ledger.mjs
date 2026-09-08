@@ -124,7 +124,7 @@ export function flag(L = layout(), { rule, run = null, value = true } = {}) {
 export function report(L = layout(), { days = 30, staged = null, deterrents = null, root = null } = {}) {
   const now = Date.now();
   const since = now - days * 864e5;
-  const rows = read(L).filter((r) => Date.parse(r.ts) >= since && !TELEMETRY.has(r.control));
+  const rows = read(L).filter((r) => Date.parse(r.ts) >= since && r.kind !== 'check-invocation' && !TELEMETRY.has(r.control));
   const runs = new Set(rows.map((r) => r.run)).size;
   const warnings = [];
   const by = new Map();
@@ -206,4 +206,29 @@ export function audit(L = layout(), { days = 30, staged = null, deterrents = nul
     noisy: controls.flatMap((c) => (c.rules ?? []).filter((r) => r.noisy).map((r) => `${c.control}/${r.rule}`)),
     ready: r.controls.every((c) => c.verdict !== 'insufficient-data'),
   };
+}
+
+// Export observations from their original invocation, never from the exporter's environment.
+export function exportInvocation(L, invocation) {
+  if (typeof invocation !== 'string' || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(invocation)) throw new Error('invalid invocation ID');
+  if (!existsSync(L.ledger)) throw new Error('invocation not found');
+  const raw = readFileSync(L.ledger, 'utf8');
+  if (Buffer.byteLength(raw) > 32 * 1024 * 1024) throw new Error('ledger exceeds export bound; archive older evidence first');
+  const rows = raw.split('\n').filter(Boolean).map(line => {
+    try { return JSON.parse(line); } catch { throw new Error('malformed ledger evidence; export refused'); }
+  }).filter(row => row?.provenance?.invocation === invocation);
+  if (!rows.length) throw new Error('invocation not found (legacy rows have no invocation identity)');
+  const summary = rows.filter(row => row.kind === 'check-invocation');
+  const controls = rows.filter(row => row.kind !== 'check-invocation');
+  const p = summary[0]?.provenance;
+  if (summary.length !== 1 || !p || p.version !== 1 || p.trust !== 'unsigned-local-observation' || !p.actor || !p.runtime || !p.policy || !p.repository || !Number.isFinite(Date.parse(p.at)) || typeof summary[0].ok !== 'boolean' || summary[0].controls_count !== controls.length || rows.some(r => JSON.stringify(r.provenance) !== JSON.stringify(p) || r.stage !== summary[0].stage || JSON.stringify(r.revision) !== JSON.stringify(summary[0].revision)) || controls.some(r => !['pass', 'fail', 'skipped', 'errored'].includes(r.verdict) || typeof r.control !== 'string')) throw new Error('malformed or inconsistent invocation evidence');
+  let report = null, reportState = 'unavailable';
+  if (existsSync(L.lastCheck)) {
+    let last; try { last = JSON.parse(readFileSync(L.lastCheck, 'utf8')); } catch { throw new Error('malformed last-check evidence'); }
+    if (last.provenance?.invocation === invocation) {
+      if (JSON.stringify(last.provenance) !== JSON.stringify(p) || last.stage !== summary[0].stage || last.ok !== summary[0].ok || JSON.stringify(last.revision) !== JSON.stringify(summary[0].revision) || !Array.isArray(last.controls) || last.controls.length !== controls.length || last.controls.some((r, i) => r.control !== controls[i].control || r.verdict !== controls[i].verdict || r.ms !== controls[i].ms)) throw new Error('inconsistent last-check evidence');
+      report = last; reportState = 'available';
+    }
+  }
+  return { version: 1, trust: 'unsigned-local-observation', invocation, provenance: p, summary: summary[0], controls, report_state: reportState, report };
 }
