@@ -30,10 +30,12 @@ assertions and records affected design/architecture references with continuity l
 is corrected to meet the requirement, not copied back into the requirement to make it pass.
 Inspect discrepancies before merge using the existing review gate.
 
-Use `harness graph query product --revision <commit>` for recorded integration context.
-Review source, behavior, design, candidate/merge and executed proof links separately; archived
-unsigned host observations and graph edges cannot authenticate approval or prove correctness.
-Unmerged proposals, missing evidence and unresolved replacements must remain visible.
+Inspect source at a revision with `git show <rev>:<path>` and `git grep`. Use
+`harness graph query product --revision <commit>` only when delivery records already
+exist. Review source, behavior, design, candidate/merge and executed proof links separately;
+archived unsigned host observations and graph edges cannot authenticate approval or prove
+correctness. Unmerged proposals, missing evidence and unresolved replacements must remain
+visible.
 
 ## Reusing a proven product procedure
 

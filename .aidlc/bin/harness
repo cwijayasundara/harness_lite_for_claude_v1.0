@@ -480,7 +480,8 @@ async function main() {
       // after it. Computed from every approved spec's `supersedes:` link, not filtered by
       // `--all` — the superseded spec's own row can be closed while the fact still matters.
       const superseded = [...artifacts.supersededBy(cfg)];
-      const team = coordination(cfg, { change: requested });
+      const selected = artifacts.selectionState(cfg);
+      const team = coordination(cfg, { change: requested ?? (selected.ok ? selected.slug : null) });
       if (has('json')) { console.log(JSON.stringify({ current: artifacts.currentChange(cfg), selection: artifacts.selectionState(cfg), changes: rows, coordination: team, superseded: Object.fromEntries(superseded), supersession_meaning: 'approved/proposed declarations, not delivered truth; use graph query product --revision <ref>' }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
       console.log(artifacts.currentLine(cfg));
       console.log(coordinationLines(team).join('\n'));

@@ -32,4 +32,5 @@ source revision in each intent. Keep the complete acceptance inventory in the so
 duplicate parent registry. Map source criteria to child behaviours; surface unmapped criteria
 in status. A sprint or assignee change does not rename the outcome. Optional tracker, assignee,
 iteration and assignment_observed_at fields are locally recorded, unverified projections.
-Change assignments in the existing tracker; no local status can certify remote allocation.
+Change assignments in the existing tracker and record the tracker URL; no local status can
+certify remote allocation. Inspect a revision with `git show` and `git grep`.

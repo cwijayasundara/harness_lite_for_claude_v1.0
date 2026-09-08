@@ -530,7 +530,7 @@ adequate solution; this review does not authorize a rewrite or promise blanket f
 | Area | Next decision |
 |---|---|
 | Graph, map and context packing | Freeze feature expansion. Repair usage so the agent queries the existing index first (graph-first retrieval). Consider removal only after a graph-first versus Grep-first product comparison. Advisory packing alone is not that comparison. |
-| Coordination and revision-specific product context | Recent additions have deterministic product reproductions, so they are not wholly speculative. Limit them to those demonstrated needs; prefer tracker links and targeted Git reads over expanding a local delivery platform. No scheduler or new assignment authority. |
+| Coordination and revision-specific product context | Limited to demonstrated D/E needs. Tracker links and targeted Git reads preferred. Selected-change status shows that slice, not a backlog dashboard. Product query kept; delivery.json and pack-revision not expanded. No scheduler or new assignment authority. |
 | Host review and runtime identity | Preserve honest candidate/pin checks. Keep host merge policy authoritative; avoid expanding local policy emulation or unsigned evidence into a certification system. |
 | Skills and roles | Prefer concise project-specific guidance. A generic diagnosis/refactoring recipe needs evidence beyond the fact that a capable agent can follow it. Review before replacement; adding a pack system would repeat v6. |
 | Ledger and development evidence | Use existing records to investigate true positives and false blocks. Seeded tests and firing frequency do not measure net benefit. Retain historical evidence without inventing another reporting service. |

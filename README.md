@@ -485,140 +485,34 @@ and [branch protection schema](https://docs.github.com/en/graphql/reference/bran
 
 ### Decomposition and local coordination
 
-`harness status` (or `status <slug> --json`) now includes a derived coordination view.
-It reads the local artifact backlog even when displaying one change. It reports declared
-parent coverage, dependencies, interface snapshots and scope overlaps; these findings
-never select a change or transfer approved write authority.
+`harness status` is a read-only local projection of parent coverage, `depends_on`,
+interface snapshots, Files overlaps and optional tracker fields. It is not a delivery
+platform or an assignment authority: findings never select a change, transfer write
+scope, or certify remote assignment. Remote PR and assignment visibility is unavailable.
 
-For example, split initiative `TEXT-100` into `text-contract`, `text-portal` and
-`text-report`, each with its own intent, spec, plan and acceptance decision. Give each
-intent the same `parent: TEXT-100`, repository `source: initiative.md` and exact
-`source_revision: <full commit ID>`. Keep the full inventory in that source revision:
+When a change is selected, `harness status` and `status --json` without a slug show that
+change's slice, still computed against the full local backlog. Pass `status <slug>` to
+inspect another change without stealing selection. With no selection, the full local view
+remains.
 
-```markdown
-## Acceptance criteria
-
-| Criterion ID | Criterion |
-|---|---|
-| local:api | Publish the conversion contract |
-| local:portal | Display converted text |
-| local:report | Report conversion totals |
-| local:integration | Consumers agree with the shared contract |
-```
-
-Map those IDs to each child's behaviours in its existing `## Requirements` table.
-If the three children map only the first three criteria, status shows `local:integration`
-as unmapped. Mapping all declared criteria or closing every child does not establish
-parent acceptance. Draft/stale/legacy approvals stay labelled. External sources or missing
-inventories report coverage unavailable; status never invents the inventory from children.
-Different source revisions produce separate parent groups for impact review.
-
-Record `depends_on: text-contract` in both consumer plans. Where a shared contract has
-an exact repository snapshot, add this optional table (replace the revision placeholder):
-
-```markdown
-## Dependencies
-
-| Change | Interface | Revision |
-|---|---|---|
-| text-contract | src/app/text.py | <full Git commit ID> |
-```
-
-Use plain paths and exact commit IDs in these tables. Status reports missing targets,
-self-dependencies, cycle paths, ancestry and whether the interface matches checkout HEAD.
-It checks committed snapshots; working edits are still governed by the existing local
-checks. Even a matching ancestor snapshot is not proof of integrated acceptance. Changed
-or unavailable interfaces require impact assessment. Update from the target branch and
-run affected contract/regression tests. Material design or scope changes need renewed review.
-Malformed dependency declarations are refused at plan approval, including with `--anyway`.
-
-`extends` is an optional continuity claim; `supersedes` records an intentional behaviour
-replacement. Explicit links and the existing exact behaviour citation rule still validate.
-Unrelated changes need neither field. `parent` describes contribution and `depends_on`
-describes a delivery prerequisite; neither is an alias for continuity or supersession.
-
-Optional intent fields `tracker`, `assignee`, `iteration` and `assignment_observed_at`
-(a UTC ISO timestamp such as `2026-09-08T10:00:00Z`) display locally recorded tracker
-observations. Missing timestamps have unknown freshness. Change assignments in the existing
-tracker; this command makes no remote requests or writes and cannot verify current owners.
-These fields, parent references and dependency declarations participate in new approvals'
-existing semantic bindings; edits require their own impact review and reapproval.
-
-Local overlaps name both plans, approval states and intersecting Files paths, including
-directory containment. Resolve them with shared prerequisite work, serialization or an
-integration owner. Review undeclared schemas and cross-file invariants separately. Remote
-PR and assignment visibility is explicitly unavailable: no local overlap means only that.
+Change assignments in the existing tracker and record the tracker URL. Optional intent
+fields `tracker`, `assignee`, `iteration` and `assignment_observed_at` are unverified
+local projections. `parent` is contribution; `depends_on` is a delivery prerequisite;
+unrelated changes need no `extends` or `supersedes`. Malformed dependency declarations
+are refused at plan approval.
 
 ### Product and design context at a revision
 
-`harness graph query product --revision <commit> [--records <commit>] [--json]`
-derives recorded repository integration. The product revision is separate from the evidence
-catalog (default HEAD), because merge observations are usually archived after integration.
-Both resolve to exact commits; working edits do not affect the answer. This is partial context,
-not deployment/feature-flag state or acceptance of a parent requirement.
+Inspect source at a revision with `git show <rev>:<path>` and `git grep`. Use
+`harness graph query product --revision <commit>` only when delivery records already
+exist. Pending approval is not delivered integration. `pack --revision` remains
+callable; it is not a delivery platform or assignment authority.
 
-Archive the existing candidate check and host review reports in the change directory, then
-commit a `delivery.json` beside them. For example (replace the descriptive commit placeholders
-with full Git object IDs):
-
-```json
-{
-  "version": 1,
-  "change": "name-formatting",
-  "repository": "example/product",
-  "pr": 42,
-  "base": "FULL_BASE_COMMIT",
-  "candidate": "FULL_CHECKED_CANDIDATE_COMMIT",
-  "merge": "FULL_HOST_MERGE_COMMIT",
-  "checks": ".aidlc/artifacts/name-formatting/candidate-check.json",
-  "host_review": ".aidlc/artifacts/name-formatting/host-review.json"
-}
-```
-
-Run the existing `harness check --stage commit --base <base> --candidate <candidate>
---change name-formatting` at the clean candidate and preserve `.aidlc/state/last-check.json`
-as the named check report. After merge, use `harness review --repo example/product --pr 42
---candidate <candidate> --out <host-report-path>` to collect the host observation. Inspect and
-commit the reports and record; do not create an approval or merge observation by hand. The
-query performs no network calls. Fixture simulations remain labelled `simulated-transport`.
-
-The record must match the report repository, PR and commit identities. Spec/plan bindings are
-checked at the candidate. The recorded merge must be an ancestor of the requested revision.
-Candidate changed paths (including mode changes, both rename endpoints and deletions) must
-match their merge snapshots. If integration changed those paths, capture a fresh candidate
-check at the merge commit with the same base and bound contract, then include its path in
-`integrated_checks` **when first archiving the record**. Until then the view reports
-`integration-evidence-required`. Material contract changes require a new reviewed change.
-
-Local JSON is unsigned evidence. The view shows the recorded host assessment, while
-`verified` remains false for this offline query; `recorded_verification` preserves the report's
-qualified claim. A recorded merge does not prove host policy compliance. Failed checks,
-unexecuted proof and legacy/unbound approvals remain visible. `effective` means the currently
-recorded behavior in this partial integration history, not proof that its implementation is
-correct. Legacy changes without records are `delivery-unknown`; closure is not delivery.
-
-Records are immutable delivery references: conflicting committed versions report ambiguity
-instead of choosing the latest. Deleted records retain their historical snapshot and a finding.
-Keep corrections as reviewable evidence; a conflicting record requires investigation, not a
-silent rewrite. The initial format deliberately does not resolve conflicting record corrections
-automatically. Supersession conflicts and cycles likewise remain unresolved. A delivered change
-can resolve competing rules by explicitly superseding both. Ordinary status retains approval-time
-links and labels them as approved/proposed declarations.
-
-`harness pack titlecase --revision <commit> --records HEAD --budget 2000` connects structural
-context with relevant source, design, behavior and proof references. It uses an isolated snapshot,
-never switches your branch, and lists context omitted by the budget. An absent graph rebuilds;
-a miss, unsupported source, unsafe path or unavailable snapshot directs you to `git grep` and
-`git show` at the named revision. Navigation is heuristic and never grants write authority.
-The initial bounds are 500 record variants, 2,000 artifact-history commits, 20,000 snapshot
-entries, 128 MiB of snapshot blobs and 4 MiB per evidence file; exceeding them reports unavailable
-context. No project hooks, filters, submodules or test commands run during a query.
-
-For a rule reversal, approve a new change naming the old behavior in `supersedes`; it becomes
-historical in this view only after qualified recorded integration. For a refactor, preserve
-behavior assertions and use `extends` plus the new Design section and architecture references.
-For a bug, repair code to meet the approved requirement. Do not synchronize the defect into
-that requirement. Historical source and design records remain available at their commits.
+A `delivery.json` beside archived candidate-check and host-review reports may record
+exact base/candidate/merge commits. Do not add keys. The query performs no network
+calls. Local JSON is unsigned evidence. For a reversal, `supersedes` becomes historical
+only after recorded integration; for a refactor, preserve behaviour tests and use
+`extends`.
 
 ### Reproducible runtime and evidence
 

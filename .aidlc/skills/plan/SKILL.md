@@ -62,6 +62,8 @@ Use optional depends_on scalar slugs for delivery prerequisites. A Dependencies 
 (Change | Interface | Revision) records shared interface paths and exact Git commits,
 with targets drawn from depends_on. Run status to inspect cycles, missing prerequisites,
 interface drift and local scope overlaps; choose a shared prerequisite, serialization or
-integration owner. Review schemas and shared invariants even when paths do not overlap.
-Approval or closure cannot prove integration readiness. Update from the target branch and
-run affected contract/regression tests; material interface or scope changes need renewed review.
+integration owner. Change assignments in the existing tracker; record the tracker URL on
+the intent. Inspect a revision with `git show <rev>:<path>` and `git grep`. Review schemas
+and shared invariants even when paths do not overlap. Approval or closure cannot prove
+integration readiness. Update from the target branch and run affected contract/regression
+tests; material interface or scope changes need renewed review.

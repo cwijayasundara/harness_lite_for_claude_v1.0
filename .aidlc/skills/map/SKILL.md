@@ -55,10 +55,9 @@ heuristic filtered against the known symbol table. So:
 - Read `.aidlc/state/graph.json` directly. It is a cache format and it will change.
 - Rebuild the graph by hand mid-task — the `Stop` hook coalesces edits and refreshes once.
 
-## Recorded product context
+## Revision-specific product context
 
-Use `harness graph query product --revision <commit> [--records <commit>]` to distinguish
-recorded integrations from approved proposals. `harness pack <symbol-or-path> --revision
-<commit>` adds relevant source, design and proof references within its budget. Both report
-exact product and evidence-catalog revisions. Unknown legacy coverage and unresolved links
-are findings, not negative proof. Graph misses fall back to source search at that revision.
+Inspect source at a revision with `git show <rev>:<path>` and `git grep`. Use
+`harness graph query product --revision <commit>` only when delivery records already
+exist. Unknown coverage and unresolved links are findings, not negative proof. Graph
+misses still fall back to source search at that revision.

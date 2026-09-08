@@ -20,7 +20,8 @@ capture the accepted requirement in a versioned repository document and referenc
 For child outcomes, use the same parent/source revision and map source criterion IDs in
 the spec Requirements table. A repository source may define an Acceptance criteria table
 (Criterion ID | Criterion); status reports unmapped criteria from that exact commit.
-Tracker fields are optional unverified projections; update assignments in the tracker.
+Tracker fields are optional unverified projections; update assignments in the tracker
+and record the tracker URL. This is not assignment authority.
 
 ## Problem
 

@@ -33,7 +33,10 @@ one exception is `approve`, which is theirs to run — the gate is the point.
 ```
 
 Locate indexed symbols with `harness graph query` and `harness pack` first; Grep/Glob is the
-miss path.
+miss path. Inspect a revision with `git show <rev>:<path>` and `git grep`. Use
+`harness graph query product --revision <commit>` only when delivery records already
+exist. Change assignments in the existing tracker and record the tracker URL; local
+assignee fields are projections, not assignment authority.
 
 Never report a task complete without running and pasting the output of `--stage stop` yourself.
 
