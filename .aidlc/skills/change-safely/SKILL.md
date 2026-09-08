@@ -32,3 +32,10 @@ Prefer existing patterns and small, reviewable diffs. A tested helper or seam ca
 without imposing a one-line integration rule on every legacy change. Run the affected runtime
 path and regression suite; say what remains untested. Honour the approved file scope, test
 locks and external evaluation ownership throughout.
+
+Keep design history: an authorized reversal belongs in a new spec with a supersedes link;
+a refactor retains behavior tests and records affected design/architecture references with
+extends where applicable. Fix implementation bugs to meet the approved requirement rather
+than synchronizing the bug into it. Consult revision-specific product context when recorded
+delivery evidence exists, and preserve its unknowns. Approval alone does not retire delivered
+behavior, and historical permissions never authorize a new change.

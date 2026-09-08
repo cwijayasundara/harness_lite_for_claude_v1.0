@@ -4,6 +4,7 @@
 // Law 2: anything that decides what happens next is a script with an exit code. If you find
 // yourself writing sequencing instructions into a SKILL.md, the logic belongs in here instead.
 
+import { productContext, renderProduct, revisionPack, renderRevisionPack } from '../lib/product-context.mjs';
 import { coordination, coordinationLines } from '../lib/coordination.mjs';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, chmodSync, readdirSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
@@ -34,6 +35,22 @@ const argv = process.argv.slice(2);
 const cmd = argv[0];
 const flag = (n, d = null) => { const i = argv.indexOf(`--${n}`); return i === -1 ? d : (argv[i + 1]?.startsWith('--') ? true : argv[i + 1] ?? true); };
 const has = (n) => argv.includes(`--${n}`);
+
+function contextOptions(args, packing = false) {
+  const opts = {};
+  for (let i = 0; i < args.length; i++) {
+    const name = args[i].replace(/^--/, '');
+    if (!args[i].startsWith('--') || !['revision', 'records', 'json', ...(packing ? ['budget'] : [])].includes(name) || Object.hasOwn(opts, name)) throw new Error('invalid or duplicate context option');
+    if (name === 'json') opts.json = true;
+    else {
+      const value = args[++i];
+      if (!value || value.startsWith('--')) throw new Error(`--${name} requires a value`);
+      opts[name] = name === 'budget' ? Number(value) : value;
+    }
+  }
+  if (!opts.revision) throw new Error('context requires --revision <commit>');
+  return opts;
+}
 
 function changedFiles(root) {
   return diffFiles({ layout: { root } });
@@ -353,6 +370,12 @@ async function main() {
       if (sub === 'refresh') { console.log(JSON.stringify(refresh(cfg, { force: has('force') }), null, 2)); return 0; }
       if (sub === 'query') {
         const question = argv[2]; const arg = argv[3];
+        if (question === 'product') {
+          const options = contextOptions(argv.slice(3));
+          const view = productContext(cfg, options);
+          console.log(options.json ? JSON.stringify(view, null, 2) : renderProduct(view));
+          return view.unavailable ? 1 : 0;
+        }
         const g = graph.ensure(cfg);
         console.log(renderGraphAnswer(question, arg, graph.query(g, question, arg, { root: cfg.layout.root })));
         return 0;
@@ -377,6 +400,14 @@ async function main() {
 
     case 'pack': {
       const cfg = loadConfig(findRepoRoot());
+      if (has('revision') || has('records')) {
+        const question = argv[1];
+        if (!question || question.startsWith('--')) throw new Error('pack requires a symbol or path before revision options');
+        const options = contextOptions(argv.slice(2), true);
+        const result = revisionPack(cfg, question, options);
+        console.log(options.json ? JSON.stringify(result, null, 2) : renderRevisionPack(result));
+        return result.product_unavailable || result.unavailable ? 1 : 0;
+      }
       const question = argv.slice(1).filter((x) => x !== '--budget' && x !== String(flag('budget'))).join(' ');
       console.log(renderPack(pack(cfg, graph.ensure(cfg), question, { budget: Number(flag('budget', 1200)) })));
       return 0;
@@ -454,12 +485,13 @@ async function main() {
       // `--all` — the superseded spec's own row can be closed while the fact still matters.
       const superseded = [...artifacts.supersededBy(cfg)];
       const team = coordination(cfg, { change: requested });
-      if (has('json')) { console.log(JSON.stringify({ current: artifacts.currentChange(cfg), selection: artifacts.selectionState(cfg), changes: rows, coordination: team, superseded: Object.fromEntries(superseded) }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
+      if (has('json')) { console.log(JSON.stringify({ current: artifacts.currentChange(cfg), selection: artifacts.selectionState(cfg), changes: rows, coordination: team, superseded: Object.fromEntries(superseded), supersession_meaning: 'approved/proposed declarations, not delivered truth; use graph query product --revision <ref>' }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
       console.log(artifacts.currentLine(cfg));
       console.log(coordinationLines(team).join('\n'));
+      if (superseded.length) console.log('Delivery context: harness graph query product --revision <ref>');
       if (!rows.length) {
         console.log(`changes  none open${hidden ? `  (${hidden} closed; --all to list)` : ''}`);
-        for (const [link, by] of superseded) console.log(`  SUPERSEDED ${link} — superseded by ${by.join(', ')}`);
+        for (const [link, by] of superseded) console.log(`  APPROVED/PROPOSED SUPERSESSION ${link} — declared by ${by.join(', ')}`);
         return 0;
       }
       // a-diff-belongs-to-one-change B6: which change a product write belongs to right now, and
@@ -472,7 +504,7 @@ async function main() {
         for (const kind of artifacts.GATED) if (row.artifacts[kind]?.bindingError) console.log(`    ${kind}: ${row.artifacts[kind].bindingError}`);
       }
       for (const row of rows) for (const issue of row.issues) console.log(`  ERROR ${row.slug}: ${issue}`);
-      for (const [link, by] of superseded) console.log(`  SUPERSEDED ${link} — superseded by ${by.join(', ')}`);
+      for (const [link, by] of superseded) console.log(`  APPROVED/PROPOSED SUPERSESSION ${link} — declared by ${by.join(', ')}`);
       if (hidden) console.log(`\n  ${hidden} closed change(s) not listed; --all to see them`);
       return rows.some((r) => !r.ok) ? 1 : 0;
     }

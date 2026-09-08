@@ -1,0 +1,78 @@
+// Existing product, real Git and pytest. All approval and host decisions are simulations.
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { stage, FIXTURES } from '../../../evals/lib/stage.mjs';
+import { productFixture } from '../../../test/_product-context-fixture.mjs';
+import { productContext, revisionPack } from '../../lib/product-context.mjs';
+import { check } from '../../lib/runner.mjs';
+import * as graph from '../../lib/graph.mjs';
+const python = process.env.HARNESS_TRACE_PYTHON ?? 'python3';
+const command = `PYTHONPATH=src '${python.replace(/'/g, `'\\''`)}' -m pytest -q tests --json-report --json-report-file={report}`;
+const staged = stage(FIXTURES, 'contract-planned');
+try {
+  const f = productFixture(staged.work);
+  f.write('.aidlc/harness.toml', `[project]\nname = "names-product"\n[capabilities]\ntest = ${JSON.stringify(command)}\n[formats]\ntest = "pytest"\n[stages]\nstop = ["test"]\n`);
+  f.cfg.capabilities.test = command;
+  f.cfg.formats.test = 'pytest'; f.cfg.stages.stop = ['test'];
+  f.commit('Configure real product proof');
+  const output = { fixture: 'contract-planned', simulated_approval_and_host: true, source_fixtures_modified: false, trials: [] };
+  const productView = revision => productContext(f.cfg, { revision });
+  const effective = v => v.behaviours.filter(b => b.state === 'effective').map(b => b.id);
+  const original = f.prepare('original-rule');
+  f.write('src/app/text.py', 'def titlecase(value: str) -> str:\n    return " ".join("-".join(part[:1].upper() + part[1:] for part in word.split("-")) for word in value.split(" "))\n');
+  f.write('tests/test_rule.py', 'from app.text import titlecase\n\ndef test_rule():\n    assert titlecase("mary-jane watson") == "Mary-Jane Watson"\n    assert titlecase("ada lovelace") == "Ada Lovelace"\n');
+  const originalCandidate = f.commit('Deliver initial product rule');
+  async function capture(change, candidate) {
+    const r = await check(f.cfg, { stage: 'stop', base: change.base, candidate, change: change.slug });
+    assert.equal(r.ok, true, JSON.stringify(r));
+    assert.equal(r.trace.behaviours[0].status, 'passed', JSON.stringify(r.trace));
+    return r;
+  }
+  const originalCheck = await capture(original, originalCandidate);
+  f.record(original, { checkReport: originalCheck });
+  const originalBytes = readFileSync(`${staged.work}/.aidlc/artifacts/original-rule/spec.md`, 'utf8');
+  f.git('checkout', '-qb', 'proposed-reversal');
+  f.write('requirements.md', '# Name display correction\n\n## Acceptance criteria\n\n| Criterion ID | Criterion |\n|---|---|\n| names | Render mary-jane watson as Mary-jane Watson; preserve space-separated names. |\n');
+  const correctedSource = f.commit('Simulated authorized requirement reversal');
+  const correctedRule = 'Given mary-jane watson, when titlecase runs, then return Mary-jane Watson and preserve space-separated names.';
+  const reversal = f.prepare('new-rule', { supersedes: 'original-rule#B1', sourceRevision: correctedSource, rule: correctedRule });
+  const pending = productView(originalCandidate);
+  assert.deepEqual(effective(pending), ['original-rule#B1']);
+  output.trials.push({ step: 'approved-unmerged-reversal', effective: effective(pending), view: pending });
+  f.write('src/app/text.py', 'def titlecase(value: str) -> str:\n    return " ".join(word[:1].upper() + word[1:] for word in value.split(" "))\n');
+  f.write('tests/test_rule.py', 'from app.text import titlecase\n\ndef test_rule():\n    assert titlecase("mary-jane watson") == "Mary-jane Watson"\n    assert titlecase("ada lovelace") == "Ada Lovelace"\n');
+  const reversalCandidate = f.commit('Implement requested reversal');
+  const reversalCheck = await capture(reversal, reversalCandidate);
+  // A real merge topology; integration is simulated locally, not an observed hosting event.
+  f.git('checkout', '-q', '-b', 'integration', reversal.base);
+  f.git('-c', 'commit.gpgsign=false', 'merge', '--no-ff', '-qm', 'Simulated integration of reversal', 'proposed-reversal');
+  const reversalMerge = f.git('rev-parse', 'HEAD');
+  f.record(reversal, { candidate: reversalCandidate, merge: reversalMerge, checkReport: reversalCheck });
+  const reversed = productView(reversalMerge);
+  assert.deepEqual(effective(reversed), ['new-rule#B1']);
+  output.trials.push({ step: 'integrated-reversal', check: reversalCheck, view: reversed });
+  const refactor = f.prepare('formatting-refactor', { extends: 'new-rule', sourceRevision: correctedSource, rule: correctedRule, files: ['src/app/text.py', 'src/app/names.py', 'tests/test_rule.py'], design: 'Move formatting to names.py; retain titlecase as the public wrapper and preserve assertions.' });
+  const assertions = readFileSync(`${staged.work}/tests/test_rule.py`, 'utf8');
+  f.write('src/app/names.py', 'def format_name(value: str) -> str:\n    return " ".join(word[:1].upper() + word[1:] for word in value.split(" "))\n');
+  f.write('src/app/text.py', 'from app.names import format_name\n\ndef titlecase(value: str) -> str:\n    return format_name(value)\n');
+  const refactorCandidate = f.commit('Extract helper while preserving product behavior');
+  const refactorCheck = await capture(refactor, refactorCandidate);
+  f.record(refactor, { checkReport: refactorCheck });
+  const refactored = productView(refactorCandidate);
+  assert(effective(refactored).includes('new-rule#B1'));
+  assert.equal(readFileSync(`${staged.work}/tests/test_rule.py`, 'utf8'), assertions);
+  assert.equal(readFileSync(`${staged.work}/.aidlc/artifacts/original-rule/spec.md`, 'utf8'), originalBytes);
+  output.trials.push({ step: 'behavior-preserving-refactor', check: refactorCheck, view: refactored });
+  const firstGraph = graph.ensure(f.cfg);
+  rmSync(f.cfg.layout.graph);
+  const rebuilt = graph.ensure(f.cfg);
+  assert.deepEqual(rebuilt.modules, firstGraph.modules);
+  const miss = revisionPack(f.cfg, 'unknown_legacy_symbol', { revision: refactorCandidate });
+  assert.equal(miss.hit, false); assert.match(miss.fallback, /git grep/);
+  output.cache_rebuild = 'passed'; output.miss = miss;
+  output.original_check = originalCheck;
+  output.historical_view = productView(originalCandidate);
+  assert.deepEqual(effective(output.historical_view), ['original-rule#B1']);
+  writeFileSync('.aidlc/artifacts/product-design-context/post-fix.json', JSON.stringify(output, null, 2) + '\n');
+  console.log(JSON.stringify({ trials: output.trials.map(t => t.step), actual_pytest_proof: [originalCheck, reversalCheck, refactorCheck].map(r => r.trace.behaviours[0].status), cache_rebuild: output.cache_rebuild, original_artifacts_unchanged: true, simulated_approval_and_host: true }, null, 2));
+} finally { staged.cleanup(); }

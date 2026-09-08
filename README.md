@@ -548,3 +548,74 @@ Local overlaps name both plans, approval states and intersecting Files paths, in
 directory containment. Resolve them with shared prerequisite work, serialization or an
 integration owner. Review undeclared schemas and cross-file invariants separately. Remote
 PR and assignment visibility is explicitly unavailable: no local overlap means only that.
+
+### Product and design context at a revision
+
+`harness graph query product --revision <commit> [--records <commit>] [--json]`
+derives recorded repository integration. The product revision is separate from the evidence
+catalog (default HEAD), because merge observations are usually archived after integration.
+Both resolve to exact commits; working edits do not affect the answer. This is partial context,
+not deployment/feature-flag state or acceptance of a parent requirement.
+
+Archive the existing candidate check and host review reports in the change directory, then
+commit a `delivery.json` beside them. For example (replace the descriptive commit placeholders
+with full Git object IDs):
+
+```json
+{
+  "version": 1,
+  "change": "name-formatting",
+  "repository": "example/product",
+  "pr": 42,
+  "base": "FULL_BASE_COMMIT",
+  "candidate": "FULL_CHECKED_CANDIDATE_COMMIT",
+  "merge": "FULL_HOST_MERGE_COMMIT",
+  "checks": ".aidlc/artifacts/name-formatting/candidate-check.json",
+  "host_review": ".aidlc/artifacts/name-formatting/host-review.json"
+}
+```
+
+Run the existing `harness check --stage commit --base <base> --candidate <candidate>
+--change name-formatting` at the clean candidate and preserve `.aidlc/state/last-check.json`
+as the named check report. After merge, use `harness review --repo example/product --pr 42
+--candidate <candidate> --out <host-report-path>` to collect the host observation. Inspect and
+commit the reports and record; do not create an approval or merge observation by hand. The
+query performs no network calls. Fixture simulations remain labelled `simulated-transport`.
+
+The record must match the report repository, PR and commit identities. Spec/plan bindings are
+checked at the candidate. The recorded merge must be an ancestor of the requested revision.
+Candidate changed paths (including mode changes, both rename endpoints and deletions) must
+match their merge snapshots. If integration changed those paths, capture a fresh candidate
+check at the merge commit with the same base and bound contract, then include its path in
+`integrated_checks` **when first archiving the record**. Until then the view reports
+`integration-evidence-required`. Material contract changes require a new reviewed change.
+
+Local JSON is unsigned evidence. The view shows the recorded host assessment, while
+`verified` remains false for this offline query; `recorded_verification` preserves the report's
+qualified claim. A recorded merge does not prove host policy compliance. Failed checks,
+unexecuted proof and legacy/unbound approvals remain visible. `effective` means the currently
+recorded behavior in this partial integration history, not proof that its implementation is
+correct. Legacy changes without records are `delivery-unknown`; closure is not delivery.
+
+Records are immutable delivery references: conflicting committed versions report ambiguity
+instead of choosing the latest. Deleted records retain their historical snapshot and a finding.
+Keep corrections as reviewable evidence; a conflicting record requires investigation, not a
+silent rewrite. The initial format deliberately does not resolve conflicting record corrections
+automatically. Supersession conflicts and cycles likewise remain unresolved. A delivered change
+can resolve competing rules by explicitly superseding both. Ordinary status retains approval-time
+links and labels them as approved/proposed declarations.
+
+`harness pack titlecase --revision <commit> --records HEAD --budget 2000` connects structural
+context with relevant source, design, behavior and proof references. It uses an isolated snapshot,
+never switches your branch, and lists context omitted by the budget. An absent graph rebuilds;
+a miss, unsupported source, unsafe path or unavailable snapshot directs you to `git grep` and
+`git show` at the named revision. Navigation is heuristic and never grants write authority.
+The initial bounds are 500 record variants, 2,000 artifact-history commits, 20,000 snapshot
+entries, 128 MiB of snapshot blobs and 4 MiB per evidence file; exceeding them reports unavailable
+context. No project hooks, filters, submodules or test commands run during a query.
+
+For a rule reversal, approve a new change naming the old behavior in `supersedes`; it becomes
+historical in this view only after qualified recorded integration. For a refactor, preserve
+behavior assertions and use `extends` plus the new Design section and architecture references.
+For a bug, repair code to meet the approved requirement. Do not synchronize the defect into
+that requirement. Historical source and design records remain available at their commits.

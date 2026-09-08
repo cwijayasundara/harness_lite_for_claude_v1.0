@@ -1,0 +1,2255 @@
+{
+  "fixture": "contract-planned",
+  "simulated_approval_and_host": true,
+  "source_fixtures_modified": false,
+  "trials": [
+    {
+      "step": "approved-unmerged-reversal",
+      "effective": [
+        "original-rule#B1"
+      ],
+      "view": {
+        "version": 1,
+        "revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+        "records": "f161900219001fd6415bb9ece8877dee8caf4e0a",
+        "meaning": "recorded repository integration; not deployment or acceptance",
+        "coverage": "partial: only recorded changes; untouched legacy behavior is unmodeled",
+        "changes": [
+          {
+            "version": 1,
+            "change": "original-rule",
+            "repository": "simulation/names",
+            "pr": 1,
+            "base": "b13511d30ea58acd2b86c2352715d914d7e861d9",
+            "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "checks": {
+              "path": ".aidlc/artifacts/original-rule/candidate-check.json",
+              "revision": "f161900219001fd6415bb9ece8877dee8caf4e0a",
+              "blob": "a917415603f4d03d6f64ce13f649ed883499c498",
+              "state": "passed",
+              "trace": {
+                "version": 1,
+                "context": "candidate",
+                "change": "original-rule",
+                "authority": "local-audit-labels",
+                "delivery": "not-observed",
+                "behaviours": [
+                  {
+                    "id": "original-rule#B1",
+                    "criteria": [
+                      "names"
+                    ],
+                    "proof": "`tests/test_rule.py::test_rule`",
+                    "nodeid": "tests/test_rule.py::test_rule",
+                    "status": "passed"
+                  }
+                ],
+                "approvals": {
+                  "spec": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:52797a5e9631d95936075d1611fd065532c0b22744031388da7c0958e0fd95d1",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:44.871Z"
+                  },
+                  "plan": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:2c3e97d51322c5f92d1d226c80602440ca3fde0571da4774aeb179f816d6978d",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:44.920Z"
+                  }
+                },
+                "source": {
+                  "reference": "requirements.md",
+                  "revision": "315795f739bf937b85f86b6683da44b1da3ba37a",
+                  "kind": "repository",
+                  "digest": "sha256:49c89b31e0f6d29d1e89f5e39cf8b2a8e1cd649566f3568e04a8f0ac71d08ec1"
+                },
+                "intent": {
+                  "revision": "7fb7a19bfd828eeee3d2aac705248375032b1acb",
+                  "digest": "sha256:62387f9475aa039e3b0b76e04d4b033a5c3c3fb5fd2e53ed9113423e2f73f3dd"
+                },
+                "execution": {
+                  "verdict": "pass",
+                  "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+                  "observations": {
+                    "status": "observed",
+                    "exitcode": 0,
+                    "tests": [
+                      {
+                        "nodeid": "tests/test_app.py::test_titlecase",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_rule.py::test_rule",
+                        "outcome": "passed"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "host_review": ".aidlc/artifacts/original-rule/host-review.json",
+            "approval": {
+              "spec": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:52797a5e9631d95936075d1611fd065532c0b22744031388da7c0958e0fd95d1"
+              },
+              "plan": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:2c3e97d51322c5f92d1d226c80602440ca3fde0571da4774aeb179f816d6978d"
+              }
+            },
+            "bound": true,
+            "source": {
+              "reference": "requirements.md",
+              "revision": "315795f739bf937b85f86b6683da44b1da3ba37a",
+              "kind": "repository",
+              "digest": "sha256:49c89b31e0f6d29d1e89f5e39cf8b2a8e1cd649566f3568e04a8f0ac71d08ec1"
+            },
+            "intent": {
+              "path": ".aidlc/artifacts/original-rule/intent.md",
+              "revision": "7fb7a19bfd828eeee3d2aac705248375032b1acb"
+            },
+            "spec": {
+              "path": ".aidlc/artifacts/original-rule/spec.md",
+              "revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1"
+            },
+            "plan": {
+              "path": ".aidlc/artifacts/original-rule/plan.md",
+              "revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1"
+            },
+            "design": "Keep titlecase pure in the text helper.",
+            "files": [
+              "src/app/text.py",
+              "tests/test_rule.py"
+            ],
+            "extends": [],
+            "supersedes": [],
+            "behaviours": [
+              {
+                "id": "original-rule#B1",
+                "criteria": [
+                  "names"
+                ],
+                "proof": "`tests/test_rule.py::test_rule`",
+                "execution": "passed"
+              }
+            ],
+            "state": "recorded-delivered",
+            "diagnostics": [],
+            "trust": "unsigned local evidence",
+            "host": {
+              "path": ".aidlc/artifacts/original-rule/host-review.json",
+              "revision": "f161900219001fd6415bb9ece8877dee8caf4e0a",
+              "blob": "a309805f173fb80640fc8ba2877a1a3204556ab0",
+              "provenance": "simulated-transport",
+              "assessment": "policy-unavailable",
+              "verified": false,
+              "recorded_verification": false,
+              "limitation": "Archived unsigned observation; no live host authentication or deployment observation."
+            },
+            "merge_mismatches": [],
+            "code": [
+              {
+                "path": "src/app/text.py",
+                "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "requested_revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": true,
+                "mapping": "declared file/commit, not symbol proof"
+              },
+              {
+                "path": "tests/test_rule.py",
+                "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "requested_revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": true,
+                "mapping": "declared file/commit, not symbol proof"
+              }
+            ],
+            "record": {
+              "path": ".aidlc/artifacts/original-rule/delivery.json",
+              "revision": "f161900219001fd6415bb9ece8877dee8caf4e0a",
+              "blob": "c0627828ce4b2fa312ebf01d7b1661b0f8ec9d7f",
+              "deleted": false
+            }
+          },
+          {
+            "change": "hyphen-titlecase",
+            "state": "delivery-unknown",
+            "proposal": "approved",
+            "closed": false,
+            "supersedes": [],
+            "extends": [],
+            "spec": {
+              "path": ".aidlc/artifacts/hyphen-titlecase/spec.md",
+              "revision": "f161900219001fd6415bb9ece8877dee8caf4e0a"
+            },
+            "diagnostics": [
+              "No delivery record; approval and closure do not establish integration."
+            ]
+          },
+          {
+            "change": "new-rule",
+            "state": "delivery-unknown",
+            "proposal": "approved",
+            "closed": false,
+            "supersedes": [
+              "original-rule#B1"
+            ],
+            "extends": [],
+            "spec": {
+              "path": ".aidlc/artifacts/new-rule/spec.md",
+              "revision": "f161900219001fd6415bb9ece8877dee8caf4e0a"
+            },
+            "diagnostics": [
+              "No delivery record; approval and closure do not establish integration."
+            ]
+          }
+        ],
+        "behaviours": [
+          {
+            "id": "original-rule#B1",
+            "criteria": [
+              "names"
+            ],
+            "proof": "`tests/test_rule.py::test_rule`",
+            "execution": "passed",
+            "change": "original-rule",
+            "state": "effective",
+            "replaced_by": []
+          }
+        ],
+        "findings": [],
+        "fallback": "git grep -n -F -e <term> 118cb1b82bf507fc028e0b8a32d1acac86f08cc1 -- <path>; git show 118cb1b82bf507fc028e0b8a32d1acac86f08cc1:<path>"
+      }
+    },
+    {
+      "step": "integrated-reversal",
+      "check": {
+        "stage": "stop",
+        "revision": {
+          "base": "438d69e25ae474328044c1e99f632553bd0a839b",
+          "candidate": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03",
+          "change": "new-rule"
+        },
+        "trace": {
+          "version": 1,
+          "context": "candidate",
+          "change": "new-rule",
+          "authority": "local-audit-labels",
+          "delivery": "not-observed",
+          "behaviours": [
+            {
+              "id": "new-rule#B1",
+              "criteria": [
+                "names"
+              ],
+              "proof": "`tests/test_rule.py::test_rule`",
+              "nodeid": "tests/test_rule.py::test_rule",
+              "status": "passed"
+            }
+          ],
+          "approvals": {
+            "spec": {
+              "state": "approved",
+              "binding": "v2",
+              "digest": "sha256:436c74abf317f59448d206e29899e580c8d6accca170dffbc4e3cc528ec91daa",
+              "by": "simulated-fixture-reviewer",
+              "at": "2026-09-08T14:58:46.123Z"
+            },
+            "plan": {
+              "state": "approved",
+              "binding": "v2",
+              "digest": "sha256:cafcefc52ebfd160192f20085660063003f9405d05c8d812c0238e765038d356",
+              "by": "simulated-fixture-reviewer",
+              "at": "2026-09-08T14:58:46.360Z"
+            }
+          },
+          "source": {
+            "reference": "requirements.md",
+            "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+            "kind": "repository",
+            "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+          },
+          "intent": {
+            "revision": "94e8cd5831e752d71273a8ef94ad798a79c95b16",
+            "digest": "sha256:73cddd554187715d67e1a20dc2adeefeea218ea82783cc97393da44e69de595f"
+          },
+          "execution": {
+            "verdict": "pass",
+            "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+            "observations": {
+              "status": "observed",
+              "exitcode": 0,
+              "tests": [
+                {
+                  "nodeid": "tests/test_app.py::test_titlecase",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_app.py::test_render_name",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_rule.py::test_rule",
+                  "outcome": "passed"
+                }
+              ]
+            }
+          }
+        },
+        "ok": true,
+        "changed_files": [
+          ".aidlc/artifacts/new-rule/intent.md",
+          ".aidlc/artifacts/new-rule/plan.md",
+          ".aidlc/artifacts/new-rule/review.md",
+          ".aidlc/artifacts/new-rule/spec.md",
+          "src/app/text.py",
+          "tests/test_rule.py"
+        ],
+        "controls": [
+          {
+            "control": "scope-drift",
+            "verdict": "pass",
+            "ms": 383,
+            "findings": [],
+            "truncated": 0
+          },
+          {
+            "control": "test",
+            "verdict": "pass",
+            "ms": 189,
+            "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+            "execution": {
+              "status": "observed",
+              "exitcode": 0,
+              "tests": [
+                {
+                  "nodeid": "tests/test_app.py::test_titlecase",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_app.py::test_render_name",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_rule.py::test_rule",
+                  "outcome": "passed"
+                }
+              ]
+            },
+            "findings": [],
+            "truncated": 0
+          }
+        ]
+      },
+      "view": {
+        "version": 1,
+        "revision": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+        "records": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb",
+        "meaning": "recorded repository integration; not deployment or acceptance",
+        "coverage": "partial: only recorded changes; untouched legacy behavior is unmodeled",
+        "changes": [
+          {
+            "version": 1,
+            "change": "new-rule",
+            "repository": "simulation/names",
+            "pr": 2,
+            "base": "438d69e25ae474328044c1e99f632553bd0a839b",
+            "candidate": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03",
+            "merge": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+            "checks": {
+              "path": ".aidlc/artifacts/new-rule/candidate-check.json",
+              "revision": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb",
+              "blob": "555f57bd595dabdca5ead8f4715761e88d703f39",
+              "state": "passed",
+              "trace": {
+                "version": 1,
+                "context": "candidate",
+                "change": "new-rule",
+                "authority": "local-audit-labels",
+                "delivery": "not-observed",
+                "behaviours": [
+                  {
+                    "id": "new-rule#B1",
+                    "criteria": [
+                      "names"
+                    ],
+                    "proof": "`tests/test_rule.py::test_rule`",
+                    "nodeid": "tests/test_rule.py::test_rule",
+                    "status": "passed"
+                  }
+                ],
+                "approvals": {
+                  "spec": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:436c74abf317f59448d206e29899e580c8d6accca170dffbc4e3cc528ec91daa",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:46.123Z"
+                  },
+                  "plan": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:cafcefc52ebfd160192f20085660063003f9405d05c8d812c0238e765038d356",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:46.360Z"
+                  }
+                },
+                "source": {
+                  "reference": "requirements.md",
+                  "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+                  "kind": "repository",
+                  "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+                },
+                "intent": {
+                  "revision": "94e8cd5831e752d71273a8ef94ad798a79c95b16",
+                  "digest": "sha256:73cddd554187715d67e1a20dc2adeefeea218ea82783cc97393da44e69de595f"
+                },
+                "execution": {
+                  "verdict": "pass",
+                  "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+                  "observations": {
+                    "status": "observed",
+                    "exitcode": 0,
+                    "tests": [
+                      {
+                        "nodeid": "tests/test_app.py::test_titlecase",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_rule.py::test_rule",
+                        "outcome": "passed"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "host_review": ".aidlc/artifacts/new-rule/host-review.json",
+            "approval": {
+              "spec": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:436c74abf317f59448d206e29899e580c8d6accca170dffbc4e3cc528ec91daa"
+              },
+              "plan": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:cafcefc52ebfd160192f20085660063003f9405d05c8d812c0238e765038d356"
+              }
+            },
+            "bound": true,
+            "source": {
+              "reference": "requirements.md",
+              "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+              "kind": "repository",
+              "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+            },
+            "intent": {
+              "path": ".aidlc/artifacts/new-rule/intent.md",
+              "revision": "94e8cd5831e752d71273a8ef94ad798a79c95b16"
+            },
+            "spec": {
+              "path": ".aidlc/artifacts/new-rule/spec.md",
+              "revision": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03"
+            },
+            "plan": {
+              "path": ".aidlc/artifacts/new-rule/plan.md",
+              "revision": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03"
+            },
+            "design": "Keep titlecase pure in the text helper.",
+            "files": [
+              "src/app/text.py",
+              "tests/test_rule.py"
+            ],
+            "extends": [],
+            "supersedes": [
+              "original-rule#B1"
+            ],
+            "behaviours": [
+              {
+                "id": "new-rule#B1",
+                "criteria": [
+                  "names"
+                ],
+                "proof": "`tests/test_rule.py::test_rule`",
+                "execution": "passed"
+              }
+            ],
+            "state": "recorded-delivered",
+            "diagnostics": [],
+            "trust": "unsigned local evidence",
+            "host": {
+              "path": ".aidlc/artifacts/new-rule/host-review.json",
+              "revision": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb",
+              "blob": "41d56b6edf87e8d0a52ff19ac6212562d0a6bb68",
+              "provenance": "simulated-transport",
+              "assessment": "policy-unavailable",
+              "verified": false,
+              "recorded_verification": false,
+              "limitation": "Archived unsigned observation; no live host authentication or deployment observation."
+            },
+            "merge_mismatches": [],
+            "code": [
+              {
+                "path": "src/app/text.py",
+                "candidate": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03",
+                "merge": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+                "requested_revision": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": true,
+                "mapping": "declared file/commit, not symbol proof"
+              },
+              {
+                "path": "tests/test_rule.py",
+                "candidate": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03",
+                "merge": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+                "requested_revision": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": true,
+                "mapping": "declared file/commit, not symbol proof"
+              }
+            ],
+            "record": {
+              "path": ".aidlc/artifacts/new-rule/delivery.json",
+              "revision": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb",
+              "blob": "32f247a93c443dcbdae75db875211d2335809d1e",
+              "deleted": false
+            }
+          },
+          {
+            "version": 1,
+            "change": "original-rule",
+            "repository": "simulation/names",
+            "pr": 1,
+            "base": "b13511d30ea58acd2b86c2352715d914d7e861d9",
+            "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "checks": {
+              "path": ".aidlc/artifacts/original-rule/candidate-check.json",
+              "revision": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb",
+              "blob": "a917415603f4d03d6f64ce13f649ed883499c498",
+              "state": "passed",
+              "trace": {
+                "version": 1,
+                "context": "candidate",
+                "change": "original-rule",
+                "authority": "local-audit-labels",
+                "delivery": "not-observed",
+                "behaviours": [
+                  {
+                    "id": "original-rule#B1",
+                    "criteria": [
+                      "names"
+                    ],
+                    "proof": "`tests/test_rule.py::test_rule`",
+                    "nodeid": "tests/test_rule.py::test_rule",
+                    "status": "passed"
+                  }
+                ],
+                "approvals": {
+                  "spec": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:52797a5e9631d95936075d1611fd065532c0b22744031388da7c0958e0fd95d1",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:44.871Z"
+                  },
+                  "plan": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:2c3e97d51322c5f92d1d226c80602440ca3fde0571da4774aeb179f816d6978d",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:44.920Z"
+                  }
+                },
+                "source": {
+                  "reference": "requirements.md",
+                  "revision": "315795f739bf937b85f86b6683da44b1da3ba37a",
+                  "kind": "repository",
+                  "digest": "sha256:49c89b31e0f6d29d1e89f5e39cf8b2a8e1cd649566f3568e04a8f0ac71d08ec1"
+                },
+                "intent": {
+                  "revision": "7fb7a19bfd828eeee3d2aac705248375032b1acb",
+                  "digest": "sha256:62387f9475aa039e3b0b76e04d4b033a5c3c3fb5fd2e53ed9113423e2f73f3dd"
+                },
+                "execution": {
+                  "verdict": "pass",
+                  "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+                  "observations": {
+                    "status": "observed",
+                    "exitcode": 0,
+                    "tests": [
+                      {
+                        "nodeid": "tests/test_app.py::test_titlecase",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_rule.py::test_rule",
+                        "outcome": "passed"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "host_review": ".aidlc/artifacts/original-rule/host-review.json",
+            "approval": {
+              "spec": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:52797a5e9631d95936075d1611fd065532c0b22744031388da7c0958e0fd95d1"
+              },
+              "plan": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:2c3e97d51322c5f92d1d226c80602440ca3fde0571da4774aeb179f816d6978d"
+              }
+            },
+            "bound": true,
+            "source": {
+              "reference": "requirements.md",
+              "revision": "315795f739bf937b85f86b6683da44b1da3ba37a",
+              "kind": "repository",
+              "digest": "sha256:49c89b31e0f6d29d1e89f5e39cf8b2a8e1cd649566f3568e04a8f0ac71d08ec1"
+            },
+            "intent": {
+              "path": ".aidlc/artifacts/original-rule/intent.md",
+              "revision": "7fb7a19bfd828eeee3d2aac705248375032b1acb"
+            },
+            "spec": {
+              "path": ".aidlc/artifacts/original-rule/spec.md",
+              "revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1"
+            },
+            "plan": {
+              "path": ".aidlc/artifacts/original-rule/plan.md",
+              "revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1"
+            },
+            "design": "Keep titlecase pure in the text helper.",
+            "files": [
+              "src/app/text.py",
+              "tests/test_rule.py"
+            ],
+            "extends": [],
+            "supersedes": [],
+            "behaviours": [
+              {
+                "id": "original-rule#B1",
+                "criteria": [
+                  "names"
+                ],
+                "proof": "`tests/test_rule.py::test_rule`",
+                "execution": "passed"
+              }
+            ],
+            "state": "recorded-delivered",
+            "diagnostics": [
+              "Declared paths differ at the requested revision; inspect later delivery records and source. Historical proof does not prove the later code."
+            ],
+            "trust": "unsigned local evidence",
+            "host": {
+              "path": ".aidlc/artifacts/original-rule/host-review.json",
+              "revision": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb",
+              "blob": "a309805f173fb80640fc8ba2877a1a3204556ab0",
+              "provenance": "simulated-transport",
+              "assessment": "policy-unavailable",
+              "verified": false,
+              "recorded_verification": false,
+              "limitation": "Archived unsigned observation; no live host authentication or deployment observation."
+            },
+            "merge_mismatches": [],
+            "code": [
+              {
+                "path": "src/app/text.py",
+                "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "requested_revision": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": false,
+                "mapping": "declared file/commit, not symbol proof"
+              },
+              {
+                "path": "tests/test_rule.py",
+                "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "requested_revision": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": false,
+                "mapping": "declared file/commit, not symbol proof"
+              }
+            ],
+            "record": {
+              "path": ".aidlc/artifacts/original-rule/delivery.json",
+              "revision": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb",
+              "blob": "c0627828ce4b2fa312ebf01d7b1661b0f8ec9d7f",
+              "deleted": false
+            }
+          },
+          {
+            "change": "hyphen-titlecase",
+            "state": "delivery-unknown",
+            "proposal": "approved",
+            "closed": false,
+            "supersedes": [],
+            "extends": [],
+            "spec": {
+              "path": ".aidlc/artifacts/hyphen-titlecase/spec.md",
+              "revision": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb"
+            },
+            "diagnostics": [
+              "No delivery record; approval and closure do not establish integration."
+            ]
+          }
+        ],
+        "behaviours": [
+          {
+            "id": "new-rule#B1",
+            "criteria": [
+              "names"
+            ],
+            "proof": "`tests/test_rule.py::test_rule`",
+            "execution": "passed",
+            "change": "new-rule",
+            "state": "effective",
+            "replaced_by": []
+          },
+          {
+            "id": "original-rule#B1",
+            "criteria": [
+              "names"
+            ],
+            "proof": "`tests/test_rule.py::test_rule`",
+            "execution": "passed",
+            "change": "original-rule",
+            "state": "historical",
+            "replaced_by": [
+              "new-rule#B1"
+            ]
+          }
+        ],
+        "findings": [],
+        "fallback": "git grep -n -F -e <term> 44c80c7d69b7caad583a912a9ebe9e2037976a87 -- <path>; git show 44c80c7d69b7caad583a912a9ebe9e2037976a87:<path>"
+      }
+    },
+    {
+      "step": "behavior-preserving-refactor",
+      "check": {
+        "stage": "stop",
+        "revision": {
+          "base": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb",
+          "candidate": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+          "change": "formatting-refactor"
+        },
+        "trace": {
+          "version": 1,
+          "context": "candidate",
+          "change": "formatting-refactor",
+          "authority": "local-audit-labels",
+          "delivery": "not-observed",
+          "behaviours": [
+            {
+              "id": "formatting-refactor#B1",
+              "criteria": [
+                "names"
+              ],
+              "proof": "`tests/test_rule.py::test_rule`",
+              "nodeid": "tests/test_rule.py::test_rule",
+              "status": "passed"
+            }
+          ],
+          "approvals": {
+            "spec": {
+              "state": "approved",
+              "binding": "v2",
+              "digest": "sha256:e9ab186eaa269e26fda269efe621fe714aedcd797c50e9cd30eea84552036835",
+              "by": "simulated-fixture-reviewer",
+              "at": "2026-09-08T14:58:54.206Z"
+            },
+            "plan": {
+              "state": "approved",
+              "binding": "v2",
+              "digest": "sha256:1feb41fd5dcda8e6b765bad40c1dfa73c3987d542218d676da4a596aa7c5b160",
+              "by": "simulated-fixture-reviewer",
+              "at": "2026-09-08T14:58:54.434Z"
+            }
+          },
+          "source": {
+            "reference": "requirements.md",
+            "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+            "kind": "repository",
+            "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+          },
+          "intent": {
+            "revision": "811d9ef204b86273e86e6397572318980f3e4c92",
+            "digest": "sha256:73cddd554187715d67e1a20dc2adeefeea218ea82783cc97393da44e69de595f"
+          },
+          "execution": {
+            "verdict": "pass",
+            "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+            "observations": {
+              "status": "observed",
+              "exitcode": 0,
+              "tests": [
+                {
+                  "nodeid": "tests/test_app.py::test_titlecase",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_app.py::test_render_name",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_rule.py::test_rule",
+                  "outcome": "passed"
+                }
+              ]
+            }
+          }
+        },
+        "ok": true,
+        "changed_files": [
+          ".aidlc/artifacts/formatting-refactor/intent.md",
+          ".aidlc/artifacts/formatting-refactor/plan.md",
+          ".aidlc/artifacts/formatting-refactor/review.md",
+          ".aidlc/artifacts/formatting-refactor/spec.md",
+          "src/app/names.py",
+          "src/app/text.py"
+        ],
+        "controls": [
+          {
+            "control": "scope-drift",
+            "verdict": "pass",
+            "ms": 486,
+            "findings": [],
+            "truncated": 0
+          },
+          {
+            "control": "test",
+            "verdict": "pass",
+            "ms": 237,
+            "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+            "execution": {
+              "status": "observed",
+              "exitcode": 0,
+              "tests": [
+                {
+                  "nodeid": "tests/test_app.py::test_titlecase",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_app.py::test_render_name",
+                  "outcome": "passed"
+                },
+                {
+                  "nodeid": "tests/test_rule.py::test_rule",
+                  "outcome": "passed"
+                }
+              ]
+            },
+            "findings": [],
+            "truncated": 0
+          }
+        ]
+      },
+      "view": {
+        "version": 1,
+        "revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+        "records": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+        "meaning": "recorded repository integration; not deployment or acceptance",
+        "coverage": "partial: only recorded changes; untouched legacy behavior is unmodeled",
+        "changes": [
+          {
+            "version": 1,
+            "change": "formatting-refactor",
+            "repository": "simulation/names",
+            "pr": 3,
+            "base": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb",
+            "candidate": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+            "merge": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+            "checks": {
+              "path": ".aidlc/artifacts/formatting-refactor/candidate-check.json",
+              "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+              "blob": "412e7a2820adfdd42edff6466bb3eb041ec3c23a",
+              "state": "passed",
+              "trace": {
+                "version": 1,
+                "context": "candidate",
+                "change": "formatting-refactor",
+                "authority": "local-audit-labels",
+                "delivery": "not-observed",
+                "behaviours": [
+                  {
+                    "id": "formatting-refactor#B1",
+                    "criteria": [
+                      "names"
+                    ],
+                    "proof": "`tests/test_rule.py::test_rule`",
+                    "nodeid": "tests/test_rule.py::test_rule",
+                    "status": "passed"
+                  }
+                ],
+                "approvals": {
+                  "spec": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:e9ab186eaa269e26fda269efe621fe714aedcd797c50e9cd30eea84552036835",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:54.206Z"
+                  },
+                  "plan": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:1feb41fd5dcda8e6b765bad40c1dfa73c3987d542218d676da4a596aa7c5b160",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:54.434Z"
+                  }
+                },
+                "source": {
+                  "reference": "requirements.md",
+                  "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+                  "kind": "repository",
+                  "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+                },
+                "intent": {
+                  "revision": "811d9ef204b86273e86e6397572318980f3e4c92",
+                  "digest": "sha256:73cddd554187715d67e1a20dc2adeefeea218ea82783cc97393da44e69de595f"
+                },
+                "execution": {
+                  "verdict": "pass",
+                  "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+                  "observations": {
+                    "status": "observed",
+                    "exitcode": 0,
+                    "tests": [
+                      {
+                        "nodeid": "tests/test_app.py::test_titlecase",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_rule.py::test_rule",
+                        "outcome": "passed"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "host_review": ".aidlc/artifacts/formatting-refactor/host-review.json",
+            "approval": {
+              "spec": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:e9ab186eaa269e26fda269efe621fe714aedcd797c50e9cd30eea84552036835"
+              },
+              "plan": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:1feb41fd5dcda8e6b765bad40c1dfa73c3987d542218d676da4a596aa7c5b160"
+              }
+            },
+            "bound": true,
+            "source": {
+              "reference": "requirements.md",
+              "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+              "kind": "repository",
+              "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+            },
+            "intent": {
+              "path": ".aidlc/artifacts/formatting-refactor/intent.md",
+              "revision": "811d9ef204b86273e86e6397572318980f3e4c92"
+            },
+            "spec": {
+              "path": ".aidlc/artifacts/formatting-refactor/spec.md",
+              "revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf"
+            },
+            "plan": {
+              "path": ".aidlc/artifacts/formatting-refactor/plan.md",
+              "revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf"
+            },
+            "design": "Move formatting to names.py; retain titlecase as the public wrapper and preserve assertions.",
+            "files": [
+              "src/app/text.py",
+              "src/app/names.py",
+              "tests/test_rule.py"
+            ],
+            "extends": [
+              "new-rule"
+            ],
+            "supersedes": [],
+            "behaviours": [
+              {
+                "id": "formatting-refactor#B1",
+                "criteria": [
+                  "names"
+                ],
+                "proof": "`tests/test_rule.py::test_rule`",
+                "execution": "passed"
+              }
+            ],
+            "state": "recorded-delivered",
+            "diagnostics": [],
+            "trust": "unsigned local evidence",
+            "host": {
+              "path": ".aidlc/artifacts/formatting-refactor/host-review.json",
+              "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+              "blob": "37f38d6eabfb74f55e9bafd36357107b84391219",
+              "provenance": "simulated-transport",
+              "assessment": "policy-unavailable",
+              "verified": false,
+              "recorded_verification": false,
+              "limitation": "Archived unsigned observation; no live host authentication or deployment observation."
+            },
+            "merge_mismatches": [],
+            "code": [
+              {
+                "path": "src/app/text.py",
+                "candidate": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "merge": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "requested_revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": true,
+                "mapping": "declared file/commit, not symbol proof"
+              },
+              {
+                "path": "src/app/names.py",
+                "candidate": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "merge": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "requested_revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": true,
+                "mapping": "declared file/commit, not symbol proof"
+              },
+              {
+                "path": "tests/test_rule.py",
+                "candidate": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "merge": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "requested_revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": true,
+                "mapping": "declared file/commit, not symbol proof"
+              }
+            ],
+            "record": {
+              "path": ".aidlc/artifacts/formatting-refactor/delivery.json",
+              "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+              "blob": "4f75bbd3406eefe8ac99218b8903c5dccf800a17",
+              "deleted": false
+            }
+          },
+          {
+            "version": 1,
+            "change": "new-rule",
+            "repository": "simulation/names",
+            "pr": 2,
+            "base": "438d69e25ae474328044c1e99f632553bd0a839b",
+            "candidate": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03",
+            "merge": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+            "checks": {
+              "path": ".aidlc/artifacts/new-rule/candidate-check.json",
+              "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+              "blob": "555f57bd595dabdca5ead8f4715761e88d703f39",
+              "state": "passed",
+              "trace": {
+                "version": 1,
+                "context": "candidate",
+                "change": "new-rule",
+                "authority": "local-audit-labels",
+                "delivery": "not-observed",
+                "behaviours": [
+                  {
+                    "id": "new-rule#B1",
+                    "criteria": [
+                      "names"
+                    ],
+                    "proof": "`tests/test_rule.py::test_rule`",
+                    "nodeid": "tests/test_rule.py::test_rule",
+                    "status": "passed"
+                  }
+                ],
+                "approvals": {
+                  "spec": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:436c74abf317f59448d206e29899e580c8d6accca170dffbc4e3cc528ec91daa",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:46.123Z"
+                  },
+                  "plan": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:cafcefc52ebfd160192f20085660063003f9405d05c8d812c0238e765038d356",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:46.360Z"
+                  }
+                },
+                "source": {
+                  "reference": "requirements.md",
+                  "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+                  "kind": "repository",
+                  "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+                },
+                "intent": {
+                  "revision": "94e8cd5831e752d71273a8ef94ad798a79c95b16",
+                  "digest": "sha256:73cddd554187715d67e1a20dc2adeefeea218ea82783cc97393da44e69de595f"
+                },
+                "execution": {
+                  "verdict": "pass",
+                  "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+                  "observations": {
+                    "status": "observed",
+                    "exitcode": 0,
+                    "tests": [
+                      {
+                        "nodeid": "tests/test_app.py::test_titlecase",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_rule.py::test_rule",
+                        "outcome": "passed"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "host_review": ".aidlc/artifacts/new-rule/host-review.json",
+            "approval": {
+              "spec": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:436c74abf317f59448d206e29899e580c8d6accca170dffbc4e3cc528ec91daa"
+              },
+              "plan": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:cafcefc52ebfd160192f20085660063003f9405d05c8d812c0238e765038d356"
+              }
+            },
+            "bound": true,
+            "source": {
+              "reference": "requirements.md",
+              "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+              "kind": "repository",
+              "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+            },
+            "intent": {
+              "path": ".aidlc/artifacts/new-rule/intent.md",
+              "revision": "94e8cd5831e752d71273a8ef94ad798a79c95b16"
+            },
+            "spec": {
+              "path": ".aidlc/artifacts/new-rule/spec.md",
+              "revision": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03"
+            },
+            "plan": {
+              "path": ".aidlc/artifacts/new-rule/plan.md",
+              "revision": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03"
+            },
+            "design": "Keep titlecase pure in the text helper.",
+            "files": [
+              "src/app/text.py",
+              "tests/test_rule.py"
+            ],
+            "extends": [],
+            "supersedes": [
+              "original-rule#B1"
+            ],
+            "behaviours": [
+              {
+                "id": "new-rule#B1",
+                "criteria": [
+                  "names"
+                ],
+                "proof": "`tests/test_rule.py::test_rule`",
+                "execution": "passed"
+              }
+            ],
+            "state": "recorded-delivered",
+            "diagnostics": [
+              "Declared paths differ at the requested revision; inspect later delivery records and source. Historical proof does not prove the later code."
+            ],
+            "trust": "unsigned local evidence",
+            "host": {
+              "path": ".aidlc/artifacts/new-rule/host-review.json",
+              "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+              "blob": "41d56b6edf87e8d0a52ff19ac6212562d0a6bb68",
+              "provenance": "simulated-transport",
+              "assessment": "policy-unavailable",
+              "verified": false,
+              "recorded_verification": false,
+              "limitation": "Archived unsigned observation; no live host authentication or deployment observation."
+            },
+            "merge_mismatches": [],
+            "code": [
+              {
+                "path": "src/app/text.py",
+                "candidate": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03",
+                "merge": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+                "requested_revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": false,
+                "mapping": "declared file/commit, not symbol proof"
+              },
+              {
+                "path": "tests/test_rule.py",
+                "candidate": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03",
+                "merge": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+                "requested_revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": true,
+                "mapping": "declared file/commit, not symbol proof"
+              }
+            ],
+            "record": {
+              "path": ".aidlc/artifacts/new-rule/delivery.json",
+              "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+              "blob": "32f247a93c443dcbdae75db875211d2335809d1e",
+              "deleted": false
+            }
+          },
+          {
+            "version": 1,
+            "change": "original-rule",
+            "repository": "simulation/names",
+            "pr": 1,
+            "base": "b13511d30ea58acd2b86c2352715d914d7e861d9",
+            "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "checks": {
+              "path": ".aidlc/artifacts/original-rule/candidate-check.json",
+              "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+              "blob": "a917415603f4d03d6f64ce13f649ed883499c498",
+              "state": "passed",
+              "trace": {
+                "version": 1,
+                "context": "candidate",
+                "change": "original-rule",
+                "authority": "local-audit-labels",
+                "delivery": "not-observed",
+                "behaviours": [
+                  {
+                    "id": "original-rule#B1",
+                    "criteria": [
+                      "names"
+                    ],
+                    "proof": "`tests/test_rule.py::test_rule`",
+                    "nodeid": "tests/test_rule.py::test_rule",
+                    "status": "passed"
+                  }
+                ],
+                "approvals": {
+                  "spec": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:52797a5e9631d95936075d1611fd065532c0b22744031388da7c0958e0fd95d1",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:44.871Z"
+                  },
+                  "plan": {
+                    "state": "approved",
+                    "binding": "v2",
+                    "digest": "sha256:2c3e97d51322c5f92d1d226c80602440ca3fde0571da4774aeb179f816d6978d",
+                    "by": "simulated-fixture-reviewer",
+                    "at": "2026-09-08T14:58:44.920Z"
+                  }
+                },
+                "source": {
+                  "reference": "requirements.md",
+                  "revision": "315795f739bf937b85f86b6683da44b1da3ba37a",
+                  "kind": "repository",
+                  "digest": "sha256:49c89b31e0f6d29d1e89f5e39cf8b2a8e1cd649566f3568e04a8f0ac71d08ec1"
+                },
+                "intent": {
+                  "revision": "7fb7a19bfd828eeee3d2aac705248375032b1acb",
+                  "digest": "sha256:62387f9475aa039e3b0b76e04d4b033a5c3c3fb5fd2e53ed9113423e2f73f3dd"
+                },
+                "execution": {
+                  "verdict": "pass",
+                  "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+                  "observations": {
+                    "status": "observed",
+                    "exitcode": 0,
+                    "tests": [
+                      {
+                        "nodeid": "tests/test_app.py::test_titlecase",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_app.py::test_render_name",
+                        "outcome": "passed"
+                      },
+                      {
+                        "nodeid": "tests/test_rule.py::test_rule",
+                        "outcome": "passed"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "host_review": ".aidlc/artifacts/original-rule/host-review.json",
+            "approval": {
+              "spec": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:52797a5e9631d95936075d1611fd065532c0b22744031388da7c0958e0fd95d1"
+              },
+              "plan": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:2c3e97d51322c5f92d1d226c80602440ca3fde0571da4774aeb179f816d6978d"
+              }
+            },
+            "bound": true,
+            "source": {
+              "reference": "requirements.md",
+              "revision": "315795f739bf937b85f86b6683da44b1da3ba37a",
+              "kind": "repository",
+              "digest": "sha256:49c89b31e0f6d29d1e89f5e39cf8b2a8e1cd649566f3568e04a8f0ac71d08ec1"
+            },
+            "intent": {
+              "path": ".aidlc/artifacts/original-rule/intent.md",
+              "revision": "7fb7a19bfd828eeee3d2aac705248375032b1acb"
+            },
+            "spec": {
+              "path": ".aidlc/artifacts/original-rule/spec.md",
+              "revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1"
+            },
+            "plan": {
+              "path": ".aidlc/artifacts/original-rule/plan.md",
+              "revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1"
+            },
+            "design": "Keep titlecase pure in the text helper.",
+            "files": [
+              "src/app/text.py",
+              "tests/test_rule.py"
+            ],
+            "extends": [],
+            "supersedes": [],
+            "behaviours": [
+              {
+                "id": "original-rule#B1",
+                "criteria": [
+                  "names"
+                ],
+                "proof": "`tests/test_rule.py::test_rule`",
+                "execution": "passed"
+              }
+            ],
+            "state": "recorded-delivered",
+            "diagnostics": [
+              "Declared paths differ at the requested revision; inspect later delivery records and source. Historical proof does not prove the later code."
+            ],
+            "trust": "unsigned local evidence",
+            "host": {
+              "path": ".aidlc/artifacts/original-rule/host-review.json",
+              "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+              "blob": "a309805f173fb80640fc8ba2877a1a3204556ab0",
+              "provenance": "simulated-transport",
+              "assessment": "policy-unavailable",
+              "verified": false,
+              "recorded_verification": false,
+              "limitation": "Archived unsigned observation; no live host authentication or deployment observation."
+            },
+            "merge_mismatches": [],
+            "code": [
+              {
+                "path": "src/app/text.py",
+                "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "requested_revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": false,
+                "mapping": "declared file/commit, not symbol proof"
+              },
+              {
+                "path": "tests/test_rule.py",
+                "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+                "requested_revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+                "present": true,
+                "present_at_requested": true,
+                "matches_requested": false,
+                "mapping": "declared file/commit, not symbol proof"
+              }
+            ],
+            "record": {
+              "path": ".aidlc/artifacts/original-rule/delivery.json",
+              "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+              "blob": "c0627828ce4b2fa312ebf01d7b1661b0f8ec9d7f",
+              "deleted": false
+            }
+          },
+          {
+            "change": "hyphen-titlecase",
+            "state": "delivery-unknown",
+            "proposal": "approved",
+            "closed": false,
+            "supersedes": [],
+            "extends": [],
+            "spec": {
+              "path": ".aidlc/artifacts/hyphen-titlecase/spec.md",
+              "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956"
+            },
+            "diagnostics": [
+              "No delivery record; approval and closure do not establish integration."
+            ]
+          }
+        ],
+        "behaviours": [
+          {
+            "id": "formatting-refactor#B1",
+            "criteria": [
+              "names"
+            ],
+            "proof": "`tests/test_rule.py::test_rule`",
+            "execution": "passed",
+            "change": "formatting-refactor",
+            "state": "effective",
+            "replaced_by": []
+          },
+          {
+            "id": "new-rule#B1",
+            "criteria": [
+              "names"
+            ],
+            "proof": "`tests/test_rule.py::test_rule`",
+            "execution": "passed",
+            "change": "new-rule",
+            "state": "effective",
+            "replaced_by": []
+          },
+          {
+            "id": "original-rule#B1",
+            "criteria": [
+              "names"
+            ],
+            "proof": "`tests/test_rule.py::test_rule`",
+            "execution": "passed",
+            "change": "original-rule",
+            "state": "historical",
+            "replaced_by": [
+              "new-rule#B1"
+            ]
+          }
+        ],
+        "findings": [],
+        "fallback": "git grep -n -F -e <term> c40f11b8c80e5893845dc84c5453eed50ebf5acf -- <path>; git show c40f11b8c80e5893845dc84c5453eed50ebf5acf:<path>"
+      }
+    }
+  ],
+  "cache_rebuild": "passed",
+  "miss": {
+    "question": "unknown_legacy_symbol",
+    "term": "unknown_legacy_symbol",
+    "budget": 1200,
+    "tokens": 0,
+    "included": [],
+    "omitted": [],
+    "hit": false,
+    "coverage": {
+      "modules": 6,
+      "excluded": [],
+      "limitation": "Heuristic supported-source navigation; unsupported languages and unmodeled legacy areas require source inspection."
+    },
+    "revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+    "records": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+    "product_unavailable": null,
+    "product_findings": [],
+    "product_coverage": "partial: only recorded changes; untouched legacy behavior is unmodeled",
+    "relevant_changes": [],
+    "fallback": "git grep -n -F -e <term> c40f11b8c80e5893845dc84c5453eed50ebf5acf -- <path>; git show c40f11b8c80e5893845dc84c5453eed50ebf5acf:<path>"
+  },
+  "original_check": {
+    "stage": "stop",
+    "revision": {
+      "base": "b13511d30ea58acd2b86c2352715d914d7e861d9",
+      "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+      "change": "original-rule"
+    },
+    "trace": {
+      "version": 1,
+      "context": "candidate",
+      "change": "original-rule",
+      "authority": "local-audit-labels",
+      "delivery": "not-observed",
+      "behaviours": [
+        {
+          "id": "original-rule#B1",
+          "criteria": [
+            "names"
+          ],
+          "proof": "`tests/test_rule.py::test_rule`",
+          "nodeid": "tests/test_rule.py::test_rule",
+          "status": "passed"
+        }
+      ],
+      "approvals": {
+        "spec": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:52797a5e9631d95936075d1611fd065532c0b22744031388da7c0958e0fd95d1",
+          "by": "simulated-fixture-reviewer",
+          "at": "2026-09-08T14:58:44.871Z"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:2c3e97d51322c5f92d1d226c80602440ca3fde0571da4774aeb179f816d6978d",
+          "by": "simulated-fixture-reviewer",
+          "at": "2026-09-08T14:58:44.920Z"
+        }
+      },
+      "source": {
+        "reference": "requirements.md",
+        "revision": "315795f739bf937b85f86b6683da44b1da3ba37a",
+        "kind": "repository",
+        "digest": "sha256:49c89b31e0f6d29d1e89f5e39cf8b2a8e1cd649566f3568e04a8f0ac71d08ec1"
+      },
+      "intent": {
+        "revision": "7fb7a19bfd828eeee3d2aac705248375032b1acb",
+        "digest": "sha256:62387f9475aa039e3b0b76e04d4b033a5c3c3fb5fd2e53ed9113423e2f73f3dd"
+      },
+      "execution": {
+        "verdict": "pass",
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+        "observations": {
+          "status": "observed",
+          "exitcode": 0,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_titlecase",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_rule.py::test_rule",
+              "outcome": "passed"
+            }
+          ]
+        }
+      }
+    },
+    "ok": true,
+    "changed_files": [
+      ".aidlc/artifacts/original-rule/intent.md",
+      ".aidlc/artifacts/original-rule/plan.md",
+      ".aidlc/artifacts/original-rule/review.md",
+      ".aidlc/artifacts/original-rule/spec.md",
+      "src/app/text.py",
+      "tests/test_rule.py"
+    ],
+    "controls": [
+      {
+        "control": "scope-drift",
+        "verdict": "pass",
+        "ms": 171,
+        "findings": [],
+        "truncated": 0
+      },
+      {
+        "control": "test",
+        "verdict": "pass",
+        "ms": 203,
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+        "execution": {
+          "status": "observed",
+          "exitcode": 0,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_titlecase",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_rule.py::test_rule",
+              "outcome": "passed"
+            }
+          ]
+        },
+        "findings": [],
+        "truncated": 0
+      }
+    ]
+  },
+  "historical_view": {
+    "version": 1,
+    "revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+    "records": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+    "meaning": "recorded repository integration; not deployment or acceptance",
+    "coverage": "partial: only recorded changes; untouched legacy behavior is unmodeled",
+    "changes": [
+      {
+        "version": 1,
+        "change": "formatting-refactor",
+        "repository": "simulation/names",
+        "pr": 3,
+        "base": "a7d12ec34c7f02a7bb613d6bbf57645ecfcd91eb",
+        "candidate": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+        "merge": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+        "checks": {
+          "path": ".aidlc/artifacts/formatting-refactor/candidate-check.json",
+          "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+          "blob": "412e7a2820adfdd42edff6466bb3eb041ec3c23a",
+          "state": "passed",
+          "trace": {
+            "version": 1,
+            "context": "candidate",
+            "change": "formatting-refactor",
+            "authority": "local-audit-labels",
+            "delivery": "not-observed",
+            "behaviours": [
+              {
+                "id": "formatting-refactor#B1",
+                "criteria": [
+                  "names"
+                ],
+                "proof": "`tests/test_rule.py::test_rule`",
+                "nodeid": "tests/test_rule.py::test_rule",
+                "status": "passed"
+              }
+            ],
+            "approvals": {
+              "spec": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:e9ab186eaa269e26fda269efe621fe714aedcd797c50e9cd30eea84552036835",
+                "by": "simulated-fixture-reviewer",
+                "at": "2026-09-08T14:58:54.206Z"
+              },
+              "plan": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:1feb41fd5dcda8e6b765bad40c1dfa73c3987d542218d676da4a596aa7c5b160",
+                "by": "simulated-fixture-reviewer",
+                "at": "2026-09-08T14:58:54.434Z"
+              }
+            },
+            "source": {
+              "reference": "requirements.md",
+              "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+              "kind": "repository",
+              "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+            },
+            "intent": {
+              "revision": "811d9ef204b86273e86e6397572318980f3e4c92",
+              "digest": "sha256:73cddd554187715d67e1a20dc2adeefeea218ea82783cc97393da44e69de595f"
+            },
+            "execution": {
+              "verdict": "pass",
+              "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+              "observations": {
+                "status": "observed",
+                "exitcode": 0,
+                "tests": [
+                  {
+                    "nodeid": "tests/test_app.py::test_titlecase",
+                    "outcome": "passed"
+                  },
+                  {
+                    "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                    "outcome": "passed"
+                  },
+                  {
+                    "nodeid": "tests/test_app.py::test_render_name",
+                    "outcome": "passed"
+                  },
+                  {
+                    "nodeid": "tests/test_rule.py::test_rule",
+                    "outcome": "passed"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "host_review": ".aidlc/artifacts/formatting-refactor/host-review.json",
+        "approval": {
+          "spec": {
+            "state": "approved",
+            "binding": "v2",
+            "digest": "sha256:e9ab186eaa269e26fda269efe621fe714aedcd797c50e9cd30eea84552036835"
+          },
+          "plan": {
+            "state": "approved",
+            "binding": "v2",
+            "digest": "sha256:1feb41fd5dcda8e6b765bad40c1dfa73c3987d542218d676da4a596aa7c5b160"
+          }
+        },
+        "bound": true,
+        "source": {
+          "reference": "requirements.md",
+          "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+          "kind": "repository",
+          "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+        },
+        "intent": {
+          "path": ".aidlc/artifacts/formatting-refactor/intent.md",
+          "revision": "811d9ef204b86273e86e6397572318980f3e4c92"
+        },
+        "spec": {
+          "path": ".aidlc/artifacts/formatting-refactor/spec.md",
+          "revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf"
+        },
+        "plan": {
+          "path": ".aidlc/artifacts/formatting-refactor/plan.md",
+          "revision": "c40f11b8c80e5893845dc84c5453eed50ebf5acf"
+        },
+        "design": "Move formatting to names.py; retain titlecase as the public wrapper and preserve assertions.",
+        "files": [
+          "src/app/text.py",
+          "src/app/names.py",
+          "tests/test_rule.py"
+        ],
+        "extends": [
+          "new-rule"
+        ],
+        "supersedes": [],
+        "behaviours": [
+          {
+            "id": "formatting-refactor#B1",
+            "criteria": [
+              "names"
+            ],
+            "proof": "`tests/test_rule.py::test_rule`",
+            "execution": "passed"
+          }
+        ],
+        "state": "not-delivered-at-revision",
+        "diagnostics": [
+          "Declared paths differ at the requested revision; inspect later delivery records and source. Historical proof does not prove the later code."
+        ],
+        "trust": "unsigned local evidence",
+        "host": {
+          "path": ".aidlc/artifacts/formatting-refactor/host-review.json",
+          "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+          "blob": "37f38d6eabfb74f55e9bafd36357107b84391219",
+          "provenance": "simulated-transport",
+          "assessment": "policy-unavailable",
+          "verified": false,
+          "recorded_verification": false,
+          "limitation": "Archived unsigned observation; no live host authentication or deployment observation."
+        },
+        "merge_mismatches": [],
+        "code": [
+          {
+            "path": "src/app/text.py",
+            "candidate": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+            "merge": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+            "requested_revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "present": true,
+            "present_at_requested": true,
+            "matches_requested": false,
+            "mapping": "declared file/commit, not symbol proof"
+          },
+          {
+            "path": "src/app/names.py",
+            "candidate": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+            "merge": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+            "requested_revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "present": true,
+            "present_at_requested": false,
+            "matches_requested": false,
+            "mapping": "declared file/commit, not symbol proof"
+          },
+          {
+            "path": "tests/test_rule.py",
+            "candidate": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+            "merge": "c40f11b8c80e5893845dc84c5453eed50ebf5acf",
+            "requested_revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "present": true,
+            "present_at_requested": true,
+            "matches_requested": false,
+            "mapping": "declared file/commit, not symbol proof"
+          }
+        ],
+        "record": {
+          "path": ".aidlc/artifacts/formatting-refactor/delivery.json",
+          "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+          "blob": "4f75bbd3406eefe8ac99218b8903c5dccf800a17",
+          "deleted": false
+        }
+      },
+      {
+        "version": 1,
+        "change": "new-rule",
+        "repository": "simulation/names",
+        "pr": 2,
+        "base": "438d69e25ae474328044c1e99f632553bd0a839b",
+        "candidate": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03",
+        "merge": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+        "checks": {
+          "path": ".aidlc/artifacts/new-rule/candidate-check.json",
+          "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+          "blob": "555f57bd595dabdca5ead8f4715761e88d703f39",
+          "state": "passed",
+          "trace": {
+            "version": 1,
+            "context": "candidate",
+            "change": "new-rule",
+            "authority": "local-audit-labels",
+            "delivery": "not-observed",
+            "behaviours": [
+              {
+                "id": "new-rule#B1",
+                "criteria": [
+                  "names"
+                ],
+                "proof": "`tests/test_rule.py::test_rule`",
+                "nodeid": "tests/test_rule.py::test_rule",
+                "status": "passed"
+              }
+            ],
+            "approvals": {
+              "spec": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:436c74abf317f59448d206e29899e580c8d6accca170dffbc4e3cc528ec91daa",
+                "by": "simulated-fixture-reviewer",
+                "at": "2026-09-08T14:58:46.123Z"
+              },
+              "plan": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:cafcefc52ebfd160192f20085660063003f9405d05c8d812c0238e765038d356",
+                "by": "simulated-fixture-reviewer",
+                "at": "2026-09-08T14:58:46.360Z"
+              }
+            },
+            "source": {
+              "reference": "requirements.md",
+              "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+              "kind": "repository",
+              "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+            },
+            "intent": {
+              "revision": "94e8cd5831e752d71273a8ef94ad798a79c95b16",
+              "digest": "sha256:73cddd554187715d67e1a20dc2adeefeea218ea82783cc97393da44e69de595f"
+            },
+            "execution": {
+              "verdict": "pass",
+              "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+              "observations": {
+                "status": "observed",
+                "exitcode": 0,
+                "tests": [
+                  {
+                    "nodeid": "tests/test_app.py::test_titlecase",
+                    "outcome": "passed"
+                  },
+                  {
+                    "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                    "outcome": "passed"
+                  },
+                  {
+                    "nodeid": "tests/test_app.py::test_render_name",
+                    "outcome": "passed"
+                  },
+                  {
+                    "nodeid": "tests/test_rule.py::test_rule",
+                    "outcome": "passed"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "host_review": ".aidlc/artifacts/new-rule/host-review.json",
+        "approval": {
+          "spec": {
+            "state": "approved",
+            "binding": "v2",
+            "digest": "sha256:436c74abf317f59448d206e29899e580c8d6accca170dffbc4e3cc528ec91daa"
+          },
+          "plan": {
+            "state": "approved",
+            "binding": "v2",
+            "digest": "sha256:cafcefc52ebfd160192f20085660063003f9405d05c8d812c0238e765038d356"
+          }
+        },
+        "bound": true,
+        "source": {
+          "reference": "requirements.md",
+          "revision": "438d69e25ae474328044c1e99f632553bd0a839b",
+          "kind": "repository",
+          "digest": "sha256:6e86fc87748f1119dbec93b60176aacf376efd21dc543f4f405b9ea96177444f"
+        },
+        "intent": {
+          "path": ".aidlc/artifacts/new-rule/intent.md",
+          "revision": "94e8cd5831e752d71273a8ef94ad798a79c95b16"
+        },
+        "spec": {
+          "path": ".aidlc/artifacts/new-rule/spec.md",
+          "revision": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03"
+        },
+        "plan": {
+          "path": ".aidlc/artifacts/new-rule/plan.md",
+          "revision": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03"
+        },
+        "design": "Keep titlecase pure in the text helper.",
+        "files": [
+          "src/app/text.py",
+          "tests/test_rule.py"
+        ],
+        "extends": [],
+        "supersedes": [
+          "original-rule#B1"
+        ],
+        "behaviours": [
+          {
+            "id": "new-rule#B1",
+            "criteria": [
+              "names"
+            ],
+            "proof": "`tests/test_rule.py::test_rule`",
+            "execution": "passed"
+          }
+        ],
+        "state": "not-delivered-at-revision",
+        "diagnostics": [
+          "Declared paths differ at the requested revision; inspect later delivery records and source. Historical proof does not prove the later code."
+        ],
+        "trust": "unsigned local evidence",
+        "host": {
+          "path": ".aidlc/artifacts/new-rule/host-review.json",
+          "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+          "blob": "41d56b6edf87e8d0a52ff19ac6212562d0a6bb68",
+          "provenance": "simulated-transport",
+          "assessment": "policy-unavailable",
+          "verified": false,
+          "recorded_verification": false,
+          "limitation": "Archived unsigned observation; no live host authentication or deployment observation."
+        },
+        "merge_mismatches": [],
+        "code": [
+          {
+            "path": "src/app/text.py",
+            "candidate": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03",
+            "merge": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+            "requested_revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "present": true,
+            "present_at_requested": true,
+            "matches_requested": false,
+            "mapping": "declared file/commit, not symbol proof"
+          },
+          {
+            "path": "tests/test_rule.py",
+            "candidate": "0f5a4a0bb19dfb463d01dfdb706a50b80230ee03",
+            "merge": "44c80c7d69b7caad583a912a9ebe9e2037976a87",
+            "requested_revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "present": true,
+            "present_at_requested": true,
+            "matches_requested": false,
+            "mapping": "declared file/commit, not symbol proof"
+          }
+        ],
+        "record": {
+          "path": ".aidlc/artifacts/new-rule/delivery.json",
+          "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+          "blob": "32f247a93c443dcbdae75db875211d2335809d1e",
+          "deleted": false
+        }
+      },
+      {
+        "version": 1,
+        "change": "original-rule",
+        "repository": "simulation/names",
+        "pr": 1,
+        "base": "b13511d30ea58acd2b86c2352715d914d7e861d9",
+        "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+        "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+        "checks": {
+          "path": ".aidlc/artifacts/original-rule/candidate-check.json",
+          "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+          "blob": "a917415603f4d03d6f64ce13f649ed883499c498",
+          "state": "passed",
+          "trace": {
+            "version": 1,
+            "context": "candidate",
+            "change": "original-rule",
+            "authority": "local-audit-labels",
+            "delivery": "not-observed",
+            "behaviours": [
+              {
+                "id": "original-rule#B1",
+                "criteria": [
+                  "names"
+                ],
+                "proof": "`tests/test_rule.py::test_rule`",
+                "nodeid": "tests/test_rule.py::test_rule",
+                "status": "passed"
+              }
+            ],
+            "approvals": {
+              "spec": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:52797a5e9631d95936075d1611fd065532c0b22744031388da7c0958e0fd95d1",
+                "by": "simulated-fixture-reviewer",
+                "at": "2026-09-08T14:58:44.871Z"
+              },
+              "plan": {
+                "state": "approved",
+                "binding": "v2",
+                "digest": "sha256:2c3e97d51322c5f92d1d226c80602440ca3fde0571da4774aeb179f816d6978d",
+                "by": "simulated-fixture-reviewer",
+                "at": "2026-09-08T14:58:44.920Z"
+              }
+            },
+            "source": {
+              "reference": "requirements.md",
+              "revision": "315795f739bf937b85f86b6683da44b1da3ba37a",
+              "kind": "repository",
+              "digest": "sha256:49c89b31e0f6d29d1e89f5e39cf8b2a8e1cd649566f3568e04a8f0ac71d08ec1"
+            },
+            "intent": {
+              "revision": "7fb7a19bfd828eeee3d2aac705248375032b1acb",
+              "digest": "sha256:62387f9475aa039e3b0b76e04d4b033a5c3c3fb5fd2e53ed9113423e2f73f3dd"
+            },
+            "execution": {
+              "verdict": "pass",
+              "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest -q tests --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-tScRmP/work/.aidlc/state/test-report.json'",
+              "observations": {
+                "status": "observed",
+                "exitcode": 0,
+                "tests": [
+                  {
+                    "nodeid": "tests/test_app.py::test_titlecase",
+                    "outcome": "passed"
+                  },
+                  {
+                    "nodeid": "tests/test_app.py::test_render_name_requires_name",
+                    "outcome": "passed"
+                  },
+                  {
+                    "nodeid": "tests/test_app.py::test_render_name",
+                    "outcome": "passed"
+                  },
+                  {
+                    "nodeid": "tests/test_rule.py::test_rule",
+                    "outcome": "passed"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "host_review": ".aidlc/artifacts/original-rule/host-review.json",
+        "approval": {
+          "spec": {
+            "state": "approved",
+            "binding": "v2",
+            "digest": "sha256:52797a5e9631d95936075d1611fd065532c0b22744031388da7c0958e0fd95d1"
+          },
+          "plan": {
+            "state": "approved",
+            "binding": "v2",
+            "digest": "sha256:2c3e97d51322c5f92d1d226c80602440ca3fde0571da4774aeb179f816d6978d"
+          }
+        },
+        "bound": true,
+        "source": {
+          "reference": "requirements.md",
+          "revision": "315795f739bf937b85f86b6683da44b1da3ba37a",
+          "kind": "repository",
+          "digest": "sha256:49c89b31e0f6d29d1e89f5e39cf8b2a8e1cd649566f3568e04a8f0ac71d08ec1"
+        },
+        "intent": {
+          "path": ".aidlc/artifacts/original-rule/intent.md",
+          "revision": "7fb7a19bfd828eeee3d2aac705248375032b1acb"
+        },
+        "spec": {
+          "path": ".aidlc/artifacts/original-rule/spec.md",
+          "revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1"
+        },
+        "plan": {
+          "path": ".aidlc/artifacts/original-rule/plan.md",
+          "revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1"
+        },
+        "design": "Keep titlecase pure in the text helper.",
+        "files": [
+          "src/app/text.py",
+          "tests/test_rule.py"
+        ],
+        "extends": [],
+        "supersedes": [],
+        "behaviours": [
+          {
+            "id": "original-rule#B1",
+            "criteria": [
+              "names"
+            ],
+            "proof": "`tests/test_rule.py::test_rule`",
+            "execution": "passed"
+          }
+        ],
+        "state": "recorded-delivered",
+        "diagnostics": [],
+        "trust": "unsigned local evidence",
+        "host": {
+          "path": ".aidlc/artifacts/original-rule/host-review.json",
+          "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+          "blob": "a309805f173fb80640fc8ba2877a1a3204556ab0",
+          "provenance": "simulated-transport",
+          "assessment": "policy-unavailable",
+          "verified": false,
+          "recorded_verification": false,
+          "limitation": "Archived unsigned observation; no live host authentication or deployment observation."
+        },
+        "merge_mismatches": [],
+        "code": [
+          {
+            "path": "src/app/text.py",
+            "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "requested_revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "present": true,
+            "present_at_requested": true,
+            "matches_requested": true,
+            "mapping": "declared file/commit, not symbol proof"
+          },
+          {
+            "path": "tests/test_rule.py",
+            "candidate": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "merge": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "requested_revision": "118cb1b82bf507fc028e0b8a32d1acac86f08cc1",
+            "present": true,
+            "present_at_requested": true,
+            "matches_requested": true,
+            "mapping": "declared file/commit, not symbol proof"
+          }
+        ],
+        "record": {
+          "path": ".aidlc/artifacts/original-rule/delivery.json",
+          "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956",
+          "blob": "c0627828ce4b2fa312ebf01d7b1661b0f8ec9d7f",
+          "deleted": false
+        }
+      },
+      {
+        "change": "hyphen-titlecase",
+        "state": "delivery-unknown",
+        "proposal": "approved",
+        "closed": false,
+        "supersedes": [],
+        "extends": [],
+        "spec": {
+          "path": ".aidlc/artifacts/hyphen-titlecase/spec.md",
+          "revision": "f57ada3a12dccfb56d676b0b74d37e1c6e8e0956"
+        },
+        "diagnostics": [
+          "No delivery record; approval and closure do not establish integration."
+        ]
+      }
+    ],
+    "behaviours": [
+      {
+        "id": "original-rule#B1",
+        "criteria": [
+          "names"
+        ],
+        "proof": "`tests/test_rule.py::test_rule`",
+        "execution": "passed",
+        "change": "original-rule",
+        "state": "effective",
+        "replaced_by": []
+      }
+    ],
+    "findings": [],
+    "fallback": "git grep -n -F -e <term> 118cb1b82bf507fc028e0b8a32d1acac86f08cc1 -- <path>; git show 118cb1b82bf507fc028e0b8a32d1acac86f08cc1:<path>"
+  }
+}
