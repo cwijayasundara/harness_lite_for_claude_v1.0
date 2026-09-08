@@ -530,8 +530,8 @@ async function main() {
   }
 }
 
-main().then((c) => process.exit(c ?? 0)).catch((e) => {
-  if (e.code === 'ENOCONFIG') { console.error(e.message); process.exit(2); }
+main().then((c) => { process.exitCode = c ?? 0; }).catch((e) => {
+  if (e.code === 'ENOCONFIG') { console.error(e.message); process.exitCode = 2; return; }
   console.error(`harness: ${e.message}`);
-  process.exit(2);
+  process.exitCode = 2;
 });

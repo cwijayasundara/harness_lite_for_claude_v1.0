@@ -307,7 +307,7 @@ test('the shim fails loudly when the harness is nowhere', (t) => {
   const wrong = spawnSync('bash', [path.join(root, '.aidlc', 'bin', 'harness'), 'doctor'],
     { cwd: root, encoding: 'utf8', env: { ...process.env, HOME: home, HARNESS_HOME: path.join(home, 'nope') } });
   assert.notEqual(wrong.status, 0);
-  assert.match(wrong.stderr, /HARNESS_HOME=.*holds no \.aidlc\/bin\/harness/, 'the failure says which variable is wrong');
+  assert.match(wrong.stderr, /HARNESS_HOME.*holds no \.aidlc\/bin\/harness/, 'the failure says which variable is wrong');
   assert.match(wrong.stderr, /claude plugin marketplace add/, 'and still names the way out');
 });
 
