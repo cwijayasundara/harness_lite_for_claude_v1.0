@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:36b46ec0423ba1d1d8af3d79b0008f4490cf45dd540a2ea91251225edea8ead7
+spec_approval_digest: sha256:ec15000f3a93bb6421b8078e26710f9b25a57e744620934173e414e8d6c0540b
+by: cwijayasundara
+at: 2026-09-08T15:13:16.613Z
+digest: sha256:8d918c014db6db14a6e7b27c8e412748c868f7c2187f630294d3ff312708f7e2
+approval_version: 2
+approval_digest: sha256:68cfe9d9fabf39b0c67f0dc7fe55155b3834024169dd0a1728dac603c80ed46d
 ---
 # Plan: team-reuse
 

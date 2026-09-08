@@ -1,6 +1,18 @@
 ---
-status: draft
+status: approved
 extends: requirement-traceability
+source_digest: sha256:7bbcd184ca7f237ae02b4c1c7cc19d89d4645f1c41cbebb10828adbee47e9e41
+source: docs/SPDD-TEAM-EVOLUTION-PLAN.md
+source_revision: 34835f0c75b43908af3ffccc551fae40e5edbd4f
+source_kind: repository
+intent_digest: sha256:af9b84d718d787dd3125b1b0902e1270e02d2d64532ca333c600114a72775f5c
+intent_input_digest: sha256:73dc21eaaa6f0aef5c90f1927bccdd2a2b45f709486224be62522b6e896e9a34
+intent_revision: 981a0c3fde7a15ab8232f9bd39f1445afbebacfd
+by: cwijayasundara
+at: 2026-09-08T15:13:13.557Z
+digest: sha256:36b46ec0423ba1d1d8af3d79b0008f4490cf45dd540a2ea91251225edea8ead7
+approval_version: 2
+approval_digest: sha256:ec15000f3a93bb6421b8078e26710f9b25a57e744620934173e414e8d6c0540b
 ---
 # Spec: team-reuse
 
