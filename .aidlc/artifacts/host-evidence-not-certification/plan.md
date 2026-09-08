@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:f167724532c203c2813809ec359a01c0bb77b9b52238358e628720a74321ab24
+spec_approval_digest: sha256:39c705e2aef67777796525cb1574400e72d7aee13961a5a5c98eaf80362497ec
+by: cwijayasundara
+at: 2026-09-08T21:00:20.325Z
+digest: sha256:6c67e56a2dd235dc3d9d237fd037ce0c80ab70f2f6c7a6f51cf076ae48d9ff47
+approval_version: 2
+approval_digest: sha256:b5e30ce6da9b9d01dfa8de2000f9bda57b729cd24f4c50b9351f5d37f7caca86
 ---
 # Plan: host-evidence-not-certification
 

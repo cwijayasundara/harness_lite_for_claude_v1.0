@@ -1,9 +1,19 @@
 ---
-status: draft
+status: approved
 extends: limit-coordination-context
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: 07ef61499d6870b9b51ef46ec42712d92fde25ae
 parent: lean-review-host-identity
+source_digest: sha256:628437cd2a313a15d95d3ca59a3abee91fbbe8bf773e3e8f8aa0ece50fcc1ad7
+source_kind: repository
+intent_digest: sha256:219c2c6ee247338ef1aa7d44c0f9cde7b687ae938e0a13aea4f032b41ea167dc
+intent_input_digest: sha256:efa2bb68a505dc37a982e68aa9617aae89e39b5ad1329db1f410920ae314b5bb
+intent_revision: cc184e5da061fd0f85f13b71dc4b5b56d5b0a9b4
+by: cwijayasundara
+at: 2026-09-08T21:00:09.789Z
+digest: sha256:f167724532c203c2813809ec359a01c0bb77b9b52238358e628720a74321ab24
+approval_version: 2
+approval_digest: sha256:39c705e2aef67777796525cb1574400e72d7aee13961a5a5c98eaf80362497ec
 ---
 # Spec: host-evidence-not-certification
 
