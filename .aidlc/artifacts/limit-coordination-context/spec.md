@@ -1,9 +1,19 @@
 ---
-status: draft
+status: approved
 extends: graph-first-retrieval, decomposition-allocation, product-design-context
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: a4118f5421454ba90e6e4388291fc92dd87b68c6
 parent: lean-review-coordination
+source_digest: sha256:1e7be7427322937aef3f34a36a0c4062a58c522ecd85787050459d2273adaa8d
+source_kind: repository
+intent_digest: sha256:adfb8ecf1d528976058ed68fd90d9a8138a217e033cdb579b9e4efc035d0da02
+intent_input_digest: sha256:b2048959f03cc66d3aecd025e9dfa546f82e765d5a828036de404427125805ea
+intent_revision: a77ef61de5f29b5c9834ed9bb941a117f2922f4b
+by: cwijayasundara
+at: 2026-09-08T20:21:23.562Z
+digest: sha256:744a635cb819e2054aef89f65ee5d9879098b12f7a52bde49112194a85fdc41c
+approval_version: 2
+approval_digest: sha256:f0888f56dc527c129756794853854cac1e699f51d9e07d497994f51eda32f7eb
 ---
 # Spec: limit-coordination-context
 
