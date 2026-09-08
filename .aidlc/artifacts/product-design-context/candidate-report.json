@@ -1,0 +1,191 @@
+{
+  "stage": "commit",
+  "revision": {
+    "base": "c10e2b5fe7e1242bc5feb827df664517f236a8e5",
+    "candidate": "d16f9979072cb47e0bfcdc346292395eaf9da2b6",
+    "change": "product-design-context"
+  },
+  "trace": {
+    "version": 1,
+    "context": "candidate",
+    "change": "product-design-context",
+    "authority": "local-audit-labels",
+    "delivery": "not-observed",
+    "behaviours": [
+      {
+        "id": "product-design-context#B1",
+        "criteria": [
+          "local:E-revision-specific-delivered-view"
+        ],
+        "proof": "test/product-context.test.mjs: exact product/catalog commits, dirty files, invalid refs, report identity, host merge versus policy, CLI text/JSON",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "product-design-context#B2",
+        "criteria": [
+          "local:E-revision-specific-delivered-view"
+        ],
+        "proof": "test/product-context.test.mjs: ancestry, merge-content mismatch, missing/failed evidence, legacy, closed proposals, record history/deletion, unsafe paths",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "product-design-context#B3",
+        "criteria": [
+          "local:E-rule-reversal-and-refactor-source-trace"
+        ],
+        "proof": "test/product-context.test.mjs: pre/post reversal, chain, competing replacements, cycles, deleted links, unchanged historical bytes",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "product-design-context#B4",
+        "criteria": [
+          "local:E-rule-reversal-and-refactor-source-trace"
+        ],
+        "proof": "test/product-context.test.mjs: refactor continuity, source/design/proof trace, renamed/deleted files and file/commit fallback; product trial",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "product-design-context#B5",
+        "criteria": [
+          "local:E-deleted-cache-rebuild-and-honest-misses"
+        ],
+        "proof": "test/graph.test.mjs, test/pack.test.mjs, test/map.test.mjs: cache deletion, historical snapshot isolation, misses, budgets, coverage and compatibility",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "product-design-context#B6",
+        "criteria": [
+          "local:E-preserve-history-and-authority"
+        ],
+        "proof": "test/supersedes.test.mjs, test/worktree-selection.test.mjs, test/requirement-traceability.test.mjs; product post-fix evidence and full stop/commit/candidate reports",
+        "nodeid": null,
+        "status": "unverified"
+      }
+    ],
+    "approvals": {
+      "spec": {
+        "state": "approved",
+        "binding": "v2",
+        "digest": "sha256:03090bab4ed2736a1bb3cbfbdcdf9484fa3c213558eb766ee770b86082dcb28a",
+        "by": "cwijayasundara",
+        "at": "2026-09-08T14:00:26.524Z"
+      },
+      "plan": {
+        "state": "approved",
+        "binding": "v2",
+        "digest": "sha256:51da8e6df939ad73f70222fcd6d4d23655150013a5e999c9ceedcf4625f48a63",
+        "by": "cwijayasundara",
+        "at": "2026-09-08T14:00:26.832Z"
+      }
+    },
+    "source": {
+      "reference": "docs/SPDD-TEAM-EVOLUTION-PLAN.md",
+      "revision": "c10e2b5fe7e1242bc5feb827df664517f236a8e5",
+      "kind": "repository",
+      "digest": "sha256:71eed60ee43efe80c5b4dd9789ae0ea66146af9b4c6217b40d67e81afc43d27b"
+    },
+    "intent": {
+      "revision": "2120ec469c3a0b07b84eca82a02424623f8d0654",
+      "digest": "sha256:7ee6cd2a2df876ce3ba34335c7208ff418102c9a4c8225d10dc947e1baf8319e"
+    },
+    "execution": {
+      "verdict": "pass",
+      "command": "node --test --test-reporter=tap test/*.test.mjs",
+      "observations": {
+        "status": "unsupported",
+        "tests": []
+      }
+    }
+  },
+  "ok": true,
+  "changed_files": [
+    ".aidlc/artifacts/product-design-context/evidence.md",
+    ".aidlc/artifacts/product-design-context/intent.md",
+    ".aidlc/artifacts/product-design-context/plan.md",
+    ".aidlc/artifacts/product-design-context/post-fix.json",
+    ".aidlc/artifacts/product-design-context/post-fix.mjs",
+    ".aidlc/artifacts/product-design-context/reproduce.mjs",
+    ".aidlc/artifacts/product-design-context/reproduction.json",
+    ".aidlc/artifacts/product-design-context/review.md",
+    ".aidlc/artifacts/product-design-context/spec.md",
+    ".aidlc/bin/harness",
+    ".aidlc/lib/map.mjs",
+    ".aidlc/lib/product-context.mjs",
+    ".aidlc/policies/review.md",
+    ".aidlc/skills/change-safely/SKILL.md",
+    ".aidlc/skills/map/SKILL.md",
+    ".aidlc/templates/review.md",
+    "README.md",
+    "docs/SPDD-TEAM-EVOLUTION-PLAN.md",
+    "test/_product-context-fixture.mjs",
+    "test/pack.test.mjs",
+    "test/product-context.test.mjs"
+  ],
+  "controls": [
+    {
+      "control": "secrets",
+      "verdict": "pass",
+      "ms": 157,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "test",
+      "verdict": "pass",
+      "ms": 68198,
+      "findings": [],
+      "command": "node --test --test-reporter=tap test/*.test.mjs",
+      "execution": {
+        "status": "unsupported",
+        "tests": []
+      }
+    },
+    {
+      "control": "scope-drift",
+      "verdict": "pass",
+      "ms": 162,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "budget",
+      "verdict": "pass",
+      "ms": 2,
+      "findings": [],
+      "command": "",
+      "measured": {
+        "skills": 7,
+        "agents": 3,
+        "hooks": 4,
+        "hook_loc": 255,
+        "claude_md_lines": 87
+      }
+    },
+    {
+      "control": "tamper",
+      "verdict": "pass",
+      "ms": 251,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "arch",
+      "verdict": "pass",
+      "ms": 27,
+      "findings": [],
+      "command": "node .aidlc/sensors/architecture.mjs"
+    },
+    {
+      "control": "test_quality",
+      "verdict": "pass",
+      "ms": 28,
+      "findings": [],
+      "command": "node .aidlc/sensors/test-quality.mjs"
+    }
+  ]
+}

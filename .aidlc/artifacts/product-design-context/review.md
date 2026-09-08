@@ -24,7 +24,7 @@ explicit simulations. No source fixture, historical repository approval or execu
 
 Focused graph/pack/context/map tests passed, followed by the full local stop and commit stages.
 The additional delivery-order regression passed after that local commit-stage run. Final clean
-candidate validation is archived separately in evidence.md once run.
+candidate validation passed all seven controls on d16f997 and is archived in evidence.md.
 
 No unresolved implementation defect was identified in this self-review. Remaining product limits
 are deliberate: partial recorded coverage, unsigned local evidence, heuristic graph extraction,
@@ -34,5 +34,5 @@ visible; historical passing tests do not prove later unrecorded edits correct.
 
 ## Recommendation
 
-Ready for clean candidate validation and human PR review. This recommendation does not approve
+Clean candidate validation passed; ready for human PR review. This recommendation does not approve
 or merge a PR, authenticate a local audit label, or establish a deployment.

@@ -1,0 +1,8 @@
+candidate d16f9979072cb47e0bfcdc346292395eaf9da2b6 from c10e2b5fe7e1242bc5feb827df664517f236a8e5 — change product-design-context
+PASS  secrets     157ms
+PASS  test        68198ms
+PASS  scope-drift 162ms
+PASS  budget      2ms
+PASS  tamper      251ms
+PASS  arch        27ms
+PASS  test_quality 28ms

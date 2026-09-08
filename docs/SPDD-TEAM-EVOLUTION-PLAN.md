@@ -154,16 +154,16 @@ Reuse should promote a validated technique into existing project guidance, a tem
 
 Implement A first, then B; together they form the first team-governance milestone. Item A can be implemented and reviewed independently, but does not resolve B's clean-checkout scope gap. C must precede treating new metadata as authoritative. D uses A/C; E uses C/D. F's evidence identity work supports all of them, while broad organizational integration can wait. Preserve old artifact history; use explicit legacy handling without inventing approvals. Add migration tests before changing the meaning of `closed`, `extends` or `supersedes`.
 
-**Six-step implementation checklist and fresh-session handoff.** Items 1–4 have now been implemented and locally validated; items 5–6 remain proposed. The numbering below matches the conversation; deliveries A–F above provide their scope and exit evidence. See the delivery records below for the implementation and limitations.
+**Six-step implementation checklist and fresh-session handoff.** Items 1–5 have now been implemented and locally validated; item 6 remains proposed. The numbering below matches the conversation; deliveries A–F above provide their scope and exit evidence. See the delivery records below for the implementation and limitations.
 
 1. [x] **Make execution specific to each worktree (A).** Bind execution to one change; scope pending approval checks to that change.
 2. [x] **Validate the entire PR candidate (B).** Check base-to-candidate changes, including committed files, renames and deletions.
 3. [x] **Strengthen traceability (C).** Link requirement revisions, behaviors, approvals, executed proof and delivery revisions.
 4. [x] **Support decomposition and allocation (D).** Connect bounded child outcomes, dependencies, shared interfaces and existing issue-tracker assignments.
-5. [ ] **Maintain a current product/design view (E).** Derive revision-specific context from delivered changes while retaining historical records.
+5. [x] **Maintain a current product/design view (E).** Derive revision-specific context from delivered changes while retaining historical records.
 6. [ ] **Verify reuse across the team (F).** Verify runtime/policy identity and export attributable evidence; validate reuse on product work.
 
-The latest requested scope is **item 5 only**. Its concrete spec and plan are prepared for the existing approval gates; item 5 is not yet delivered. Item 6 remains unauthorized. Earlier instructions and suggested requests below are retained as historical handoff context; see the delivery records for each implementation's evidence and limitations.
+The latest authorized implementation scope is **item 5 only**, following user approval of its concrete spec and plan. Item 5 is implemented and locally validated; item 6 requires separate authorization. Earlier instructions and suggested requests below are retained as historical handoff context; see the delivery records for each implementation's evidence and limitations.
 
 For item 1, first inspect current repository instructions and working-tree changes, then read this document and the current versions of `.aidlc/lib/artifacts.mjs`, `.aidlc/lib/guard.mjs`, `.aidlc/checks/scope-drift.mjs`, `.aidlc/bin/harness`, and the current-change/approval tests. The research revision above is a baseline, not permission to overwrite later work.
 
@@ -190,7 +190,7 @@ preserve existing work, reproduce the defect, implement and validate the fix,
 and update the plan with delivery evidence. Do not start items 2–6.
 ```
 
-Items 1 and 2 now extend existing verbs with `--change`, `--base` and `--candidate`; see their delivery records and README usage. A trace query remains proposed for later work. The user-facing workflow remains a natural-language request, followed by the existing meaningful approval decisions.
+Items 1 and 2 now extend existing verbs with `--change`, `--base` and `--candidate`; see their delivery records and README usage. Item 5 now adds revision-specific product/source/design queries through graph and pack; see its delivery record. The user-facing workflow remains a natural-language request, followed by the existing meaningful approval decisions.
 
 **Validation that would justify adoption.** Extend the existing non-harness product campaigns instead of building a new runner. Use an existing service with a weak legacy baseline, two concurrent engineers/worktrees, three delivery slices, a shared API change, a mid-flight rule reversal, a refactor and an integration failure. Include one clean-checkout scope violation and one unrelated pending intent. Keep hidden acceptance assertions independent of the implementation agent; label simulated decisions as simulations.
 
@@ -524,3 +524,74 @@ the existing approval workflow, then implement and validate their bounded scope.
 trial covers original rule, pending reversal, integrated reversal, refactor, cache removal and
 honest fallback. Item 6 remains unstarted. No production code or host configuration changed
 in preparation, and no completed delivery, hosted review or merge is claimed.
+
+
+**Item 5 delivery record — 8 September 2026.** Implemented only E under
+[product-design-context](../.aidlc/artifacts/product-design-context/spec.md).
+The user replied “approved and continue”; the existing CLI recorded that decision in
+`d8b0635`, following preparation commit `2120ec4`. This records the conversation decision,
+not authenticated host review or a human CLI invocation. Historical approved artifact
+bodies remain unchanged. The preparation record above describes the earlier draft state.
+
+`harness graph query product --revision <ref> [--records <ref>]` now derives a partial
+product/design view with exact product and evidence-catalog commit identities. The catalog
+defaults to HEAD so observations archived after integration can describe an earlier revision.
+Per-change delivery.json references bind repository/PR and base/candidate/merge identities to
+committed candidate-check and host-review report paths. Candidate spec/plan bindings and
+source/proof links are inspected in isolated snapshots. Recorded host merge observation,
+Git ancestry and candidate-to-merge path/mode consistency qualify recorded integration.
+Changed integration content needs fresh integrated evidence; unexecuted/failed proof and
+unavailable policy remain separately visible. Offline queries never claim live verification;
+archived assessments remain unsigned observations, with simulations labelled.
+
+Approved but unmerged proposals cannot retire delivered rules. Supersession is derived from
+bound delivery snapshots, retaining source, design, proof, file/commit and historical behavior
+links. Refactor continuity does not retire behavior. Competing replacements, cycles, missing
+targets and reversed delivery order remain unresolved rather than timestamp-selected. Full
+reachable catalog history exposes deleted or conflicting records, including side-branch
+records discarded by an ours merge. Current path differences are visible; old proof cannot
+establish correctness of later unrecorded code. Legacy approvals without records stay
+explicitly delivery-unknown. Existing approval-time supersession and closure semantics are
+unchanged; status presentation now labels approved/proposed declarations.
+
+`harness pack <symbol-or-path> --revision <ref>` reuses the structural graph against an
+isolated exact snapshot and adds relevant delivery/source/design context within its budget.
+Omissions are named; artifact references cannot hide a structural miss. Cache removal
+rebuilds normally. Unsupported or unavailable context directs readers to revision-specific
+Git search. Snapshots use bounded raw blobs without symlinks, project hooks, filters or
+submodule execution; partial clones are refused before offline object retrieval. Existing
+map and review/navigation guidance describe coverage and distinguish reversals, refactors
+and bugs that must be fixed against the approved requirement.
+
+Acceptance evidence:
+
+- [Pre-fix product reproduction](../.aidlc/artifacts/product-design-context/reproduction.json)
+  demonstrates premature approval-time supersession with unchanged executing product code.
+- [Post-fix trial and exact product checks](../.aidlc/artifacts/product-design-context/post-fix.json)
+  and its [reusable script](../.aidlc/artifacts/product-design-context/post-fix.mjs) exercise an
+  existing product's original rule, committed requirement correction, approved pending reversal,
+  actual local merge topology and refactor. Real pytest observations pass for all three delivered
+  slices, existing regressions pass, refactor assertions and historical contract bytes remain
+  intact, historical queries retain the old rule, cache deletion rebuilds and misses fall back.
+  All fixture approvals and host observations are simulated; source fixtures were not changed.
+- [Context regressions](../test/product-context.test.mjs) and [pack regressions](../test/pack.test.mjs)
+  cover identities, dirty-tree isolation, source links, merge content/modes/rename endpoints,
+  record deletion/ambiguity, missing or forged reports, failed proof, legacy gates, canceled
+  proposals, cycles, ordering, partial/shallow repositories, unsafe paths and CLI behavior.
+  Existing graph/map, worktree, binding, scope and approval regressions remain green.
+- Standalone stop and local commit stages passed. The full clean candidate commit stage passed
+  on implementation `d16f9979072cb47e0bfcdc346292395eaf9da2b6`, against pre-item-5 base
+  `c10e2b5fe7e1242bc5feb827df664517f236a8e5`:
+  [exact candidate report](../.aidlc/artifacts/product-design-context/candidate-report.json).
+  [Evidence](../.aidlc/artifacts/product-design-context/evidence.md) and
+  [local self-review](../.aidlc/artifacts/product-design-context/review.md) record commands,
+  findings, results and compatibility limits. The evidence archive follows that code revision.
+
+Limits: this is partial recorded repository integration, not deployment/feature-flag state,
+parent acceptance, semantic equivalence or authenticated offline approval. Local JSON and
+configured test observations are unsigned. Conflicting record corrections remain ambiguous
+and require investigation; this version does not automatically reconcile them. Snapshot and
+history bounds can require targeted Git inspection. No hosted CI, live host review, remote
+configuration, paid campaign, merge or deployment was performed or claimed. No new control,
+dependency, hook, skill, agent or budget increase was introduced. The human PR/merge gate
+remains separate. Item 6 remains unstarted.

@@ -95,3 +95,33 @@ PASS  test        67550ms
 
 The final unsupported-source rendering regression additionally checks that artifact context
 cannot hide a structural graph miss. Final clean candidate checks include this last change.
+
+
+## Final clean candidate validation
+
+Implementation commit `d16f9979072cb47e0bfcdc346292395eaf9da2b6` passed the complete commit
+stage against pre-item-5 base `c10e2b5fe7e1242bc5feb827df664517f236a8e5`:
+
+`node .aidlc/bin/harness check --stage commit --base c10e2b5fe7e1242bc5feb827df664517f236a8e5
+--candidate HEAD --change product-design-context`
+
+```text
+PASS  secrets     157ms
+PASS  test        68198ms
+PASS  scope-drift 162ms
+PASS  budget      2ms
+PASS  tamper      251ms
+PASS  arch        27ms
+PASS  test_quality 28ms
+```
+
+candidate-report.json and candidate-output.txt preserve exact revision identities and all seven
+passing controls. This final run includes the delivered-order, reachable-history and unsupported
+source rendering regressions. The Node suite's success is not promoted to per-behavior pytest
+execution in this harness report; those distinctions remain visible in its trace.
+
+A real CLI query on this repository at that commit returned 50 delivery-unknown changes and no
+unavailable error. This is expected: historical local approvals and implementation records do
+not substitute for the new explicit archived delivery observations. No delivery.json or host
+approval was invented for the harness itself. The final evidence-only archive follows the checked
+implementation revision; no hosted run or merge is inferred.
