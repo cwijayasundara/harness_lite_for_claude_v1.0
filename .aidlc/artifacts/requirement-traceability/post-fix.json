@@ -1,0 +1,765 @@
+{
+  "simulation": "disposable existing product; simulated approval decisions; real pytest execution",
+  "failing": {
+    "stage": "trace",
+    "revision": {
+      "base": "7721ccac45e15327a38843060faf25eea7e44539",
+      "candidate": "8befd029e867711d37e67b166734a00fa72d07f8",
+      "change": "hyphen-titlecase"
+    },
+    "trace": {
+      "version": 1,
+      "context": "candidate",
+      "change": "hyphen-titlecase",
+      "authority": "local-audit-labels",
+      "delivery": "not-observed",
+      "behaviours": [
+        {
+          "id": "hyphen-titlecase#B1",
+          "criteria": [
+            "local:fixture-B1"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase_hyphenated`",
+          "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+          "status": "failed"
+        },
+        {
+          "id": "hyphen-titlecase#B2",
+          "criteria": [
+            "local:fixture-B2"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase`",
+          "nodeid": "tests/test_app.py::test_titlecase",
+          "status": "unverified"
+        }
+      ],
+      "approvals": {
+        "spec": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:1e855832ef085ca3f57683156f7cbb6d049b198793bab30dafeac38e912aa136",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:23.083Z"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:a8182067f9315ef0af468b4abe6732bcd811bd67a9439bb1e249190985f38a42",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:23.157Z"
+        }
+      },
+      "source": {
+        "reference": "https://example.invalid/simulated-requirement",
+        "revision": "fixture-v1",
+        "kind": "external-asserted",
+        "digest": null
+      },
+      "intent": {
+        "revision": "d8704dfea0f6211df19cbab49ad613daec0606ef",
+        "digest": "sha256:5141c7b17678fdd508245a0de9cb3f87753b14080f8235157f72d597b9b6d893"
+      },
+      "execution": {
+        "verdict": "fail",
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-Ebk6Ph/work/.aidlc/state/test-report.json' -q tests/test_app.py",
+        "observations": {
+          "status": "observed",
+          "exitcode": 1,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_titlecase",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+              "outcome": "failed"
+            }
+          ]
+        }
+      }
+    },
+    "ok": false,
+    "changed_files": [
+      "tests/test_app.py"
+    ],
+    "controls": [
+      {
+        "control": "scope-drift",
+        "verdict": "pass",
+        "ms": 116,
+        "findings": [],
+        "truncated": 0
+      },
+      {
+        "control": "test",
+        "verdict": "fail",
+        "ms": 128,
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-Ebk6Ph/work/.aidlc/state/test-report.json' -q tests/test_app.py",
+        "execution": {
+          "status": "observed",
+          "exitcode": 1,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_titlecase",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+              "outcome": "failed"
+            }
+          ]
+        },
+        "findings": [
+          {
+            "file": "tests/test_app.py",
+            "line": 19,
+            "rule": "test-failed",
+            "message": "tests/test_app.py::test_titlecase_hyphenated",
+            "fix": "diagnose against the approved behaviour; preserve regression proof when fixing code or tests"
+          }
+        ],
+        "truncated": 0
+      }
+    ]
+  },
+  "passing": {
+    "stage": "trace",
+    "revision": {
+      "base": "7721ccac45e15327a38843060faf25eea7e44539",
+      "candidate": "61992b5b11890c25b9984dd328857df47bcd309f",
+      "change": "hyphen-titlecase"
+    },
+    "trace": {
+      "version": 1,
+      "context": "candidate",
+      "change": "hyphen-titlecase",
+      "authority": "local-audit-labels",
+      "delivery": "not-observed",
+      "behaviours": [
+        {
+          "id": "hyphen-titlecase#B1",
+          "criteria": [
+            "local:fixture-B1"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase_hyphenated`",
+          "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+          "status": "passed"
+        },
+        {
+          "id": "hyphen-titlecase#B2",
+          "criteria": [
+            "local:fixture-B2"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase`",
+          "nodeid": "tests/test_app.py::test_titlecase",
+          "status": "passed"
+        }
+      ],
+      "approvals": {
+        "spec": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:1e855832ef085ca3f57683156f7cbb6d049b198793bab30dafeac38e912aa136",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:23.083Z"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:a8182067f9315ef0af468b4abe6732bcd811bd67a9439bb1e249190985f38a42",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:23.157Z"
+        }
+      },
+      "source": {
+        "reference": "https://example.invalid/simulated-requirement",
+        "revision": "fixture-v1",
+        "kind": "external-asserted",
+        "digest": null
+      },
+      "intent": {
+        "revision": "d8704dfea0f6211df19cbab49ad613daec0606ef",
+        "digest": "sha256:5141c7b17678fdd508245a0de9cb3f87753b14080f8235157f72d597b9b6d893"
+      },
+      "execution": {
+        "verdict": "pass",
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-Ebk6Ph/work/.aidlc/state/test-report.json' -q tests/test_app.py",
+        "observations": {
+          "status": "observed",
+          "exitcode": 0,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_titlecase",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+              "outcome": "passed"
+            }
+          ]
+        }
+      }
+    },
+    "ok": true,
+    "changed_files": [
+      "src/app/text.py",
+      "tests/test_app.py"
+    ],
+    "controls": [
+      {
+        "control": "scope-drift",
+        "verdict": "pass",
+        "ms": 125,
+        "findings": [],
+        "truncated": 0
+      },
+      {
+        "control": "test",
+        "verdict": "pass",
+        "ms": 126,
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-Ebk6Ph/work/.aidlc/state/test-report.json' -q tests/test_app.py",
+        "execution": {
+          "status": "observed",
+          "exitcode": 0,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_titlecase",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+              "outcome": "passed"
+            }
+          ]
+        },
+        "findings": [],
+        "truncated": 0
+      }
+    ]
+  },
+  "stale": {
+    "stage": "trace",
+    "revision": {
+      "base": "7721ccac45e15327a38843060faf25eea7e44539",
+      "candidate": "8f606743ef9f18ae1c7af46b102b2ba297522327",
+      "change": "hyphen-titlecase"
+    },
+    "trace": {
+      "version": 1,
+      "context": "candidate",
+      "change": "hyphen-titlecase",
+      "authority": "local-audit-labels",
+      "delivery": "not-observed",
+      "behaviours": [
+        {
+          "id": "hyphen-titlecase#B1",
+          "criteria": [
+            "local:fixture-B1"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase_hyphenated`",
+          "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+          "status": "not-executed"
+        },
+        {
+          "id": "hyphen-titlecase#B2",
+          "criteria": [
+            "local:fixture-B2"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase`",
+          "nodeid": "tests/test_app.py::test_titlecase",
+          "status": "not-executed"
+        }
+      ],
+      "approvals": {
+        "spec": {
+          "state": "stale-approval",
+          "binding": "invalid",
+          "digest": "sha256:1e855832ef085ca3f57683156f7cbb6d049b198793bab30dafeac38e912aa136",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:23.083Z"
+        },
+        "plan": {
+          "state": "stale-approval",
+          "binding": "invalid",
+          "digest": "sha256:a8182067f9315ef0af468b4abe6732bcd811bd67a9439bb1e249190985f38a42",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:23.157Z"
+        }
+      },
+      "source": {
+        "reference": "https://example.invalid/simulated-requirement",
+        "revision": "fixture-v1",
+        "kind": "external-asserted",
+        "digest": null
+      },
+      "intent": {
+        "revision": "d8704dfea0f6211df19cbab49ad613daec0606ef",
+        "digest": "sha256:5141c7b17678fdd508245a0de9cb3f87753b14080f8235157f72d597b9b6d893"
+      },
+      "execution": {
+        "verdict": "skipped",
+        "command": "",
+        "observations": {
+          "status": "not-executed",
+          "tests": []
+        }
+      }
+    },
+    "ok": false,
+    "changed_files": [
+      ".aidlc/artifacts/hyphen-titlecase/intent.md",
+      "src/app/text.py",
+      "tests/test_app.py"
+    ],
+    "controls": [
+      {
+        "control": "scope-drift",
+        "verdict": "fail",
+        "ms": 40,
+        "findings": [
+          {
+            "file": "src/app/text.py",
+            "line": 0,
+            "rule": "draft-awaits-gate",
+            "message": "changed while awaiting gate 1: hyphen-titlecase (spec edited after approval) — hyphen-titlecase/spec.md",
+            "fix": "hyphen-titlecase/spec.md was edited after it was approved. Re-approve it (harness approve hyphen-titlecase spec --by <you>) and commit, or restore the approved text; a reversal of an approved behaviour belongs in a new change with `supersedes:`, not in an edit to the old one."
+          },
+          {
+            "file": "tests/test_app.py",
+            "line": 0,
+            "rule": "draft-awaits-gate",
+            "message": "changed while awaiting gate 1: hyphen-titlecase (spec edited after approval) — hyphen-titlecase/spec.md",
+            "fix": "hyphen-titlecase/spec.md was edited after it was approved. Re-approve it (harness approve hyphen-titlecase spec --by <you>) and commit, or restore the approved text; a reversal of an approved behaviour belongs in a new change with `supersedes:`, not in an edit to the old one."
+          }
+        ],
+        "truncated": 0
+      },
+      {
+        "control": "test",
+        "verdict": "skipped",
+        "ms": 0,
+        "findings": [],
+        "truncated": 0,
+        "note": "not run — scope-drift failed first (use --all to run everything)"
+      }
+    ]
+  },
+  "reapproved": {
+    "stage": "trace",
+    "revision": {
+      "base": "7721ccac45e15327a38843060faf25eea7e44539",
+      "candidate": "e291b445f8564f88ecfc0475b4ad04bbe0c9d2b5",
+      "change": "hyphen-titlecase"
+    },
+    "trace": {
+      "version": 1,
+      "context": "candidate",
+      "change": "hyphen-titlecase",
+      "authority": "local-audit-labels",
+      "delivery": "not-observed",
+      "behaviours": [
+        {
+          "id": "hyphen-titlecase#B1",
+          "criteria": [
+            "local:fixture-B1"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase_hyphenated`",
+          "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+          "status": "passed"
+        },
+        {
+          "id": "hyphen-titlecase#B2",
+          "criteria": [
+            "local:fixture-B2"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase`",
+          "nodeid": "tests/test_app.py::test_titlecase",
+          "status": "passed"
+        }
+      ],
+      "approvals": {
+        "spec": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:dbe04a593cf5982e8e88c20c3523b46abb3d6b14f231140d569ae2a3651ddb35",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:24.337Z"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:f4869660641f2d43da8d9de9c5297eb5d624b36e1b237e7f98bdcaa6eae80d9e",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:24.429Z"
+        }
+      },
+      "source": {
+        "reference": "https://example.invalid/simulated-requirement",
+        "revision": "fixture-v1",
+        "kind": "external-asserted",
+        "digest": null
+      },
+      "intent": {
+        "revision": "8f606743ef9f18ae1c7af46b102b2ba297522327",
+        "digest": "sha256:a7c6a564be1410a743a2b8a338638cf48dfede01363cf117c9d556fbb0d0804d"
+      },
+      "execution": {
+        "verdict": "pass",
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-Ebk6Ph/work/.aidlc/state/test-report.json' -q tests/test_app.py",
+        "observations": {
+          "status": "observed",
+          "exitcode": 0,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_titlecase",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+              "outcome": "passed"
+            }
+          ]
+        }
+      }
+    },
+    "ok": true,
+    "changed_files": [
+      ".aidlc/artifacts/hyphen-titlecase/intent.md",
+      ".aidlc/artifacts/hyphen-titlecase/plan.md",
+      ".aidlc/artifacts/hyphen-titlecase/spec.md",
+      "src/app/text.py",
+      "tests/test_app.py"
+    ],
+    "controls": [
+      {
+        "control": "scope-drift",
+        "verdict": "pass",
+        "ms": 117,
+        "findings": [],
+        "truncated": 0
+      },
+      {
+        "control": "test",
+        "verdict": "pass",
+        "ms": 124,
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-Ebk6Ph/work/.aidlc/state/test-report.json' -q tests/test_app.py",
+        "execution": {
+          "status": "observed",
+          "exitcode": 0,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_titlecase",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+              "outcome": "passed"
+            }
+          ]
+        },
+        "findings": [],
+        "truncated": 0
+      }
+    ]
+  },
+  "unexecuted": {
+    "stage": "trace",
+    "revision": {
+      "base": "7721ccac45e15327a38843060faf25eea7e44539",
+      "candidate": "e291b445f8564f88ecfc0475b4ad04bbe0c9d2b5",
+      "change": "hyphen-titlecase"
+    },
+    "trace": {
+      "version": 1,
+      "context": "candidate",
+      "change": "hyphen-titlecase",
+      "authority": "local-audit-labels",
+      "delivery": "not-observed",
+      "behaviours": [
+        {
+          "id": "hyphen-titlecase#B1",
+          "criteria": [
+            "local:fixture-B1"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase_hyphenated`",
+          "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+          "status": "not-executed"
+        },
+        {
+          "id": "hyphen-titlecase#B2",
+          "criteria": [
+            "local:fixture-B2"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase`",
+          "nodeid": "tests/test_app.py::test_titlecase",
+          "status": "not-executed"
+        }
+      ],
+      "approvals": {
+        "spec": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:dbe04a593cf5982e8e88c20c3523b46abb3d6b14f231140d569ae2a3651ddb35",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:24.337Z"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:f4869660641f2d43da8d9de9c5297eb5d624b36e1b237e7f98bdcaa6eae80d9e",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:24.429Z"
+        }
+      },
+      "source": {
+        "reference": "https://example.invalid/simulated-requirement",
+        "revision": "fixture-v1",
+        "kind": "external-asserted",
+        "digest": null
+      },
+      "intent": {
+        "revision": "8f606743ef9f18ae1c7af46b102b2ba297522327",
+        "digest": "sha256:a7c6a564be1410a743a2b8a338638cf48dfede01363cf117c9d556fbb0d0804d"
+      },
+      "execution": {
+        "verdict": "pass",
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-Ebk6Ph/work/.aidlc/state/test-report.json' -q tests/test_app.py -k test_render_name",
+        "observations": {
+          "status": "observed",
+          "exitcode": 0,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            }
+          ]
+        }
+      }
+    },
+    "ok": true,
+    "changed_files": [
+      ".aidlc/artifacts/hyphen-titlecase/intent.md",
+      ".aidlc/artifacts/hyphen-titlecase/plan.md",
+      ".aidlc/artifacts/hyphen-titlecase/spec.md",
+      "src/app/text.py",
+      "tests/test_app.py"
+    ],
+    "controls": [
+      {
+        "control": "scope-drift",
+        "verdict": "pass",
+        "ms": 122,
+        "findings": [],
+        "truncated": 0
+      },
+      {
+        "control": "test",
+        "verdict": "pass",
+        "ms": 123,
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-Ebk6Ph/work/.aidlc/state/test-report.json' -q tests/test_app.py -k test_render_name",
+        "execution": {
+          "status": "observed",
+          "exitcode": 0,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            }
+          ]
+        },
+        "findings": [],
+        "truncated": 0
+      }
+    ]
+  },
+  "skipped": {
+    "stage": "trace",
+    "revision": {
+      "base": "7721ccac45e15327a38843060faf25eea7e44539",
+      "candidate": "053d08d094ab49c863adc7145ef8ed5521d5767e",
+      "change": "hyphen-titlecase"
+    },
+    "trace": {
+      "version": 1,
+      "context": "candidate",
+      "change": "hyphen-titlecase",
+      "authority": "local-audit-labels",
+      "delivery": "not-observed",
+      "behaviours": [
+        {
+          "id": "hyphen-titlecase#B1",
+          "criteria": [
+            "local:fixture-B1"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase_hyphenated`",
+          "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+          "status": "skipped"
+        },
+        {
+          "id": "hyphen-titlecase#B2",
+          "criteria": [
+            "local:fixture-B2"
+          ],
+          "proof": "`tests/test_app.py::test_titlecase`",
+          "nodeid": "tests/test_app.py::test_titlecase",
+          "status": "passed"
+        }
+      ],
+      "approvals": {
+        "spec": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:dbe04a593cf5982e8e88c20c3523b46abb3d6b14f231140d569ae2a3651ddb35",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:24.337Z"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "v2",
+          "digest": "sha256:f4869660641f2d43da8d9de9c5297eb5d624b36e1b237e7f98bdcaa6eae80d9e",
+          "by": "simulated-product-reviewer",
+          "at": "2026-09-08T13:00:24.429Z"
+        }
+      },
+      "source": {
+        "reference": "https://example.invalid/simulated-requirement",
+        "revision": "fixture-v1",
+        "kind": "external-asserted",
+        "digest": null
+      },
+      "intent": {
+        "revision": "8f606743ef9f18ae1c7af46b102b2ba297522327",
+        "digest": "sha256:a7c6a564be1410a743a2b8a338638cf48dfede01363cf117c9d556fbb0d0804d"
+      },
+      "execution": {
+        "verdict": "pass",
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-Ebk6Ph/work/.aidlc/state/test-report.json' -q tests/test_app.py",
+        "observations": {
+          "status": "observed",
+          "exitcode": 0,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_titlecase",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+              "outcome": "skipped"
+            }
+          ]
+        }
+      }
+    },
+    "ok": true,
+    "changed_files": [
+      ".aidlc/artifacts/hyphen-titlecase/intent.md",
+      ".aidlc/artifacts/hyphen-titlecase/plan.md",
+      ".aidlc/artifacts/hyphen-titlecase/spec.md",
+      "src/app/text.py",
+      "tests/test_app.py"
+    ],
+    "controls": [
+      {
+        "control": "scope-drift",
+        "verdict": "pass",
+        "ms": 122,
+        "findings": [],
+        "truncated": 0
+      },
+      {
+        "control": "test",
+        "verdict": "pass",
+        "ms": 119,
+        "command": "PYTHONPATH=src '/private/tmp/item1-python/bin/python' -m pytest --json-report --json-report-file='/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-Ebk6Ph/work/.aidlc/state/test-report.json' -q tests/test_app.py",
+        "execution": {
+          "status": "observed",
+          "exitcode": 0,
+          "tests": [
+            {
+              "nodeid": "tests/test_app.py::test_titlecase",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name_requires_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_render_name",
+              "outcome": "passed"
+            },
+            {
+              "nodeid": "tests/test_app.py::test_titlecase_hyphenated",
+              "outcome": "skipped"
+            }
+          ]
+        },
+        "findings": [],
+        "truncated": 0
+      }
+    ]
+  }
+}

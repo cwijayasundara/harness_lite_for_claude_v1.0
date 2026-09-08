@@ -19,7 +19,7 @@ import { refresh } from '../lib/refresh.mjs';
 import * as codemap from '../lib/map.mjs';
 import { measure, shipped, RECORD } from '../checks/budget.mjs';
 import { dispatch } from '../hooks/dispatch.mjs';
-import { review } from '../lib/review.mjs';
+import { review, hostReview } from '../lib/review.mjs';
 import { changedFiles as diffFiles, prChange } from '../lib/diff.mjs';
 import * as evalGate from '../lib/eval-gate.mjs';
 
@@ -425,6 +425,12 @@ async function main() {
 
     case 'review': {
       const cfg = loadConfig(findRepoRoot());
+      if (has('pr') || has('repo')) {
+        const result = hostReview({ root: cfg.layout.root, repository: flag('repo'), pr: flag('pr'),
+          candidate: flag('candidate'), output: flag('out') });
+        console.log(JSON.stringify(result, null, 2));
+        return result.verified ? 0 : 1;
+      }
       const result = review({ root: cfg.layout.root, base: flag('base'), candidate: flag('candidate'),
         output: flag('out'), model: cfg.models?.evaluator, budgetUsd: Number(flag('budget-usd', 2)) });
       console.log(JSON.stringify(result, null, 2));
@@ -459,6 +465,8 @@ async function main() {
       for (const row of rows) {
         const mark = (kind) => row.artifacts[kind]?.state ?? 'absent';
         console.log(`  ${row.slug.padEnd(30)} ${row.next.padEnd(20)} ${mark('spec').padEnd(10)} ${mark('plan')}`);
+        console.log(`    binding: spec ${row.artifacts.spec?.binding ?? 'absent'}, plan ${row.artifacts.plan?.binding ?? 'absent'}`);
+        for (const kind of artifacts.GATED) if (row.artifacts[kind]?.bindingError) console.log(`    ${kind}: ${row.artifacts[kind].bindingError}`);
       }
       for (const row of rows) for (const issue of row.issues) console.log(`  ERROR ${row.slug}: ${issue}`);
       for (const [link, by] of superseded) console.log(`  SUPERSEDED ${link} — superseded by ${by.join(', ')}`);
@@ -480,6 +488,8 @@ async function main() {
   harness approve <slug> spec|plan --by <identity>
   harness review --base <commit> --candidate <commit> --out <file>
                                  independent read-only model review
+  harness review --repo owner/name --pr <number> --candidate <commit> --out <file>
+                                 read-only GitHub approval evidence (JSON)
   harness status [slug] [--json]  backlog, selection and approvals
     --change <slug> | --clear-change  select execution in this worktree (never approves)
   harness ledger [audit] [--days 30]

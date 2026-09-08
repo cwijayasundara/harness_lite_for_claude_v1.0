@@ -1,3 +1,4 @@
+import { traceFixture } from './_trace-fixture.mjs';
 // the-suite-measures-this-harness. F16/F18/F19 are one omission in three places: lean-v2 changed
 // the artifact model and nothing downstream was re-checked. This is that re-check, made
 // permanent: the three golden tasks that named a path the harness no longer writes, the campaign
@@ -117,6 +118,7 @@ function repo() {
 }
 
 function commit(root, message) {
+  traceFixture(root);
   spawnSync('git', ['add', '-A'], { cwd: root });
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', message], { cwd: root });
 }

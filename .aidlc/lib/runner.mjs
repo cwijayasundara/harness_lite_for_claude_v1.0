@@ -9,7 +9,8 @@ import { spawnSync } from 'node:child_process';
 import { writeFileSync, mkdirSync, existsSync, readFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { resolveStage } from './config.mjs';
-import { normalize } from './normalize.mjs';
+import { normalize, testExecution } from './normalize.mjs';
+import { traceEvidence } from './trace.mjs';
 import * as ledger from './ledger.mjs';
 import * as artifacts from './artifacts.mjs';
 import { candidateBoundary, validateCheckout, changedFiles } from './diff.mjs';
@@ -77,7 +78,8 @@ export async function runOne(cfg, verb, files) {
     }
     const findings = normalize(fmt, payload, r.stderr || r.stdout || '', r.status ?? 0);
     const verdict = (r.status === 0 && findings.length === 0) ? 'pass' : 'fail';
-    return { ...base, verdict, ms: Date.now() - started, command: full, findings };
+    return { ...base, verdict, ms: Date.now() - started, command: full, findings,
+      ...(verb === 'test' ? { execution: testExecution(fmt, payload) } : {}) };
   } catch (e) {
     return { ...base, verdict: 'errored', ms: Date.now() - started, command: full, error: e.message };
   }
@@ -126,16 +128,28 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
     if (failFast && (r.verdict === 'fail' || r.verdict === 'errored')) stopped = verb;
   }
 
+  let validCandidate = candidateMode && !setupError;
+  if (validCandidate) {
+    try { validateCheckout(cfg.layout.root, cfg.diff); }
+    catch (error) {
+      validCandidate = false;
+      results.push({ control: 'scope-drift', verdict: 'errored', ms: 0, findings: [], error: `candidate changed during checks: ${error.message}` });
+    }
+  }
+  const trace = traceEvidence(cfg, results, { validCandidate });
   const cap = cfg.budget.max_findings;
   const report = {
     stage,
     ...(evidence ? { revision: evidence } : {}),
+    trace,
     // why: an unavailable configured sensor previously returned exit 0 from `check`.
     // Unconfigured capabilities stay skipped; an attempted check must actually succeed.
     ok: results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped'),
     changed_files: files,
     controls: results.map((r) => ({
       control: r.control, verdict: r.verdict, ms: r.ms,
+      ...(r.command ? { command: r.command } : {}),
+      ...(r.execution ? { execution: r.execution } : {}),
       findings: (r.findings ?? []).slice(0, cap),
       truncated: Math.max(0, (r.findings ?? []).length - cap),
       ...(r.note ? { note: r.note } : {}),

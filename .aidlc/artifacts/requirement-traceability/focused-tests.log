@@ -1,0 +1,21 @@
+✔ product: new approval binds intent, semantic metadata and dependent plan (859.075333ms)
+✔ legacy approval stays readable but new approval cannot omit trace inputs or bypass them (404.404833ms)
+✔ new bindings reject malformed metadata, unknown versions, unsafe sources and ambiguous requirements (2078.403417ms)
+✔ exact source/intent snapshots survive a harmless rebase and lifecycle closure preserves history (1084.064834ms)
+✔ uncommitted intent and symlink sources cannot authorize a new approval (454.063292ms)
+✔ shallow legacy history cannot hide a previously recorded binding (836.091917ms)
+✔ host evidence distinguishes approved policy, stale/dismissed reviews, missing policy and API failure (302.355209ms)
+✔ host evidence paginates reviews and rejects changed heads or incomplete pages (235.085167ms)
+✔ host evidence CLI records unavailable credentials without invoking a model or exposing stderr (415.255416ms)
+✔ observations reject malformed results and never infer a passed call (0.362375ms)
+✔ candidate trace joins exact proof to current observations; negatives never become passed proof (2482.271375ms)
+✔ a test command that mutates tracked candidate input invalidates revision evidence (381.095416ms)
+✔ real product pytest execution, correction/reapproval and skipped/unexecuted proof (2952.170458ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5855.998958

@@ -1,3 +1,4 @@
+import { traceFixture } from './_trace-fixture.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -13,7 +14,7 @@ function repo() {
   const root = mkdtempSync(path.join(tmpdir(), 'mechanisms-'));
   const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   git('init', '-q'); git('config', 'user.email', 'test@example.invalid'); git('config', 'user.name', 'Test');
-  const commit = () => { git('add', '.'); git('commit', '-qm', 'fixture'); return git('rev-parse', 'HEAD'); };
+  const commit = () => { traceFixture(root); git('add', '.'); git('commit', '-qm', 'fixture'); return git('rev-parse', 'HEAD'); };
   return { root, git, commit, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
@@ -110,6 +111,7 @@ test('campaign runner uses external decisions and records them when stale approv
         writeFileSync(path.join(dir, 'intent.md'), '# Addition\n');
         writeFileSync(path.join(dir, 'spec.md'), render({ status: 'draft' }, '### B1\nAdd integers.\n'));
         writeFileSync(path.join(dir, 'plan.md'), render({ status: 'draft' }, '## Files\n`sum.mjs`\n## Proof\n| B1 | Driver runtime checks |\n'));
+        traceFixture(cwd);
         execFileSync('git', ['add', '.'], { cwd });
         execFileSync('git', ['commit', '-qm', 'draft'], { cwd });
       } else if (prompt === 'tamper') {

@@ -11,6 +11,11 @@ status: draft
 
 ## Observable behaviours
 
+Before approval add a ## Requirements table: Source criterion | Behaviour IDs.
+Use comma-separated B IDs; cover every behaviour. Prefix locally assigned criteria with
+local: when the source has no published IDs. New approvals bind committed intent/source
+inputs and semantic metadata. Corrections require impact review and reapproval.
+
 ### B1
 
 Given ...

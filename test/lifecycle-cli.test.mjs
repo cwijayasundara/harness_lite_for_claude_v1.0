@@ -1,3 +1,4 @@
+import { traceFixture } from './_trace-fixture.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -85,6 +86,7 @@ test('new rejects path traversal and non-canonical artifact slugs', () => {
 test('approve refuses an uncommitted artifact, and refuses a plan before its spec', () => {
   const root = repo();
   const commit = (m) => {
+    traceFixture(root);
     spawnSync('git', ['add', '-A'], { cwd: root });
     spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', m], { cwd: root });
   };
@@ -130,6 +132,7 @@ test('approve refuses an uncommitted artifact, and refuses a plan before its spe
 test('editing an approved artifact reports a stale approval', () => {
   const root = repo();
   const commit = (m) => {
+    traceFixture(root);
     spawnSync('git', ['add', '-A'], { cwd: root });
     spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', m], { cwd: root });
   };

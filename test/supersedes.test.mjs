@@ -1,3 +1,4 @@
+import { traceFixture } from './_trace-fixture.mjs';
 // a-spec-can-be-superseded. evidence.md F9: an agent found sprint 3 reversing a behaviour sprint 1
 // approved, named the behaviour id, and had nowhere to record the finding — so it wrote a
 // paragraph into a summary that was deleted with the tmpdir, and sprint 1's spec still reads
@@ -93,6 +94,7 @@ function repo() {
 }
 
 function commit(root, message) {
+  traceFixture(root);
   spawnSync('git', ['add', '-A'], { cwd: root });
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', message], { cwd: root });
 }

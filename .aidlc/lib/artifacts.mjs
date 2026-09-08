@@ -50,6 +50,115 @@ export function render(front, body) {
 // make every approval change the thing it approves.
 export const bodyDigest = (text) => hash(parse(text).body.replace(/\r\n/g, '\n').trimEnd() + '\n');
 
+// why: requirement-traceability/reproduction.json: an intent correction and a relationship
+// edit both left product authority approved. New approvals bind all non-audit inputs.
+const AUDIT_KEYS = new Set(['status', 'by', 'at', 'digest', 'approval_digest']);
+export function strictParse(text) {
+  const match = /^---\n([\s\S]*?)\n---\n?/.exec(text);
+  if (!match) throw new Error('trace binding requires scalar frontmatter');
+  const seen = new Set();
+  for (const line of match[1].split('\n')) {
+    if (!line.trim() || line.startsWith('#')) continue;
+    const kv = /^([a-z_]+): (\S.*)$/.exec(line);
+    if (!kv || seen.has(kv[1]) || /^[\[\]{|>&*!"']/.test(kv[2])) {
+      throw new Error('trace binding requires unique plain scalar metadata; nested, quoted and duplicate fields are unsupported');
+    }
+    seen.add(kv[1]);
+  }
+  return parse(text);
+}
+
+export function approvalDigest(text) {
+  const { front, body } = strictParse(text);
+  const inputs = Object.fromEntries(Object.entries(front).filter(([k]) => !AUDIT_KEYS.has(k)).sort(([a], [b]) => a.localeCompare(b)));
+  return hash(JSON.stringify({ version: 2, inputs, body: body.replace(/\r\n/g, '\n').trimEnd() + '\n' }));
+}
+
+const gitRead = (cfg, ...args) => execFileSync('git', args, { cwd: cfg.layout.root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+const commitId = (cfg, ref) => gitRead(cfg, 'rev-parse', '--verify', '--end-of-options', `${ref}^{commit}`).trim();
+const safeSourcePath = value => typeof value === 'string' && value && !path.isAbsolute(value)
+  && !value.split('/').some(p => !p || p === '.' || p === '..') && !/[\\\x00-\x1f:]/.test(value);
+
+export function requirementRows(body) {
+  if ((body.match(/^## Requirements\s*$/gm) ?? []).length !== 1) throw new Error('Requirements must have exactly one table section');
+  const section = body.match(/^## Requirements\s*$([\s\S]*?)(?=^## |(?![\s\S]))/m)?.[1] ?? '';
+  const rows = [];
+  for (const line of section.split('\n')) {
+    if (!line.trim() || /^\|\s*Source criterion\s*\|/i.test(line) || /^\|[-\s:]+\|[-\s:]+\|$/.test(line)) continue;
+    const m = /^\|\s*([^|]+?)\s*\|\s*(B\d+(?:\s*,\s*B\d+)*)\s*\|$/.exec(line);
+    if (!m) throw new Error('Requirements must contain only source criterion | comma-separated behaviour IDs rows');
+    rows.push({ criterion: m[1], behaviours: m[2].split(',').map(s => s.trim()) });
+  }
+  const ids = behavioursOf(body), criteria = new Set(), covered = new Set();
+  for (const row of rows) {
+    if (criteria.has(row.criterion) || new Set(row.behaviours).size !== row.behaviours.length || row.behaviours.some(id => !ids.includes(id))) throw new Error('Requirements has duplicate criteria/IDs or unknown behaviours');
+    criteria.add(row.criterion);
+    row.behaviours.forEach(id => covered.add(id));
+  }
+  if (!rows.length || !ids.length || new Set(ids).size !== ids.length || ids.some(id => !covered.has(id))) throw new Error('Requirements must cover every numbered behaviour');
+  return rows;
+}
+
+function sourceBinding(cfg, intent, pinnedRevision) {
+  const { source, source_revision } = strictParse(intent.text).front;
+  if (!source || !source_revision || /[<>\x00-\x1f]/.test(source + source_revision)) throw new Error('intent requires source and source_revision plain scalar references');
+  if (/^https:\/\//.test(source)) {
+    const url = new URL(source);
+    if (url.username || url.password) throw new Error('source URL cannot contain credentials');
+    return { source, source_revision, source_kind: 'external-asserted' };
+  }
+  if (!safeSourcePath(source)) throw new Error('repository source must be a relative path without traversal');
+  const revision = commitId(cfg, pinnedRevision ?? source_revision);
+  const entry = gitRead(cfg, '--literal-pathspecs', 'ls-tree', revision, '--', source);
+  if (!/^100(644|755) blob /.test(entry)) throw new Error('repository source must resolve to a regular committed file');
+  const blob = execFileSync('git', ['show', `${revision}:${source}`], { cwd: cfg.layout.root, stdio: ['ignore', 'pipe', 'pipe'] });
+  return { source, source_revision: revision, source_kind: 'repository', source_digest: hash(blob) };
+}
+
+function intentInputDigest(text) {
+  const { front, body } = strictParse(text);
+  // closed is lifecycle metadata, not a requirement correction. Preserve its established
+  // meaning while retaining the exact originally reviewed snapshot in intent_digest.
+  const { status, ...inputs } = front;
+  return hash(render(Object.fromEntries(Object.entries(inputs).sort(([a], [b]) => a.localeCompare(b))), body));
+}
+
+function bindingInputs(cfg, slug, kind, body) {
+  if (kind === 'plan') {
+    const spec = read(cfg, slug, 'spec');
+    if (spec?.state !== 'approved' || spec.binding !== 'v2') throw new Error('re-approve the spec with trace inputs before approving the plan');
+    return { spec_digest: bodyDigest(spec.text), spec_approval_digest: spec.front.approval_digest };
+  }
+  const intent = read(cfg, slug, 'intent');
+  if (!intent || !isCommitted(cfg.layout.root, intent.file)) throw new Error('commit intent.md with source and source_revision before approving the spec');
+  const source = sourceBinding(cfg, intent);
+  requirementRows(body);
+  return { source_digest: undefined, ...source, intent_digest: hash(intent.text), intent_input_digest: intentInputDigest(intent.text), intent_revision: commitId(cfg, 'HEAD') };
+}
+
+// Cache by immutable HEAD and path, never by working content. Only commits that changed the
+// version field need inspection. A stripped binding cannot downgrade a previously bound gate.
+const bindingHistory = new Map();
+function hadBinding(cfg, target) {
+  let head;
+  try { head = commitId(cfg, 'HEAD'); } catch { return false; }
+  const rel = path.relative(cfg.layout.root, target);
+  const key = `${cfg.layout.root}:${head}:${rel}`;
+  if (!bindingHistory.has(key)) {
+    if (gitRead(cfg, 'rev-parse', '--is-shallow-repository').trim() === 'true') throw new Error('legacy binding history unavailable in shallow checkout; fetch full history');
+    const commits = gitRead(cfg, 'log', '--format=%H', '-G', '^(approval_version:|status: approved)', head, '--', rel).trim().split('\n').filter(Boolean);
+    const found = commits.some(sha => {
+      let text;
+      try { text = gitRead(cfg, 'show', `${sha}:${rel}`); } catch { return false; } // deletion
+      const front = parse(text).front;
+      return front.status === 'approved' && Boolean(front.approval_version);
+    });
+    if (bindingHistory.size > 1000) bindingHistory.clear();
+    bindingHistory.set(key, found);
+  }
+  return bindingHistory.get(key);
+}
+
 export const dir = (cfg, slug) => path.join(cfg.layout.artifacts, slug);
 export const file = (cfg, slug, kind) => path.join(dir(cfg, slug), `${kind}.md`);
 
@@ -122,8 +231,12 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), an
   const issues = contentIssues(cfg, slug, kind, front, body, target);
   if (issues.length && !anyway) throw new Error(issues.join('\n'));
 
-  replaceAtomic(target, render({ ...front, status: 'approved', by, at, digest: bodyDigest(text), ...(kind === 'plan' ? { spec_digest: bodyDigest(read(cfg, slug, 'spec').text) } : {}), ...(anyway ? { approved_anyway: anyway } : {}) }, body));
-  return { file: target, digest: bodyDigest(text) };
+  strictParse(text);
+  const inputs = bindingInputs(cfg, slug, kind, body); // never waived by --anyway
+  const next = { ...front, ...inputs, status: 'approved', by, at, digest: bodyDigest(text), approval_version: '2', ...(anyway ? { approved_anyway: anyway } : {}) };
+  next.approval_digest = approvalDigest(render(next, body));
+  replaceAtomic(target, render(next, body));
+  return { file: target, digest: next.approval_digest };
 }
 
 export function read(cfg, slug, kind) {
@@ -133,10 +246,32 @@ export function read(cfg, slug, kind) {
   const { front, body } = parse(text);
   const approved = front.status === 'approved';
   const spec = kind === 'plan' && front.spec_digest ? read(cfg, slug, 'spec') : null;
-  const stale = approved && ((front.digest && front.digest !== bodyDigest(text)) ||
+  let stale = approved && ((front.digest && front.digest !== bodyDigest(text)) ||
     (front.spec_digest && (!spec || spec.state !== 'approved' || front.spec_digest !== bodyDigest(spec.text))));
+  let binding = 'legacy/unbound';
+  let bindingError = null;
+  if (approved && GATED.includes(kind)) {
+    try {
+      if (front.approval_version) {
+        if (front.approval_version !== '2') throw new Error('unknown approval binding version');
+        if (front.digest !== bodyDigest(text)) throw new Error('approved body digest missing or changed');
+        if (approvalDigest(text) !== front.approval_digest) throw new Error('approval inputs changed');
+        if (kind === 'spec') {
+          const intent = read(cfg, slug, 'intent');
+          if (!intent || intentInputDigest(intent.text) !== front.intent_input_digest || !isCommitted(cfg.layout.root, intent.file)) throw new Error('intent changed or is uncommitted; review impact and re-approve spec and plan');
+          const snapshot = gitRead(cfg, 'show', `${commitId(cfg, front.intent_revision)}:${path.relative(cfg.layout.root, intent.file)}`);
+          if (hash(snapshot) !== front.intent_digest || intentInputDigest(snapshot) !== front.intent_input_digest) throw new Error('intent revision does not match approved input');
+          const source = sourceBinding(cfg, intent, front.source_revision);
+          if (Object.entries(source).some(([k, v]) => front[k] !== v)) throw new Error('source binding changed');
+          requirementRows(body);
+        } else if (!spec || spec.binding !== 'v2' || spec.state !== 'approved' || spec.front.approval_digest !== front.spec_approval_digest) throw new Error('approved spec inputs changed');
+        binding = 'v2';
+      } else if (hadBinding(cfg, target)) throw new Error('approval binding removed or downgraded; restore it or re-approve');
+    } catch (error) { stale = true; binding = 'invalid'; bindingError = error.message; }
+  }
+  if (stale && binding === 'v2') binding = 'invalid';
   return {
-    slug, kind, file: target, front, body, text,
+    slug, kind, file: target, front, body, text, binding, bindingError,
     // Three states, and the third is the one that matters. An approved artifact whose body has
     // since changed is not a draft and is not approved; saying so is the whole point.
     state: stale ? 'stale-approval' : approved ? 'approved' : 'draft',

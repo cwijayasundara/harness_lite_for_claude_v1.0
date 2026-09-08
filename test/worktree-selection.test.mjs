@@ -1,3 +1,4 @@
+import { traceFixture } from './_trace-fixture.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
@@ -150,6 +151,7 @@ test('existing product driver selects sequential proposals without approving the
       assert.deepEqual(artifacts.governingPlans(c), []);
       assert.equal(artifacts.read(c, slug, 'spec').front.status, 'draft');
       assert.match(writeBlocked('src/ledger.mjs', c), new RegExp(slug));
+      traceFixture(s.work);
       commit(s.work);
       for (const kind of ['spec', 'plan']) {
         artifacts.approve(c, slug, kind, { by: 'simulated-test-driver' });

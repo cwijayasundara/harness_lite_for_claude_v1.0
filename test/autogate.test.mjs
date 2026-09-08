@@ -1,3 +1,4 @@
+import { traceFixture } from './_trace-fixture.mjs';
 // campaigns-run-unattended. `AIDLC_UNATTENDED` lets a campaign step pass its own gates with no
 // human present, and the artifact it leaves behind must never read as though one was.
 //
@@ -33,6 +34,7 @@ function repo() {
 }
 
 const commit = (root, m) => {
+  traceFixture(root);
   spawnSync('git', ['add', '-A'], { cwd: root });
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', m], { cwd: root });
 };

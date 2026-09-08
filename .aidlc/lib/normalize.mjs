@@ -10,6 +10,24 @@ const asFinding = (f) => ({
   file: f.file ?? '', line: f.line ?? 0, rule: f.rule ?? '', message: f.message ?? '', fix: f.fix ?? '',
 });
 
+// Observations, not assertion-quality judgments. Do not infer execution from file presence
+// or a command's exit code. Keep unsupported/malformed output explicitly unverified.
+export function testExecution(format, payload) {
+  if (format !== 'pytest') return { status: 'unsupported', tests: [] };
+  try {
+    const report = JSON.parse(payload);
+    if (!report || !Array.isArray(report.tests) || !Number.isInteger(report.exitcode)) throw new Error('invalid pytest report');
+    const tests = report.tests.map(t => {
+      if (typeof t.nodeid !== 'string' || !t.nodeid.includes('::') || !['passed', 'failed', 'skipped', 'error', 'xfailed', 'xpassed'].includes(t.outcome)) throw new Error('invalid test observation');
+      // pytest-json-report includes setup/call/teardown. An overall "passed" without a
+      // successful call phase is not evidence that the named test body executed.
+      const outcome = t.outcome === 'passed' && !['setup', 'call', 'teardown'].every(phase => t[phase]?.outcome === 'passed') ? 'unverified' : t.outcome;
+      return { nodeid: t.nodeid, outcome };
+    });
+    return { status: 'observed', exitcode: report.exitcode, tests };
+  } catch { return { status: 'malformed', tests: [] }; }
+}
+
 const FORMATS = {
   // ruff check --output-format=json
   ruff(stdout) {

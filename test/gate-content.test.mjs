@@ -1,3 +1,4 @@
+import { traceFixture } from './_trace-fixture.mjs';
 // a-plan-proves-its-spec. F14 and F17 are the same absence at two points in the chain: every
 // precondition `approve()` enforces is about an artifact's *state* (committed, ordered, digest),
 // none about its *content*. These tests are that content check — a template `harness new` wrote
@@ -24,6 +25,7 @@ function repo() {
 }
 
 function commit(root, message) {
+  traceFixture(root);
   spawnSync('git', ['add', '-A'], { cwd: root });
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', message], { cwd: root });
 }

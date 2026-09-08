@@ -390,3 +390,95 @@ require the job; this repository change does not configure hosting settings.
 Candidate scope measures the final diff, not edits reverted before the candidate. It does
 not authenticate approvals, verify that proof tests executed, or establish merge/deployment
 state. Ordinary local checks remain necessary before committing.
+
+### Requirement and execution trace (item 3)
+
+New `harness approve` decisions bind semantic frontmatter and the committed intent,
+not just the artifact body. Set these scalar fields in the intent before approval:
+
+```yaml
+source: docs/requirements.md
+source_revision: <commit containing that document>
+```
+
+Use a repository-relative regular file and a Git revision, or an HTTPS ticket URL and
+an explicit external revision label. Repository references resolve to a pinned commit
+and content digest. External revisions are **externally asserted**, not fetched or
+verified. Capture a conversational requirement in a versioned document when it needs
+an exact source revision. Nested YAML, duplicate keys and quoted scalars are unsupported.
+
+Add a spec table linking source criteria to every numbered behaviour:
+
+```markdown
+## Requirements
+
+| Source criterion | Behaviour IDs |
+|---|---|
+| AC-1 | B1, B2 |
+| local:preserve-spaces | B3 |
+```
+
+Use `local:` when assigning a criterion label absent from the source. The harness
+checks the mapping's structure; the reviewer checks that it faithfully interprets the
+source. New spec approvals capture the exact intent snapshot and its Git revision.
+Plans bind the complete approved spec inputs. Requirement or relationship edits need
+impact review and spec/plan reapproval through the existing gates. A harmless rebase
+preserves content bindings. Changing only intent `status` to `closed` retains historical
+approval, while closure still removes execution authority.
+
+Existing approvals remain **legacy/unbound** and retain their historical semantics.
+No history is rewritten and no past approval is invented. Upgrading requires explicit
+reapproval with the new inputs. A previously recorded versioned binding cannot be
+stripped to recover legacy authority. Legacy checks need full Git history; shallow
+checkouts must fetch it. Intent/source snapshots must remain available as Git objects.
+
+Candidate `harness check --base <base> --candidate <head> --change <slug> --json`
+reports now include `trace`: source and intent revisions, local approval labels/digests,
+source criterion → `change#B<n>` → proof row → current-run test observation. The existing
+CI upload of `last-check.json` preserves this trace, including on scope failure. The
+scope-only CI job reports proof as **not executed**; select a test stage to execute it.
+No trace status alone authorizes a merge.
+
+For exact test observations, configure the existing pytest JSON format and reporter:
+
+```toml
+[capabilities]
+test = "python -m pytest --json-report --json-report-file={report}"
+[formats]
+test = "pytest"
+```
+
+The product environment installs pytest and pytest-json-report; the harness adds no
+package dependency. A proof row such as `| B1 | \`tests/test_app.py::test_titlecase\` |`
+can match an exact observed node ID, including class/parameter suffixes. Skipped,
+failed, missing, ambiguous, malformed and unsupported observations never become passed
+proof. File-only/prose rows and other result formats remain unverified. Fast checks do
+not imply test execution. Local or changed-during-check workspaces cannot claim clean
+candidate proof. The report trusts the configured test tool's output and does not
+establish whether its assertions adequately prove the requirement. Overall check
+success, binding validity and individual execution statuses must all be reviewed.
+
+Collect GitHub review evidence through a separate read-only mode:
+
+```sh
+harness review --repo owner/repository --pr 123 --candidate HEAD --out pr-review.json
+```
+
+This uses an authenticated `gh api` connection to github.com, reads all review pages
+twice to detect changes during collection, and records the PR head, identities, review
+states and visible branch review policy. A positive result requires the exact head,
+current approving reviewers with push access, the visible required count and the host's
+approving review decision. Stale/dismissed approvals, changes requested, incomplete API
+responses and unavailable policy cannot produce verified approval. Exit 1 means approval
+was not established; the JSON explains why. Rulesets-only policy visibility, required
+code-owner identity and last-pusher independence are not yet supported; those policies
+are reported conservatively as unavailable. Verification is limited to the visible
+branch review count and current reviewers with push access. The host's full merge controls
+remain authoritative. Merge identity is recorded only when supplied by the host; no
+release or deployment is inferred.
+
+The saved JSON is point-in-time evidence, not a signed attestation. Local `--by` labels,
+injected test transport data and model review never authenticate host approval. This
+command neither posts reviews nor merges PRs and does not grant local write scope.
+The API fields follow GitHub's [pull request schema](https://docs.github.com/en/graphql/reference/pulls)
+and [branch protection schema](https://docs.github.com/en/graphql/reference/branches).
