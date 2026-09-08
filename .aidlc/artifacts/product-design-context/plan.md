@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:f3d9a7b881fe1fd5b4294a93efcacb00dc1b037259dea8e59fe8bce02beb55b0
+spec_approval_digest: sha256:03090bab4ed2736a1bb3cbfbdcdf9484fa3c213558eb766ee770b86082dcb28a
+by: cwijayasundara
+at: 2026-09-08T14:00:26.832Z
+digest: sha256:6f187a888d379304ef2c7450cc2791366541df25d2778748cf3b88fd19c292aa
+approval_version: 2
+approval_digest: sha256:51da8e6df939ad73f70222fcd6d4d23655150013a5e999c9ceedcf4625f48a63
 ---
 # Plan: product-design-context
 

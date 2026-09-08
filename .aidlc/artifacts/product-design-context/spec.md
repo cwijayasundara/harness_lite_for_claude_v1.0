@@ -1,6 +1,18 @@
 ---
-status: draft
+status: approved
 extends: requirement-traceability, decomposition-allocation
+source_digest: sha256:71eed60ee43efe80c5b4dd9789ae0ea66146af9b4c6217b40d67e81afc43d27b
+source: docs/SPDD-TEAM-EVOLUTION-PLAN.md
+source_revision: c10e2b5fe7e1242bc5feb827df664517f236a8e5
+source_kind: repository
+intent_digest: sha256:7ee6cd2a2df876ce3ba34335c7208ff418102c9a4c8225d10dc947e1baf8319e
+intent_input_digest: sha256:a25bbcf11dd8470638b28e1c459b07f2d8982d1a45c9b783196ad31aba0cc8fe
+intent_revision: 2120ec469c3a0b07b84eca82a02424623f8d0654
+by: cwijayasundara
+at: 2026-09-08T14:00:26.524Z
+digest: sha256:f3d9a7b881fe1fd5b4294a93efcacb00dc1b037259dea8e59fe8bce02beb55b0
+approval_version: 2
+approval_digest: sha256:03090bab4ed2736a1bb3cbfbdcdf9484fa3c213558eb766ee770b86082dcb28a
 ---
 # Spec: product-design-context
 
