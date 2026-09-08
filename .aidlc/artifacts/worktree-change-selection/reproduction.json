@@ -1,0 +1,16 @@
+{
+  "fixture": "contract-planned (disposable copy)",
+  "before": "pass",
+  "after": "fail",
+  "current": "hyphen-titlecase",
+  "governingPlans": [],
+  "findings": [
+    {
+      "file": "src/app/text.py",
+      "line": 0,
+      "rule": "draft-awaits-gate",
+      "message": "changed while awaiting gate 1: future-report (intent written, spec not yet) — future-report/spec.md",
+      "fix": "the change \"future-report\" has a written intent and no spec yet. Write its spec, approve it (harness approve future-report spec --by <you>) and its plan, and commit; or close the change (status: closed in its intent.md)."
+    }
+  ]
+}
