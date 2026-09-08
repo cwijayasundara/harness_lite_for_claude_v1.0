@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 extends: pr-candidate-scope, worktree-change-selection, compare-native-claude, complete-native-comparisons
+by: cwijayasundara
+at: 2026-09-08T12:26:17.743Z
+digest: sha256:5083a191e265d1880cbca34cc099944d68cf32f3750172b4c3a81c32e2c60cad
 ---
 # Spec: requirement-traceability
 
