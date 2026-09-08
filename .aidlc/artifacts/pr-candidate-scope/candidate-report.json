@@ -1,0 +1,87 @@
+{
+  "stage": "commit",
+  "revision": {
+    "base": "30a03e382a899e4c4d14cb63b52531a99dcfb1ae",
+    "candidate": "e0a6e3c21f4203db2e6422c0f8c44fcffc9186d8",
+    "change": "pr-candidate-scope"
+  },
+  "ok": true,
+  "changed_files": [
+    ".aidlc/artifacts/pr-candidate-scope/evidence.md",
+    ".aidlc/artifacts/pr-candidate-scope/intent.md",
+    ".aidlc/artifacts/pr-candidate-scope/plan.md",
+    ".aidlc/artifacts/pr-candidate-scope/post-fix.json",
+    ".aidlc/artifacts/pr-candidate-scope/reproduction.json",
+    ".aidlc/artifacts/pr-candidate-scope/spec.md",
+    ".aidlc/bin/harness",
+    ".aidlc/checks/scope-drift.mjs",
+    ".aidlc/checks/secrets.mjs",
+    ".aidlc/checks/tamper.mjs",
+    ".aidlc/lib/artifacts.mjs",
+    ".aidlc/lib/diff.mjs",
+    ".aidlc/lib/runner.mjs",
+    ".github/workflows/harness.yml",
+    "README.md",
+    "docs/SPDD-TEAM-EVOLUTION-PLAN.md",
+    "test/candidate-scope.test.mjs",
+    "test/scope-drift.test.mjs"
+  ],
+  "controls": [
+    {
+      "control": "secrets",
+      "verdict": "pass",
+      "ms": 103,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "test",
+      "verdict": "pass",
+      "ms": 20064,
+      "findings": [],
+      "command": "node --test --test-reporter=tap test/*.test.mjs"
+    },
+    {
+      "control": "scope-drift",
+      "verdict": "pass",
+      "ms": 42,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "budget",
+      "verdict": "pass",
+      "ms": 1,
+      "findings": [],
+      "command": "",
+      "measured": {
+        "skills": 7,
+        "agents": 3,
+        "hooks": 4,
+        "hook_loc": 255,
+        "claude_md_lines": 87
+      }
+    },
+    {
+      "control": "tamper",
+      "verdict": "pass",
+      "ms": 163,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "arch",
+      "verdict": "pass",
+      "ms": 26,
+      "findings": [],
+      "command": "node .aidlc/sensors/architecture.mjs"
+    },
+    {
+      "control": "test_quality",
+      "verdict": "pass",
+      "ms": 28,
+      "findings": [],
+      "command": "node .aidlc/sensors/test-quality.mjs"
+    }
+  ]
+}

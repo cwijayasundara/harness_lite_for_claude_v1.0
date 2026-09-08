@@ -190,7 +190,7 @@ preserve existing work, reproduce the defect, implement and validate the fix,
 and update the plan with delivery evidence. Do not start items 2–6.
 ```
 
-Proposed commands might extend existing verbs with `--change`, `--base`, `--candidate` and a trace query. They are illustrative interface choices, not currently available commands. The user-facing workflow remains a natural-language request, followed by the existing meaningful approval decisions.
+Items 1 and 2 now extend existing verbs with `--change`, `--base` and `--candidate`; see their delivery records and README usage. A trace query remains proposed for later work. The user-facing workflow remains a natural-language request, followed by the existing meaningful approval decisions.
 
 **Validation that would justify adoption.** Extend the existing non-harness product campaigns instead of building a new runner. Use an existing service with a weak legacy baseline, two concurrent engineers/worktrees, three delivery slices, a shared API change, a mid-flight rule reversal, a refactor and an integration failure. Include one clean-checkout scope violation and one unrelated pending intent. Keep hidden acceptance assertions independent of the implementation agent; label simulated decisions as simulations.
 
@@ -312,7 +312,10 @@ Acceptance evidence:
 - Existing scope tests additionally exercise staged renames, unstaged deletions and
   untracked paths. Fixture source directories were not edited. Approval simulations
   remain confined to disposable fixtures.
-- Exact verification results and self-review are recorded in
+- The full commit stage passed both locally and against clean implementation candidate
+  `e0a6e3c` from pre-item-2 base `30a03e3`. The exact candidate/control report is archived in
+  [candidate-report.json](../.aidlc/artifacts/pr-candidate-scope/candidate-report.json);
+  verification results and self-review are recorded in
   [evidence.md](../.aidlc/artifacts/pr-candidate-scope/evidence.md).
 
 Limitations: this measures net changes between two commits, not every intermediate edit.

@@ -72,3 +72,23 @@ remain; endpoint diffs omit intermediate changes reverted before the candidate.
 Configured external tools retain their semantics beyond literal file-list inputs.
 Proof presence does not demonstrate execution. Candidate checks require the candidate
 to be checked out and do not replace local pre-commit checks.
+
+
+## Clean implementation candidate
+
+The complete commit stage also passed from a clean checkout of implementation commit
+`e0a6e3c21f4203db2e6422c0f8c44fcffc9186d8`, against the pre-item-2 base
+`30a03e382a899e4c4d14cb63b52531a99dcfb1ae`. candidate-report.json archives the full
+report, including revision identity and all controls. This evidence was recorded in a
+subsequent documentation commit; it identifies the implementation candidate precisely.
+
+```text
+node .aidlc/bin/harness check --stage commit --base 30a03e3 --candidate HEAD --change pr-candidate-scope --all
+PASS  secrets     103ms
+PASS  test        20064ms
+PASS  scope-drift 42ms
+PASS  budget      1ms
+PASS  tamper      163ms
+PASS  arch        26ms
+PASS  test_quality 28ms
+```
