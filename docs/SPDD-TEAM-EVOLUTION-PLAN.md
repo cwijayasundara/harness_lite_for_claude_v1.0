@@ -163,7 +163,7 @@ Implement A first, then B; together they form the first team-governance mileston
 5. [ ] **Maintain a current product/design view (E).** Derive revision-specific context from delivered changes while retaining historical records.
 6. [ ] **Verify reuse across the team (F).** Verify runtime/policy identity and export attributable evidence; validate reuse on product work.
 
-The latest authorized implementation scope is **item 4 only**, following user approval of its concrete spec and plan. Items 5–6 require separate authorization. Earlier instructions and suggested requests below are retained as historical handoff context; see the delivery records for each implementation's evidence and limitations.
+The latest requested scope is **item 5 only**. Its concrete spec and plan are prepared for the existing approval gates; item 5 is not yet delivered. Item 6 remains unauthorized. Earlier instructions and suggested requests below are retained as historical handoff context; see the delivery records for each implementation's evidence and limitations.
 
 For item 1, first inspect current repository instructions and working-tree changes, then read this document and the current versions of `.aidlc/lib/artifacts.mjs`, `.aidlc/lib/guard.mjs`, `.aidlc/checks/scope-drift.mjs`, `.aidlc/bin/harness`, and the current-change/approval tests. The research revision above is a baseline, not permission to overwrite later work.
 
@@ -495,3 +495,32 @@ Item 4's full commit stage also passed on clean implementation candidate
 `4add89e3741e6a652731c488e68140c78900dc0b`. The [exact candidate report](../.aidlc/artifacts/decomposition-allocation/candidate-report.json)
 records all seven controls passing. Its revision identity precedes the evidence-only archive
 commit; no hosted run or merge is inferred from this local result.
+
+
+**Item 5 preparation — 8 September 2026.** The user requested item 5 only, superseding
+its earlier unstarted authorization status. Inspected clean revision
+`c10e2b5fe7e1242bc5feb827df664517f236a8e5`, current artifact bindings and supersession,
+host review evidence, graph/cache, pack/map, status and repository constraints. Prepared
+[intent](../.aidlc/artifacts/product-design-context/intent.md),
+[spec](../.aidlc/artifacts/product-design-context/spec.md) and
+[plan](../.aidlc/artifacts/product-design-context/plan.md). These remain drafts.
+
+[Reproduction](../.aidlc/artifacts/product-design-context/reproduction.json) and its
+[script](../.aidlc/artifacts/product-design-context/reproduce.mjs) demonstrate a proposed
+hyphen-casing reversal in a disposable existing product. Approving only its spec causes
+the current reader to report the original rule superseded, although no product files
+changed and actual execution still returns `Mary-Jane Watson`. Integration and decisions
+are simulated; source fixtures and the original approved spec remain unchanged.
+
+The proposed implementation separates a named product revision from the committed evidence
+catalog revision; archived host merge observations, Git ancestry, bound contracts and check
+reports qualify a derived delivery view. Local records remain unsigned observations, with
+host policy and execution proof assessed separately. Historical conflicts and missing evidence
+are visible. Existing approval-time semantics remain intact with clarified presentation.
+Revision-aware context packs reuse the structural graph with explicit coverage and miss paths.
+
+Next handoff: review the concrete item 5 spec and plan, record the genuine decisions through
+the existing approval workflow, then implement and validate their bounded scope. The exit
+trial covers original rule, pending reversal, integrated reversal, refactor, cache removal and
+honest fallback. Item 6 remains unstarted. No production code or host configuration changed
+in preparation, and no completed delivery, hosted review or merge is claimed.

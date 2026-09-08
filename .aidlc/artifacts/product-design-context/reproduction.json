@@ -1,0 +1,17 @@
+{
+  "repository_revision": "c10e2b5fe7e1242bc5feb827df664517f236a8e5",
+  "fixture": "contract-planned",
+  "simulated_approval_and_integration": true,
+  "delivered_revision": "d3f724e4d5e15a1a0765ec1e4bc99f3b1cf7da22",
+  "proposal_revision": "4575930a63d2139498b08bb641d0bf611da56605",
+  "product_diff": "",
+  "reported_supersession": {
+    "hyphen-titlecase#B1": [
+      "preserve-hyphen-case"
+    ]
+  },
+  "observed_product_result": "Mary-Jane Watson",
+  "expected": "A proposed unmerged reversal must not retire the delivered hyphen rule in a product view.",
+  "source_fixtures_modified": false,
+  "historical_spec_unchanged": true
+}
