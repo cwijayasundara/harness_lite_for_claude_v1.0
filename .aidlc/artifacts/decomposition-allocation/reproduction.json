@@ -1,0 +1,8 @@
+{
+  "repository_revision": "4add89e3741e6a652731c488e68140c78900dc0b",
+  "fixture": "contract-planned",
+  "simulated_approval": true,
+  "refusal": ".aidlc/artifacts/independent-report/spec.md says nothing about the open change hyphen-titlecase — for each, add `supersedes: hyphen-titlecase#B<n>` if a behaviour here reverses one it claims, or `extends: hyphen-titlecase` if all its promises still hold.",
+  "expected": "An independent report needs no extends or supersedes link to title casing.",
+  "source_fixtures_modified": false
+}

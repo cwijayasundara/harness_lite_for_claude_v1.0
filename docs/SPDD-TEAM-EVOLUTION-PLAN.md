@@ -419,3 +419,22 @@ No hosted CI run, authenticated live PR review, remote configuration change, pai
 campaign, merge or deployment was performed or claimed. No new control, dependency,
 hook, skill, agent or budget increase was added. The final human PR/merge gate remains
 separate. Items 4–6 have not started.
+
+**Item 4 preparation — 8 September 2026.** The user requested item 4 only, superseding
+its earlier unstarted authorization status. Inspected clean revision `4add89e3741e6a652731c488e68140c78900dc0b`
+and the current relationship reader, approval bindings, status command and regression tests.
+Prepared [intent](../.aidlc/artifacts/decomposition-allocation/intent.md),
+[spec](../.aidlc/artifacts/decomposition-allocation/spec.md) and
+[plan](../.aidlc/artifacts/decomposition-allocation/plan.md) for the existing approval gates.
+These are drafts; item 4 is not yet delivered.
+
+[Reproduction](../.aidlc/artifacts/decomposition-allocation/reproduction.json) records an
+independent reporting outcome in a disposable `contract-planned` product copy being refused
+because it lacks a continuity link to title casing. The [script](../.aidlc/artifacts/decomposition-allocation/reproduce.mjs)
+asserts that exact refusal. Approval attempts are simulated; fixture sources are unchanged.
+
+Next handoff: review the concrete spec and plan, record the genuine decisions through the
+existing approval workflow, then implement and validate their bounded scope. The proposed
+projection reports local coverage, dependency/interface and overlap findings plus unverified
+tracker references; remote assignment visibility remains explicitly unavailable. Preserve
+item 1–3 authority and evidence guarantees. Items 5–6 remain unstarted.
