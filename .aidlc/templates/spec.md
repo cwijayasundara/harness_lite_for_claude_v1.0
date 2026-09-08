@@ -1,7 +1,7 @@
 ---
 status: draft
 # supersedes: <slug>#B<n> — add this line when a behaviour here reverses one an earlier approved spec claims; the named spec is never edited
-# extends: <slug> — add this line for each other open approved change whose promises all still hold; approval asks for one or the other
+# extends: <slug> — optional continuity claim for related work whose promises still hold; unrelated changes need no link
 ---
 # Spec: {{slug}}
 

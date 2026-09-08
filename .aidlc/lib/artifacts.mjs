@@ -131,6 +131,7 @@ function bindingInputs(cfg, slug, kind, body) {
   }
   const intent = read(cfg, slug, 'intent');
   if (!intent || !isCommitted(cfg.layout.root, intent.file)) throw new Error('commit intent.md with source and source_revision before approving the spec');
+  coordinationDeclarations('intent', intent.text);
   const source = sourceBinding(cfg, intent);
   requirementRows(body);
   return { source_digest: undefined, ...source, intent_digest: hash(intent.text), intent_input_digest: intentInputDigest(intent.text), intent_revision: commitId(cfg, 'HEAD') };
@@ -232,6 +233,7 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), an
   if (issues.length && !anyway) throw new Error(issues.join('\n'));
 
   strictParse(text);
+  coordinationDeclarations(kind, text);
   const inputs = bindingInputs(cfg, slug, kind, body); // never waived by --anyway
   const next = { ...front, ...inputs, status: 'approved', by, at, digest: bodyDigest(text), approval_version: '2', ...(anyway ? { approved_anyway: anyway } : {}) };
   next.approval_digest = approvalDigest(render(next, body));
@@ -451,25 +453,12 @@ function contentIssues(cfg, slug, kind, front, body, target) {
     for (const id of named) {
       issues.push(`${rel} names ${id} in its prose without linking it — add \`supersedes: ${id}\` to the frontmatter if this spec reverses that behaviour; if it is not a reversal, remove the id from the prose or refer to the behaviour by its title instead.`);
     }
-    // a-change-declares-its-relation B1–B4. F33: four campaign runs, four contradictions found
-    // and written into prose, no link — nothing ever asked. A spec approved beside other open
-    // approved specs declares its relation to each: `supersedes:` a behaviour of it, or
-    // `extends:` it. Presence only; whether `extends:` is true is the reviewer's question.
-    const related = new Set([
-      ...supersedesLinks(front).map((l) => l.split('#')[0]),
-      ...extendsLinks(front),
-    ]);
+    // decomposition-allocation: independent product outcomes need no artificial continuity
+    // links. Explicit claims still validate; reversals retain their existing checks.
     for (const ext of extendsLinks(front)) {
       const other = read(cfg, ext, 'spec');
       if (!other) { issues.push(`${rel}: extends: ${ext} names a change with no spec.md — fix it before approving.`); continue; }
       if (other.state !== 'approved') issues.push(`${rel}: extends: ${ext} names a spec that is not approved (${other.state}) — approve ${ext}/spec.md first.`);
-    }
-    const unrelated = slugs(cfg).filter((other) =>
-      other !== slug && !related.has(other)
-      && read(cfg, other, 'intent')?.front.status !== 'closed'
-      && read(cfg, other, 'spec')?.state === 'approved');
-    if (unrelated.length) {
-      issues.push(`${rel} says nothing about the open change${unrelated.length > 1 ? 's' : ''} ${unrelated.join(', ')} — for each, add \`supersedes: ${unrelated[0]}#B<n>\` if a behaviour here reverses one it claims, or \`extends: ${unrelated[0]}\` if all its promises still hold.`);
     }
     for (const link of supersedesLinks(front)) {
       const m = /^([a-z0-9](?:[a-z0-9-]{0,62}))#(B\d+)$/.exec(link);
@@ -698,4 +687,42 @@ export function state(cfg, slug) {
             : 'implement';
 
   return { slug, next, closed, issues: closed ? [] : issues, ok: closed || issues.length === 0, artifacts };
+}
+
+// Optional item-4 declarations use the same scalar language and semantic digest as gates.
+// why: decomposition-allocation product reproduction; relations must not imply authority.
+export function coordinationTable(body, heading, columns) {
+  const sections = [...body.matchAll(new RegExp(`^## ${heading}\\s*$([\\s\\S]*?)(?=^## |(?![\\s\\S]))`, 'gm'))];
+  if (!sections.length) return null;
+  const fail = () => { throw new Error(`${heading} requires one ${columns.join(' | ')} table with nonempty rows`); };
+  if (sections.length !== 1) fail();
+  const lines = sections[0][1].split('\n').map(s => s.trim()).filter(Boolean);
+  const cells = line => /^\|.*\|$/.test(line) ? line.slice(1, -1).split('|').map(s => s.trim()) : [];
+  if (JSON.stringify(cells(lines[0] ?? '')) !== JSON.stringify(columns)
+    || cells(lines[1] ?? '').length !== columns.length || !cells(lines[1] ?? '').every(s => /^:?-{3,}:?$/.test(s)) || lines.length < 3) fail();
+  return lines.slice(2).map(line => {
+    const row = cells(line);
+    if (row.length !== columns.length || row.some(s => !s || /[\x00-\x1f]/.test(s))) fail();
+    return row;
+  });
+}
+
+export function coordinationDeclarations(kind, text) {
+  const { front, body } = parse(text);
+  const keys = kind === 'intent' ? ['parent', 'tracker', 'assignee', 'iteration', 'assignment_observed_at'] : kind === 'plan' ? ['depends_on'] : [];
+  if (keys.some(key => new RegExp(`^\\s*${key}:`, 'm').test(text))) {
+    strictParse(text);
+    for (const key of keys) if (front[key] !== undefined && (!front[key].trim() || /[<>\x00-\x1f]/.test(front[key]))) throw new Error(`${key} requires a plain scalar value`);
+    if (kind === 'intent' && front.assignment_observed_at && (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/.test(front.assignment_observed_at) || !Number.isFinite(Date.parse(front.assignment_observed_at)))) throw new Error('assignment_observed_at requires a UTC ISO timestamp');
+  }
+  if (kind !== 'plan') return front;
+  const dependsOn = front.depends_on === undefined ? [] : front.depends_on.split(',').map(s => s.trim());
+  if (dependsOn.some(s => !validChangeSlug(s)) || new Set(dependsOn).size !== dependsOn.length) throw new Error('depends_on requires unique comma-separated change slugs');
+  const interfaces = (coordinationTable(body, 'Dependencies', ['Change', 'Interface', 'Revision']) ?? []).map(([change, file, revision]) => {
+    if (!dependsOn.includes(change)) throw new Error(`Dependencies target ${change} must appear in depends_on`);
+    if (!safeSourcePath(file) || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(revision)) throw new Error('Dependencies requires a safe repository interface path and exact Git commit ID');
+    return { change, file, revision };
+  });
+  if (new Set(interfaces.map(row => `${row.change}:${row.file}`)).size !== interfaces.length) throw new Error('Dependencies has duplicate change/interface rows');
+  return { dependsOn, interfaces };
 }

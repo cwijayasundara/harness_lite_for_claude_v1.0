@@ -26,3 +26,10 @@ through the ordinary gates before implementation. In automated trials, return co
 external driver for a labelled simulated decision. Never fabricate approval or approve your
 own gates. Existing explicit human authorization is context to preserve, not a reason to ask
 for the same decision again; record its source without claiming a separate human CLI event.
+
+For several bounded outcomes under one initiative, reference the stable parent and exact
+source revision in each intent. Keep the complete acceptance inventory in the source, not a
+duplicate parent registry. Map source criteria to child behaviours; surface unmapped criteria
+in status. A sprint or assignee change does not rename the outcome. Optional tracker, assignee,
+iteration and assignment_observed_at fields are locally recorded, unverified projections.
+Change assignments in the existing tracker; no local status can certify remote allocation.

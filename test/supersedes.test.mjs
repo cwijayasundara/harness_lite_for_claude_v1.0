@@ -268,11 +268,10 @@ test('an id naming no approved behaviour is not this rule\'s business', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-// a-change-declares-its-relation B1–B4. one-integration-test F33: four runs, four contradictions
-// described in prose, no link. Nothing asked the question. Now gate 1 does: a spec approved
-// beside other open approved specs declares its relation to each — `supersedes:` a behaviour or
-// `extends:` the change — or the gate does not open.
-test('a spec beside an open approved change must declare supersedes: or extends: for it', () => {
+// decomposition-allocation replaces mandatory global continuity declarations. The earlier
+// F33 reversal protections and explicit target validation still apply; an independent
+// outcome no longer needs a fabricated link to every open approved change.
+test('an unrelated spec needs no continuity link; explicit links still validate', () => {
   const root = repo();
   try {
     assert.equal(run(root, 'new', 'ledger').status, 0);
@@ -285,10 +284,8 @@ test('a spec beside an open approved change must declare supersedes: or extends:
     writeFileSync(specPath(root, 'next'), realSpec(['B1']));
     commit(root, 'next drafted');
     const refused = run(root, 'approve', 'next', 'spec', '--by', 'tester');
-    assert.equal(refused.status, 1);
-    assert.match(refused.stderr, /ledger/);
-    assert.match(refused.stderr, /supersedes: ledger#B<n>/);
-    assert.match(refused.stderr, /extends: ledger/);
+    assert.equal(refused.status, 0, refused.stderr);
+    assert.equal(parse(readFileSync(specPath(root, 'next'), 'utf8')).front.extends, undefined);
 
     // B2: extends: names a change that must exist and be approved.
     writeFileSync(specPath(root, 'next'), realSpec(['B1'], { extends: 'nowhere' }));

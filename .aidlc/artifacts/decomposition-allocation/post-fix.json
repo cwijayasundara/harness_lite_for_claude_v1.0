@@ -1,0 +1,672 @@
+{
+  "fixture": "contract-planned",
+  "simulated_approvals": true,
+  "fixture_sources_modified": false,
+  "repository_revision": "121193e84da038ab064bae2538b9e7ce3fcaba1e",
+  "product_base": "4718c00ed8d2de590f0533aabb196c63246956e2",
+  "product_candidate": "ada1a28bb578415726743f96d133aa84744a0097",
+  "independent_approval": "approved without extends or supersedes",
+  "baseline": {
+    "version": 1,
+    "visibility": {
+      "scope": "local artifact backlog",
+      "remote_prs": "unavailable",
+      "remote_assignments": "unavailable"
+    },
+    "children": [
+      {
+        "change": "hyphen-titlecase",
+        "parent": null,
+        "source": null,
+        "source_revision": null,
+        "closed": false,
+        "spec": {
+          "state": "approved",
+          "binding": "legacy/unbound"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "legacy/unbound"
+        },
+        "assignment": {
+          "authority": "locally recorded, unverified tracker projection",
+          "tracker": null,
+          "assignee": null,
+          "iteration": null,
+          "observed_at": null,
+          "freshness": "unknown"
+        },
+        "requirements": []
+      },
+      {
+        "change": "text-contract",
+        "parent": "TEXT-100",
+        "source": "initiative.md",
+        "source_revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+        "closed": false,
+        "spec": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "assignment": {
+          "authority": "locally recorded, unverified tracker projection",
+          "tracker": "https://example.invalid/issues/text-contract",
+          "assignee": "text-contract-owner",
+          "iteration": "sprint-1",
+          "observed_at": null,
+          "freshness": "unknown"
+        },
+        "requirements": [
+          {
+            "criterion": "local:api",
+            "behaviours": [
+              "B1"
+            ]
+          }
+        ]
+      },
+      {
+        "change": "text-portal",
+        "parent": "TEXT-100",
+        "source": "initiative.md",
+        "source_revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+        "closed": false,
+        "spec": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "assignment": {
+          "authority": "locally recorded, unverified tracker projection",
+          "tracker": "https://example.invalid/issues/text-portal",
+          "assignee": "text-portal-owner",
+          "iteration": "sprint-1",
+          "observed_at": null,
+          "freshness": "unknown"
+        },
+        "requirements": [
+          {
+            "criterion": "local:portal",
+            "behaviours": [
+              "B1"
+            ]
+          }
+        ]
+      },
+      {
+        "change": "text-report",
+        "parent": "TEXT-100",
+        "source": "initiative.md",
+        "source_revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+        "closed": false,
+        "spec": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "assignment": {
+          "authority": "locally recorded, unverified tracker projection",
+          "tracker": "https://example.invalid/issues/text-report",
+          "assignee": "text-report-owner",
+          "iteration": "sprint-1",
+          "observed_at": null,
+          "freshness": "unknown"
+        },
+        "requirements": [
+          {
+            "criterion": "local:report",
+            "behaviours": [
+              "B1"
+            ]
+          }
+        ]
+      }
+    ],
+    "parents": [
+      {
+        "parent": "TEXT-100",
+        "source": "initiative.md",
+        "source_revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+        "children": [
+          "text-contract",
+          "text-portal",
+          "text-report"
+        ],
+        "coverage": "declared only; acceptance and delivery unverified",
+        "inventory": {
+          "status": "available",
+          "criteria": [
+            {
+              "id": "local:api",
+              "criterion": "Publish the text conversion contract"
+            },
+            {
+              "id": "local:portal",
+              "criterion": "Display converted text"
+            },
+            {
+              "id": "local:report",
+              "criterion": "Report conversion totals"
+            },
+            {
+              "id": "local:integration",
+              "criterion": "Consumers agree with the shared contract"
+            }
+          ]
+        },
+        "mappings": [
+          {
+            "change": "text-contract",
+            "criterion": "local:api",
+            "behaviours": [
+              "text-contract#B1"
+            ],
+            "spec": {
+              "state": "approved",
+              "binding": "v2"
+            },
+            "closed": false
+          },
+          {
+            "change": "text-portal",
+            "criterion": "local:portal",
+            "behaviours": [
+              "text-portal#B1"
+            ],
+            "spec": {
+              "state": "approved",
+              "binding": "v2"
+            },
+            "closed": false
+          },
+          {
+            "change": "text-report",
+            "criterion": "local:report",
+            "behaviours": [
+              "text-report#B1"
+            ],
+            "spec": {
+              "state": "approved",
+              "binding": "v2"
+            },
+            "closed": false
+          }
+        ],
+        "unmapped": [
+          "local:integration"
+        ],
+        "unknown": []
+      }
+    ],
+    "dependencies": [
+      {
+        "change": "text-portal",
+        "prerequisite": "text-contract",
+        "status": "declared",
+        "prerequisite_closed": false,
+        "prerequisite_plan": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "delivery": "unverified",
+        "interfaces": [
+          {
+            "change": "text-contract",
+            "file": "src/app/text.py",
+            "revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+            "ancestor": true,
+            "matches": true,
+            "status": "matches",
+            "assessment": "required snapshot present; integration acceptance unverified"
+          }
+        ]
+      },
+      {
+        "change": "text-report",
+        "prerequisite": "text-contract",
+        "status": "declared",
+        "prerequisite_closed": false,
+        "prerequisite_plan": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "delivery": "unverified",
+        "interfaces": [
+          {
+            "change": "text-contract",
+            "file": "src/app/text.py",
+            "revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+            "ancestor": true,
+            "matches": true,
+            "status": "matches",
+            "assessment": "required snapshot present; integration acceptance unverified"
+          }
+        ]
+      }
+    ],
+    "cycles": [],
+    "overlaps": [
+      {
+        "changes": [
+          "hyphen-titlecase",
+          "text-contract"
+        ],
+        "plans": [
+          {
+            "state": "approved",
+            "binding": "legacy/unbound"
+          },
+          {
+            "state": "approved",
+            "binding": "v2"
+          }
+        ],
+        "intersections": [
+          "src/app/text.py"
+        ],
+        "remedy": "split shared prerequisite work, serialize changes, or agree an integration owner"
+      },
+      {
+        "changes": [
+          "hyphen-titlecase",
+          "text-portal"
+        ],
+        "plans": [
+          {
+            "state": "approved",
+            "binding": "legacy/unbound"
+          },
+          {
+            "state": "approved",
+            "binding": "v2"
+          }
+        ],
+        "intersections": [
+          "src/app/text.py"
+        ],
+        "remedy": "split shared prerequisite work, serialize changes, or agree an integration owner"
+      },
+      {
+        "changes": [
+          "text-contract",
+          "text-portal"
+        ],
+        "plans": [
+          {
+            "state": "approved",
+            "binding": "v2"
+          },
+          {
+            "state": "approved",
+            "binding": "v2"
+          }
+        ],
+        "intersections": [
+          "src/app/text.py"
+        ],
+        "remedy": "split shared prerequisite work, serialize changes, or agree an integration owner"
+      }
+    ],
+    "findings": []
+  },
+  "changed": {
+    "version": 1,
+    "visibility": {
+      "scope": "local artifact backlog",
+      "remote_prs": "unavailable",
+      "remote_assignments": "unavailable"
+    },
+    "children": [
+      {
+        "change": "hyphen-titlecase",
+        "parent": null,
+        "source": null,
+        "source_revision": null,
+        "closed": false,
+        "spec": {
+          "state": "approved",
+          "binding": "legacy/unbound"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "legacy/unbound"
+        },
+        "assignment": {
+          "authority": "locally recorded, unverified tracker projection",
+          "tracker": null,
+          "assignee": null,
+          "iteration": null,
+          "observed_at": null,
+          "freshness": "unknown"
+        },
+        "requirements": []
+      },
+      {
+        "change": "text-contract",
+        "parent": "TEXT-100",
+        "source": "initiative.md",
+        "source_revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+        "closed": false,
+        "spec": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "plan": {
+          "state": "stale-approval",
+          "binding": "invalid"
+        },
+        "assignment": {
+          "authority": "locally recorded, unverified tracker projection",
+          "tracker": "https://example.invalid/issues/text-contract",
+          "assignee": "text-contract-owner",
+          "iteration": "sprint-1",
+          "observed_at": null,
+          "freshness": "unknown"
+        },
+        "requirements": [
+          {
+            "criterion": "local:api",
+            "behaviours": [
+              "B1"
+            ]
+          }
+        ]
+      },
+      {
+        "change": "text-portal",
+        "parent": "TEXT-100",
+        "source": "initiative.md",
+        "source_revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+        "closed": false,
+        "spec": {
+          "state": "stale-approval",
+          "binding": "invalid"
+        },
+        "plan": {
+          "state": "stale-approval",
+          "binding": "invalid"
+        },
+        "assignment": {
+          "authority": "locally recorded, unverified tracker projection",
+          "tracker": "https://example.invalid/issues/text-portal",
+          "assignee": "text-portal-owner",
+          "iteration": "sprint-1",
+          "observed_at": "2026-09-08T10:00:00Z",
+          "freshness": "recorded observation; current allocation unverified"
+        },
+        "requirements": [
+          {
+            "criterion": "local:portal",
+            "behaviours": [
+              "B1"
+            ]
+          }
+        ]
+      },
+      {
+        "change": "text-report",
+        "parent": "TEXT-100",
+        "source": "initiative.md",
+        "source_revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+        "closed": false,
+        "spec": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "plan": {
+          "state": "approved",
+          "binding": "v2"
+        },
+        "assignment": {
+          "authority": "locally recorded, unverified tracker projection",
+          "tracker": "https://example.invalid/issues/text-report",
+          "assignee": "text-report-owner",
+          "iteration": "sprint-1",
+          "observed_at": null,
+          "freshness": "unknown"
+        },
+        "requirements": [
+          {
+            "criterion": "local:report",
+            "behaviours": [
+              "B1"
+            ]
+          }
+        ]
+      }
+    ],
+    "parents": [
+      {
+        "parent": "TEXT-100",
+        "source": "initiative.md",
+        "source_revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+        "children": [
+          "text-contract",
+          "text-portal",
+          "text-report"
+        ],
+        "coverage": "declared only; acceptance and delivery unverified",
+        "inventory": {
+          "status": "available",
+          "criteria": [
+            {
+              "id": "local:api",
+              "criterion": "Publish the text conversion contract"
+            },
+            {
+              "id": "local:portal",
+              "criterion": "Display converted text"
+            },
+            {
+              "id": "local:report",
+              "criterion": "Report conversion totals"
+            },
+            {
+              "id": "local:integration",
+              "criterion": "Consumers agree with the shared contract"
+            }
+          ]
+        },
+        "mappings": [
+          {
+            "change": "text-contract",
+            "criterion": "local:api",
+            "behaviours": [
+              "text-contract#B1"
+            ],
+            "spec": {
+              "state": "approved",
+              "binding": "v2"
+            },
+            "closed": false
+          },
+          {
+            "change": "text-portal",
+            "criterion": "local:portal",
+            "behaviours": [
+              "text-portal#B1"
+            ],
+            "spec": {
+              "state": "stale-approval",
+              "binding": "invalid"
+            },
+            "closed": false
+          },
+          {
+            "change": "text-report",
+            "criterion": "local:report",
+            "behaviours": [
+              "text-report#B1"
+            ],
+            "spec": {
+              "state": "approved",
+              "binding": "v2"
+            },
+            "closed": false
+          }
+        ],
+        "unmapped": [
+          "local:integration"
+        ],
+        "unknown": []
+      }
+    ],
+    "dependencies": [
+      {
+        "change": "text-contract",
+        "prerequisite": "text-portal",
+        "status": "declared",
+        "prerequisite_closed": false,
+        "prerequisite_plan": {
+          "state": "stale-approval",
+          "binding": "invalid"
+        },
+        "delivery": "unverified",
+        "interfaces": []
+      },
+      {
+        "change": "text-contract",
+        "prerequisite": "missing",
+        "status": "missing-target",
+        "prerequisite_closed": null,
+        "prerequisite_plan": {
+          "state": "absent",
+          "binding": "absent"
+        },
+        "delivery": "unverified",
+        "interfaces": []
+      },
+      {
+        "change": "text-portal",
+        "prerequisite": "text-contract",
+        "status": "declared",
+        "prerequisite_closed": false,
+        "prerequisite_plan": {
+          "state": "stale-approval",
+          "binding": "invalid"
+        },
+        "delivery": "unverified",
+        "interfaces": [
+          {
+            "change": "text-contract",
+            "file": "src/app/text.py",
+            "revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+            "ancestor": true,
+            "matches": false,
+            "status": "changed",
+            "assessment": "impact assessment required"
+          }
+        ]
+      },
+      {
+        "change": "text-report",
+        "prerequisite": "text-contract",
+        "status": "declared",
+        "prerequisite_closed": false,
+        "prerequisite_plan": {
+          "state": "stale-approval",
+          "binding": "invalid"
+        },
+        "delivery": "unverified",
+        "interfaces": [
+          {
+            "change": "text-contract",
+            "file": "src/app/text.py",
+            "revision": "4718c00ed8d2de590f0533aabb196c63246956e2",
+            "ancestor": true,
+            "matches": false,
+            "status": "changed",
+            "assessment": "impact assessment required"
+          }
+        ]
+      }
+    ],
+    "cycles": [
+      [
+        "text-contract",
+        "text-portal",
+        "text-contract"
+      ]
+    ],
+    "overlaps": [
+      {
+        "changes": [
+          "hyphen-titlecase",
+          "text-contract"
+        ],
+        "plans": [
+          {
+            "state": "approved",
+            "binding": "legacy/unbound"
+          },
+          {
+            "state": "stale-approval",
+            "binding": "invalid"
+          }
+        ],
+        "intersections": [
+          "src/app/text.py"
+        ],
+        "remedy": "split shared prerequisite work, serialize changes, or agree an integration owner"
+      },
+      {
+        "changes": [
+          "hyphen-titlecase",
+          "text-portal"
+        ],
+        "plans": [
+          {
+            "state": "approved",
+            "binding": "legacy/unbound"
+          },
+          {
+            "state": "stale-approval",
+            "binding": "invalid"
+          }
+        ],
+        "intersections": [
+          "src/app/text.py"
+        ],
+        "remedy": "split shared prerequisite work, serialize changes, or agree an integration owner"
+      },
+      {
+        "changes": [
+          "text-contract",
+          "text-portal"
+        ],
+        "plans": [
+          {
+            "state": "stale-approval",
+            "binding": "invalid"
+          },
+          {
+            "state": "stale-approval",
+            "binding": "invalid"
+          }
+        ],
+        "intersections": [
+          "src/app/text.py"
+        ],
+        "remedy": "split shared prerequisite work, serialize changes, or agree an integration owner"
+      }
+    ],
+    "findings": [
+      {
+        "change": "text-contract",
+        "kind": "dependency",
+        "message": "missing: missing-target"
+      }
+    ]
+  },
+  "limitation": "Coordination acceptance only; child product implementations, remote assignments and integrated delivery are not claimed."
+}

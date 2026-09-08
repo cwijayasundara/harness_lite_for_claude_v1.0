@@ -4,6 +4,7 @@
 // Law 2: anything that decides what happens next is a script with an exit code. If you find
 // yourself writing sequencing instructions into a SKILL.md, the logic belongs in here instead.
 
+import { coordination, coordinationLines } from '../lib/coordination.mjs';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, chmodSync, readdirSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
@@ -452,8 +453,10 @@ async function main() {
       // after it. Computed from every approved spec's `supersedes:` link, not filtered by
       // `--all` — the superseded spec's own row can be closed while the fact still matters.
       const superseded = [...artifacts.supersededBy(cfg)];
-      if (has('json')) { console.log(JSON.stringify({ current: artifacts.currentChange(cfg), selection: artifacts.selectionState(cfg), changes: rows, superseded: Object.fromEntries(superseded) }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
+      const team = coordination(cfg, { change: requested });
+      if (has('json')) { console.log(JSON.stringify({ current: artifacts.currentChange(cfg), selection: artifacts.selectionState(cfg), changes: rows, coordination: team, superseded: Object.fromEntries(superseded) }, null, 2)); return rows.some((r) => !r.ok) ? 1 : 0; }
       console.log(artifacts.currentLine(cfg));
+      console.log(coordinationLines(team).join('\n'));
       if (!rows.length) {
         console.log(`changes  none open${hidden ? `  (${hidden} closed; --all to list)` : ''}`);
         for (const [link, by] of superseded) console.log(`  SUPERSEDED ${link} — superseded by ${by.join(', ')}`);

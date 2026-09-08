@@ -154,16 +154,16 @@ Reuse should promote a validated technique into existing project guidance, a tem
 
 Implement A first, then B; together they form the first team-governance milestone. Item A can be implemented and reviewed independently, but does not resolve B's clean-checkout scope gap. C must precede treating new metadata as authoritative. D uses A/C; E uses C/D. F's evidence identity work supports all of them, while broad organizational integration can wait. Preserve old artifact history; use explicit legacy handling without inventing approvals. Add migration tests before changing the meaning of `closed`, `extends` or `supersedes`.
 
-**Six-step implementation checklist and fresh-session handoff.** Items 1–3 have now been implemented and locally validated; items 4–6 remain proposed. The numbering below matches the conversation; deliveries A–F above provide their scope and exit evidence. See the delivery records below for the implementation and limitations.
+**Six-step implementation checklist and fresh-session handoff.** Items 1–4 have now been implemented and locally validated; items 5–6 remain proposed. The numbering below matches the conversation; deliveries A–F above provide their scope and exit evidence. See the delivery records below for the implementation and limitations.
 
 1. [x] **Make execution specific to each worktree (A).** Bind execution to one change; scope pending approval checks to that change.
 2. [x] **Validate the entire PR candidate (B).** Check base-to-candidate changes, including committed files, renames and deletions.
 3. [x] **Strengthen traceability (C).** Link requirement revisions, behaviors, approvals, executed proof and delivery revisions.
-4. [ ] **Support decomposition and allocation (D).** Connect bounded child outcomes, dependencies, shared interfaces and existing issue-tracker assignments.
+4. [x] **Support decomposition and allocation (D).** Connect bounded child outcomes, dependencies, shared interfaces and existing issue-tracker assignments.
 5. [ ] **Maintain a current product/design view (E).** Derive revision-specific context from delivered changes while retaining historical records.
 6. [ ] **Verify reuse across the team (F).** Verify runtime/policy identity and export attributable evidence; validate reuse on product work.
 
-The latest authorized implementation scope is **item 3 only**, now delivered following user approval of its concrete spec and plan. Items 4–6 require separate authorization. Earlier instructions and suggested requests below are retained as historical handoff context; see the delivery records for each implementation's evidence and limitations.
+The latest authorized implementation scope is **item 4 only**, following user approval of its concrete spec and plan. Items 5–6 require separate authorization. Earlier instructions and suggested requests below are retained as historical handoff context; see the delivery records for each implementation's evidence and limitations.
 
 For item 1, first inspect current repository instructions and working-tree changes, then read this document and the current versions of `.aidlc/lib/artifacts.mjs`, `.aidlc/lib/guard.mjs`, `.aidlc/checks/scope-drift.mjs`, `.aidlc/bin/harness`, and the current-change/approval tests. The research revision above is a baseline, not permission to overwrite later work.
 
@@ -438,3 +438,54 @@ existing approval workflow, then implement and validate their bounded scope. The
 projection reports local coverage, dependency/interface and overlap findings plus unverified
 tracker references; remote assignment visibility remains explicitly unavailable. Preserve
 item 1–3 authority and evidence guarantees. Items 5–6 remain unstarted.
+
+
+**Item 4 delivery record — 8 September 2026.** Implemented only D under
+[decomposition-allocation](../.aidlc/artifacts/decomposition-allocation/spec.md).
+The user replied “approved and continue”; the existing CLI recorded that decision in
+`121193e`, after preparation commit `6145407`. This records the conversation decision,
+not authenticated host review or a human CLI invocation. Approved historical bodies
+remain unchanged; the preparation record above describes the earlier draft state.
+
+Existing text/JSON status now derives child coverage from parent/source revision groups
+and the exact committed source's optional Acceptance criteria inventory. It maps source
+criteria through child behaviours and reports unmapped/unknown criteria. Missing or
+external inventories report coverage unavailable. Draft/stale/legacy approvals remain
+labelled; closure or complete declared coverage cannot establish parent acceptance.
+
+Plans may declare depends_on slugs and a Dependencies table of shared interface paths
+and exact Git commit IDs. Status reports missing targets, self-links, cycle paths,
+interface ancestry and content changes. Malformed declarations fail their own approval,
+even with --anyway. These observations do not infer delivery from approval or closure.
+Local open-plan intersections identify exact/directory scope overlaps, plan states and
+coordination remedies. They cannot transfer scope or stop unrelated execution.
+
+Optional tracker/assignee/iteration/observation-time intent fields are locally recorded,
+unverified projections. Remote PR and assignment visibility is explicitly unavailable.
+Single-change queries still inspect the full local backlog for related findings. All new
+semantic inputs use item 3's existing bindings. Independent specs no longer require fake
+continuity links; explicit extends/supersedes validation and reversal safeguards remain.
+Templates, existing guidance and README explain the distinctions and integration review.
+
+Acceptance evidence:
+
+- [Pre-fix product reproduction](../.aidlc/artifacts/decomposition-allocation/reproduction.json)
+  and a failing migration regression demonstrate the unwanted approval coupling.
+- [Post-fix product evidence](../.aidlc/artifacts/decomposition-allocation/post-fix.json)
+  and its reusable disposable-copy script demonstrate three child outcomes, missing
+  integration coverage, independent approval, overlaps, cycles, missing prerequisites,
+  changed interfaces and unchanged unrelated authority. All fixture approvals are simulated.
+- [Coordination tests](../test/coordination.test.mjs) cover exact source inventories,
+  differing revisions, malformed/unavailable inputs, closed children, Git ancestry,
+  missing/changed interfaces, text/JSON filtering, tracker freshness, scope containment,
+  strict declarations and transitive metadata staleness. Supersession tests retain legacy,
+  explicit-link and reversal coverage while replacing only mandatory global linkage.
+- Standalone stop and local commit stages passed. Commands, outputs and local self-review
+  are in [evidence.md](../.aidlc/artifacts/decomposition-allocation/evidence.md).
+
+Limits: this is local coordination, not automatic allocation or scheduling. Parent
+coverage is declared, not accepted/delivered truth. Interface content/ancestry checks
+cannot establish semantic compatibility; overlaps cannot detect undeclared cross-file
+invariants. Remote data, hosted CI, live host review, paid campaigns, merge and deployment
+are not claimed. No new control, dependency, hook, agent, skill or budget increase was
+introduced. The final human PR/merge gate remains separate. Items 5–6 remain unstarted.

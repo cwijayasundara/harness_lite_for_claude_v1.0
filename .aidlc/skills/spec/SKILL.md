@@ -41,9 +41,9 @@ ids, so renumbering breaks the chain.
   its file all stand — and the link only takes effect once this spec is itself approved.
   `harness status` and `SessionStart` name it from there. Naming an approved behaviour's id in
   the prose without the link is refused at approval: the field is the record, the prose is not.
-  And for every other open change whose spec is approved, say which it is — `supersedes:` a
-  behaviour of it, or `extends: <slug>` when all its promises still hold. Approval refuses a
-  spec that says neither.
+  Use optional `extends: <slug>` for continuity with related work whose promises still hold.
+  Unrelated changes require no link. Parent contribution belongs in the intent; delivery
+  prerequisites and required interface revisions belong in the plan.
 
 Scale detail to risk. Use only sections that help the reader decide; do not invent content to
 fill a checklist. Routine implementation choices belong inside the approved design boundary.

@@ -5,7 +5,7 @@ description: Turns an approved spec into the files that will change, the order o
 
 # Write the plan
 
-`plan.md` is the second human gate, and the only place ownership is declared. Four sections.
+`plan.md` is the second human gate, and the only place ownership is declared.
 
 ## Approach
 
@@ -57,3 +57,11 @@ Theirs to run, after the spec is approved and committed. Editing the plan after 
 `stale-approval` and stops it governing anything, which is deliberate: a plan that could widen
 its own scope after signing is not a gate. Routine choices inside the approved approach and
 owned files do not require another approval; material design or scope changes do.
+
+Use optional depends_on scalar slugs for delivery prerequisites. A Dependencies table
+(Change | Interface | Revision) records shared interface paths and exact Git commits,
+with targets drawn from depends_on. Run status to inspect cycles, missing prerequisites,
+interface drift and local scope overlaps; choose a shared prerequisite, serialization or
+integration owner. Review schemas and shared invariants even when paths do not overlap.
+Approval or closure cannot prove integration readiness. Update from the target branch and
+run affected contract/regression tests; material interface or scope changes need renewed review.

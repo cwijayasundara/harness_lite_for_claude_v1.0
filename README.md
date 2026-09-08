@@ -482,3 +482,69 @@ injected test transport data and model review never authenticate host approval. 
 command neither posts reviews nor merges PRs and does not grant local write scope.
 The API fields follow GitHub's [pull request schema](https://docs.github.com/en/graphql/reference/pulls)
 and [branch protection schema](https://docs.github.com/en/graphql/reference/branches).
+
+### Decomposition and local coordination
+
+`harness status` (or `status <slug> --json`) now includes a derived coordination view.
+It reads the local artifact backlog even when displaying one change. It reports declared
+parent coverage, dependencies, interface snapshots and scope overlaps; these findings
+never select a change or transfer approved write authority.
+
+For example, split initiative `TEXT-100` into `text-contract`, `text-portal` and
+`text-report`, each with its own intent, spec, plan and acceptance decision. Give each
+intent the same `parent: TEXT-100`, repository `source: initiative.md` and exact
+`source_revision: <full commit ID>`. Keep the full inventory in that source revision:
+
+```markdown
+## Acceptance criteria
+
+| Criterion ID | Criterion |
+|---|---|
+| local:api | Publish the conversion contract |
+| local:portal | Display converted text |
+| local:report | Report conversion totals |
+| local:integration | Consumers agree with the shared contract |
+```
+
+Map those IDs to each child's behaviours in its existing `## Requirements` table.
+If the three children map only the first three criteria, status shows `local:integration`
+as unmapped. Mapping all declared criteria or closing every child does not establish
+parent acceptance. Draft/stale/legacy approvals stay labelled. External sources or missing
+inventories report coverage unavailable; status never invents the inventory from children.
+Different source revisions produce separate parent groups for impact review.
+
+Record `depends_on: text-contract` in both consumer plans. Where a shared contract has
+an exact repository snapshot, add this optional table (replace the revision placeholder):
+
+```markdown
+## Dependencies
+
+| Change | Interface | Revision |
+|---|---|---|
+| text-contract | src/app/text.py | <full Git commit ID> |
+```
+
+Use plain paths and exact commit IDs in these tables. Status reports missing targets,
+self-dependencies, cycle paths, ancestry and whether the interface matches checkout HEAD.
+It checks committed snapshots; working edits are still governed by the existing local
+checks. Even a matching ancestor snapshot is not proof of integrated acceptance. Changed
+or unavailable interfaces require impact assessment. Update from the target branch and
+run affected contract/regression tests. Material design or scope changes need renewed review.
+Malformed dependency declarations are refused at plan approval, including with `--anyway`.
+
+`extends` is an optional continuity claim; `supersedes` records an intentional behaviour
+replacement. Explicit links and the existing exact behaviour citation rule still validate.
+Unrelated changes need neither field. `parent` describes contribution and `depends_on`
+describes a delivery prerequisite; neither is an alias for continuity or supersession.
+
+Optional intent fields `tracker`, `assignee`, `iteration` and `assignment_observed_at`
+(a UTC ISO timestamp such as `2026-09-08T10:00:00Z`) display locally recorded tracker
+observations. Missing timestamps have unknown freshness. Change assignments in the existing
+tracker; this command makes no remote requests or writes and cannot verify current owners.
+These fields, parent references and dependency declarations participate in new approvals'
+existing semantic bindings; edits require their own impact review and reapproval.
+
+Local overlaps name both plans, approval states and intersecting Files paths, including
+directory containment. Resolve them with shared prerequisite work, serialization or an
+integration owner. Review undeclared schemas and cross-file invariants separately. Remote
+PR and assignment visibility is explicitly unavailable: no local overlap means only that.
