@@ -1,5 +1,9 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara (cleanup authorization in conversation, recorded by Codex)
+at: 2026-09-08T08:23:22.085Z
+digest: sha256:e2aeed20ccc1844830f8322d6ba1a8631fcab7d85f3b3777ece14cfb403fc475
+spec_digest: sha256:ab33c7f8b0042c9394c4e5fc4b48304e6d062f3a92fcc6eaf91a37cfccf01538
 ---
 # Plan: clean-project-scaffold
 
