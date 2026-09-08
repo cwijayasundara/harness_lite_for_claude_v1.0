@@ -116,7 +116,7 @@ after repeatable product evidence shows it necessary.
 | A | Complete for item 1 | Honest execution/reporting, hosted CI and explicit read-only evaluator verified |
 | B | Implemented and tested | Daily guidance simplified; bounded comparison found no regression, but friction reduction remains unproven |
 | C | Implemented and tested | Both live campaigns passed all 11 changes; private API/HTTP acceptance, failure recovery, saved-revision replay and hosted Docker checks passed |
-| D | Item 5 validated; item 4 comparisons incomplete | The matched pruning experiment completed both products in both arms; retain the baseline because the simpler arm showed no operational benefit |
+| D | Item 5 validated; item 4 native/graph comparisons complete, generation partial | Native and graph pairs completed; further paid generation comparisons cancelled after the user redirected validation to a minimal two-sprint app, which passed local workflow checks |
 
 First implementation slice: runner aggregation, malformed structured reports, full-run selection,
 absolute result reporting and CI conditions/trigger coverage. Files: .aidlc/lib/runner.mjs,
@@ -420,3 +420,23 @@ approvals are committed, and all final commit checks passed; earlier approvals w
 No hosted CI or separate whole-change model review is claimed. The existing CODEBASE-MAP.md
 edit is unchanged. Portable outcomes are in `.aidlc/evals/pruning-summary.json`; full phases,
 product histories and the captured driver patch are in ignored `.aidlc/evals/comparisons/prune-*`.
+
+
+### Item 4 closeout and minimal-app validation — 2026-09-08
+
+The native/harness and graph/no-graph experiments completed three paired repetitions on both
+products: all four arms accepted 33/33 changes. Harness and graph arms cost more in this small
+sample, with one fewer repair each. Retain the existing defaults; no universal winner is claimed.
+Generation strategy validation completed two ledger pairs; its third pair and full service trials
+remain incomplete/unmeasured. After repeated latency concerns, the user replaced further paid
+benchmarking with a bare-minimum app over two sprints. The original full matrix is not marked passed.
+
+A tiny local task-list app passed sprint 1 (add/list) and sprint 2 (complete with regression tests).
+The actual installer, approval CLI, write guard, stop and commit checks were exercised without
+Docker or new model calls. A seeded bug failed validation and passed after correction. Approvals
+were simulated for this deterministic test; independent model review and a real Claude host-hook
+session are not claimed. Empty optional capabilities were explicitly skipped.
+
+Portable outcomes, identities, costs and retained failed attempts are in
+`.aidlc/evals/comparison-summary.json`; findings and limitations are recorded in
+`.aidlc/artifacts/complete-native-comparisons/evidence.md`.
