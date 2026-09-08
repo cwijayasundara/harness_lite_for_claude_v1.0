@@ -487,3 +487,62 @@ corrected consumer instructions with the same tolerance and successful configure
 The plugin-cache resolution test now copies runtime files rather than the entire development
 checkout. On this machine its elapsed time fell from about 67 seconds to 0.3 seconds while
 retaining its environment/cache resolution assertions. No paid trials were run for this cleanup.
+
+## Lean review, 8 September 2026
+
+Requested by the user to prevent repeating v6's overengineering. Inspected lean revision
+`a4118f5` and the sibling v6 checkout at `1d1626f`; also checked the
+[public v6 repository](https://github.com/cwijayasundara/claude_harness_eng_v6).
+Assessment: substantially smaller than v6, but growing along the same path of accumulating
+coordination and evidence machinery. Passing the current budget cannot refute that assessment.
+
+**Measured footprint.** Physical lines, including comments/blanks, from Git-tracked files:
+
+- Lean executable core: 4,890 lines in 29 files. This counts `.aidlc/bin/harness` and `.mjs`
+  files under `.aidlc/{lib,checks,hooks,sensors}`; it excludes templates, skills, tests and evidence.
+  The identical selection at `3c79375` was 3,689 lines in 24 files: 33% growth.
+- v6's `.claude/hooks` and `.claude/scripts` alone contain 40,010 lines across 284 tracked
+  JS/TS/Python/Markdown/JSON/TOML/shell files. This is a footprint reference, not an equivalent
+  executable-core metric; the older repository also includes optional packs and development tools.
+- Lean has 234 tracked Markdown/JSON artifact files containing 50,427 lines, plus a 693-line
+  README. Artifact history is not installed into consumers and is not agent context by default;
+  it still adds repository maintenance and navigation cost. Do not delete approval history to
+  improve a line count.
+- The budget measures skills, agents, hook bindings, hook lines and Claude instruction lines.
+  CLI/library growth, new metadata schemas and additional workflow concepts sit outside it.
+
+**Product evidence.** In the completed paired batch starting `2026-09-07T16:53:21.298Z` in
+[comparison-summary.json](../evals/evidence/comparison-summary.json), native and harness each
+passed six campaign attempts and accepted 33 changes. Reported model cost was $6.11 versus
+$7.85, respectively (29% higher with the harness); retries were one versus zero, and recorded
+latency was slightly lower with the harness. Graph-off and graph-on also each accepted 33 changes,
+with costs of $7.94 and $8.48 and retries of one and zero. These are small historical samples,
+with simulated approvals; interrupted earlier attempts remain in the evidence. They neither
+prove universal equivalence nor validate the subsequent team additions. They do not establish a
+Codex comparison. The lookup benchmark used 5,743 graph-pack tokens versus 3,436 for bounded
+search/read retrieval, both with full reported recall; comparison against whole-file reads
+would overstate the graph's benefit.
+
+**Disposition, in priority order.** Keep existing approval boundaries and product checks while
+simplifying within them. Further generalization needs a concrete product need and the smallest
+adequate solution; this review does not authorize a rewrite or promise blanket feature removal.
+
+| Area | Next decision |
+|---|---|
+| Graph, map and context packing | Freeze feature expansion. Repair usage so the agent queries the existing index first (graph-first retrieval). Consider removal only after a graph-first versus Grep-first product comparison. Advisory packing alone is not that comparison. |
+| Coordination and revision-specific product context | Recent additions have deterministic product reproductions, so they are not wholly speculative. Limit them to those demonstrated needs; prefer tracker links and targeted Git reads over expanding a local delivery platform. No scheduler or new assignment authority. |
+| Host review and runtime identity | Preserve honest candidate/pin checks. Keep host merge policy authoritative; avoid expanding local policy emulation or unsigned evidence into a certification system. |
+| Skills and roles | Prefer concise project-specific guidance. A generic diagnosis/refactoring recipe needs evidence beyond the fact that a capable agent can follow it. Review before replacement; adding a pack system would repeat v6. |
+| Ledger and development evidence | Use existing records to investigate true positives and false blocks. Seeded tests and firing frequency do not measure net benefit. Retain historical evidence without inventing another reporting service. |
+
+The local ledger audit reported 7,493 rows over 593 runs, including three `contract-scope`
+firings flagged false. This mixed local development history is not a product-benefit sample.
+Its automated keep recommendations do not cover most of the implementation growth above.
+
+Changes made in this review: clarified existing constitutional laws 5 and 11, exposed the budget's
+limits in the README, and removed obsolete operating guidance about latest-approval selection,
+backlog-wide blocking and a hardcoded skill ceiling. No runtime mechanism, dependency, gate or
+budget was added. Runtime removal experiments remain recommendations, not completed validation.
+
+Validation: `git diff --check` passed; `harness check --stage stop` passed secrets (118 ms)
+and the full test suite (70,649 ms). No new paid model comparison was run for this review.

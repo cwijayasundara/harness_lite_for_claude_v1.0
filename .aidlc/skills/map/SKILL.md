@@ -5,9 +5,9 @@ description: Answers questions about how a codebase fits together using the harn
 
 # Understand the affected system
 
-Start with the affected entry points, callers, state, tests and established patterns. Use the
-graph when it helps locate relationships; use targeted search and bounded source reads when
-those answer the question directly. An unavailable optional graph does not block work.
+Locate with the graph first: callers, calls, hubs, cycles, changed-since, or a budgeted pack.
+Then read the named slices. Grep is the miss path when the index is stale, absent, or silent.
+
 The graph answers five kinds of questions:
 
 | You want to know | Command |

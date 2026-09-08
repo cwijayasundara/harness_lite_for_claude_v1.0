@@ -2,6 +2,6 @@
   "agent": "explorer",
   "may_spawn": false,
   "may_write": false,
-  "tools": ["Read", "Grep", "Glob"],
+  "tools": ["Read", "Grep", "Glob", "Bash"],
   "why": "Breadth search must not be able to change what it is searching."
 }

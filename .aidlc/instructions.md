@@ -28,8 +28,12 @@ one exception is `approve`, which is theirs to run — the gate is the point.
 .aidlc/bin/harness ledger audit           # which controls earn their place, and which rules misfire
 .aidlc/bin/harness ledger flag <rule>     # a fire the guard got wrong
 .aidlc/bin/harness graph query <question> # callers, calls, hubs, cycles, changed-since
+.aidlc/bin/harness pack <symbol>          # budgeted definition, callees, callers
 .aidlc/bin/harness evals gate             # grade the newest full run against evals/expected.json
 ```
+
+Locate indexed symbols with `harness graph query` and `harness pack` first; Grep/Glob is the
+miss path.
 
 Never report a task complete without running and pasting the output of `--stage stop` yourself.
 

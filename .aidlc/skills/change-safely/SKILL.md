@@ -5,7 +5,8 @@ description: Guides safe changes to existing code through system understanding, 
 
 # Change existing code safely
 
-Understand the affected behaviour, callers, dependencies and state before editing. Read nearby
+Understand the affected behaviour, callers, dependencies and state before editing. Locate
+callers with `harness graph query` / `harness pack` before whole-file reads. Read nearby
 implementations and tests for established patterns. Use coverage, when available, to locate
 risk; inspect assertions rather than treating a percentage as proof.
 

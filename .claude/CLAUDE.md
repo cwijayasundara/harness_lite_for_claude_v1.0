@@ -11,6 +11,10 @@ Users start or resume in natural language: “Take this through the Lean AIDLC w
 
 `intent -> spec (gate 1) -> plan (gate 2) -> implement -> review -> merge (gate 3)`
 
+Select the intended change with `harness status --change <slug>` in each worktree before
+implementation. Selection is local and never approves a gate; backlog drafts do not block it.
+After switching branches, explicitly reselect. Use `--clear-change` to end execution.
+
 Invoke harness commands yourself; never make the user drive the workflow through the CLI. The
 one exception is `approve`, which is theirs to run — the gate is the point.
 
@@ -25,8 +29,12 @@ one exception is `approve`, which is theirs to run — the gate is the point.
 .aidlc/bin/harness ledger audit           # which controls earn their place, and which rules misfire
 .aidlc/bin/harness ledger flag <rule>     # a fire the guard got wrong
 .aidlc/bin/harness graph query <question> # callers, calls, hubs, cycles, changed-since
+.aidlc/bin/harness pack <symbol>          # budgeted definition, callees, callers
 .aidlc/bin/harness evals gate             # grade the newest full run against evals/expected.json
 ```
+
+Locate indexed symbols with `harness graph query` and `harness pack` first; Grep/Glob is the
+miss path.
 
 Never report a task complete without running and pasting the output of `--stage stop` yourself.
 
