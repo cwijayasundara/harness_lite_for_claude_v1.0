@@ -1,7 +1,19 @@
 ---
-status: draft
+status: approved
 supersedes: a-change-declares-its-relation#B1, a-change-declares-its-relation#B5, a-change-declares-its-relation#B6
 extends: compare-native-claude, complete-native-comparisons, pr-candidate-scope, requirement-traceability, worktree-change-selection
+source_digest: sha256:b24aead30834cc9fe619f6a2a43ebe7e0fcbe8ebf86c8a39dc4b4467756cd4da
+source: docs/SPDD-TEAM-EVOLUTION-PLAN.md
+source_revision: 4add89e3741e6a652731c488e68140c78900dc0b
+source_kind: repository
+intent_digest: sha256:4d49dce321d752d4fcccfb3c03d8bcd1dce31d67a03dee54f993bf1d031609be
+intent_input_digest: sha256:a63d8fa8506248798bb43df495864f444c668505dd29ff767b3a36bc4ed573a2
+intent_revision: 6145407f1abf402f0a740ab5205cb1b9f71565b8
+by: cwijayasundara
+at: 2026-09-08T13:33:46.569Z
+digest: sha256:458b0b6e847f772458e50cd88b5fd190f0795d92aa584302e93d0547b7feb2d1
+approval_version: 2
+approval_digest: sha256:b5151b495789af7736768de86a141d9f49c79ec0e39e8bcdb2b45cbfe538ac8f
 ---
 # Spec: decomposition-allocation
 

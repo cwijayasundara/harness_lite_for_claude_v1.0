@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:458b0b6e847f772458e50cd88b5fd190f0795d92aa584302e93d0547b7feb2d1
+spec_approval_digest: sha256:b5151b495789af7736768de86a141d9f49c79ec0e39e8bcdb2b45cbfe538ac8f
+by: cwijayasundara
+at: 2026-09-08T13:33:51.327Z
+digest: sha256:15e7570f58f7ca734076148e4f7ae0aeef97d92f5b81626056fb8f5b1d9f46fc
+approval_version: 2
+approval_digest: sha256:ab2f627f4c9a84750d3ab9aa87411e5e1737216392791e2e4b3198ca0ecefa67
 ---
 # Plan: decomposition-allocation
 
