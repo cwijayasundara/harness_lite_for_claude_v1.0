@@ -48,3 +48,8 @@ already-loaded provider prompts. Policy coverage is the explicit documented inve
 all transitive commands or remote organization policy. No physical-machine, hosted CI, paid
 model, live host review, merge or deployment result is claimed. Docker-dependent product tests
 require the separate opt-in environment; local deterministic trials do not substitute for it.
+
+Final acceptance: all seven exact-candidate commit controls passed on 6d98cef against 34835f0.
+The initial timed-out candidate attempt is preserved separately; a streamed suite and unchanged
+candidate rerun passed with original limits. Its cause remains undetermined, and no external
+or hosted reliability claim follows from the local rerun. Evidence/archive commits add no code.

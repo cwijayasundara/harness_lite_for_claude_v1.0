@@ -86,3 +86,40 @@ PASS  test_quality 31ms
 local-report.json preserves the report with explicit actor label codex-item6-implementation,
 worktree change team-reuse and observed dirty documentation state. It is local verification;
 the separate exact-candidate report follows the evidence commit. `git diff --check` passed.
+
+## Exact candidate acceptance
+
+The clean implementation/evidence candidate is `6d98cefa86e37201a223f84dc74d83b7ba73a25a`,
+checked against pre-item-6 base `34835f0c75b43908af3ffccc551fae40e5edbd4f` with explicit change
+team-reuse and actor label codex-item6-implementation. The final command was:
+
+```sh
+node .aidlc/bin/harness check --stage commit --base 34835f0c75b43908af3ffccc551fae40e5edbd4f --candidate 6d98cefa86e37201a223f84dc74d83b7ba73a25a --change team-reuse --actor codex-item6-implementation
+```
+
+```text
+PASS  secrets     254ms
+PASS  test        69278ms
+PASS  scope-drift 179ms
+PASS  budget      1ms
+PASS  tamper      383ms
+PASS  arch        33ms
+PASS  test_quality 29ms
+```
+
+candidate-report.json contains the exact revision/report identities; candidate-export.json is
+produced by the real ledger export CLI for invocation f33ed286-61b3-4e0b-9d05-0f370d7b2dc0.
+The final archive commit contains evidence/docs only and follows that validated revision.
+
+The first candidate attempt hit the existing test subprocess timeout and is retained as
+candidate-timeout.json, with ok=false and later controls skipped. No timeout or assertion was
+weakened. A streamed diagnostic run (`node --test --test-reporter=tap test/*.test.mjs`) completed
+in 69466ms: 388 tests, 376 passed, 12 skipped, no failures. The same unchanged candidate then
+passed the full commit stage above. The initial timeout was not reproduced; its cause remains
+undetermined. The skipped cases are the suite's opt-in/environment-dependent cases, not passed
+product or hosted evidence.
+
+`git diff --check` passed. Git diff against the pre-item-6 base confirms no source fixture or
+historical item-1–5 artifact changes. This is local implementation and recorded verification,
+not authenticated host review, physical-machine validation, deployment or merge. The final
+human PR/merge gate remains separate.

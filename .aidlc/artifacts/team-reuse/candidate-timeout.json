@@ -1,0 +1,533 @@
+{
+  "stage": "commit",
+  "provenance": {
+    "version": 1,
+    "invocation": "68ce9692-e2c5-4447-b768-fb22eef5e550",
+    "at": "2026-09-08T15:39:59.500Z",
+    "change": "team-reuse",
+    "actor": {
+      "label": "codex-item6-implementation",
+      "provenance": "explicit-label",
+      "authenticated": false
+    },
+    "ci": {},
+    "runtime": {
+      "status": "verified",
+      "method": "self-checkout",
+      "observed": {
+        "commit": "6d98cefa86e37201a223f84dc74d83b7ba73a25a",
+        "committed": true,
+        "content": {
+          "version": 1,
+          "digest": "sha256:1e212d40f1e77904254190cd3e8084a9229529b2c563d32c25b41ee515279b9f",
+          "entries": [
+            {
+              "path": ".aidlc/adapters/claude/hooks.json",
+              "mode": "100644",
+              "digest": "sha256:b53a4a15a9282c67c1558bef21180e5919b573a9426c7249de3390737e84e197"
+            },
+            {
+              "path": ".aidlc/bin/harness",
+              "mode": "100755",
+              "digest": "sha256:caac503acd6bc9ea80fd3de403660ff58b6cf15868e7d72d3af055a124cc22a5"
+            },
+            {
+              "path": ".aidlc/checks/budget.mjs",
+              "mode": "100644",
+              "digest": "sha256:a7ca35245a98d33de884ea248a818fdd45a21e13581ebf9a56d6c67aadc72875"
+            },
+            {
+              "path": ".aidlc/checks/scope-drift.mjs",
+              "mode": "100644",
+              "digest": "sha256:723fc449b31240d5c20deb90c4fa90925809067c08295b062e07da08fd6a7ba4"
+            },
+            {
+              "path": ".aidlc/checks/secrets.mjs",
+              "mode": "100644",
+              "digest": "sha256:5268e9ce2a883cd075c6bad9515ba68ed72aff49c4aa22d6a36bc3fc39167857"
+            },
+            {
+              "path": ".aidlc/checks/tamper.mjs",
+              "mode": "100644",
+              "digest": "sha256:d33159bd54385d94a077e626dd8506c6c02fdb3374bf8bf89a262333d4350588"
+            },
+            {
+              "path": ".aidlc/hooks/dispatch.mjs",
+              "mode": "100644",
+              "digest": "sha256:8e102c7d784d9a5ed3520123c0dfbaaa707b3d896d4e9fe54e8bd0280bf97b3d"
+            },
+            {
+              "path": ".aidlc/hooks/policy.json",
+              "mode": "100644",
+              "digest": "sha256:595db7f19aeaee6dd27eb4164da5f5cd338a579a0ccba972fa7147bb127d2b55"
+            },
+            {
+              "path": ".aidlc/instructions.md",
+              "mode": "100644",
+              "digest": "sha256:d711753b4a174e894c31549fbf3b8960b9fece17a7b54f068677f584405d7e26"
+            },
+            {
+              "path": ".aidlc/lib/artifacts.mjs",
+              "mode": "100644",
+              "digest": "sha256:1d6f3f44fc24e9babd2e5b53c3cc32e177315b201bb707c4275b01cb45fee0a2"
+            },
+            {
+              "path": ".aidlc/lib/baseline.mjs",
+              "mode": "100644",
+              "digest": "sha256:a0f7c3ade9b809d517633d75022e3126ed1670d30d1aa79b9a1fdd9b7ea16fc8"
+            },
+            {
+              "path": ".aidlc/lib/config.mjs",
+              "mode": "100644",
+              "digest": "sha256:519160366bec45f3e8a590d2e04caad97951aab8181333ce19d37ad114c18ffd"
+            },
+            {
+              "path": ".aidlc/lib/coordination.mjs",
+              "mode": "100644",
+              "digest": "sha256:7e5e80253ff1f193684f7686f7cdccb0906ae04a211abbe9074ec340862b9e18"
+            },
+            {
+              "path": ".aidlc/lib/diff.mjs",
+              "mode": "100644",
+              "digest": "sha256:b8073cae3b0bfa65cf8a7593411479b1a527927412d4e48af35071da02ae824e"
+            },
+            {
+              "path": ".aidlc/lib/eval-gate.mjs",
+              "mode": "100644",
+              "digest": "sha256:ed2486ba7ecac5dde492520ed649d0c00a82e1de8bb7f725d4d54c800d640700"
+            },
+            {
+              "path": ".aidlc/lib/graph.mjs",
+              "mode": "100644",
+              "digest": "sha256:766b6d898c82b455b46630accfdf984ed5564b4028633e8b59d6f3afcf195082"
+            },
+            {
+              "path": ".aidlc/lib/guard.mjs",
+              "mode": "100644",
+              "digest": "sha256:daa684c4a3e4d3de06b265507def5d431f19360d7473e67007e37fb18dadb62c"
+            },
+            {
+              "path": ".aidlc/lib/ledger.mjs",
+              "mode": "100644",
+              "digest": "sha256:f73567cea4cb438e63c95c41a7fd41e310ca05343653438d4cc2949bf4b5e6e6"
+            },
+            {
+              "path": ".aidlc/lib/map.mjs",
+              "mode": "100644",
+              "digest": "sha256:f0ddaab36371f2bd1964fb42fbb88fe2e16c6a538b4fc5a9d35b7fd4370d63d5"
+            },
+            {
+              "path": ".aidlc/lib/normalize.mjs",
+              "mode": "100644",
+              "digest": "sha256:63eecf676835e5b9fe81d0fa37292f97fead8d17b864eaaa2d352f4ec248eff9"
+            },
+            {
+              "path": ".aidlc/lib/pack.mjs",
+              "mode": "100644",
+              "digest": "sha256:1ac54f034911c1a61877e9b3ebf590669468af79c1a3316fccc62dd7347934e0"
+            },
+            {
+              "path": ".aidlc/lib/paths.mjs",
+              "mode": "100644",
+              "digest": "sha256:4251ce50c0e529072335a76bd17baee71536ead8ef6822e3da01c5f455be31de"
+            },
+            {
+              "path": ".aidlc/lib/product-context.mjs",
+              "mode": "100644",
+              "digest": "sha256:220a2c1cc7b1fede87818b5f0698947d46c967f57202183e8de1c83ec6708f8f"
+            },
+            {
+              "path": ".aidlc/lib/projection.mjs",
+              "mode": "100644",
+              "digest": "sha256:f23c44bd7cf4d4895197f29f999f566519553bb1ed07abc2868cb6fd23d359df"
+            },
+            {
+              "path": ".aidlc/lib/refresh.mjs",
+              "mode": "100644",
+              "digest": "sha256:99986e6b3491fe625c94d1b47ef96707c4622fc17af365d3f69074759d1dc21b"
+            },
+            {
+              "path": ".aidlc/lib/review.mjs",
+              "mode": "100644",
+              "digest": "sha256:cc0fedf5335aa0b159ff799d6f08960f877be5fdf7d28f153d24ed94847890ab"
+            },
+            {
+              "path": ".aidlc/lib/runner.mjs",
+              "mode": "100644",
+              "digest": "sha256:551d1f20f53d4c4b6808cd8e0378cc535f0664fa64086565ef76367286996e42"
+            },
+            {
+              "path": ".aidlc/lib/runtime-identity.mjs",
+              "mode": "100644",
+              "digest": "sha256:fb216da223c235a6fa0fd8126de6a4c279a55e6700ba32a0037921d4c7c163b2"
+            },
+            {
+              "path": ".aidlc/lib/toml.mjs",
+              "mode": "100644",
+              "digest": "sha256:af39804d55b00ae08b397fd46aabd16185132751f5c5eed8789d70579337c6f1"
+            },
+            {
+              "path": ".aidlc/lib/trace.mjs",
+              "mode": "100644",
+              "digest": "sha256:9c27575dcf9190664fc232a313964e6745d598ff4ac1a76bbd2de3185bf2b39f"
+            },
+            {
+              "path": ".aidlc/policies/review.md",
+              "mode": "100644",
+              "digest": "sha256:d5b96066b7d466901045d13784f35e78772fb7f3dd4ecfcf846f1df8cecea57d"
+            },
+            {
+              "path": ".aidlc/roles/evaluator.contract.json",
+              "mode": "100644",
+              "digest": "sha256:5cdf96957a8fb21f12d3016058485065ad93d0bffd271efcbeeba6372b7f43e7"
+            },
+            {
+              "path": ".aidlc/roles/evaluator.md",
+              "mode": "100644",
+              "digest": "sha256:e86e198f3ab5e7f2e7a4263e7d6dc6d03d346e99413140d430833ef1cb4e7ca9"
+            },
+            {
+              "path": ".aidlc/roles/explorer.contract.json",
+              "mode": "100644",
+              "digest": "sha256:8da46160f60c26d501ad6ceb3c42039d82a417701c85e43fac386c63086a1771"
+            },
+            {
+              "path": ".aidlc/roles/explorer.md",
+              "mode": "100644",
+              "digest": "sha256:5180e5aece6f6b0e00b5f81b1adf0eb7dc3db7af2cf7520e47852c3048f4d87f"
+            },
+            {
+              "path": ".aidlc/roles/verifier.contract.json",
+              "mode": "100644",
+              "digest": "sha256:2fede774d30bfa6414991a6747c44a06995f2da094772369f4176ea1e385345e"
+            },
+            {
+              "path": ".aidlc/roles/verifier.md",
+              "mode": "100644",
+              "digest": "sha256:206ea45f54b9e8993e1e4572c10db91bc36a0361da741cc2e0a3c70b02fd7ef6"
+            },
+            {
+              "path": ".aidlc/sensors/architecture.mjs",
+              "mode": "100644",
+              "digest": "sha256:4b7f8bd81367a760649acf035ca3c55cdfa4a7ac256ff4a4e92c0841e82ac611"
+            },
+            {
+              "path": ".aidlc/sensors/test-quality.mjs",
+              "mode": "100644",
+              "digest": "sha256:6f4cebe996c5c26327f07f2a2a25fe934152f93f1236b03f990263793e0059c9"
+            },
+            {
+              "path": ".aidlc/skills/change-safely/SKILL.md",
+              "mode": "100644",
+              "digest": "sha256:da0b4ea3b0d0c71e976c74c5d8afb101fe0b9fbfb82ee1f4028785d57eb41998"
+            },
+            {
+              "path": ".aidlc/skills/diagnose/SKILL.md",
+              "mode": "100644",
+              "digest": "sha256:e5413c99c8f12f95137a9d77eaa6520df9fcb8e2edf397c35a460c966a2eae80"
+            },
+            {
+              "path": ".aidlc/skills/implement/SKILL.md",
+              "mode": "100644",
+              "digest": "sha256:633c51db403f7057a03e940d21e3ce6bca28035c94bbcc0c3c45b7521eefa227"
+            },
+            {
+              "path": ".aidlc/skills/intent/SKILL.md",
+              "mode": "100644",
+              "digest": "sha256:a6cefe6d7e5ed0bbe6a02469c9dfa24202e4d618fe325d0347b66b203b8e5f41"
+            },
+            {
+              "path": ".aidlc/skills/map/SKILL.md",
+              "mode": "100644",
+              "digest": "sha256:3ebaeb369e67eff4c3df3529e5b5157563ea9ac46deff70976cf52d84da35bfe"
+            },
+            {
+              "path": ".aidlc/skills/plan/SKILL.md",
+              "mode": "100644",
+              "digest": "sha256:d63b2251ca5aa9459e37d8dbc5af1f97d6eafe0ee2a1d650dbb6a34c400b1939"
+            },
+            {
+              "path": ".aidlc/skills/spec/SKILL.md",
+              "mode": "100644",
+              "digest": "sha256:571efe67331bcd4071c113eb99e2f581e0382c35b2bf978ad730ae1d373db154"
+            },
+            {
+              "path": ".aidlc/templates/gitignore",
+              "mode": "100644",
+              "digest": "sha256:235d2a32a2a3e7201e777cfb513c34b9e4c09f503547a8d43d56579e21b5b749"
+            },
+            {
+              "path": ".aidlc/templates/harness.toml",
+              "mode": "100644",
+              "digest": "sha256:e26d486e97b2937ce0fa6c026670c005478d243fa34d4654875adc6aa95358be"
+            },
+            {
+              "path": ".aidlc/templates/intent.md",
+              "mode": "100644",
+              "digest": "sha256:f74c0bcd704657a517b3f7275897cbcefb773a8eff2ec1fa17cbb828c5438e67"
+            },
+            {
+              "path": ".aidlc/templates/plan.md",
+              "mode": "100644",
+              "digest": "sha256:8fcded07cb7a6a9ece6d89315ffd8bb63ecaa88751a0c14684b1878f919992b8"
+            },
+            {
+              "path": ".aidlc/templates/project-instructions.md",
+              "mode": "100644",
+              "digest": "sha256:282814488a596c68afeeb37256f99dda5303f4fdf07267bd7537ade6eb1e0154"
+            },
+            {
+              "path": ".aidlc/templates/review.md",
+              "mode": "100644",
+              "digest": "sha256:8b68ab25246d0404de78dee47883158ec04ad70dd4eb3d9c6598a2fbd878e45b"
+            },
+            {
+              "path": ".aidlc/templates/spec.md",
+              "mode": "100644",
+              "digest": "sha256:8f8ae658184a0f5e83a4de732c31e495fc1a64ca50709632b00cb81b1166e445"
+            },
+            {
+              "path": ".claude-plugin/marketplace.json",
+              "mode": "100644",
+              "digest": "sha256:4293832a470d9186329ceaa6d06b21521fc44aaec6762e310464147937201fc2"
+            },
+            {
+              "path": ".claude-plugin/plugin.json",
+              "mode": "100644",
+              "digest": "sha256:8fe44bcc514acf9d040f747ea4186608c4cae226f7a3a4f40cf802fdc6e15d72"
+            }
+          ]
+        }
+      },
+      "expected": null,
+      "remedy": null
+    },
+    "policy": {
+      "version": 1,
+      "digest": "sha256:837662a715e8148a69272561e7501ff3a4f59839f5237087568525c04038152f",
+      "entries": [
+        {
+          "path": ".aidlc/harness.toml",
+          "digest": "sha256:f724c81626f6f7e1df5b7ab7b3dccecd0aaee3e2ed013091a8aca47712f11c70"
+        },
+        {
+          "path": ".aidlc/instructions.md",
+          "digest": "sha256:d711753b4a174e894c31549fbf3b8960b9fece17a7b54f068677f584405d7e26"
+        },
+        {
+          "path": ".aidlc/policies/review.md",
+          "digest": "sha256:d5b96066b7d466901045d13784f35e78772fb7f3dd4ecfcf846f1df8cecea57d"
+        },
+        {
+          "path": ".claude/CLAUDE.md",
+          "digest": "sha256:218c8f63a8cd52ce1df4387928cdcd53814120b434320c0913723845d349a4c7"
+        },
+        {
+          "path": ".claude/settings.json",
+          "digest": "sha256:4ef04241c91cd79cf4c5a81af25645c231c073c575a4d355b4201c5857b5f296"
+        },
+        {
+          "path": ".claude/settings.local.json",
+          "digest": null
+        },
+        {
+          "path": ".mcp.json",
+          "digest": null
+        },
+        {
+          "path": "AGENTS.md",
+          "digest": null
+        },
+        {
+          "path": "CLAUDE.md",
+          "digest": null
+        }
+      ],
+      "state": "committed"
+    },
+    "repository": {
+      "head": "6d98cefa86e37201a223f84dc74d83b7ba73a25a",
+      "dirty": false
+    },
+    "trust": "unsigned-local-observation",
+    "consistent": true
+  },
+  "identity_errors": [],
+  "revision": {
+    "base": "34835f0c75b43908af3ffccc551fae40e5edbd4f",
+    "candidate": "6d98cefa86e37201a223f84dc74d83b7ba73a25a",
+    "change": "team-reuse"
+  },
+  "trace": {
+    "version": 1,
+    "context": "candidate",
+    "change": "team-reuse",
+    "authority": "local-audit-labels",
+    "delivery": "not-observed",
+    "behaviours": [
+      {
+        "id": "team-reuse#B1",
+        "criteria": [
+          "local:F-two-fresh-environments-runtime-policy-identity",
+          "local:F-visible-mismatch"
+        ],
+        "proof": "test/install.test.mjs and test/runtime-identity.test.mjs: actual generated shim, env/cache mismatch, modes, symlinks, dirty checkout, exact commit and content",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "team-reuse#B2",
+        "criteria": [
+          "local:F-two-fresh-environments-runtime-policy-identity",
+          "local:F-visible-mismatch"
+        ],
+        "proof": "test/runtime-identity.test.mjs: doctor text/JSON, independent roots, policy edits, missing inputs, legacy upgrade and self-host development",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "team-reuse#B3",
+        "criteria": [
+          "local:F-export-change-actor-candidate-checks"
+        ],
+        "proof": "test/runtime-identity.test.mjs and existing candidate/trace tests: invocation consistency, actor provenance, unknown actor, runtime/policy mutations and unchanged proof boundaries",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "team-reuse#B4",
+        "criteria": [
+          "local:F-export-change-actor-candidate-checks"
+        ],
+        "proof": "test/ledger-export.test.mjs: exact selection, stale last-check, malformed/missing/legacy records, CLI failures, no current-environment backfill; CI recipe exit preservation",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "team-reuse#B5",
+        "criteria": [
+          "local:F-visible-mismatch",
+          "local:F-proven-procedure-reused-on-product-slice"
+        ],
+        "proof": "team-reuse/post-fix.mjs and post-fix.json: two isolated installations, real product failures/passes and second-slice reuse; full stop/commit and clean candidate reports",
+        "nodeid": null,
+        "status": "unverified"
+      }
+    ],
+    "approvals": {
+      "spec": {
+        "state": "approved",
+        "binding": "v2",
+        "digest": "sha256:ec15000f3a93bb6421b8078e26710f9b25a57e744620934173e414e8d6c0540b",
+        "by": "cwijayasundara",
+        "at": "2026-09-08T15:13:13.557Z"
+      },
+      "plan": {
+        "state": "approved",
+        "binding": "v2",
+        "digest": "sha256:68cfe9d9fabf39b0c67f0dc7fe55155b3834024169dd0a1728dac603c80ed46d",
+        "by": "cwijayasundara",
+        "at": "2026-09-08T15:13:16.613Z"
+      }
+    },
+    "source": {
+      "reference": "docs/SPDD-TEAM-EVOLUTION-PLAN.md",
+      "revision": "34835f0c75b43908af3ffccc551fae40e5edbd4f",
+      "kind": "repository",
+      "digest": "sha256:7bbcd184ca7f237ae02b4c1c7cc19d89d4645f1c41cbebb10828adbee47e9e41"
+    },
+    "intent": {
+      "revision": "981a0c3fde7a15ab8232f9bd39f1445afbebacfd",
+      "digest": "sha256:af9b84d718d787dd3125b1b0902e1270e02d2d64532ca333c600114a72775f5c"
+    },
+    "execution": {
+      "verdict": "errored",
+      "command": "node --test --test-reporter=tap test/*.test.mjs",
+      "observations": {
+        "status": "not-executed",
+        "tests": []
+      }
+    }
+  },
+  "ok": false,
+  "changed_files": [
+    ".aidlc/artifacts/team-reuse/evidence.md",
+    ".aidlc/artifacts/team-reuse/intent.md",
+    ".aidlc/artifacts/team-reuse/local-report.json",
+    ".aidlc/artifacts/team-reuse/plan.md",
+    ".aidlc/artifacts/team-reuse/post-fix.json",
+    ".aidlc/artifacts/team-reuse/post-fix.mjs",
+    ".aidlc/artifacts/team-reuse/reproduce.mjs",
+    ".aidlc/artifacts/team-reuse/reproduction.json",
+    ".aidlc/artifacts/team-reuse/review.md",
+    ".aidlc/artifacts/team-reuse/spec.md",
+    ".aidlc/bin/harness",
+    ".aidlc/lib/ledger.mjs",
+    ".aidlc/lib/runner.mjs",
+    ".aidlc/lib/runtime-identity.mjs",
+    ".aidlc/policies/review.md",
+    ".github/workflows/harness.yml",
+    "README.md",
+    "docs/SPDD-TEAM-EVOLUTION-PLAN.md",
+    "evals/README.md",
+    "evals/lib/stage.mjs",
+    "test/_runtime-fixture.mjs",
+    "test/budget.test.mjs",
+    "test/install.test.mjs",
+    "test/ledger-export.test.mjs",
+    "test/runtime-identity.test.mjs",
+    "test/unit.test.mjs"
+  ],
+  "controls": [
+    {
+      "control": "secrets",
+      "verdict": "pass",
+      "ms": 178,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "test",
+      "verdict": "errored",
+      "ms": 234703,
+      "findings": [],
+      "command": "node --test --test-reporter=tap test/*.test.mjs",
+      "error": "spawnSync bash ETIMEDOUT"
+    },
+    {
+      "control": "scope-drift",
+      "verdict": "skipped",
+      "ms": 0,
+      "findings": [],
+      "note": "not run — test failed first (use --all to run everything)"
+    },
+    {
+      "control": "budget",
+      "verdict": "skipped",
+      "ms": 0,
+      "findings": [],
+      "note": "not run — test failed first (use --all to run everything)"
+    },
+    {
+      "control": "tamper",
+      "verdict": "skipped",
+      "ms": 0,
+      "findings": [],
+      "note": "not run — test failed first (use --all to run everything)"
+    },
+    {
+      "control": "arch",
+      "verdict": "skipped",
+      "ms": 0,
+      "findings": [],
+      "note": "not run — test failed first (use --all to run everything)"
+    },
+    {
+      "control": "test_quality",
+      "verdict": "skipped",
+      "ms": 0,
+      "findings": [],
+      "note": "not run — test failed first (use --all to run everything)"
+    }
+  ]
+}

@@ -681,3 +681,12 @@ replace last-check. Export refuses ledgers over its documented bound rather than
 history. No paid campaign, live host review, remote configuration, push, merge or deployment
 was performed. No control, dependency, hook, agent, skill or budget increase was introduced.
 The final human PR/merge gate remains separate. No work beyond item 6 was started.
+
+Item 6's full clean candidate commit stage passed on
+`6d98cefa86e37201a223f84dc74d83b7ba73a25a` against pre-item-6 base
+`34835f0c75b43908af3ffccc551fae40e5edbd4f`: all seven controls passed.
+The [candidate report](../.aidlc/artifacts/team-reuse/candidate-report.json) and
+[invocation export](../.aidlc/artifacts/team-reuse/candidate-export.json) retain that identity.
+An initial test subprocess timeout is also archived; a diagnostic suite and the unchanged
+candidate passed on rerun without changing limits or assertions. The evidence-only archive
+follows the validated candidate. No hosted run or merged delivery is inferred.
