@@ -1,8 +1,18 @@
 ---
-status: draft
+status: approved
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: 89b5c20f6f54dfe06720fd38cb09e69e977d6443
 parent: lean-review-skills-and-roles
+source_digest: sha256:2e64c4ed6691644341f99b9f8144895a12e8c217c225102bf0c1357b2195aa1b
+source_kind: repository
+intent_digest: sha256:7618a154a34135b62c8b6befe724e80a772ec5e6a159e4f9f46ccf50fe3d15c7
+intent_input_digest: sha256:9a3add424c3e92f17ca52204dae98f2152fc80492ff13679e5897344f71d4c7a
+intent_revision: b25f7f76994b50eced11a9f718f9ed191bd55a28
+by: cwijayasundara
+at: 2026-09-08T21:55:39.004Z
+digest: sha256:3e7f06b9e69307df53c36240b0235609546c23c59d07c1d50d30c3ddbebe65c5
+approval_version: 2
+approval_digest: sha256:28361da47799a5512fe66732ed1d2ed8c39631bc752e77f0041a3d72719e6300
 ---
 # Spec: skills-earn-their-context
 

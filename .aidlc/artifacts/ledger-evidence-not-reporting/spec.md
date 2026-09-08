@@ -1,8 +1,18 @@
 ---
-status: draft
+status: approved
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: 89b5c20f6f54dfe06720fd38cb09e69e977d6443
 parent: lean-review-ledger-evidence
+source_digest: sha256:2e64c4ed6691644341f99b9f8144895a12e8c217c225102bf0c1357b2195aa1b
+source_kind: repository
+intent_digest: sha256:a85bbe0b6eac15d37aac843a19fc2e98589d099039f6a221e36471f371316534
+intent_input_digest: sha256:5d88bcc19f754724e7943ea61a18dd6e4b738e203524e607929e66e9b07b8422
+intent_revision: b25f7f76994b50eced11a9f718f9ed191bd55a28
+by: cwijayasundara
+at: 2026-09-08T21:55:39.092Z
+digest: sha256:f074341b9d073ed0b9f01a982ebb9ca9c9807aa63fa2bd052b1ddf0faa726d2c
+approval_version: 2
+approval_digest: sha256:58cd43af52fa06fd5732adaeb42bd3cb9822b263dd69d222873cd721f0451ffd
 ---
 # Spec: ledger-evidence-not-reporting
 
