@@ -1,8 +1,17 @@
 ---
-status: draft
+status: approved
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: a4118f5421454ba90e6e4388291fc92dd87b68c6
 source_kind: repository
+source_digest: sha256:1e7be7427322937aef3f34a36a0c4062a58c522ecd85787050459d2273adaa8d
+intent_digest: sha256:20800514d0353bfdcb97b25460c084ae712f6851ff7084ca62498d1a30cf98fb
+intent_input_digest: sha256:7478aa3435d68ff8631b5a23e578a81a7d0aebf0b1d33ec85ec7545678b5486f
+intent_revision: 606d968c2b1f40aa424c914fc3c61bb55125284f
+by: cwijayasundara
+at: 2026-09-08T17:27:41.646Z
+digest: sha256:918c9346da19648c66d0bddabf2d6cdd8f1f4a63e64d1a480b4d24df7949d263
+approval_version: 2
+approval_digest: sha256:75d2c7e8a76269e7ec5d727e85c0b4dd25330f2d23f69a684992346ca0d735c8
 ---
 # Spec: graph-first-retrieval
 
