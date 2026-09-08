@@ -1,0 +1,26 @@
+{
+  "fixture": "contract-planned (unchanged source; disposable copy)",
+  "base": "2b8e230cc503d73cab1da3982843a13ab916b062",
+  "candidate": "d0ad1026fe6b3388ab9e0a725aefac3ee0489e8b",
+  "changed_files": [
+    "src/app/handlers.py"
+  ],
+  "clean": true,
+  "before": {
+    "verdict": "fail",
+    "findings": [
+      {
+        "file": "src/app/handlers.py",
+        "line": 0,
+        "rule": "scope-drift",
+        "message": "changed but not named by the current change \"hyphen-titlecase\" — its plan's ## Files does not claim it",
+        "fix": "add the path to \"## Files\" of hyphen-titlecase/plan.md and re-approve it, or revert the change"
+      }
+    ]
+  },
+  "after": {
+    "verdict": "pass",
+    "findings": []
+  },
+  "approval_note": "Existing fixture approvals are simulations, not human approval for item 2."
+}
