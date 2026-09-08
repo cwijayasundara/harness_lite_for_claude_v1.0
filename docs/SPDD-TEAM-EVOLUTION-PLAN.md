@@ -327,3 +327,26 @@ human merge approval remain host responsibilities. No trace schema, decompositio
 product-truth index, runtime verification, paid campaign or merge was added. Items 3–6
 remain unstarted. Earlier item 1 limitations describe its delivery-time state; the
 committed-candidate scope gap is resolved by this item.
+
+**Item 3 preparation — 8 September 2026.** The user requested implementation of item 3
+only, superseding the earlier item-2-only authorization statement for this new work.
+Inspected clean revision `fecbf1466e70a9cc286b5e4cb72fe3e0857e1111` and the current
+artifact, runner, review and CI code. Prepared
+[intent](../.aidlc/artifacts/requirement-traceability/intent.md),
+[spec](../.aidlc/artifacts/requirement-traceability/spec.md) and
+[plan](../.aidlc/artifacts/requirement-traceability/plan.md) for the existing delivery gates.
+The spec and plan remain drafts; item 3 is not delivered.
+
+[reproduction.json](../.aidlc/artifacts/requirement-traceability/reproduction.json)
+records a disposable `contract-planned` product trial: editing `supersedes` to an invalid
+target and correcting the intent both leave the spec `approved`; the committed candidate
+scope check passes without test execution or per-behaviour execution evidence. The
+[reproduction script](../.aidlc/artifacts/requirement-traceability/reproduce.mjs) changes
+only a disposable product copy. Fixture approvals are simulations; source fixtures and
+historical repository approvals are untouched.
+
+Next handoff: review the concrete item 3 spec and plan, record the genuine decisions
+through the existing approval workflow, then implement their bounded file scope and
+acceptance checks. Preserve explicit legacy handling; never promote a local audit label,
+test-file presence or unavailable host policy to verified evidence. Items 4–6 remain
+unstarted. No production implementation or host configuration has changed in preparation.

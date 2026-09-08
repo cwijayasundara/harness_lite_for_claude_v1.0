@@ -1,0 +1,32 @@
+{
+  "repository_revision": "fecbf1466e70a9cc286b5e4cb72fe3e0857e1111",
+  "fixture": "contract-planned",
+  "simulated_fixture_approvals": true,
+  "before": "approved",
+  "after_relationship_edit": "approved",
+  "after_intent_edit": "approved",
+  "expected": "Both edits must be visible as unbound or stale inputs, never current traceable approval.",
+  "candidate_report": {
+    "stage": "reproduction",
+    "revision": {
+      "base": "5b09748ee512efafcfe8596ceadf7ae9ae17abe4",
+      "candidate": "2e34af4c9a3acf2b717a36087226bf017ffa44d8",
+      "change": "hyphen-titlecase"
+    },
+    "ok": true,
+    "changed_files": [
+      ".aidlc/artifacts/hyphen-titlecase/intent.md",
+      ".aidlc/artifacts/hyphen-titlecase/spec.md"
+    ],
+    "controls": [
+      {
+        "control": "scope-drift",
+        "verdict": "pass",
+        "ms": 78,
+        "findings": [],
+        "truncated": 0
+      }
+    ]
+  },
+  "executed_proof": "No test control was requested or executed; existing report contains no per-behaviour execution status."
+}
