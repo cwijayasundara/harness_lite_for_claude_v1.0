@@ -12,6 +12,13 @@ import * as a from '../.aidlc/lib/artifacts.mjs';
 const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const commit = root => { git(root, 'add', '-A'); git(root, '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-qm', 'Simulated trace test'); };
 const slug = 'hyphen-titlecase';
+test('canonical approval digest ignores metadata order and audit labels, but binds semantic fields', () => {
+  const body = '# Design\n';
+  const one = a.render({ status: 'approved', by: 'one', source_revision: 'v1', source: 'https://example.invalid/1', approval_version: '2' }, body);
+  const two = a.render({ approval_version: '2', source: 'https://example.invalid/1', source_revision: 'v1', by: 'two', status: 'draft' }, body);
+  assert.equal(a.approvalDigest(one), a.approvalDigest(two));
+  assert.notEqual(a.approvalDigest(one), a.approvalDigest(two.replace('source_revision: v1', 'source_revision: v2')));
+});
 function edit(cfg, kind, fn) {
   const target = a.file(cfg, slug, kind);
   writeFileSync(target, fn(readFileSync(target, 'utf8')));

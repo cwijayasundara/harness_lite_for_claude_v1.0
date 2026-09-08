@@ -70,7 +70,7 @@ export function strictParse(text) {
 
 export function approvalDigest(text) {
   const { front, body } = strictParse(text);
-  const inputs = Object.fromEntries(Object.entries(front).filter(([k]) => !AUDIT_KEYS.has(k)).sort(([a], [b]) => a.localeCompare(b)));
+  const inputs = Object.fromEntries(Object.entries(front).filter(([k]) => !AUDIT_KEYS.has(k)).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
   return hash(JSON.stringify({ version: 2, inputs, body: body.replace(/\r\n/g, '\n').trimEnd() + '\n' }));
 }
 
@@ -120,7 +120,7 @@ function intentInputDigest(text) {
   // closed is lifecycle metadata, not a requirement correction. Preserve its established
   // meaning while retaining the exact originally reviewed snapshot in intent_digest.
   const { status, ...inputs } = front;
-  return hash(render(Object.fromEntries(Object.entries(inputs).sort(([a], [b]) => a.localeCompare(b))), body));
+  return hash(render(Object.fromEntries(Object.entries(inputs).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)), body));
 }
 
 function bindingInputs(cfg, slug, kind, body) {
