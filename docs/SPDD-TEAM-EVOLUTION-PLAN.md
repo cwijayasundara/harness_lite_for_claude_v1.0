@@ -595,3 +595,28 @@ history bounds can require targeted Git inspection. No hosted CI, live host revi
 configuration, paid campaign, merge or deployment was performed or claimed. No new control,
 dependency, hook, skill, agent or budget increase was introduced. The human PR/merge gate
 remains separate. Item 6 remains unstarted.
+
+**Item 6 preparation — 8 September 2026.** The user requested item 6 only, superseding
+its earlier unstarted authorization status. Inspected clean revision
+`34835f0c75b43908af3ffccc551fae40e5edbd4f`, installer/shim, doctor, runner, ledger,
+installation tests and repository approval constraints. Prepared
+[intent](../.aidlc/artifacts/team-reuse/intent.md),
+[spec](../.aidlc/artifacts/team-reuse/spec.md) and
+[plan](../.aidlc/artifacts/team-reuse/plan.md). These remain drafts; item 6 is not delivered.
+
+[Reproduction](../.aidlc/artifacts/team-reuse/reproduction.json) and its
+[script](../.aidlc/artifacts/team-reuse/reproduce.mjs) install into a disposable
+`contract-planned` product. HARNESS_HOME selects a different actual Git commit from the
+consumer's installation record; doctor exits zero without an identity diagnostic.
+Only disposable copies changed; no fixture sources, approvals or production implementation
+were modified. The alternate runtime repository is explicitly simulated.
+
+Next handoff: review the concrete item 6 spec and plan, record genuine decisions through
+the existing approval workflow, then implement their bounded scope. The proposed change
+verifies shipped content before consumer shim execution, reports effective project policy
+identity, and captures/export checks by invocation with explicit actor provenance. Validate
+two isolated fresh installations and reuse a proven assertion procedure on another product
+slice using existing staging. Local installations are a two-environment simulation, not
+physical-machine or hosted-CI evidence. Preserve all item 1–5 authority and evidence limits,
+historical approvals and the control budget. No paid campaign or remote action is authorized
+by this preparation; the final human PR/merge gate remains separate.

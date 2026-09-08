@@ -1,0 +1,13 @@
+{
+  "repository_revision": "34835f0c75b43908af3ffccc551fae40e5edbd4f",
+  "fixture": "contract-planned",
+  "expected_runtime_commit": "34835f0c75b43908af3ffccc551fae40e5edbd4f",
+  "actual_runtime_commit": "a28be25e4a215dcb2a798d0101a5d206df7b9602",
+  "doctor_exit": 0,
+  "doctor_stdout": "project   fixture\nroot      /private/var/folders/m_/tqtx1ykn03l97jvspxx7wc640000gn/T/eval-contract-planned-dRb0ts/work\n\n  set  fmt        [generic] ruff format --check {files}\n  set  lint       [ruff] ruff check --output-format=json {files}\n  --   typecheck  (skipped — no command)\n  set  test       [generic] python3 -m pytest -q\n  --   test_quality (skipped — no command)\n  --   coverage   (skipped — no command)\n  --   arch       (skipped — no command)\n  set  secrets    [built-in] secret scanner\n  --   deps       (skipped — no command)\n\nbudget    skills=7/12  agents=3/3  hooks=4/5  hook_loc=255/600  claude_md_lines=18/120\n",
+  "doctor_stderr": "",
+  "defect": "Consumer shim executes a different Git runtime revision; doctor succeeds without an identity diagnostic.",
+  "simulated_runtime_repository": true,
+  "source_fixtures_modified": false,
+  "approvals_created": false
+}
