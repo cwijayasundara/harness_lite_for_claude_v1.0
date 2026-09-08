@@ -480,6 +480,13 @@ release or deployment is inferred.
 The saved JSON is point-in-time evidence, not a signed attestation. Local `--by` labels,
 injected test transport data and model review never authenticate host approval. This
 command neither posts reviews nor merges PRs and does not grant local write scope.
+
+The harness derives no merge eligibility of its own. It reports what the host reported —
+the host's own review decision, the visible required count, and current reviewers with
+push access — and refuses a verdict whenever one of those is invisible. No verb signs,
+attests, certifies, merges or pushes. This surface is frozen: a new assessment state, a
+new host verdict field, a new identity root or a signing verb fails
+`test/host-evidence.test.mjs`, which is where to argue for one.
 The API fields follow GitHub's [pull request schema](https://docs.github.com/en/graphql/reference/pulls)
 and [branch protection schema](https://docs.github.com/en/graphql/reference/branches).
 

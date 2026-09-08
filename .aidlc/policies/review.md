@@ -35,7 +35,8 @@ Inspect source at a revision with `git show <rev>:<path>` and `git grep`. Use
 exist. Review source, behavior, design, candidate/merge and executed proof links separately;
 archived unsigned host observations and graph edges cannot authenticate approval or prove
 correctness. Unmerged proposals, missing evidence and unresolved replacements must remain
-visible.
+visible. Merge authority is the host's: a harness report is evidence for your judgement,
+never a certificate that a change may land.
 
 ## Reusing a proven product procedure
 
