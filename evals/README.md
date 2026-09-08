@@ -176,3 +176,27 @@ checks; actor and approval labels explicitly say simulation. Local installations
 physical machines or hosted runs. Execute from a clean committed runtime so installation can
 verify its provenance. Source fixtures are never edited. Outputs record runtime/policy digests,
 pre-fix failure, post-fix proof and exact invocation exports.
+
+## Two-engineer product campaign
+
+Run `node --test test/two-engineer-campaign.test.mjs` for a deterministic, zero-model-call
+integration regression on a disposable copy of the invoicing ledger. Two Git worktrees have
+separate selected contracts and actor evidence. A rendezvous proves their product checks execute
+concurrently. The campaign exercises a shared prerequisite, unrelated backlog overlap, a committed
+scope violation, a mid-flight fee-rule reversal with stale approvals and dependency impact,
+a semantic integration defect despite passing slice tests, regression-driven repair, and a
+behavior-preserving refactor. A fixed evaluator outside both worktrees checks the integrated
+product; its content and the original fixture sources must remain unchanged.
+
+Set `HARNESS_TEAM_CAMPAIGN_REPORT=/tmp/two-engineer-campaign.json` to retain reports and
+invocation exports. Disposable Git histories are cleaned up; their recorded SHAs identify the
+observed candidates but are not retained as replayable repositories. Run from a clean committed
+harness runtime so installation identity can be verified. The fixture command clears inherited
+`NODE_TEST_CONTEXT` so nested Node test execution cannot silently skip product tests.
+
+Engineers, approval decisions and host observations are scripted simulations on one host.
+Git merges, checks and product assertions execute for real. This validates workflow mechanics,
+not model collaboration, human review time, two-machine operation or production lead time.
+TAP suite success remains unverified at the harness's per-behavior proof layer. The external
+assertions establish this campaign's bounded outcome; they do not grant parent acceptance or
+host approval. No OS sandbox is claimed for the scripted engineers.

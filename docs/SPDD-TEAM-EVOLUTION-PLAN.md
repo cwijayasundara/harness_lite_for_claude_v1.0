@@ -690,3 +690,28 @@ The [candidate report](../.aidlc/artifacts/team-reuse/candidate-report.json) and
 An initial test subprocess timeout is also archived; a diagnostic suite and the unchanged
 candidate passed on rerun without changing limits or assertions. The evidence-only archive
 follows the validated candidate. No hosted run or merged delivery is inferred.
+
+### Follow-up validation: two-engineer product campaign
+
+The [integration regression](../test/two-engineer-campaign.test.mjs) now exercises two scripted
+engineers in real Git worktrees against the existing ledger product fixture. It covers concurrent
+product checks, separate execution selections, a shared prerequisite, unrelated backlog overlap,
+committed scope refusal, a mid-flight requirement reversal and renewed approvals, dependency
+impact, an integration defect that slice suites miss, regression-driven repair and a refactor
+that preserves assertions. A fixed evaluator outside the worktrees verifies the integrated
+product; source fixtures and legacy ledger files remain unchanged.
+
+[Recorded campaign evidence](../.aidlc/artifacts/team-reuse/two-engineer-campaign.json) contains
+candidate reports, separate actor/invocation exports, observed concurrent execution, the refused
+scope violation, the failed integration assertion and final behavior states. The superseded fee
+rule remains historical. See [run instructions](../evals/README.md#two-engineer-product-campaign).
+
+This closes the deterministic two-engineer simulation gap. It does not establish live model
+collaboration, two-machine portability, hosted review or human performance improvements.
+Approvals and host records are explicitly simulated; TAP suite results do not become verified
+per-behavior execution proof or parent acceptance. Git histories are disposable. Existing live
+campaign and human delivery gates remain separate.
+
+Validation: focused campaign passed (34.1 seconds for the archived run); full stop passed
+(secrets 921 ms, tests 75,275 ms). Commit stage passed all seven controls, including the full
+suite (71,453 ms), scope-drift, budget, tamper, architecture and test quality.
