@@ -157,3 +157,9 @@ behavior. Disposable product checks use `node --test --test-timeout=10000`, so a
 test that leaks a server can return findings before the model invocation expires. Fixtures and
 production configuration are unchanged. The full validation command took about 30 minutes;
 `--prune-arm` and `--id` support focused reruns when only one campaign remains.
+
+The item 4 completion run reproduced another documentation false block: an explicit
+"If fully paid (amountCents === amountPaid): returns false" statement was rejected. The
+supporting heuristic now recognizes that conditional, with negative regression coverage.
+Saved live verdicts and unnecessary repair costs remain unchanged; deterministic regrading
+of the original document is recorded separately from the measured campaign.

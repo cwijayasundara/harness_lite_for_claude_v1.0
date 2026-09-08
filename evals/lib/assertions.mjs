@@ -199,7 +199,8 @@ export function ledgerCalls(s, calls) {
 // at zero balance: item 5 retained a correct document falsely rejected by the old phrase check.
 export function ledgerDescriptionExplainsPaidRule(doc) {
   const text=doc.replace(/[`*_]/g,'').replace(/\s+/g,' ');
-  return /paid[^.]*(?:not|never)[^.]*overdue|not overdue[^.]*paid|returns? false (?:once|when|if)[^.]*outstanding[^.]*zero \(fully paid\)/i.test(text);
+  return /paid[^.]*(?:not|never)[^.]*overdue|not overdue[^.]*paid|returns? false (?:once|when|if)[^.]*outstanding[^.]*zero \(fully paid\)/i.test(text)
+    || /\bif fully paid(?: \([^)]*\))?:? returns? false\b/i.test(text);
 }
 
 export function verifyLedger(s, level) {

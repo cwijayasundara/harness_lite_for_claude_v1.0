@@ -15,6 +15,13 @@ import {boundedSearch,bench} from '../evals/bench/pack-bench.mjs';
 const root=path.resolve('.');
 const models={generator:'capable',evaluator:'strong',evals:'economical'};
 
+test('paid-rule description accepts the saved explicit paid conditional without accepting its reversal',()=>{
+  const doc='**Overdue Rule:** An invoice is overdue if its due date has passed AND it is not fully paid.\n- If fully paid (amountCents === amountPaid): returns false, even if due date is in the past\n- If partially or unpaid and due date is before today: returns true';
+  assert.equal(ledgerDescriptionExplainsPaidRule(doc),true);
+  assert.equal(ledgerDescriptionExplainsPaidRule(doc.replace('returns false','returns true')),false);
+  assert.equal(ledgerDescriptionExplainsPaidRule('If not fully paid (amountCents !== amountPaid): returns false'),false);
+});
+
 test('comparison pairs hold models constant, sequence graph then evaluated generation, and reject missing models',()=>{
   const pairs=comparisonPairs(models);
   assert.deepEqual(pairs.map(p=>p.id),['native','graph','generation']);
