@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 extends: worktree-change-selection, compare-native-claude, complete-native-comparisons
+by: cwijayasundara
+at: 2026-09-08T11:15:24.861Z
+digest: sha256:77825ba4dd975fd1fbeaddf645fd2ca80b62052853c08bd4023d7213bb007657
 ---
 # Spec: pr-candidate-scope
 

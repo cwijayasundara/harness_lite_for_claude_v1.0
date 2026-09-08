@@ -1,5 +1,9 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-08T11:15:24.919Z
+digest: sha256:8212c2e2bc919bd12365e2ab379e1b279f36731e36e375e5e39e1fb79a73b9d7
+spec_digest: sha256:77825ba4dd975fd1fbeaddf645fd2ca80b62052853c08bd4023d7213bb007657
 ---
 # Plan: pr-candidate-scope
 
