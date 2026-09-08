@@ -1,7 +1,10 @@
 ---
-status: draft
+status: approved
 extends: compare-native-claude, complete-native-comparisons
 supersedes: a-diff-belongs-to-one-change#B1, a-draft-is-a-declaration#B1, a-draft-is-a-declaration#B2, a-draft-is-a-declaration#B3, a-draft-is-a-declaration#B4, a-draft-is-a-declaration#B5, an-edited-approval-awaits-its-gate#B1, an-edited-approval-awaits-its-gate#B2, an-edited-approval-awaits-its-gate#B4, an-edited-approval-awaits-its-gate#B5, an-unattended-turn-does-not-end-on-a-question#B1
+by: cwijayasundara
+at: 2026-09-08T11:03:16.462Z
+digest: sha256:ba93bea4f1691857eed10098d9c61fbf96fe57923d722beb9160a653fb80ba18
 ---
 # Spec: worktree-change-selection
 

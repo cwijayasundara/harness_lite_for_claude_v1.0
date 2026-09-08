@@ -1,5 +1,9 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara
+at: 2026-09-08T11:03:16.518Z
+digest: sha256:6c36c16ee8063e33582a510f652b9b1be8174c72462f0324c6bda0e32f987f88
+spec_digest: sha256:ba93bea4f1691857eed10098d9c61fbf96fe57923d722beb9160a653fb80ba18
 ---
 # Plan: worktree-change-selection
 
