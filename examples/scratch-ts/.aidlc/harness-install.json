@@ -3,7 +3,7 @@
   "marketplace": "lean-harness-cs-v1",
   "plugin": "lean-harness-cs-v1",
   "version": "0.1.0",
-  "commit": "c91fb84c00cb657003347fc61419259061435c2f",
+  "commit": "dbd3f14c668ad85108f06a3049e6d1e65e83ac07",
   "repository": "cwijayasundara/harness_lite_for_claude_v1.0",
   "shipped": {
     "skills": 7,

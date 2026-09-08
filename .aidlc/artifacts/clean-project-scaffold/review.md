@@ -24,3 +24,24 @@ about 0.3 seconds. This is test-fixture efficiency, not a measured model perform
 
 No paid model calls or independent whole-change model review were performed. Final local stop
 and commit checks and any hosted results are reported in the delivery response.
+
+## Final local verification
+
+Full stop check:
+```text
+PASS  secrets     129ms
+PASS  test        11822ms
+```
+
+Full commit check:
+```text
+PASS  secrets     67ms
+PASS  test        12042ms
+PASS  scope-drift 67ms
+PASS  budget      1ms
+PASS  tamper      56ms
+PASS  arch        28ms
+PASS  test_quality 30ms
+```
+
+Both examples are pinned to implementation commit `dbd3f14c668ad85108f06a3049e6d1e65e83ac07`. All 16 installation tests also pass after refreshing the records.
