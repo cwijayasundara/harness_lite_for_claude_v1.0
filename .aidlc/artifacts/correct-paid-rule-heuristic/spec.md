@@ -1,6 +1,9 @@
 ---
-status: draft
+status: approved
 extends: close-the-harness, correct-existing-mechanisms, compare-native-claude, prune-session-inventory, complete-native-comparisons
+by: cwijayasundara (item 4 completion authorization, recorded by Codex)
+at: 2026-09-08T05:59:09.943Z
+digest: sha256:f47805fb59eb61c895e17194dd70ca56cd24fd349ed742cd05c09821ce341725
 ---
 # Spec: correct-paid-rule-heuristic
 

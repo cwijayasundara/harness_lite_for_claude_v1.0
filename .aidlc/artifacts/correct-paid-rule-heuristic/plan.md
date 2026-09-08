@@ -1,5 +1,9 @@
 ---
-status: draft
+status: approved
+by: cwijayasundara (item 4 completion authorization, recorded by Codex)
+at: 2026-09-08T05:59:10.004Z
+digest: sha256:07859bff9aa1a47efa8a6362381c73937fd562b8e70514edddca88365d76e659
+spec_digest: sha256:f47805fb59eb61c895e17194dd70ca56cd24fd349ed742cd05c09821ce341725
 ---
 # Plan: correct-paid-rule-heuristic
 
