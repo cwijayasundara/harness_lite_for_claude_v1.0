@@ -8,12 +8,12 @@ source_digest: sha256:628437cd2a313a15d95d3ca59a3abee91fbbe8bf773e3e8f8aa0ece50f
 source_kind: repository
 intent_digest: sha256:219c2c6ee247338ef1aa7d44c0f9cde7b687ae938e0a13aea4f032b41ea167dc
 intent_input_digest: sha256:efa2bb68a505dc37a982e68aa9617aae89e39b5ad1329db1f410920ae314b5bb
-intent_revision: cc184e5da061fd0f85f13b71dc4b5b56d5b0a9b4
+intent_revision: c88b8f3b981f661328a4b52c875304c93ffc9d44
 by: cwijayasundara
-at: 2026-09-08T21:00:09.789Z
+at: 2026-09-08T21:01:47.341Z
 digest: sha256:f167724532c203c2813809ec359a01c0bb77b9b52238358e628720a74321ab24
 approval_version: 2
-approval_digest: sha256:39c705e2aef67777796525cb1574400e72d7aee13961a5a5c98eaf80362497ec
+approval_digest: sha256:78e8748be0d943ac3602d1328d9575f864a1be95753ef2d4f38dad0d9378ce50
 ---
 # Spec: host-evidence-not-certification
 
