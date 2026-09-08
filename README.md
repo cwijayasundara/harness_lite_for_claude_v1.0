@@ -352,4 +352,41 @@ There is no latest-approval fallback. Select each successive change explicitly, 
 `harness status --clear-change` to clear execution. `status --json` includes `selection` and
 `current` alongside the backlog; backlog approval issues can still make status exit nonzero.
 Historical artifacts retain their original approvals and meanings. The local scope check
-still examines working changes only; full committed PR-candidate validation is separate work.
+examines staged, unstaged and untracked changes. Use candidate mode for committed PR changes.
+
+### Checking a PR candidate
+
+In a clean tracked checkout of the candidate, run:
+
+```bash
+node .aidlc/bin/harness check --stage fast --base <base-sha> --candidate <head-sha> --change <slug> --json
+```
+
+The two revisions define an endpoint diff, including all net changes across the commits.
+Scope validation always runs in candidate mode, even if the chosen stage omits it. Renames
+check both old and new paths; deletions also need ownership. Both selected approvals must
+be current and committed. Untracked files cannot satisfy candidate proof promises.
+`--change` selects for this invocation only; without it the worktree selection applies.
+The report, `.aidlc/state/last-check.json`, and ledger include resolved `base`, `candidate`
+and `change` under `revision`. Built-in tamper and secret checks use the same boundary when
+included in the stage. Configured external tools receive the candidate file list through
+`{files}` if configured; their other behavior remains the project's responsibility.
+
+For GitHub PRs, include exactly one line in the PR description:
+
+```text
+Harness-Change: pr-candidate-scope
+```
+
+Replace the slug with the PR's approved change. The `candidate-scope` job checks out the PR
+head SHA, computes its merge base with the target SHA, and passes the event file using
+`--pr-event "$GITHUB_EVENT_PATH"`. Missing or ambiguous references fail. It uploads revision
+inputs, the command log, report and ledger even on check failure. Consumer repositories can
+copy this job from `.github/workflows/harness.yml`, using their installed harness shim and
+runtime setup. Fetch both revisions with full history, keep the checkout at the PR head,
+and pass event values through environment variables. Branch protection must separately
+require the job; this repository change does not configure hosting settings.
+
+Candidate scope measures the final diff, not edits reverted before the candidate. It does
+not authenticate approvals, verify that proof tests executed, or establish merge/deployment
+state. Ordinary local checks remain necessary before committing.

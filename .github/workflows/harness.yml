@@ -15,6 +15,41 @@ on:
         default: false
 
 jobs:
+  candidate-scope:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - name: Check the actual PR candidate
+        shell: bash
+        env:
+          TARGET_SHA: ${{ github.event.pull_request.base.sha }}
+          CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          mkdir -p .aidlc/state
+          printf 'target=%s\ncandidate=%s\n' "$TARGET_SHA" "$CANDIDATE_SHA" > .aidlc/state/pr-revisions.txt
+          BASE_SHA=$(git merge-base "$TARGET_SHA" "$CANDIDATE_SHA")
+          printf 'base=%s\n' "$BASE_SHA" >> .aidlc/state/pr-revisions.txt
+          .aidlc/bin/harness check --stage fast --base "$BASE_SHA" --candidate "$CANDIDATE_SHA" --pr-event "$GITHUB_EVENT_PATH" --json 2>&1 | tee .aidlc/state/pr-scope.log
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: candidate-scope-evidence
+          path: |
+            .aidlc/state/pr-revisions.txt
+            .aidlc/state/pr-scope.log
+            .aidlc/state/last-check.json
+            .aidlc/state/ledger.jsonl
+          if-no-files-found: warn
+
   product-sandbox:
     runs-on: ubuntu-latest
     steps:

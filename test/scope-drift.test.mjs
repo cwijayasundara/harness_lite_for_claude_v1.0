@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { run } from '../.aidlc/checks/scope-drift.mjs';
@@ -8,6 +8,29 @@ import { parse, render, bodyDigest, selectChange } from '../.aidlc/lib/artifacts
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 
 const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts') } });
+
+test('local staged, unstaged, untracked, renamed and deleted paths retain exact scope identity', async () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    const renamed = 'src/app/renamed\twith\nspace.py';
+    renameSync(path.join(s.work, 'src/app/text.py'), path.join(s.work, renamed));
+    spawnSync('git', ['add', '-A'], { cwd: s.work });
+    unlinkSync(path.join(s.work, 'src/app/handlers.py'));
+    const untracked = 'src/app/untracked.py';
+    writeFileSync(path.join(s.work, untracked), '# untracked\n');
+    const result = await run(cfg(s.work));
+    const files = result.findings.filter(f => f.rule === 'scope-drift').map(f => f.file);
+    assert.ok(files.includes(renamed), 'staged rename destination');
+    assert.ok(files.includes('src/app/handlers.py'), 'unstaged deletion');
+    assert.ok(files.includes(untracked));
+    // The reverse direction must not hide an unowned source under an owned destination.
+    spawnSync('git', ['reset', '--hard', 'HEAD'], { cwd: s.work });
+    unlinkSync(path.join(s.work, 'src/app/text.py'));
+    renameSync(path.join(s.work, 'src/app/handlers.py'), path.join(s.work, 'src/app/text.py'));
+    spawnSync('git', ['add', '-A'], { cwd: s.work });
+    assert.ok((await run(cfg(s.work))).findings.some(f => f.file === 'src/app/handlers.py'));
+  } finally { s.cleanup(); }
+});
 
 const commit = (root, message) => {
   spawnSync('git', ['add', '-A'], { cwd: root });

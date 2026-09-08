@@ -1,7 +1,7 @@
 // Built-in because it must work on a repo with no toolchain installed at all. If the project
 // has gitleaks, set capabilities.secrets in harness.toml and this is never reached.
 import { readFileSync, statSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { git, candidateFile, changedStatuses } from '../lib/diff.mjs';
 import path from 'node:path';
 
 const PATTERNS = [
@@ -15,10 +15,10 @@ const PATTERNS = [
 const SKIP = /(^|\/)(node_modules|\.git|\.venv|dist|build|target|__pycache__)(\/|$)/;
 
 export async function run(cfg, files) {
-  let list = files;
-  if (!list.length) {
+  let list = cfg.diff ? changedStatuses(cfg).filter(row => row.status !== 'D').map(row => row.file) : files;
+  if (!list.length && !cfg.diff) {
     try {
-      list = execSync('git ls-files', { cwd: cfg.layout.root, encoding: 'utf8' }).split('\n').filter(Boolean);
+      list = git(cfg.layout.root, ['ls-files', '-z']).split('\0').filter(Boolean);
     } catch { list = []; }
   }
   const findings = [];
@@ -26,8 +26,9 @@ export async function run(cfg, files) {
     if (SKIP.test(rel)) continue;
     const abs = path.resolve(cfg.layout.root, rel);
     try {
-      if (statSync(abs).size > 2_000_000) continue;
-      const text = readFileSync(abs, 'utf8');
+      if (!cfg.diff && statSync(abs).size > 2_000_000) continue;
+      const text = cfg.diff ? candidateFile(cfg, rel) : readFileSync(abs, 'utf8');
+      if (text.length > 2_000_000) continue;
       const lines = text.split('\n');
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].includes('harness:allow-secret')) continue;
@@ -38,7 +39,10 @@ export async function run(cfg, files) {
           }
         }
       }
-    } catch { /* unreadable or binary — not a finding */ }
+    } catch (error) {
+      if (cfg.diff) throw error;
+      // Local unreadable files retain the existing scanner behavior.
+    }
   }
   return { verdict: findings.length ? 'fail' : 'pass', findings };
 }

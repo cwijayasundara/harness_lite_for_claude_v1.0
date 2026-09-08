@@ -1,0 +1,33 @@
+{
+  "fixture": "contract-planned (disposable copy; simulated fixture approvals)",
+  "clean": true,
+  "result": {
+    "stage": "probe",
+    "revision": {
+      "base": "4f4b9b98205c267f368e38a339c12d18c74a0d5a",
+      "candidate": "809bb48d5f1375c48a2522cc7d762d629b30ad26",
+      "change": "hyphen-titlecase"
+    },
+    "ok": false,
+    "changed_files": [
+      "src/app/handlers.py"
+    ],
+    "controls": [
+      {
+        "control": "scope-drift",
+        "verdict": "fail",
+        "ms": 55,
+        "findings": [
+          {
+            "file": "src/app/handlers.py",
+            "line": 0,
+            "rule": "scope-drift",
+            "message": "changed but not named by the current change \"hyphen-titlecase\" — its plan's ## Files does not claim it",
+            "fix": "add the path to \"## Files\" of hyphen-titlecase/plan.md and re-approve it, or revert the change"
+          }
+        ],
+        "truncated": 0
+      }
+    ]
+  }
+}

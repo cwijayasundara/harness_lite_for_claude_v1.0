@@ -11,6 +11,8 @@ import path from 'node:path';
 import { resolveStage } from './config.mjs';
 import { normalize } from './normalize.mjs';
 import * as ledger from './ledger.mjs';
+import * as artifacts from './artifacts.mjs';
+import { candidateBoundary, validateCheckout, changedFiles } from './diff.mjs';
 
 // Exported so a test can resolve stage entries against the runner's own list rather than a
 // copy of it. Two lists that must agree is the shape of most defects in this repository.
@@ -22,13 +24,14 @@ export const LOCAL_CHECKS = {
 };
 
 function interpolate(cmd, files, reportPath) {
-  const list = files.length ? files.map((f) => JSON.stringify(f)).join(' ') : '.';
-  let out = cmd.includes('{files}') ? cmd.replaceAll('{files}', list) : cmd;
+  // JSON quoting permits shell substitutions in filenames; shell arguments need shell quotes.
+  const quote = value => "'" + String(value).replaceAll("'", "'\\''") + "'";
+  const list = files.length ? files.map(quote).join(' ') : '.';
   // {report} lets a tool that insists on writing its machine-readable output to a FILE
   // (pytest, eslint -o, coverage) participate in the one finding schema. Without it you are
   // reduced to scraping stdout, which is how "--json-report-file=-" quietly creates a file
   // literally named "-" in the repo root.
-  return out.replaceAll('{report}', JSON.stringify(reportPath));
+  return cmd.replace(/\{files\}|\{report\}/g, placeholder => placeholder === '{files}' ? list : quote(reportPath));
 }
 
 export async function runOne(cfg, verb, files) {
@@ -81,8 +84,24 @@ export async function runOne(cfg, verb, files) {
 }
 
 
-export async function check(cfg, { stage = 'fast', files = [], write = true, all = false } = {}) {
+export async function check(cfg, { stage = 'fast', files = [], write = true, all = false, base, candidate, change } = {}) {
   const verbs = resolveStage(cfg, stage);
+  const candidateMode = base !== undefined || candidate !== undefined;
+  let setupError = null;
+  let evidence;
+  if (candidateMode) {
+    // Scope cannot disappear merely because the caller picked fast/stop or an empty stage.
+    if (!verbs.includes('scope-drift')) verbs.unshift('scope-drift');
+    try {
+      const boundary = candidateBoundary(cfg.layout.root, base, candidate);
+      cfg = { ...cfg, diff: boundary, ...(change !== undefined ? { checkChange: change } : {}) };
+      evidence = { ...boundary, change: artifacts.selectionState(cfg).slug };
+      validateCheckout(cfg.layout.root, boundary);
+      files = changedFiles(cfg);
+    } catch (error) { setupError = error; }
+  } else if (change !== undefined) {
+    throw new Error('--change on check requires both --base and --candidate; use status --change for local selection');
+  }
   const failFast = (cfg.check?.fail_fast ?? true) && !all;
   const results = [];
   // Verbs are ordered cheapest-first, and a single defect usually fails every verb after the
@@ -90,7 +109,12 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
   // command. Reporting it three times costs tokens and buries the actionable line. Stop at the
   // first failure by default; `--all` when you genuinely want the full picture.
   let stopped = null;
+  if (setupError) {
+    results.push({ control: 'scope-drift', verdict: 'errored', ms: 0, findings: [], error: setupError.message });
+    stopped = 'candidate setup';
+  }
   for (const verb of verbs) {
+    if (setupError && verb === 'scope-drift') continue;
     if (stopped) {
       // Recorded as skipped, never silently absent: a verb that did not run must not quietly
       // improve its own fire rate in the ledger.
@@ -105,6 +129,7 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
   const cap = cfg.budget.max_findings;
   const report = {
     stage,
+    ...(evidence ? { revision: evidence } : {}),
     // why: an unavailable configured sensor previously returned exit 0 from `check`.
     // Unconfigured capabilities stay skipped; an attempted check must actually succeed.
     ok: results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped'),
@@ -123,6 +148,7 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
       ledger.append({
         stage, control: r.control, verdict: r.verdict, ms: r.ms,
         findings: (r.findings ?? []).length, changed_files: files.length,
+        ...(evidence ? { revision: evidence } : {}),
         ...(r.error ? { error: String(r.error).slice(0, 400) } : {}),
       }, cfg.layout);
     }
@@ -141,6 +167,7 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
 // teach, and must permit a justified escape hatch rather than only suppress-or-comply.
 export function render(report, layoutPaths) {
   const lines = [];
+  if (report.revision) lines.push(`candidate ${report.revision.candidate} from ${report.revision.base} — change ${report.revision.change ?? '(unselected)'}`);
   for (const c of report.controls) {
     const mark = { pass: 'PASS', fail: 'FAIL', skipped: 'SKIP', errored: 'ERR ' }[c.verdict];
     lines.push(`${mark}  ${c.control.padEnd(11)} ${c.ms}ms${c.note ? '  (' + c.note + ')' : ''}${c.error ? '  ' + c.error : ''}`);

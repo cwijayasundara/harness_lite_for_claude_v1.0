@@ -20,6 +20,7 @@ import * as codemap from '../lib/map.mjs';
 import { measure, shipped, RECORD } from '../checks/budget.mjs';
 import { dispatch } from '../hooks/dispatch.mjs';
 import { review } from '../lib/review.mjs';
+import { changedFiles as diffFiles, prChange } from '../lib/diff.mjs';
 import * as evalGate from '../lib/eval-gate.mjs';
 
 const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
@@ -34,11 +35,7 @@ const flag = (n, d = null) => { const i = argv.indexOf(`--${n}`); return i === -
 const has = (n) => argv.includes(`--${n}`);
 
 function changedFiles(root) {
-  try {
-    const tracked = execSync('git diff --name-only HEAD', { cwd: root, encoding: 'utf8' }).split('\n');
-    const untracked = execSync('git ls-files --others --exclude-standard', { cwd: root, encoding: 'utf8' }).split('\n');
-    return [...new Set([...tracked, ...untracked])].filter(Boolean).filter((f) => existsSync(path.join(root, f)));
-  } catch { return []; }
+  return diffFiles({ layout: { root } });
 }
 
 const PERMISSIONS = { allow: [
@@ -247,8 +244,19 @@ async function main() {
     case 'check': {
       const cfg = loadConfig(findRepoRoot());
       const stage = flag('stage', 'fast');
+      if (argv.some(arg => /^--(base|candidate|change|pr-event)=/.test(arg))) throw new Error('use --base <ref>, --candidate <ref>, --change <slug> or --pr-event <file> with separate values');
       const files = has('changed') ? changedFiles(cfg.layout.root) : (flag('files') && typeof flag('files') === 'string' ? String(flag('files')).split(',') : []);
-      const report = await check(cfg, { stage, files, all: has('all') });
+      for (const option of ['base', 'candidate', 'change', 'pr-event']) {
+        if (argv.filter(arg => arg === `--${option}`).length > 1) throw new Error(`duplicate --${option}`);
+      }
+      if (has('pr-event') && has('change')) throw new Error('use --change or --pr-event, not both');
+      const change = has('pr-event')
+        ? prChange(JSON.parse(readFileSync(flag('pr-event'), 'utf8')).pull_request?.body)
+        : has('change') ? flag('change') : undefined;
+      const report = await check(cfg, { stage, files, all: has('all'), change,
+        ...(has('base') ? { base: flag('base') } : {}),
+        ...(has('candidate') ? { candidate: flag('candidate') } : {}),
+      });
       if (has('json')) console.log(JSON.stringify(report, null, 2));
       else console.log(render(report, cfg.layout));
       return report.ok ? 0 : 1;
@@ -466,6 +474,8 @@ async function main() {
   harness init [--into DIR]        create .aidlc/ plus selected provider projections
   harness doctor                   capability verbs and budget
   harness check --stage <s>        run a stage   (--changed  --all  --json)
+    --base <ref> --candidate <ref>  check the full candidate diff (candidate must be HEAD)
+    --change <slug> | --pr-event <file>  candidate-only selection; leaves local binding intact
   harness new <slug>               intent.md, spec.md, plan.md, review.md for one change
   harness approve <slug> spec|plan --by <identity>
   harness review --base <commit> --candidate <commit> --out <file>

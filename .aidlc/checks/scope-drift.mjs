@@ -11,18 +11,10 @@
 // written yet. This is that promise checked at the only moment the answer is knowable, so it runs
 // unconditionally, not only when the current diff happens to touch a product file.
 
-import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import * as artifacts from '../lib/artifacts.mjs';
-
-const git = (root, args) => execSync(`git ${args}`, { cwd: root, encoding: 'utf8' }).trim();
-
-function changedFiles(root) {
-  const tracked = git(root, 'diff --name-only HEAD').split('\n');
-  const untracked = git(root, 'ls-files --others --exclude-standard').split('\n');
-  return [...new Set([...tracked, ...untracked])].filter(Boolean);
-}
+import { changedFiles, git, unbornRepository } from '../lib/diff.mjs';
 
 const under = (file, owned) => file === owned || file.startsWith(owned.replace(/\/$/, '') + '/');
 
@@ -36,7 +28,13 @@ function unkeptProof(cfg, plans) {
     const body = artifacts.read(cfg, plan.slug, 'plan')?.body ?? '';
     for (const [behaviour, evidence] of artifacts.proofRowsOf(body)) {
       const row = artifacts.testRowIn(evidence);
-      if (!row || existsSync(path.join(cfg.layout.root, row.file))) continue;
+      if (!row) continue;
+      let present = existsSync(path.join(cfg.layout.root, row.file));
+      if (cfg.diff) {
+        try { present = git(cfg.layout.root, ['cat-file', '-t', `${cfg.diff.candidate}:${row.file}`]).trim() === 'blob'; }
+        catch { present = false; }
+      }
+      if (present) continue;
       findings.push({
         file: `.aidlc/artifacts/${plan.slug}/plan.md`, line: 0, rule: 'unkept-proof',
         message: `${behaviour}: proof row names "${row.file}", which does not exist`,
@@ -48,9 +46,8 @@ function unkeptProof(cfg, plans) {
 }
 
 export async function run(cfg) {
-  let changed = [];
-  try { changed = changedFiles(cfg.layout.root); }
-  catch { return { verdict: 'skipped', findings: [], note: 'not a git repo' }; }
+  if (unbornRepository(cfg)) return { verdict: 'skipped', findings: [], note: 'no commits yet; local scope requires HEAD' };
+  const changed = changedFiles(cfg);
 
   const plans = artifacts.governingPlans(cfg);
   const proofFindings = unkeptProof(cfg, plans);
@@ -60,7 +57,7 @@ export async function run(cfg) {
   // B5); no plan should have to claim what the harness writes.
   const ignore = (f) => f.startsWith('.aidlc/artifacts/') || f.startsWith('.aidlc/state/') || f === 'CODEBASE-MAP.md';
   const product = changed.filter((f) => !ignore(f));
-  if (!product.length) {
+  if (!product.length && !cfg.diff) {
     return proofFindings.length ? { verdict: 'fail', findings: proofFindings } : { verdict: 'pass', findings: [] };
   }
 
@@ -91,7 +88,7 @@ export async function run(cfg) {
           message: `changed with no executable selection — ${artifacts.currentLine(cfg)}`,
           fix: 'harness status --change <slug>; approve its spec and plan and commit each',
         };
-    return { verdict: 'fail', findings: [...product.map((f) => ({ file: f, line: 0, ...finding })), ...proofFindings] };
+    return { verdict: 'fail', findings: [...(product.length ? product : ['.aidlc/artifacts/']).map((f) => ({ file: f, line: 0, ...finding })), ...proofFindings] };
   }
 
   // A plan that claims nothing governs nothing, and would silently authorise the whole tree.

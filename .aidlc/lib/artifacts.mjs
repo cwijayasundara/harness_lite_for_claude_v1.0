@@ -441,6 +441,15 @@ export function selectionState(cfg) {
   let slug = null;
   const unavailable = reason => ({ slug, ok: false, reason, remedy: selectionRemedy });
   try {
+    // Candidate checks may select for one invocation without writing the worktree binding.
+    if (cfg.checkChange !== undefined) {
+      slug = cfg.checkChange;
+      if (!validChangeSlug(slug)) return unavailable('invalid change slug');
+      const intent = read(cfg, slug, 'intent');
+      if (!intent || intent.front.status === 'closed') return unavailable('selected change is missing or closed');
+      if (cfg.diff && !isCommitted(cfg.layout.root, intent.file)) return unavailable('selected intent is not committed in the candidate');
+      return { slug, ok: true };
+    }
     const { file, branch } = selectionLocation(cfg);
     let binding;
     try { binding = JSON.parse(readFileSync(file, 'utf8')); }
@@ -451,6 +460,7 @@ export function selectionState(cfg) {
     const intent = read(cfg, slug, 'intent');
     if (!intent) return unavailable('selected change is missing');
     if (intent.front.status === 'closed') return unavailable('selected change is closed');
+    if (cfg.diff && !isCommitted(cfg.layout.root, intent.file)) return unavailable('selected intent is not committed in the candidate');
     return { slug, ok: true, branch };
   } catch { return unavailable('cannot resolve selection in this Git worktree'); }
 }

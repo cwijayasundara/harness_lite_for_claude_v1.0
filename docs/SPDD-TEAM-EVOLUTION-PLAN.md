@@ -154,16 +154,16 @@ Reuse should promote a validated technique into existing project guidance, a tem
 
 Implement A first, then B; together they form the first team-governance milestone. Item A can be implemented and reviewed independently, but does not resolve B's clean-checkout scope gap. C must precede treating new metadata as authoritative. D uses A/C; E uses C/D. F's evidence identity work supports all of them, while broad organizational integration can wait. Preserve old artifact history; use explicit legacy handling without inventing approvals. Add migration tests before changing the meaning of `closed`, `extends` or `supersedes`.
 
-**Six-step implementation checklist and fresh-session handoff.** Item 1 has now been implemented and locally validated; items 2–6 remain proposed. The numbering below matches the conversation; deliveries A–F above provide their scope and exit evidence. See the delivery record below for the implementation and limitations.
+**Six-step implementation checklist and fresh-session handoff.** Items 1 and 2 have now been implemented and locally validated; items 3–6 remain proposed. The numbering below matches the conversation; deliveries A–F above provide their scope and exit evidence. See the delivery record below for the implementation and limitations.
 
 1. [x] **Make execution specific to each worktree (A).** Bind execution to one change; scope pending approval checks to that change.
-2. [ ] **Validate the entire PR candidate (B).** Check base-to-candidate changes, including committed files, renames and deletions.
+2. [x] **Validate the entire PR candidate (B).** Check base-to-candidate changes, including committed files, renames and deletions.
 3. [ ] **Strengthen traceability (C).** Link requirement revisions, behaviors, approvals, executed proof and delivery revisions.
 4. [ ] **Support decomposition and allocation (D).** Connect bounded child outcomes, dependencies, shared interfaces and existing issue-tracker assignments.
 5. [ ] **Maintain a current product/design view (E).** Derive revision-specific context from delivered changes while retaining historical records.
 6. [ ] **Verify reuse across the team (F).** Verify runtime/policy identity and export attributable evidence; validate reuse on product work.
 
-The user's next intended implementation scope is **item 1 only**. This handoff records that intention; the next session's request supplies implementation authorization. It does not fabricate spec/plan approvals or authorize implementation of all six items.
+The current authorized implementation scope is **item 2 only**, following delivery of item 1. The user approved item 2's concrete spec and plan before implementation; see its delivery record below. Items 3–6 require separate authorization. The item 1 instructions and suggested request below are retained as historical handoff context.
 
 For item 1, first inspect current repository instructions and working-tree changes, then read this document and the current versions of `.aidlc/lib/artifacts.mjs`, `.aidlc/lib/guard.mjs`, `.aidlc/checks/scope-drift.mjs`, `.aidlc/bin/harness`, and the current-change/approval tests. The research revision above is a baseline, not permission to overwrite later work.
 
@@ -264,3 +264,63 @@ security sandbox. No remote coordination, new trace schema, product truth index,
 verification, paid model campaign or hosted merge review was added or claimed. Items 2–6 have
 not started. This delivery record reports local implementation and deterministic validation;
 the final human PR/merge gate remains separate.
+
+
+**Item 2 delivery record — 8 September 2026.** Implemented only B under
+[pr-candidate-scope](../.aidlc/artifacts/pr-candidate-scope/spec.md). The user replied
+“yes approved” to the reviewed spec and plan; the existing CLI recorded that decision
+in commit `1ae7ad5`. This records the conversation decision, not authenticated host
+review or a human CLI invocation. Existing approved artifact bodies remain intact.
+
+`harness check --base <ref> --candidate <ref>` now resolves both commit identities and
+checks the entire endpoint diff. Candidate must equal checkout HEAD, with no tracked
+staged or unstaged changes. `--change <slug>` selects for one invocation without writing
+or replacing the worktree binding; without it, item 1's selection applies. Both gates
+must be current and committed, and untracked intent/proof files cannot grant candidate
+authority. Scope validation is included even when the requested stage omits it.
+
+One shared diff reader exposes additions, modifications and deletions with NUL-delimited
+paths and rename detection disabled, so both rename endpoints require ownership.
+Built-in tamper and secrets use the same candidate boundary when invoked. Configured
+commands receive literal shell-quoted file arguments. Reports and ledger rows carry
+resolved base/candidate SHAs and the selected change. Invalid setup is an error rather
+than a skipped success. Local checks retain staged, unstaged and untracked coverage;
+local scope/tamper explicitly skip a newly initialized repository with no commits.
+
+The existing GitHub workflow now has a PR candidate-scope job: check out the PR head,
+compute the merge base against the target revision, and read exactly one
+`Harness-Change: <slug>` line from the event's PR body. Missing or ambiguous selection
+fails with a remedy. An explicit Bash pipeline preserves failures through `tee`;
+always-uploaded evidence includes revision inputs and the command log, plus the report
+and ledger when available. The README provides the consumer recipe. No hosting settings
+or remote repository were changed.
+
+Acceptance evidence:
+
+- [reproduction.json](../.aidlc/artifacts/pr-candidate-scope/reproduction.json) records
+  the original disposable product fixture passing incorrectly after commit;
+  [post-fix.json](../.aidlc/artifacts/pr-candidate-scope/post-fix.json) records the same
+  class of clean-checkout violation failing with exact revision identities.
+- [candidate-scope.test.mjs](../test/candidate-scope.test.mjs) covers multi-commit owned
+  changes, both rename directions, owned renames/deletions, unusual filenames and shell
+  substitutions, stale/missing/draft/uncommitted gates, absent/closed/invalid selections,
+  invocation isolation, dirty checkouts, invalid revisions, candidate proof presence,
+  report/ledger identity, forced scope, and tamper/secret candidate boundaries.
+- The same tests exercise a real diverged target/PR topology with detached PR head,
+  the CLI event path, and the actual workflow shell command including failing `tee`
+  pipelines and missing/ambiguous PR selection. They do not claim a hosted CI run.
+- Existing scope tests additionally exercise staged renames, unstaged deletions and
+  untracked paths. Fixture source directories were not edited. Approval simulations
+  remain confined to disposable fixtures.
+- Exact verification results and self-review are recorded in
+  [evidence.md](../.aidlc/artifacts/pr-candidate-scope/evidence.md).
+
+Limitations: this measures net changes between two commits, not every intermediate edit.
+The caller chooses the base; CI explicitly chooses the PR merge base. The candidate must
+be checked out. Existing artifact exemptions and legacy approval rules remain. External
+configured tools retain their own semantics beyond the supplied file list. Proof presence
+is not proof of execution. The CI job is a workflow guard; protected required checks and
+human merge approval remain host responsibilities. No trace schema, decomposition,
+product-truth index, runtime verification, paid campaign or merge was added. Items 3–6
+remain unstarted. Earlier item 1 limitations describe its delivery-time state; the
+committed-candidate scope gap is resolved by this item.
