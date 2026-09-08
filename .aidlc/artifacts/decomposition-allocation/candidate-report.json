@@ -1,0 +1,193 @@
+{
+  "stage": "commit",
+  "revision": {
+    "base": "4add89e3741e6a652731c488e68140c78900dc0b",
+    "candidate": "1d718d72395252f6fd776371d81f604deee3a87d",
+    "change": "decomposition-allocation"
+  },
+  "trace": {
+    "version": 1,
+    "context": "candidate",
+    "change": "decomposition-allocation",
+    "authority": "local-audit-labels",
+    "delivery": "not-observed",
+    "behaviours": [
+      {
+        "id": "decomposition-allocation#B1",
+        "criteria": [
+          "local:D-three-bounded-child-outcomes-and-parent-coverage"
+        ],
+        "proof": "test/coordination.test.mjs: three children, source inventory gaps, differing revisions, unknown IDs, external/unavailable source, closed children",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "decomposition-allocation#B2",
+        "criteria": [
+          "local:D-dependencies-cycles-and-shared-interfaces"
+        ],
+        "proof": "test/coordination.test.mjs: missing/self/cyclic dependencies, malformed tables, real Git ancestry and changed/missing interface snapshots",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "decomposition-allocation#B3",
+        "criteria": [
+          "local:D-overlapping-scopes"
+        ],
+        "proof": "test/coordination.test.mjs: exact and directory overlaps, draft labels, closed exclusion and selected worktree authority",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "decomposition-allocation#B4",
+        "criteria": [
+          "local:D-existing-tracker-allocation"
+        ],
+        "proof": "test/coordination.test.mjs: text/JSON CLI, slug filtering, tracker freshness and unavailable remote visibility",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "decomposition-allocation#B5",
+        "criteria": [
+          "local:D-no-unrelated-fake-links"
+        ],
+        "proof": "test/supersedes.test.mjs: independent approval passes, invalid explicit links and reversal protections remain; saved product reproduction",
+        "nodeid": null,
+        "status": "unverified"
+      },
+      {
+        "id": "decomposition-allocation#B6",
+        "criteria": [
+          "local:D-preserve-A-C-and-history"
+        ],
+        "proof": "test/requirement-traceability.test.mjs and test/worktree-selection.test.mjs: migration, metadata staleness and unrelated authority; product evidence and full checks",
+        "nodeid": null,
+        "status": "unverified"
+      }
+    ],
+    "approvals": {
+      "spec": {
+        "state": "approved",
+        "binding": "v2",
+        "digest": "sha256:b5151b495789af7736768de86a141d9f49c79ec0e39e8bcdb2b45cbfe538ac8f",
+        "by": "cwijayasundara",
+        "at": "2026-09-08T13:33:46.569Z"
+      },
+      "plan": {
+        "state": "approved",
+        "binding": "v2",
+        "digest": "sha256:ab2f627f4c9a84750d3ab9aa87411e5e1737216392791e2e4b3198ca0ecefa67",
+        "by": "cwijayasundara",
+        "at": "2026-09-08T13:33:51.327Z"
+      }
+    },
+    "source": {
+      "reference": "docs/SPDD-TEAM-EVOLUTION-PLAN.md",
+      "revision": "4add89e3741e6a652731c488e68140c78900dc0b",
+      "kind": "repository",
+      "digest": "sha256:b24aead30834cc9fe619f6a2a43ebe7e0fcbe8ebf86c8a39dc4b4467756cd4da"
+    },
+    "intent": {
+      "revision": "6145407f1abf402f0a740ab5205cb1b9f71565b8",
+      "digest": "sha256:4d49dce321d752d4fcccfb3c03d8bcd1dce31d67a03dee54f993bf1d031609be"
+    },
+    "execution": {
+      "verdict": "pass",
+      "command": "node --test --test-reporter=tap test/*.test.mjs",
+      "observations": {
+        "status": "unsupported",
+        "tests": []
+      }
+    }
+  },
+  "ok": true,
+  "changed_files": [
+    ".aidlc/artifacts/decomposition-allocation/evidence.md",
+    ".aidlc/artifacts/decomposition-allocation/intent.md",
+    ".aidlc/artifacts/decomposition-allocation/plan.md",
+    ".aidlc/artifacts/decomposition-allocation/post-fix.json",
+    ".aidlc/artifacts/decomposition-allocation/product-trial.mjs",
+    ".aidlc/artifacts/decomposition-allocation/reproduce.mjs",
+    ".aidlc/artifacts/decomposition-allocation/reproduction.json",
+    ".aidlc/artifacts/decomposition-allocation/review.md",
+    ".aidlc/artifacts/decomposition-allocation/spec.md",
+    ".aidlc/bin/harness",
+    ".aidlc/lib/artifacts.mjs",
+    ".aidlc/lib/coordination.mjs",
+    ".aidlc/skills/intent/SKILL.md",
+    ".aidlc/skills/plan/SKILL.md",
+    ".aidlc/skills/spec/SKILL.md",
+    ".aidlc/templates/intent.md",
+    ".aidlc/templates/plan.md",
+    ".aidlc/templates/spec.md",
+    "README.md",
+    "docs/SPDD-TEAM-EVOLUTION-PLAN.md",
+    "test/_coordination-product.mjs",
+    "test/coordination.test.mjs",
+    "test/supersedes.test.mjs"
+  ],
+  "controls": [
+    {
+      "control": "secrets",
+      "verdict": "pass",
+      "ms": 157,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "test",
+      "verdict": "pass",
+      "ms": 30127,
+      "findings": [],
+      "command": "node --test --test-reporter=tap test/*.test.mjs",
+      "execution": {
+        "status": "unsupported",
+        "tests": []
+      }
+    },
+    {
+      "control": "scope-drift",
+      "verdict": "pass",
+      "ms": 158,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "budget",
+      "verdict": "pass",
+      "ms": 1,
+      "findings": [],
+      "command": "",
+      "measured": {
+        "skills": 7,
+        "agents": 3,
+        "hooks": 4,
+        "hook_loc": 255,
+        "claude_md_lines": 87
+      }
+    },
+    {
+      "control": "tamper",
+      "verdict": "pass",
+      "ms": 301,
+      "findings": [],
+      "command": ""
+    },
+    {
+      "control": "arch",
+      "verdict": "pass",
+      "ms": 26,
+      "findings": [],
+      "command": "node .aidlc/sensors/architecture.mjs"
+    },
+    {
+      "control": "test_quality",
+      "verdict": "pass",
+      "ms": 27,
+      "findings": [],
+      "command": "node .aidlc/sensors/test-quality.mjs"
+    }
+  ]
+}

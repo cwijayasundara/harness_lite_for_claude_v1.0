@@ -489,3 +489,9 @@ cannot establish semantic compatibility; overlaps cannot detect undeclared cross
 invariants. Remote data, hosted CI, live host review, paid campaigns, merge and deployment
 are not claimed. No new control, dependency, hook, agent, skill or budget increase was
 introduced. The final human PR/merge gate remains separate. Items 5–6 remain unstarted.
+
+Item 4's full commit stage also passed on clean implementation candidate
+`1d718d72395252f6fd776371d81f604deee3a87d` against pre-item-4 base
+`4add89e3741e6a652731c488e68140c78900dc0b`. The [exact candidate report](../.aidlc/artifacts/decomposition-allocation/candidate-report.json)
+records all seven controls passing. Its revision identity precedes the evidence-only archive
+commit; no hosted run or merge is inferred from this local result.

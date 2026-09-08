@@ -66,3 +66,21 @@ PASS  test_quality 28ms
 only this plan's Files scope. Full-suite results include existing requirement binding,
 worktree selection and candidate-boundary regressions. No budget, control, hook, agent,
 runtime dependency or protected fixture was added/changed.
+
+Clean candidate verification:
+
+```
+node .aidlc/bin/harness check --stage commit --base 4add89e3741e6a652731c488e68140c78900dc0b --candidate HEAD --change decomposition-allocation
+candidate 1d718d72395252f6fd776371d81f604deee3a87d from 4add89e3741e6a652731c488e68140c78900dc0b — change decomposition-allocation
+PASS  secrets     157ms
+PASS  test        30127ms
+PASS  scope-drift 158ms
+PASS  budget      1ms
+PASS  tamper      301ms
+PASS  arch        26ms
+PASS  test_quality 27ms
+```
+
+The exact report is archived in candidate-report.json. It records the checked implementation
+commit, not the later evidence-only archive commit. Final inspection confirms no changes to
+protected fixture sources or .aidlc/harness.toml. Items 5–6 were not started.
