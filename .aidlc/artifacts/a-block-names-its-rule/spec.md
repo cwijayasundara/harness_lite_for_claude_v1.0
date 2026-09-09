@@ -1,9 +1,19 @@
 ---
-status: draft
+status: approved
 extends: ledger-evidence-not-reporting
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: 088a3a0911faba198a79a7431185a270b85d64dc
 parent: lean-review-ledger-evidence
+source_digest: sha256:0d9cc699d095a9f24491c16926eb66c611ba474af1805c5636414b32c1321ef5
+source_kind: repository
+intent_digest: sha256:ad02032618155ec39d07a61b9beb57279906311220541fe29d6fd15b4d5775af
+intent_input_digest: sha256:bf83eda093120db76b1d9620a79978dbf850407d7e3ec4cea7f4c56955332b45
+intent_revision: 983cde5bec2b47708d08be86a2e0c4f8bdb8cfb7
+by: cwijayasundara
+at: 2026-09-09T05:08:41.544Z
+digest: sha256:f933c8b8f77da8f28a28b5bba8b7c460dd7b6daa76d3969db5a2bf47ecff3227
+approval_version: 2
+approval_digest: sha256:2fc1867e1657679050ef182d7dea26b96604473dcbbfca3f333791e76562219b
 ---
 # Spec: a-block-names-its-rule
 

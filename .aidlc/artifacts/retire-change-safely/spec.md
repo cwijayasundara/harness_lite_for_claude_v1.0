@@ -1,9 +1,19 @@
 ---
-status: draft
+status: approved
 supersedes: skills-earn-their-context#B4, lean-v2#B3
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: 088a3a0911faba198a79a7431185a270b85d64dc
 parent: lean-review-skills-and-roles
+source_digest: sha256:0d9cc699d095a9f24491c16926eb66c611ba474af1805c5636414b32c1321ef5
+source_kind: repository
+intent_digest: sha256:9507ee020639f69234385b6a4540006dd7e37ddae0282ffed166dab50fc8f808
+intent_input_digest: sha256:4b9734ccccbd0225dced1e2464e89aae81254d3fdaaf8c47f3a7c197ff1b4f6a
+intent_revision: 983cde5bec2b47708d08be86a2e0c4f8bdb8cfb7
+by: cwijayasundara
+at: 2026-09-09T05:08:41.137Z
+digest: sha256:ce948462e069761708b60487b7f9bb7db18a7816284715e1d69bffcb2ccc5957
+approval_version: 2
+approval_digest: sha256:0fdcaeb7339cc919bbcc63f46de8b5abf6901cb366340f255298930a713732bc
 ---
 # Spec: retire-change-safely
 
