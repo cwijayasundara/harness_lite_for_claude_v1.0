@@ -4,10 +4,10 @@ depends_on: retire-change-safely, a-block-names-its-rule
 spec_digest: sha256:38608a741270a78d3ebbb8d755416cc098638551a093abd8496058e9303f72b3
 spec_approval_digest: sha256:3af59b89ba550a827abec95fbc196ce9664109bc7904c178a56f18742608f84a
 by: cwijayasundara
-at: 2026-09-09T07:06:38.717Z
-digest: sha256:067a8036db17ddc525e8beca98907f5f891084e8e670d26e5f7dec7596cba8d3
+at: 2026-09-09T07:22:07.828Z
+digest: sha256:11df21aeaa0bdba08749846049925cee641d5ecfaf55fd652f8ef659f957f43d
 approval_version: 2
-approval_digest: sha256:78d3b6e0472c97517320d09bd9a57a5d21762927cb600451890b01581dcdda74
+approval_digest: sha256:77ca7a4ec3916fa5548934ce5a9d80ac2ed810c9decf0e88041c7265eb5ccf0d
 ---
 # Plan: graph-first-versus-grep-first
 
@@ -46,10 +46,11 @@ it is a fixture with its own failing-then-passing tests, and it is checked the
 way every fixture is, by running its own suite and by confirming a do-nothing
 model fails its assertions.
 
-Only when both are green offline does the paid run happen, once, inside
-USD 10 and 40 minutes, with `--comparison retrieval`. The runner enforces both
-bounds and records what did not run, so the failure mode of the spend is a
-partial record rather than an overrun.
+One paid attempt was made and aborted at calibration on the gate drift above,
+spending USD 0.11 of the ceiling and measuring nothing. The user then chose to
+land the repair and the built pair rather than spend again. That is the result
+this change records: the comparison is now runnable and was not run, which is a
+different and more useful statement than the row's former condition.
 
 Recording comes last and reports whatever happened. A tie is written as a tie, a
 short run as a short run. The two documentation behaviours, B4 and B5, need no
@@ -116,12 +117,14 @@ as this one does; it goes last of the three.
    `## Requirements` table covering its behaviours. Verify with a real staged
    product and a real `harness approve`, with no model spend, for the retrieval
    product and an existing one.
-9. Run the comparison once, scoped to the product built for it:
+9. Do not re-run the comparison. The user decided on 2026-09-09, after the first
+   attempt aborted, to land the repair and the built pair as the result. Copy the
+   aborted run's portable outcomes into `evals/evidence/`, retaining every
+   attempt and its status, and record that no comparison result exists. The
+   command that would run it, once someone chooses to spend, is
    `node evals/run.mjs --compare --comparison retrieval --id retrieval-app
-   --max-suite-usd 10 --max-suite-minutes 40`. Without `--id` the pair also runs
-   against `campaign-ledger` and `campaign-service`, which is three times the
-   spend on two products already known not to discriminate. Run it detached and
-   never from an interactive shell loop. Copy portable outcomes into `evals/evidence/`,
+   --max-suite-usd 10 --max-suite-minutes 40`; without `--id` it also runs against
+   two products already known not to discriminate. Copy portable outcomes into `evals/evidence/`,
    retaining failed and interrupted attempts.
 10. Rewrite the lean-review graph row and the closing paragraphs in
    `docs/IMPROVEMENT-PLAN.md` with the outcome, its date, the validated and
@@ -137,7 +140,7 @@ as this one does; it goes last of the three.
 |---|---|
 | B1 | `test/comparison.test.mjs`: `comparisonPairs` returns the `retrieval` pair with `grep-first` and `graph-first` only when asked for by name, a default run still returns the same three pairs, the instruction built for each arm contains no rendered pack while differing in its retrieval sentence, and `configureComparison` leaves the graph intact for `graph-first` while still suppressing it for every other harness arm |
 | B2 | `evals/fixtures/retrieval-app/`'s own suite, red before each step and green after; `test/comparison.test.mjs` asserting `verifyReporting` fails against the unmodified fixture, so a do-nothing model scores zero, and that the duplicated symbol name is exported by more than one module |
-| B3 | `test/comparison.test.mjs`: a staged product's generated intent and spec pass `harness approve` for both gates, so a campaign reaches its first implementation phase at all; `evals/evidence/` run record: per-arm accepted changes, reported USD, latency and retries, every attempt's status retained, and the ceiling recorded alongside what did not run; `test/comparison.test.mjs` keeps proving the budget and deadline paths mark attempts incomplete rather than dropping them |
+| B3 | `test/comparison.test.mjs`: a staged product's generated intent and spec pass `harness approve` for both gates, so a campaign reaches its first implementation phase at all; `evals/evidence/` carries the aborted run with every attempt's status retained, its USD 0.11 spend, the ceiling it ran under and the calibration reason, and reports no result as complete; `test/comparison.test.mjs` keeps proving the budget and deadline paths mark attempts incomplete rather than dropping them |
 | B4 | the rewritten lean-review graph row and closing paragraphs in `docs/IMPROVEMENT-PLAN.md`, naming the outcome, its date, the validated session-inventory pruning pair and what remains unvalidated |
 | B5 | `docs/IMPROVEMENT-PLAN.md`: one ledger figure, or each with the date it was taken |
 
