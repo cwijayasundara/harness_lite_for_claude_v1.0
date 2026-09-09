@@ -44,12 +44,13 @@ the new behaviour.
 
 ## Order
 
-1. Read `implement`, `map` and `spec`, map every rule in `change-safely` to the
-   file that states it, and write the mapping into
-   `.aidlc/artifacts/retire-change-safely/review.md`, naming the one rule with
-   no home.
-2. Add that rule to the test-maintenance boundaries of
-   `.aidlc/skills/implement/SKILL.md`.
+1. Read `implement`, `map`, `spec`, `intent` and `diagnose`, map every sentence
+   in `change-safely` to the file that states it, and write the mapping into
+   `.aidlc/artifacts/retire-change-safely/review.md`, separating the
+   harness-specific rules with no home from the generic ones being dropped, and
+   recording the correction to F2.
+2. Add the four rules B2 names to `.aidlc/skills/implement/SKILL.md`, in its
+   implementation and test-maintenance boundaries.
 3. Delete `.aidlc/skills/change-safely/SKILL.md` and its directory.
 4. Update `test/skills-context.test.mjs`: the frozen set becomes the six that
    remain, and the surviving-rule assertions move to the files that now own
@@ -68,8 +69,8 @@ the new behaviour.
 
 | Behaviour | Test or evidence |
 |---|---|
-| B1 | `test/skills-context.test.mjs`: the frozen skill set is the six that remain, and each rule the deleted file carried is asserted by name in `implement`, `map` or `spec`; `.aidlc/artifacts/retire-change-safely/review.md` records the sentence-by-sentence mapping the deletion rests on |
-| B2 | `test/skills-context.test.mjs`: `implement` states the approved-requirement rule; `test/contracts.test.mjs` keeps proving its frontmatter, its generator binding, the 130-line stop and the eight-step rule |
+| B1 | `test/skills-context.test.mjs`: the frozen skill set is the six that remain, and each harness-specific rule the deleted file carried is asserted by name in `implement`, `map` or `spec`; `.aidlc/artifacts/retire-change-safely/review.md` records the sentence-by-sentence mapping, including the four generic rules deliberately dropped |
+| B2 | `test/skills-context.test.mjs`: `implement` states each of the four rules B2 names, asserted individually so losing one fails; `test/contracts.test.mjs` keeps proving its frontmatter, its generator binding, the 130-line stop and the eight-step rule |
 | B3 | `test/budget.test.mjs`: the recorded inventory equals what is shipped, a project's first skill is accommodated and its second is refused with the stage red, and an unaccountable surface is still red rather than green; `test/contracts.test.mjs` keeps proving no document states a budget number of its own |
 | B4 | `test/skills-context.test.mjs`: neither `README.md` nor `evals/agent-mechanisms.mjs` names `change-safely`, every skill the README presents as shipped resolves on disk, and the lean-review row records the decision and its date |
 

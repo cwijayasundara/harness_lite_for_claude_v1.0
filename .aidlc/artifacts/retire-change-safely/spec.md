@@ -50,13 +50,17 @@ context in `map`. `diagnose` and the five reviewed skills are unchanged.
 ### B2
 
 Given `.aidlc/skills/implement/SKILL.md`,
-When an agent reads its test-maintenance boundaries,
-Then it states that an implementation bug is fixed to meet the approved
-requirement rather than synchronised into it — the one rule `change-safely`
-carried that no other skill stated. The file keeps its `name`, its third-person
-`description`, its `context: fork` and its `model` bound to `[models].generator`,
-stays under the 130-line stop, and gains no numbered sequence longer than eight
-steps.
+When an agent reads its implementation and test-maintenance boundaries,
+Then it states the four harness-specific rules `change-safely` carried that no
+other skill states: that a preserved contract is distinguished from a defect the
+approved change is meant to fix; that an in-scope defect is fixed after
+reproducing it, with unrelated bugs recorded for separate work; that an
+implementation bug is fixed to meet the approved requirement rather than
+synchronised into it; and that approval alone does not retire delivered
+behaviour, historical permission never authorising a new change. The file keeps
+its `name`, its third-person `description`, its `context: fork` and its `model`
+bound to `[models].generator`, stays under the 130-line stop, and gains no
+numbered sequence longer than eight steps.
 
 ### B3
 
@@ -91,6 +95,14 @@ done before the file is removed rather than asserted after: each rule in the
 deleted file is located in `implement`, `map` or `spec` by reading them, and
 anything not found moves to `implement` first. `review.md` records the mapping
 so a later reader can audit the deletion without reconstructing it from Git.
+
+That check has already corrected the finding this change rests on. F2 in
+`skills-earn-their-context`'s review counted rule families and reported one
+unduplicated rule; counted by sentence, there are four, and B2 names all of
+them. The deletion still removes far more than it adds — four sentences into
+`implement` against a whole file and a description loaded every session — but
+the margin is smaller than the finding claimed, and the record says so rather
+than carrying the original number forward.
 
 `supersedes` names two behaviours because the user's decision reverses a clause
 of each. `skills-earn-their-context#B4` had the guidance state that the ceiling

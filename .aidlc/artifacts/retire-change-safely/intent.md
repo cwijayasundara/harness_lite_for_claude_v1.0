@@ -15,13 +15,25 @@ parent: lean-review-skills-and-roles
 
 ## Problem
 
-`change-safely` was reviewed at `89b5c20` and found to be a second copy. Six of
-its seven harness-specific rules are already stated where the agent meets them:
-graph-first lookup in `map` and again in `implement`; test locks, external
+`change-safely` was reviewed at `89b5c20` and found to be largely a second copy.
+Most of its harness-specific rules are already stated where the agent meets
+them: graph-first lookup in `map` and again in `implement`; test locks, external
 fixture ownership and the `## Files` boundary in `implement`; `supersedes` and
-`extends` in `spec`; revision-specific product context in `map`. Only "fix
-implementation bugs to meet the approved requirement rather than synchronizing
-the bug into it" has no second home, and it is one sentence.
+`extends` in `spec`; revision-specific product context in `map`.
+
+That review's finding F2 said only one rule had no second home. Checked sentence
+by sentence rather than by rule family, four do: distinguishing a preserved
+contract from a defect the approved change is meant to fix; fixing an in-scope
+defect after reproducing it while recording unrelated bugs for separate work;
+fixing an implementation bug to meet the approved requirement rather than
+synchronising it into the requirement; and approval alone not retiring delivered
+behaviour, with historical permission never authorising new work. `implement`
+and `plan` speak of reusing tests for preserved behaviour, `diagnose` of
+reproducing before fixing, and `intent` of not re-asking a decision already
+given — near neighbours, none of them the same rule. Four generic rules also
+have no home and are dropped: the coverage-percentage caution, characterisation
+recording reality, the optional separate test commit, and the tested-helper
+seam.
 
 What is left after `skills-earn-their-context` cut its generic table is the
 residue of `simplify-daily-guidance` at `6d76857`, which removed the concrete
