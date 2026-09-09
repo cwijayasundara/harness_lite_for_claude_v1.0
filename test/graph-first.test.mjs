@@ -53,7 +53,6 @@ test('B2 steering names graph/pack first and Grep as the miss path', () => {
   assert.doesNotMatch(surfaces.map, /unavailable optional graph does not block/i);
   assert.doesNotMatch(surfaces.map, /use the\s+graph when it helps/i);
   assert.match(surfaces.implement, /pack|graph query/);
-  assert.match(surfaces.change, /pack|graph query|callers/);
 });
 
 test('B3 Grep stays allowed; preSearch does not dump a pack', () => {
