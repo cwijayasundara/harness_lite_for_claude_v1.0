@@ -58,9 +58,13 @@ test('the ledger remains brownfield and product campaigns are separate from gold
   const campaigns = tasks.filter((t) => t.steps);
   assert.deepEqual(campaigns, [], 'retired transcript-driven campaign is not a golden task');
   const products=JSON.parse(readFileSync(path.join(ROOT,'evals/products.json'),'utf8')).tasks;
-  assert.deepEqual(products.map(t=>t.id),['campaign-ledger','campaign-service']);
+  assert.deepEqual(products.map(t=>t.id),['campaign-ledger','campaign-service','retrieval-app']);
   assert.equal(products[0].steps.length,5);
   assert.equal(products[1].steps.length,6);
+  // graph-first-versus-grep-first B2. Built so that finding the code is the work, because all
+  // four earlier arms accepted 33/33 on the two above.
+  assert.equal(products[2].steps.length,2);
+  assert.equal(products[2].product,'reporting');
 });
 
 // B2. A later sprint's requirement must not be reachable before its own step runs. Asserted
