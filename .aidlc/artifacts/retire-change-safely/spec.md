@@ -6,14 +6,14 @@ source_revision: 088a3a0911faba198a79a7431185a270b85d64dc
 parent: lean-review-skills-and-roles
 source_digest: sha256:0d9cc699d095a9f24491c16926eb66c611ba474af1805c5636414b32c1321ef5
 source_kind: repository
-intent_digest: sha256:9507ee020639f69234385b6a4540006dd7e37ddae0282ffed166dab50fc8f808
-intent_input_digest: sha256:4b9734ccccbd0225dced1e2464e89aae81254d3fdaaf8c47f3a7c197ff1b4f6a
-intent_revision: 983cde5bec2b47708d08be86a2e0c4f8bdb8cfb7
+intent_digest: sha256:e14af16b1e33b6533d2a740d517d2942f685b58570159517c615d3a0b5917409
+intent_input_digest: sha256:5dc9b04d2619728b1775a7f02f5b97647288719b0047810ae7e8737cf04df038
+intent_revision: ebca423af2dae585dad149b701e863bc82d60e45
 by: cwijayasundara
-at: 2026-09-09T05:08:41.137Z
-digest: sha256:ce948462e069761708b60487b7f9bb7db18a7816284715e1d69bffcb2ccc5957
+at: 2026-09-09T05:41:09.927Z
+digest: sha256:81196a426796f2da50b746d11c8def2ab92223cc35d294cb1fd0522e93fb6f26
 approval_version: 2
-approval_digest: sha256:0fdcaeb7339cc919bbcc63f46de8b5abf6901cb366340f255298930a713732bc
+approval_digest: sha256:9e26499c386568a05107f44e6617956d880de764c26ae37fd6aa63215648ff9c
 ---
 # Spec: retire-change-safely
 
