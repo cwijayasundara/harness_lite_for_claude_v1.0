@@ -5,11 +5,11 @@
 // nothing ever asked it a question with a known answer.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync, readFileSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { A, ROOT } from './_paths.mjs';
-import { build, query } from '../.aidlc/lib/graph.mjs';
+import { build, query, fingerprint } from '../.aidlc/lib/graph.mjs';
 import { stage } from '../evals/lib/stage.mjs';
 
 const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
@@ -110,6 +110,100 @@ test('B2 — the build reports what it could not resolve, what is ambiguous, and
     assert.equal(calls.length, new Set(calls).size, 'no duplicate call edges survive');
     const imports = query(g, 'edges', 'import').map((e) => `${e.from}->${e.to}`);
     assert.equal(imports.length, new Set(imports).size, 'no duplicate import edges survive');
+  } finally { s.cleanup(); }
+});
+
+// the-index-tracks-the-source B1. The audit made the composition visible: 451 of this
+// repository's 543 indexed modules were the harness's own output. Ranking those would have made
+// the hubs line worse than the metric it replaces.
+test('B1 — the harness does not index its own output, and a project exclude still works', () => {
+  const s = stage(FIXTURES, 'graph-app');
+  try {
+    const write = (rel, body) => {
+      mkdirSync(path.join(s.work, path.dirname(rel)), { recursive: true });
+      writeFileSync(path.join(s.work, rel), body);
+    };
+    write('.aidlc/evals/comparisons/run-1/product/src/ledger.mjs', 'export function addCustomer() {}\n');
+    write('.aidlc/evals/products/run-2/src/ledger.mjs', 'export function addCustomer() {}\n');
+    write('.claude/worktrees/agent-1/.aidlc/lib/graph.mjs', 'export function build() {}\n');
+    // Hand-written reproduction scripts under artifacts are source and stay.
+    write('.aidlc/artifacts/some-change/reproduce.mjs', 'export function reproduce() {}\n');
+    // A project's own exclusion is honoured alongside the harness's, not replaced by it.
+    write('vendor/thing.mjs', 'export function vendored() {}\n');
+
+    const g = build({ graph: { include: ['.', '.claude'], exclude: ['vendor'] }, layout: { root: s.work } });
+    const mods = Object.keys(g.modules);
+
+    for (const gone of ['.aidlc/evals/', '.claude/worktrees/']) {
+      assert.equal(mods.filter((m) => m.startsWith(gone)).length, 0, `${gone} is not indexed as source`);
+    }
+    assert.ok(mods.includes('.aidlc/artifacts/some-change/reproduce.mjs'), 'artifact scripts are source');
+    assert.equal(mods.filter((m) => m.startsWith('vendor/')).length, 0, "a project's own exclude still applies");
+    assert.ok(mods.includes('src/app/service.py'), 'real source is still indexed');
+
+    // The ambiguity the audit reports is a real collision, not one file copied into run records.
+    const a = query(g, 'audit');
+    assert.ok(!a.ambiguous.some((r) => r.modules.some((m) => m.startsWith('.aidlc/evals/'))),
+      'recorded run copies no longer manufacture ambiguity');
+  } finally { s.cleanup(); }
+});
+
+// B2. fingerprint() hashed paths and contents only, so a commit moved the co-edit weights while
+// refresh() reported `clean` and nothing in the loop could see it.
+test('B2 — a commit with no working-tree change still moves the fingerprint', () => {
+  const s = stage(FIXTURES, 'graph-app');
+  try {
+    const cfg = { graph: { include: ['.'], exclude: [] }, layout: { root: s.work } };
+    const git = (...args) => spawnSync('git', args, { cwd: s.work, encoding: 'utf8' });
+    git('init', '-q');
+    git('config', 'user.email', 't@t');
+    git('config', 'user.name', 't');
+    git('add', '-A');
+    git('commit', '-q', '-m', 'first');
+
+    const before = fingerprint(cfg);
+    git('commit', '-q', '--allow-empty', '-m', 'a commit that changes no file');
+    const after = fingerprint(cfg);
+    assert.notEqual(before, after, 'history moved, so the index must be rebuilt');
+  } finally { s.cleanup(); }
+});
+
+test('B2 — a directory with no git still fingerprints rather than throwing', () => {
+  const s = stage(FIXTURES, 'graph-app');
+  try {
+    const cfg = { graph: { include: ['.'], exclude: [] }, layout: { root: s.work } };
+    assert.equal(typeof fingerprint(cfg), 'string', 'no git degrades to a value, not an error');
+  } finally { s.cleanup(); }
+});
+
+// B3. Not new code so much as three existing properties that must survive the two changes above,
+// because between them they are what stops a stale index from ever being a confident wrong answer.
+test('B3 — a stale index is a miss, and a rank never outlives the modules it ranks', async () => {
+  const { save, load } = await import('../.aidlc/lib/graph.mjs');
+  const s = stage(FIXTURES, 'graph-app');
+  try {
+    const state = path.join(s.work, '.aidlc', 'state');
+    mkdirSync(state, { recursive: true });
+    const cfg = { graph: { include: ['.'], exclude: [] },
+      layout: { root: s.work, state, graph: path.join(state, 'graph.json') } };
+
+    const g = build(cfg);
+    save(cfg, g);
+    assert.ok(load(cfg), 'a current index loads');
+
+    // Change the tree. The stored fingerprint no longer matches, so the index is absent rather
+    // than served — the caller falls back to search instead of trusting a stale answer.
+    writeFileSync(path.join(s.work, 'web', 'util.js'), 'export function brandNew() {}\n');
+    assert.equal(load(cfg), null, 'a stale index is a miss, not a wrong answer');
+
+    // A global property is produced by the same build as the modules it summarises, so it cannot
+    // describe a module set that build did not have.
+    const rebuilt = build(cfg);
+    const known = new Set(Object.keys(rebuilt.modules));
+    for (const row of query(rebuilt, 'audit').ambiguous) {
+      for (const m of row.modules) assert.ok(known.has(m), `${m} is in the same build that reported it`);
+    }
+    for (const e of query(rebuilt, 'edges', 'import')) assert.ok(known.has(e.from) && known.has(e.to));
   } finally { s.cleanup(); }
 });
 

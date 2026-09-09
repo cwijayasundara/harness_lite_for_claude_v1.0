@@ -37,6 +37,21 @@ const RESERVED = new Set([
 ]);
 
 // ---------------------------------------------------------------- file discovery
+// the-index-tracks-the-source B1. Directories the harness itself writes, never project source.
+//
+// why: 451 of this repository's 543 indexed modules were the harness's own output — 377 recorded
+// comparison runs, 50 agent worktree copies, 17 product runs — against 92 real source modules.
+// That made the audit's ambiguity list one `src/ledger.mjs` copied sixty times, and would have
+// made PageRank rank those copies as the most central files in the repository.
+//
+// Here rather than in `harness.toml` because a default is a value each project may edit away, and
+// a project that edits it away silently re-indexes its own test history. A project's own
+// `[graph] exclude` is unioned with this, never replaced by it. `.aidlc/artifacts/**` holds
+// hand-written reproduction scripts and stays indexed.
+export const HARNESS_OUTPUT = ['.aidlc/evals', '.claude/worktrees'];
+
+const isHarnessOutput = (rel) => HARNESS_OUTPUT.some((p) => rel === p || rel.startsWith(`${p}/`));
+
 function walk(root, rel, exclude, out) {
   const abs = path.join(root, rel);
   let entries;
@@ -44,6 +59,9 @@ function walk(root, rel, exclude, out) {
   for (const e of entries) {
     if (exclude.includes(e.name)) continue;
     const r = rel ? `${rel}/${e.name}` : e.name;
+    // The project's list matches a basename; this one matches a path, because the directories it
+    // names are only the harness's output at those exact locations.
+    if (isHarnessOutput(r)) continue;
     if (e.isSymbolicLink()) continue;
     if (e.isDirectory()) { walk(root, r, exclude, out); continue; }
     out.push(r);
@@ -479,5 +497,23 @@ export function fingerprint(cfg) {
   for (const rel of discover(cfg)) {
     hash.update(rel).update('\0').update(readFileSync(path.join(cfg.layout.root, rel))).update('\0');
   }
+  // the-index-tracks-the-source B2. The commit id, so history counts as part of the index's
+  // identity.
+  //
+  // why: co-edit weights are derived from history, and a commit changes them while touching no
+  // working-tree file. Under a paths-and-contents fingerprint the hash was identical across such
+  // a commit, `refresh()` returned `{ skipped: 'clean' }`, and the co-edit edges rotted with
+  // nothing in the loop able to see it. Deriving those weights is then bounded work done once per
+  // commit rather than once per turn.
+  //
+  // Degrades to an empty component where there is no git, no commit, or a shallow clone, so the
+  // fingerprint never throws where it previously returned.
+  hash.update('\0').update(headCommit(cfg.layout.root));
   return hash.digest('hex');
+}
+
+function headCommit(root) {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  } catch { return ''; }
 }
