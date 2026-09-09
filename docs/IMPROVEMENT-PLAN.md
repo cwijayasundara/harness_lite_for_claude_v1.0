@@ -557,3 +557,54 @@ no model spend, so the remaining removal experiments are runnable rather than me
 
 Validation: `git diff --check` passed; `harness check --stage stop` passed secrets (118 ms)
 and the full test suite (70,649 ms). No new paid model comparison was run for this review.
+
+## Cost and context control review, 9 September 2026
+
+Requested by the user against the Claude Code cost documentation and Anthropic's "Reducing cost
+and improving performance with Claude Platform" guidance. Inspected lean revision `e5bc7fe`.
+Assessment: the harness already implements most of that guidance, and one instrument it uses to
+prove so is measuring the wrong string.
+
+**Prompt surface.** All 665 lines of agent-facing prompt — `.claude/CLAUDE.md`, six `SKILL.md`,
+three roles, `.aidlc/instructions.md`, `.aidlc/policies/review.md` — were scanned against the six
+prompting anti-patterns the guidance names. No verification rituals, no emphasis boosters, no
+scratchpad scaffolds and no stale few-shot examples were found. Fourteen case-insensitive
+`never`/`must` occurrences are bounded scope statements rather than thoroughness boosters, and the
+longest numbered sequence is five steps against `test/contracts.test.mjs`'s ceiling of eight. The
+14.6% the guidance attributes to removing anti-patterns is therefore not available here. No change
+to the prompt surface is proposed.
+
+**Already implemented.** CLAUDE.md is 97 lines with `budget/claude_md_lines` failing the build at
+120; workflow instructions live in on-demand skills; `runner.mjs` parses TAP and renders capped
+findings instead of raw output; `harness review` runs the evaluator in a separate process with
+read-only tools; `--max-budget-usd` bounds every model invocation. These are the documented
+recommendations, already mechanised, and none of them is changed by this review.
+
+**Context baseline** (`lean-review-context-baseline`). `.aidlc/lib/baseline.mjs:3` states that
+keeping token usage in check only means something if a regression fails a build. Neither half
+holds. `capture()` builds a synthetic four-line session context, while `dispatch.mjs` session-start
+emits that block plus the map summary, the hubs, contract and current-change lines, and one line
+per superseded behaviour — measured on 2026-09-09 at 2,593 characters and roughly 649 estimated
+tokens, against a recorded `session_context_tokens` of 52. Twenty-five of the 33 lines are
+`superseded:` entries. `baseline` appears in no `[stages]` entry, so no gate grades the ratchet,
+and `.aidlc/baseline.json` still carries `wiki_index_tokens`, a key `capture()` no longer returns.
+Next decision: measure the payload from the one path that emits it, and put the existing ratchet
+behind a gate. Whether the `superseded:` list stays in the payload is a separate decision and is
+not taken here.
+
+**Graph retrieval, freeze reversed** (`lean-review-graph-retrieval`). The 8 September row above
+froze graph feature expansion pending a comparison that has still not been run. On 2026-09-09 the
+user directed the expansion with that position in view: a property graph carrying `import`
+(file → file), `call` (function → function) and `co-edit` (file ↔ file, derived from git history)
+edges, built by `starter graph → audit + deduplicate → anchor → PageRank`. The freeze clause of
+that row is superseded from this date. The row itself is left as written, because what it recorded
+was true when it was recorded. Two existing findings ground the work rather than the shape of the
+design: `evals/fixtures/retrieval-app` exists because `format` is exported by two modules and the
+index returns both as equal candidates, and `graph.mjs:267` already warns in its own source that
+the degree-based `hubs` metric "is how a graph looks useful while telling you nothing." The
+comparison is sequenced first and narrowed to `retrieval-app` alone under the authorised USD 10
+and 40-minute ceiling, so the current index is priced before it is replaced. `pack-bench.mjs`'s
+exit criterion is unchanged, and its recorded 5,743-versus-3,436 token result is the figure the
+replacement is measured against.
+
+No runtime mechanism, dependency, gate, control or budget was added by this review.
