@@ -31,6 +31,8 @@ the record keeps the number either way.
 | user:anchor | B3 |
 | user:pagerank | B5 |
 | local:the-benchmark-is-the-exit-criterion | B6 |
+| user:the-graph-never-goes-stale | B7 |
+| user:index-the-source-not-its-history | B8 |
 
 ## Observable behaviours
 
@@ -98,6 +100,41 @@ recorded 5,743-versus-3,436 result is the number this change is measured against
 does not improve it is recorded as that, and the exit criterion at `pack-bench.mjs:6` — "if the
 measured saving is not real, the graph gets cut" — is not retired, weakened or reinterpreted by
 this change.
+
+### B7
+
+Given a repository where code is being generated continuously,
+When the index is read after any change,
+Then it is current or it reports itself absent — never silently stale. Three properties carry
+that, and each is observable:
+
+The ranking and the audit are produced by the same `build()` that produced the modules they
+describe, and `refresh()` rebuilds the whole index rather than patching it, so a global property
+— a PageRank score, an ambiguity list — can never lag the graph it summarises. There is no path
+that updates modules and leaves a rank behind.
+
+The fingerprint covers the current commit id as well as file paths and contents. A `git commit`
+changes co-edit weights without touching any working-tree file, so under a content-only
+fingerprint `refresh()` reports `clean` and the co-edit edges silently rot. With the commit id in
+it, a commit invalidates the index exactly as an edit does. Deriving co-edit weights is bounded
+work done once per commit, not once per turn.
+
+A fingerprint mismatch keeps making `load()` return `null`. A stale index stays a miss that sends
+the caller to search, never a confident wrong answer, and `pack.mjs` and the pre-search hook keep
+their existing miss paths unchanged.
+
+### B8
+
+Given a repository the harness has already run in,
+When the index is built,
+Then the directories the harness itself writes are not indexed as source: recorded comparison and
+product runs under `.aidlc/evals/`, and agent worktrees under `.claude/worktrees/`. On this
+repository that is 444 of 543 modules — 377 recorded comparison runs, 50 worktree copies and 17
+product runs against 92 real source modules — so the ranking, the ambiguity list and the map
+describe the project instead of copies of its own history. The exclusion lives in the library
+rather than in a project's `[graph] exclude`, because those directories are created by the harness
+and every consuming project would otherwise inherit the same defect and have to fix it by hand. A
+project's own `exclude` list keeps working and is additive to this one.
 
 ## Design
 

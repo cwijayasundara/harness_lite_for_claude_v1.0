@@ -50,6 +50,7 @@ out, against the 5,743-versus-3,436 result already on record.
 
 - `.aidlc/lib/graph.mjs`
 - `.aidlc/lib/coedit.mjs`
+- `.aidlc/lib/refresh.mjs`
 - `.aidlc/lib/pack.mjs`
 - `test/graph.test.mjs`
 - `evals/bench/pack-bench.mjs`
@@ -69,6 +70,12 @@ out, against the 5,743-versus-3,436 result already on record.
    resolved `import` edges; leave it ambiguous and say so where that cannot decide. Add the
    failing test against `evals/fixtures/retrieval-app` first — `format` currently returns two
    equal candidates, and that assertion must fail before this step exists. B3.
+3b. **Index the source, not its history.** Add the harness's own output directories —
+   `.aidlc/evals/` and `.claude/worktrees/` — to `discover()`'s default exclusions in
+   `.aidlc/lib/graph.mjs`, additive to a project's `[graph] exclude`. Assert the module count
+   falls to the real source and that no path under those roots appears in the index. B8. This
+   lands before step 5, because ranking 377 copies of a recorded run would make the hubs line
+   worse than the metric it replaces.
 4. **Co-edit.** Add `.aidlc/lib/coedit.mjs`: `git log --name-only` over a bounded commit window,
    pair counts per commit, commits touching an implausibly large number of files contributing
    nothing. Returns an empty set on any git failure. Wire it as the third edge type. B4.
@@ -78,6 +85,14 @@ out, against the 5,743-versus-3,436 result already on record.
    co-edit edge set, reported separately. B5.
 6. Name the three edge types in `query()` so a caller can request one and receive only edges of
    that type, and so every answer names the edge type that produced it. B1.
+6b. **Keep it fresh.** Add the current commit id to `fingerprint()` in `.aidlc/lib/graph.mjs`, so
+   a commit — which moves co-edit weights without touching a working-tree file — invalidates the
+   index exactly as an edit does. Without it `refresh()` reports `clean` and the co-edit edges
+   rot. Confirm the three freshness properties hold together: `refresh()` still rebuilds whole
+   rather than patching, so rank and audit cannot lag their modules; a mismatch still makes
+   `load()` return `null`, so a stale index is a miss and not a wrong answer; and the rebuild
+   still fits the per-turn Stop budget with the exclusions from step 3b in place. Record the
+   measured rebuild time. B7.
 7. Re-run `node evals/bench/pack-bench.mjs` and write the pack, bounded-`rg` and recall figures
    into `docs/IMPROVEMENT-PLAN.md` against the recorded 5,743-versus-3,436 result, whichever way
    it comes out. B6.
@@ -96,6 +111,8 @@ out, against the 5,743-versus-3,436 result already on record.
 | B4 | `test/graph.test.mjs` — on this repository the `co-edit` edge between `test/guard.test.mjs` and `test/lifecycle-cli.test.mjs` exists with a weight reflecting repeated co-change, and no `import` or `call` edge joins them. A second case builds against a directory with no git history and asserts an empty co-edit set, a successful build, and every other query unchanged. |
 | B5 | `test/graph.test.mjs` — on a hand-built graph whose PageRank ordering differs from its degree ordering, `query(g, 'hubs')` returns the PageRank ordering; iteration converges within the stated cap; the co-edit ranking is returned separately and no call returns a blended score. |
 | B6 | `node evals/bench/pack-bench.mjs` output, recorded in `docs/IMPROVEMENT-PLAN.md` at step 8 with the date. Runtime evidence, not an assertion — the benchmark's own `recall >= 0.9` gate still passes or fails the run, but whether the token figure improved is a number a reviewer reads, not a test that grades it. |
+| B7 | `test/graph.test.mjs` — a commit that changes no working-tree file still changes the fingerprint, so `refresh()` does not report `clean` and the co-edit weights are recomputed; `load()` returns `null` on a mismatch, so a stale index is a miss; and a build's rank and audit describe the same module set that build produced. Plus the rebuild time recorded at step 6b as runtime evidence. |
+| B8 | `test/graph.test.mjs` — a fixture containing `.aidlc/evals/` and `.claude/worktrees/` subtrees indexes neither, while a project's own `[graph] exclude` entries keep working alongside them. Plus the module count on this repository falling from 543 to the real source, recorded at step 3b. |
 
 `test/graph.test.mjs` is `node:test`, so these rows are file-and-test-name rather than pytest node
 ids. B6's row is a recorded measurement and a document paragraph; no test decides whether the
