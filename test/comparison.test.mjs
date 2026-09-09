@@ -22,6 +22,58 @@ test('paid-rule description accepts the saved explicit paid conditional without 
   assert.equal(ledgerDescriptionExplainsPaidRule('If not fully paid (amountCents !== amountPaid): returns false'),false);
 });
 
+test('the retrieval pair is reachable only by name and never hands an arm a pack',()=>{
+  // graph-first-versus-grep-first B1. A default --compare run must keep costing what it costs.
+  assert.deepEqual(comparisonPairs(models).map(p=>p.id),['native','graph','generation']);
+  const [pair]=comparisonPairs(models,{pair:'retrieval'});
+  assert.equal(pair.id,'retrieval');
+  assert.deepEqual(pair.arms.map(a=>a.id),['grep-first','graph-first']);
+  assert.equal(pair.arms[0].model,pair.arms[1].model,'only retrieval differs between the arms');
+  assert.equal(pair.arms[0].graphFirst,undefined,'the control is the configuration without-graph has always run');
+  assert.equal(pair.arms[1].graphFirst,true);
+  assert.equal(pair.arms.some(a=>a.graph),false,'neither arm is handed an injected pack');
+  assert.throws(()=>comparisonPairs(models,{pair:'retrieval',prune:true}),/without --prune/);
+
+  // The campaign swaps the retrieval sentence and pastes nothing.
+  const campaign=readFileSync('evals/lib/campaign.mjs','utf8');
+  assert.match(campaign,/config\.graphFirst/);
+  assert.match(campaign,/rg and bounded reads are the miss path/);
+  assert.match(campaign,/Use rg and bounded reads as needed\./,'the control keeps its instruction');
+  const branch=campaign.slice(campaign.indexOf('if(config.graphFirst)'),campaign.indexOf('const instruction='));
+  assert.doesNotMatch(branch,/renderPack/,'the graph-first arm must not be handed a pack');
+
+  // And the arm keeps a real index: suppression stays for every other harness arm.
+  const comparison=readFileSync('evals/lib/comparison.mjs','utf8');
+  const configure=comparison.slice(comparison.indexOf('export function configureComparison'),comparison.indexOf('export async function gradeComparisonProduct'));
+  assert.match(configure,/if\(config\.graphFirst\)return;/);
+  assert.ok(configure.indexOf('if(config.graphFirst)return;')<configure.indexOf('graph.mjs'),
+    'the exemption must precede the suppression it exempts');
+});
+
+test('a do-nothing model fails every assertion the retrieval product is graded on',async()=>{
+  // graph-first-versus-grep-first B2. Proved against the unmodified fixture directly, so it needs
+  // no Docker: evals/tasks.json still names test/rehearsal.test.mjs for this, and that file is gone.
+  const fx='../evals/fixtures/retrieval-app';
+  const {rollup}=await import(`${fx}/src/reporting/aggregate.mjs`);
+  const {render}=await import(`${fx}/src/reporting/summary.mjs`);
+  const {format:money}=await import(`${fx}/src/billing/invoices.mjs`);
+  const {format:row}=await import(`${fx}/src/reporting/summary.mjs`);
+
+  const entries=[{isoDate:'2026-01-04',amountCents:1000},{isoDate:'2026-02-20',amountCents:500}];
+  assert.throws(()=>rollup(entries,'quarter'),/unsupported period/,'level 1 must be red before the change');
+  assert.ok(!render([{period:'2026-Q1',count:2,totalCents:1500}]).includes('$15.00'),
+    'level 2 must be red before the change');
+
+  // The reason this product exists: two modules export `format`, and they are not the same one.
+  assert.notEqual(money,row,'a lookup that stops at its first match answers the wrong question');
+  assert.equal(money(1000),'$10.00');
+  assert.ok(!row({period:'p',count:1,totalCents:1}).includes('$'));
+
+  // And the grader reaches it.
+  const comparison=readFileSync('evals/lib/comparison.mjs','utf8');
+  assert.match(comparison,/if\(product==='reporting'\)return verifyReporting/);
+});
+
 test('comparison pairs hold models constant, sequence graph then evaluated generation, and reject missing models',()=>{
   const pairs=comparisonPairs(models);
   assert.deepEqual(pairs.map(p=>p.id),['native','graph','generation']);

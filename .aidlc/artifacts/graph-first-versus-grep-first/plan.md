@@ -56,6 +56,7 @@ as this one does; it goes last of the three.
 - `evals/fixtures/retrieval-app/`
 - `evals/evidence/`
 - `test/comparison.test.mjs`
+- `test/campaign.test.mjs`
 - `docs/IMPROVEMENT-PLAN.md`
 
 ## Dependencies
@@ -84,7 +85,9 @@ as this one does; it goes last of the three.
    `gradeComparisonProduct`, following the declarative call-and-assert shape
    `verifyLedger` already uses. Leave the ledger and service verifiers
    untouched.
-5. Build `evals/fixtures/retrieval-app/` and its `evals/products.json` entry:
+5. Build `evals/fixtures/retrieval-app/` and its `evals/products.json` entry,
+   registering `reporting` in `evals/run.mjs`'s product validator and updating
+   the product inventory assertion in `test/campaign.test.mjs`:
    enough modules that the file to change is not guessable, at least one symbol
    name occurring in two modules, steps with behaviours, scoped files and its
    own test command. Confirm its tests fail before each step and pass after.
@@ -96,9 +99,12 @@ as this one does; it goes last of the three.
 7. Run `harness check --stage stop` with no model spend and confirm the suite is
    green, including `test/ledger-evidence.test.mjs`,
    `test/skills-context.test.mjs` and `test/host-evidence.test.mjs` unedited.
-8. Run the comparison once:
-   `node evals/run.mjs --compare --comparison retrieval --max-suite-usd 10
-   --max-suite-minutes 40`. Copy portable outcomes into `evals/evidence/`,
+8. Run the comparison once, scoped to the product built for it:
+   `node evals/run.mjs --compare --comparison retrieval --id retrieval-app
+   --max-suite-usd 10 --max-suite-minutes 40`. Without `--id` the pair also runs
+   against `campaign-ledger` and `campaign-service`, which is three times the
+   spend on two products already known not to discriminate. Run it detached and
+   never from an interactive shell loop. Copy portable outcomes into `evals/evidence/`,
    retaining failed and interrupted attempts.
 9. Rewrite the lean-review graph row and the closing paragraphs in
    `docs/IMPROVEMENT-PLAN.md` with the outcome, its date, the validated and

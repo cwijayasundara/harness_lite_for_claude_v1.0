@@ -239,6 +239,71 @@ export function verifyLedger(s, level) {
   return {name:`ledger-api-level-${level}`,pass:true,cases:calls.length};
 }
 
+// graph-first-versus-grep-first B2. Same shape as ledgerCalls, over a product wide enough that
+// finding the code is the work. `format` is exported by two modules here, so a call is addressed
+// by namespace: '' is the app entry, and `billing.` / `summary.` reach the two directly.
+export function reportingCalls(s, calls) {
+  const source=runtimeSnapshot(s);
+  try {
+  const bridge = `import * as api from './src/index.mjs';
+    import * as billing from './src/billing/invoices.mjs';
+    import * as summary from './src/reporting/summary.mjs';
+    const mods={'':api,billing,summary};
+    let input=''; for await(const part of process.stdin) input+=part;
+    const refs={},results=[];
+    for(const call of JSON.parse(input)) {
+      try { const args=call.args.map(v=>v && typeof v==='object' && '$ref' in v ? refs[v.$ref] : v);
+        const dot=call.fn.indexOf('.');
+        const ns=dot<0?'':call.fn.slice(0,dot), fn=dot<0?call.fn:call.fn.slice(dot+1);
+        const value=await mods[ns][fn](...args); if(call.as) refs[call.as]=value;
+        results.push({ok:true,value:value===undefined?null:JSON.parse(JSON.stringify(value))});
+      } catch(error){results.push({ok:false,error:error.message});}
+    } console.log(JSON.stringify(results));`;
+  const name=`harness-reporting-${randomUUID()}`;
+  const r = spawnSync('docker', [...productDockerArgs(source,{name}), 'node', '--input-type=module', '-e', bridge], {
+    input: JSON.stringify(calls), encoding: 'utf8', timeout: 15000, killSignal: 'SIGKILL', maxBuffer: 1024*1024,
+  });
+  if(r.error||r.signal)spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:10000});
+  if (r.status !== 0) throw new Error(`reporting runtime failed: ${r.error?.message ?? r.stderr}`);
+  return JSON.parse(r.stdout.trim());
+  } finally { source.dispose(); }
+}
+
+const ENTRIES=[{isoDate:'2026-01-04',amountCents:1000},{isoDate:'2026-02-20',amountCents:500},{isoDate:'2026-05-02',amountCents:250}];
+
+export function verifyReporting(s, level) {
+  const calls=[
+    {fn:'rollup',args:[ENTRIES]},
+    {fn:'rollup',args:[ENTRIES,'month']},
+    {fn:'rollup',args:[ENTRIES,'week']},
+    {fn:'billing.format',args:[1000]},
+  ];
+  if(level>=1) calls.push({fn:'rollup',args:[ENTRIES,'quarter']});
+  if(level>=2) calls.push({fn:'render',args:[[{period:'2026-Q1',count:2,totalCents:1500}]]});
+  const r=reportingCalls(s,calls);
+  assert.equal(r.length,calls.length);
+
+  // Preserved behaviour, at every level: monthly grouping, the unsupported-period refusal, and
+  // the billing formatter this product's second step must reuse rather than reimplement.
+  const monthly=[{period:'2026-01',count:1,totalCents:1000},{period:'2026-02',count:1,totalCents:500},{period:'2026-05',count:1,totalCents:250}];
+  assert.deepEqual(r[0].value,monthly,'default rollup is monthly');
+  assert.deepEqual(r[1].value,monthly,"rollup(entries,'month') is unchanged");
+  assert.equal(r[2].ok,false,'an unsupported period still throws');
+  assert.equal(r[3].value,'$10.00','the billing formatter is unchanged');
+
+  if(level>=1) assert.deepEqual(r[4].value,
+    [{period:'2026-Q1',count:2,totalCents:1500},{period:'2026-Q2',count:1,totalCents:250}],
+    'quarterly rollup groups calendar quarters');
+
+  if(level>=2){
+    const row=r[5].value;
+    assert.equal(typeof row,'string');
+    assert.ok(row.includes('$15.00'),`report row shows currency, got: ${row}`);
+    assert.ok(row.startsWith('2026-Q1\t2\t'),`report row keeps period and count columns, got: ${row}`);
+  }
+  return {name:`reporting-api-level-${level}`,pass:true,cases:calls.length};
+}
+
 export function serviceProcess(s, { dataFile='/data/items.json' }={}) {
   const name=`harness-service-${randomUUID()}`;
   let source;

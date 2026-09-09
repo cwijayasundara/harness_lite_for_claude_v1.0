@@ -178,6 +178,39 @@
           "incident": true
         }
       ]
+    },
+    {
+      "id": "retrieval-app",
+      "fixture": "retrieval-app",
+      "product": "reporting",
+      "steps": [
+        {
+          "slug": "reporting-quarter",
+          "request": "Report totals by quarter as well as by month, without changing how monthly totals are produced.",
+          "behaviours": [
+            "rollup(entries, 'quarter') groups entries into calendar quarters labelled <YYYY>-Q<n>, where Q1 is January to March, summing amountCents and counting entries, sorted by period ascending.",
+            "rollup(entries) and rollup(entries, 'month') keep their existing labels and totals, and an unsupported period still throws."
+          ],
+          "files": [
+            "src/reporting/aggregate.mjs",
+            "tests/aggregate.test.mjs"
+          ],
+          "level": 1
+        },
+        {
+          "slug": "reporting-currency",
+          "request": "Report rows should show their total as currency, without changing how invoices render money.",
+          "behaviours": [
+            "render(rows) renders each row as <period>, tab, <count>, tab, <total as currency>, so a row for 2026-Q1 with count 2 and totalCents 1500 renders its total as $15.00.",
+            "The currency column reuses the money formatter the billing module already exports rather than a second implementation, and src/billing/invoices.mjs is unchanged: its format still returns $10.00 for 1000."
+          ],
+          "files": [
+            "src/reporting/summary.mjs",
+            "tests/summary.test.mjs"
+          ],
+          "level": 2
+        }
+      ]
     }
   ]
 }

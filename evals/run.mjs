@@ -137,7 +137,7 @@ export function validate(tasks, fixturesDir) {
     if (ids.has(t.id)) problems.push(`${at}: duplicate id`);
     ids.add(t.id);
     if (t.product) {
-      if (!['ledger','service'].includes(t.product)) problems.push(`${at}: unknown product`);
+      if (!['ledger','service','reporting'].includes(t.product)) problems.push(`${at}: unknown product`);
       if (!t.steps?.length) problems.push(`${at}: product steps are empty`);
       for (const step of t.steps ?? []) {
         if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(step.slug ?? '') || !step.request || !step.behaviours?.length || !step.files?.length || !(step.level > 0)) problems.push(`${at}: invalid product step`);

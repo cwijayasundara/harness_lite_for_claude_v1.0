@@ -5,7 +5,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {stage,isolateStage} from './stage.mjs';
 import {runComparisonCampaign,walk} from './campaign.mjs';
-import {verifyLedger,verifyService,ledgerDescriptionExplainsPaidRule} from './assertions.mjs';
+import {verifyLedger,verifyService,verifyReporting,ledgerDescriptionExplainsPaidRule} from './assertions.mjs';
 
 export function comparisonPairs(models, {prune=false,pruneArm=null,pair=null}={}) {
   for(const key of (prune?['generator','evaluator']:['generator','evaluator','evals']))if(!models?.[key])throw new Error(`comparison requires explicit ${key} model; no substitution`);
@@ -74,6 +74,10 @@ export function configureComparison(s, config={}) {
     return;
   }
   if(s.native)return;
+  // graph-first-versus-grep-first B1. The graph-first arm is told to query the index, so it must
+  // have one. Every other harness arm keeps the suppression it has today, grep-first included —
+  // that arm is the control, and it is the same configuration `without-graph` has always run.
+  if(config.graphFirst)return;
   // Experimental isolation only. Both harness arms suppress automatic cached map assistance;
   // the graph arm receives fresh bounded packs in its prompt. No production flags/controls.
   const graphFile=path.join(s.plugin,'.aidlc/lib/graph.mjs');
@@ -85,6 +89,7 @@ export function configureComparison(s, config={}) {
 }
 
 export async function gradeComparisonProduct(s,step,product) {
+  if(product==='reporting')return verifyReporting(s,step.level);
   const proof=product==='ledger'?verifyLedger(s,step.level):verifyService(s,step.level);
   if(product==='ledger'&&step.level===4&&!existsSync(path.join(s.work,'src/store.mjs')))throw new Error('storage extraction missing');
   if(product==='ledger'&&step.level===5){
