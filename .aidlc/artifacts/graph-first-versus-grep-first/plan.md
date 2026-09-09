@@ -4,10 +4,10 @@ depends_on: retire-change-safely, a-block-names-its-rule
 spec_digest: sha256:38608a741270a78d3ebbb8d755416cc098638551a093abd8496058e9303f72b3
 spec_approval_digest: sha256:3af59b89ba550a827abec95fbc196ce9664109bc7904c178a56f18742608f84a
 by: cwijayasundara
-at: 2026-09-09T07:22:07.828Z
-digest: sha256:11df21aeaa0bdba08749846049925cee641d5ecfaf55fd652f8ef659f957f43d
+at: 2026-09-09T07:24:20.046Z
+digest: sha256:ec808c4306a5afb186420097aba851375dcc99df6793559505d7b2cd78962df5
 approval_version: 2
-approval_digest: sha256:77ca7a4ec3916fa5548934ce5a9d80ac2ed810c9decf0e88041c7265eb5ccf0d
+approval_digest: sha256:2720359dd8c8ab1482578239d81d47531243fd4f3b91b29cf0f3b319fe110649
 ---
 # Plan: graph-first-versus-grep-first
 
