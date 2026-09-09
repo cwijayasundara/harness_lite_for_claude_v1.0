@@ -51,13 +51,19 @@ export function pruneSessionInventory(source) {
 }
 
 // Keep the experiment repeatable if the lean banner is retained in production. Restore only
-// these three historical lines, never an old whole hook that could undo later guard repairs.
+// these three historical lines, never an old whole module that could undo later guard repairs.
+//
+// a-baseline-measures-what-ships step 9. The payload moved from `.aidlc/hooks/dispatch.mjs` to
+// `.aidlc/lib/session.mjs`, so the anchors moved with it: the ledger import is now `./ledger.mjs`,
+// there is no `ledger.newRun` to anchor on because run-id rotation stayed in the hook, and the
+// body is indented two spaces rather than eight. Each anchor is the line the inserted line
+// follows in the real source, so restore(prune(x)) still reproduces x byte for byte.
 export function restoreSessionInventory(source) {
   if(source.includes('const m = measure(cfg);')){pruneSessionInventory(source);return source;}
   const insertions=[
-    ["import * as ledger from '../lib/ledger.mjs';", "import { measure } from '../checks/budget.mjs';"],
-    ['        ledger.newRun(cfg.layout);', '        const m = measure(cfg);'],
-    ['          `check:  ${invocation(cfg)} check --stage fast --changed`,', '          `budget: ${Object.entries(m).map(([k, v]) => `${k} ${v}/${cfg.limits[k] ?? \'-\'}`).join(\' · \')}`,'],
+    ["import { fileURLToPath } from 'node:url';", "import { measure } from '../checks/budget.mjs';"],
+    ['export function sessionContext(cfg) {', '  const m = measure(cfg);'],
+    ['    `check:  ${invocation(cfg)} check --stage fast --changed`,', '    `budget: ${Object.entries(m).map(([k, v]) => `${k} ${v}/${cfg.limits[k] ?? \'-\'}`).join(\' · \')}`,'],
   ];
   for(const [anchor,line] of insertions){
     if(source.split(anchor).length!==2)throw new Error(`session inventory experiment source drift: ${anchor}`);
@@ -68,7 +74,7 @@ export function restoreSessionInventory(source) {
 
 export function configureComparison(s, config={}) {
   if(config.prune!==undefined){
-    const file=path.join(s.plugin,'.aidlc/hooks/dispatch.mjs');
+    const file=path.join(s.plugin,'.aidlc/lib/session.mjs');
     const baseline=restoreSessionInventory(readFileSync(file,'utf8'));
     writeFileSync(file,config.prune?pruneSessionInventory(baseline):baseline);
     return;

@@ -14,7 +14,7 @@ import { estimateTokens, pack } from './pack.mjs';
 import * as graph from './graph.mjs';
 import { query } from './graph.mjs';
 import { check, render } from './runner.mjs';
-import { measure as budget } from '../checks/budget.mjs';
+import { sessionContext } from './session.mjs';
 
 // Metrics where LOWER is better; a rise beyond tolerance is a regression.
 export const RATCHETED = [
@@ -25,15 +25,15 @@ const fileTokens = (p) => (existsSync(p) ? estimateTokens(readFileSync(p, 'utf8'
 
 export async function capture(cfg) {
   const g = graph.ensure(cfg);
-  const b = budget(cfg);
 
-  // What SessionStart puts in the model's context every single session.
-  const sessionContext = [
-    `harness · ${cfg.project.name ?? ''}`,
-    'check:  .aidlc/bin/harness check --stage fast --changed',
-    `budget: ${Object.entries(b).map(([k, v]) => `${k} ${v}/${cfg.limits[k] ?? '-'}`).join(' · ')}`,
-    'ledger: 0 rows over 0 runs (30d)',
-  ].join('\n');
+  // B1. What SessionStart puts in the model's context every single session — the exact string,
+  // from the one function that assembles it.
+  //
+  // why: this was four hand-written lines reconstructing a payload the hook builds in full. The
+  // hook grew the map, hubs, contract, current-change and superseded lines and the reconstruction
+  // did not, so the ratchet recorded 52 tokens against a real payload of 649 and failed nothing —
+  // it was grading a string no session had ever been sent.
+  const session = sessionContext(cfg);
 
   // What a green stage puts in front of the model on the way to "done".
   // `all: true` so the measurement does not depend on fail-fast stopping early.
@@ -59,7 +59,7 @@ export async function capture(cfg) {
     captured_at: new Date().toISOString(),
     tolerance: 1.10,
     claude_md_tokens: fileTokens(cfg.layout.claudeMd),
-    session_context_tokens: estimateTokens(sessionContext),
+    session_context_tokens: estimateTokens(session),
     check_stop_tokens: estimateTokens(rendered),
     pack_tokens_p50: p50,
     pack_samples: terms.length,
@@ -96,5 +96,10 @@ export function compare(base, now) {
     const regressed = !skipped && was > 0 && is > was * tol;
     return { metric: k, was, is, delta: was ? (is - was) / was : 0, regressed, skipped };
   });
-  return { tolerance: tol, envDiffers, rows, ok: rows.every((r) => !r.regressed) };
+  // B4. A recorded key that the current capture does not produce is a file that has drifted from
+  // its schema. `wiki_index_tokens` sat in baseline.json for weeks after capture() stopped
+  // producing it, and nothing said so, because compare() only ever looked at RATCHETED. Reported
+  // here rather than graded: the repair is a re-capture, not a tolerance argument.
+  const unknown = Object.keys(base).filter((k) => !(k in now));
+  return { tolerance: tol, envDiffers, rows, unknown, ok: rows.every((r) => !r.regressed) };
 }

@@ -224,7 +224,9 @@ test('suite deadline stops further model calls and preserves scheduled unmeasure
 
 
 test('pruning changes only automatic session inventory in the isolated lean arm',()=>{
-  const original=readFileSync('.aidlc/hooks/dispatch.mjs','utf8');
+  // a-baseline-measures-what-ships step 9: the payload the experiment prunes now lives in
+  // lib/session.mjs, so the experiment reads and writes that module instead of the hook.
+  const original=readFileSync('.aidlc/lib/session.mjs','utf8');
   const baseline=restoreSessionInventory(original);
   assert.equal(restoreSessionInventory(pruneSessionInventory(baseline)),baseline);
   const pairs=comparisonPairs(models,{prune:true});
@@ -233,17 +235,17 @@ test('pruning changes only automatic session inventory in the isolated lean arm'
     const s=stage(FIXTURES,'campaign-ledger',{product:true});
     try{
       isolateStage(s,root);configureComparison(s,config);
-      const dispatch=readFileSync(path.join(s.plugin,'.aidlc/hooks/dispatch.mjs'),'utf8');
-      assert.equal(dispatch,config.prune?pruneSessionInventory(baseline):baseline);
+      const session=readFileSync(path.join(s.plugin,'.aidlc/lib/session.mjs'),'utf8');
+      assert.equal(session,config.prune?pruneSessionInventory(baseline):baseline);
       assert.equal(readFileSync(path.join(s.plugin,'.aidlc/lib/graph.mjs'),'utf8'),readFileSync('.aidlc/lib/graph.mjs','utf8'));
-      assert.ok(dispatch.includes('ledger.report('));assert.ok(dispatch.includes('currentLine(cfg)'));
+      assert.ok(session.includes('ledger.report('));assert.ok(session.includes('currentLine(cfg)'));
       const banner=JSON.parse(execFileSync(process.execPath,[path.join(s.plugin,'.aidlc/bin/harness'),'hook','session-start'],{cwd:s.work,encoding:'utf8',input:JSON.stringify({cwd:s.work})})).hookSpecificOutput.additionalContext;
       assert.equal(/^budget:/m.test(banner),!config.prune);
       assert.match(banner,/contract:/);assert.match(banner,/^check:/m);assert.match(banner,/^ledger:/m);
 
     }finally{s.cleanup();}
   }
-  assert.equal(readFileSync('.aidlc/hooks/dispatch.mjs','utf8'),original);
+  assert.equal(readFileSync('.aidlc/lib/session.mjs','utf8'),original);
   assert.throws(()=>pruneSessionInventory('changed source'),/source drift/);
 });
 

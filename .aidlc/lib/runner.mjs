@@ -30,6 +30,7 @@ export const LOCAL_CHECKS = {
   'scope-drift': () => import('../checks/scope-drift.mjs'),
   budget: () => import('../checks/budget.mjs'),
   tamper: () => import('../checks/tamper.mjs'),
+  baseline: () => import('../checks/baseline.mjs'),
 };
 
 function interpolate(cmd, files, reportPath) {

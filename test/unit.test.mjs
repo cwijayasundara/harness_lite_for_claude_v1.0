@@ -263,6 +263,7 @@ test('baseline: every ratcheted metric is actually captured', async () => {
       budget: { max_findings: 20 }, limits: { skills: 12 },
       graph: { include: ['.', '.claude'], exclude: ['.git', '__pycache__'] },
       layout: { root: s.work, claude: path.join(s.work, '.claude'), claudeMd: path.join(s.work, '.claude/CLAUDE.md'),
+        aidlc: path.join(s.work, '.aidlc'),
         state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'), runId: path.join(state, 'run-id') },
     };
     const b = await capture(cfg);
@@ -270,6 +271,112 @@ test('baseline: every ratcheted metric is actually captured', async () => {
     assert.ok(b.graph_modules > 0);
     // Model-side cost is never fabricated here; the eval suite fills it or it stays null.
     assert.equal(b.model, null);
+  } finally { s.cleanup(); }
+});
+
+// a-baseline-measures-what-ships B1. The ratchet recorded 52 tokens against a payload of ~649,
+// because capture() rebuilt four of the hook's lines instead of measuring the hook's string.
+// This asserts the two are the same number, which is only possible while they are one function.
+test('baseline: session_context_tokens measures the payload the hook actually emits', async () => {
+  const { capture } = await import('../.aidlc/lib/baseline.mjs');
+  const { estimateTokens } = await import('../.aidlc/lib/pack.mjs');
+  const { sessionContext } = await import('../.aidlc/lib/session.mjs');
+  const { stage } = await import('../evals/lib/stage.mjs');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const s = stage(path.join(ROOT, 'evals', 'fixtures'), 'graph-app');
+  try {
+    const state = path.join(s.work, '.aidlc/state');
+    fs.mkdirSync(state, { recursive: true });
+    const cfg = {
+      project: { name: 'graph-app' }, capabilities: {}, formats: {},
+      stages: { fast: [], stop: [] }, check: { fail_fast: true },
+      budget: { max_findings: 20 }, limits: { skills: 12 },
+      graph: { include: ['.', '.claude'], exclude: ['.git', '__pycache__'] },
+      layout: { root: s.work, claude: path.join(s.work, '.claude'), claudeMd: path.join(s.work, '.claude/CLAUDE.md'),
+        aidlc: path.join(s.work, '.aidlc'),
+        state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'), runId: path.join(state, 'run-id') },
+    };
+    const b = await capture(cfg);
+    assert.equal(b.session_context_tokens, estimateTokens(sessionContext(cfg)),
+      'the recorded figure must be the token count of the emitted payload, not of a reconstruction');
+    // The four-line reconstruction could not exceed ~60 tokens on any repository. A real payload
+    // carries the map, hubs, contract and current-change lines too, so it is always larger.
+    assert.ok(sessionContext(cfg).split('\n').length >= 5,
+      'a payload of four lines means the reconstruction is back');
+  } finally { s.cleanup(); }
+});
+
+// B2. One function assembles the payload and both callers use it. A second assembly in the hook
+// is the exact defect this change removes, so the test names it rather than trusting review.
+test('baseline: the hook emits sessionContext and holds no second assembly of it', async () => {
+  const { sessionContext } = await import('../.aidlc/lib/session.mjs');
+  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const { execFileSync } = await import('node:child_process');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+
+  const emitted = JSON.parse(execFileSync('node', [path.join(ROOT, '.aidlc/bin/harness'), 'hook', 'session-start'],
+    { cwd: ROOT, input: '{}', encoding: 'utf8' })).hookSpecificOutput.additionalContext;
+  assert.equal(emitted, sessionContext(loadConfig(ROOT)),
+    'the hook must write exactly what sessionContext assembles');
+
+  const hook = fs.readFileSync(path.join(ROOT, '.aidlc/hooks/dispatch.mjs'), 'utf8');
+  assert.ok(!hook.includes('`harness · ${'), 'dispatch.mjs assembles the payload a second time');
+  assert.ok(!hook.includes('ledger: ${'), 'dispatch.mjs assembles the payload a second time');
+});
+
+// B3 and B4. The ratchet existed and no stage ran it; this is the gate, and what it reports.
+test('baseline: the gate is in commit, grades a rise, and reports a drifted schema', async () => {
+  const { LOCAL_CHECKS } = await import('../.aidlc/lib/runner.mjs');
+  const { run } = await import('../.aidlc/checks/baseline.mjs');
+  const { capture, save } = await import('../.aidlc/lib/baseline.mjs');
+  const { stage } = await import('../evals/lib/stage.mjs');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+
+  // B3: the control is registered and the commit stage names it. Two lists that must agree.
+  const toml = parseToml(fs.readFileSync(path.join(ROOT, '.aidlc/harness.toml'), 'utf8'));
+  assert.ok(toml.stages.commit.includes('baseline'), 'commit must run the ratchet');
+  assert.ok('baseline' in LOCAL_CHECKS, 'the runner must be able to resolve it');
+
+  const s = stage(path.join(ROOT, 'evals', 'fixtures'), 'graph-app');
+  try {
+    const aidlc = path.join(s.work, '.aidlc');
+    const state = path.join(aidlc, 'state');
+    fs.mkdirSync(state, { recursive: true });
+    const cfg = {
+      project: { name: 'graph-app' }, capabilities: {}, formats: {},
+      stages: { fast: [], stop: [] }, check: { fail_fast: true },
+      budget: { max_findings: 20 }, limits: { skills: 12 },
+      graph: { include: ['.', '.claude'], exclude: ['.git', '__pycache__'] },
+      layout: { root: s.work, claude: path.join(s.work, '.claude'), claudeMd: path.join(s.work, '.claude/CLAUDE.md'),
+        aidlc, state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'), runId: path.join(state, 'run-id') },
+    };
+
+    // Nothing recorded yet is recorded, not graded.
+    assert.equal((await run(cfg)).verdict, 'pass', 'a project with no baseline is not in regression');
+
+    const captured = await capture(cfg);
+    save(cfg, captured);
+    assert.equal((await run(cfg)).verdict, 'pass', 'a capture compared against itself is green');
+
+    // B3: a recorded figure far below the current one is a regression, and the finding says
+    // which metric and both numbers, so the reader never has to re-derive it.
+    save(cfg, { ...captured, session_context_tokens: Math.max(1, Math.floor(captured.session_context_tokens / 4)) });
+    const risen = await run(cfg);
+    assert.equal(risen.verdict, 'fail');
+    const row = risen.findings.find((f) => f.rule === 'baseline/session_context_tokens');
+    assert.ok(row, 'the finding names the metric that fired');
+    assert.match(row.message, new RegExp(String(captured.session_context_tokens)), 'the current figure is reported');
+    assert.match(row.message, /recorded \d+/, 'the recorded figure is reported');
+
+    // B4: a key the current capture no longer produces is reported, not silently ignored.
+    save(cfg, { ...captured, wiki_index_tokens: 290 });
+    const drifted = await run(cfg);
+    const unknown = drifted.findings.find((f) => f.rule === 'baseline/unknown-metric');
+    assert.ok(unknown, 'a retired key is surfaced');
+    assert.match(unknown.message, /wiki_index_tokens/);
   } finally { s.cleanup(); }
 });
 
