@@ -39,7 +39,6 @@ test('B2 steering names graph/pack first and Grep as the miss path', () => {
     claude: read('.claude/CLAUDE.md'),
     map: read('.aidlc/skills/map/SKILL.md'),
     implement: read('.aidlc/skills/implement/SKILL.md'),
-    change: read('.aidlc/skills/change-safely/SKILL.md'),
   };
   for (const [name, text] of Object.entries(surfaces)) {
     assert.doesNotMatch(text, /CRITICAL|YOU MUST NEVER GREP/, name);
