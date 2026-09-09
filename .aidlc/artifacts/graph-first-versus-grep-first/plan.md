@@ -1,6 +1,6 @@
 ---
 status: draft
-depends_on: a-block-names-its-rule
+depends_on: retire-change-safely, a-block-names-its-rule
 ---
 # Plan: graph-first-versus-grep-first
 
@@ -25,8 +25,8 @@ Recording comes last and reports whatever happened. A tie is written as a tie, a
 short run as a short run. The two documentation behaviours, B4 and B5, need no
 model and are done regardless of how the run ends.
 
-`depends_on: a-block-names-its-rule` records that all three open changes edit
-`docs/IMPROVEMENT-PLAN.md`; this one goes last.
+`depends_on` names both landed prerequisites, which edit `docs/IMPROVEMENT-PLAN.md`
+as this one does; it goes last of the three.
 
 ## Files
 
