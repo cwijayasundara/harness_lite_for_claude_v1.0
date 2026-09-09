@@ -1,6 +1,13 @@
 ---
-status: draft
+status: approved
 depends_on: retire-change-safely
+spec_digest: sha256:f933c8b8f77da8f28a28b5bba8b7c460dd7b6daa76d3969db5a2bf47ecff3227
+spec_approval_digest: sha256:2fc1867e1657679050ef182d7dea26b96604473dcbbfca3f333791e76562219b
+by: cwijayasundara
+at: 2026-09-09T06:22:16.621Z
+digest: sha256:e0102d87e8301d99b6d833fa3af326e2be9b0459f438dc536d380b99e30c0b34
+approval_version: 2
+approval_digest: sha256:50c4be8ceb1569c3d34058b459745ebfc48e9ea6c013e9f5af4cee38c3924850
 ---
 # Plan: a-block-names-its-rule
 
