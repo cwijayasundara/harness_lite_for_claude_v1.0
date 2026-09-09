@@ -36,6 +36,17 @@ B5 is recorded in the delivery section of `docs/IMPROVEMENT-PLAN.md`, not as a n
 `baseline.json`. Adding a note field would itself be a key `capture()` produces for no
 measurement, and B4 exists to make exactly that visible.
 
+One collision, found while implementing rather than while planning. `evals/lib/comparison.mjs`
+rewrites `dispatch.mjs`'s **source text** to run the session-inventory pruning experiment, and its
+markers are the exact lines this change moves — `restoreSessionInventory` throws `source drift`
+the moment the extraction lands, and `test/comparison.test.mjs` fails with it. The experiment is
+re-anchored onto `lib/session.mjs` rather than abandoned: `IMPROVEMENT-PLAN.md` records that pair
+as the one validated removal experiment, both arms 11 of 11, and a validated experiment that can
+no longer be re-run against current code stops being evidence. The alternative of leaving the
+anchor lines behind in `dispatch.mjs` was rejected — it is the second implementation this change
+exists to delete, and it would fail B2 by construction. The user chose re-anchoring on
+2026-09-09, accepting that a third change now writes to a file two in-flight changes own.
+
 ## Files
 
 - `.aidlc/lib/session.mjs`
@@ -46,6 +57,9 @@ measurement, and B4 exists to make exactly that visible.
 - `.aidlc/harness.toml`
 - `.aidlc/baseline.json`
 - `test/unit.test.mjs`
+- `evals/lib/comparison.mjs`
+- `test/comparison.test.mjs`
+- `CODEBASE-MAP.md`
 - `docs/IMPROVEMENT-PLAN.md`
 
 ## Order
@@ -72,12 +86,22 @@ measurement, and B4 exists to make exactly that visible.
 8. Extend the existing baseline tests in `test/unit.test.mjs` to cover B3 (a rise beyond tolerance
    fails the stage and names both figures; a rise within it passes) and B4 (`wiki_index_tokens`
    in a recorded file is reported, not ignored).
-9. Run `harness baseline capture` to regenerate `.aidlc/baseline.json` against the repaired
-   measurement, removing `wiki_index_tokens` and moving `session_context_tokens` from 52 to its
-   real value.
-10. Record the correction in `docs/IMPROVEMENT-PLAN.md`: the figure moved because the measurement
+9. Re-anchor the session-inventory pruning experiment onto the extracted module. In
+   `evals/lib/comparison.mjs`, `configureComparison` reads and writes
+   `.aidlc/hooks/dispatch.mjs`; that path becomes `.aidlc/lib/session.mjs`, and
+   `pruneSessionInventory` and `restoreSessionInventory` take their `remove` markers and
+   `insertions` anchors from the extracted text, whose ledger import is `./ledger.mjs` and whose
+   body is indented two spaces rather than eight. Update `test/comparison.test.mjs` to read the
+   same file. The round-trip assertion, the source-drift assertion and the arm-difference
+   assertion all keep their current shape; only the file and the anchors move.
+10. Regenerate `CODEBASE-MAP.md`, which the Stop hook rewrites because step 1 adds a module and
+    the map records the module count and the hubs.
+11. Run `harness baseline capture` to regenerate `.aidlc/baseline.json` against the repaired
+    measurement, removing `wiki_index_tokens` and moving `session_context_tokens` from 52 to its
+    real value.
+12. Record the correction in `docs/IMPROVEMENT-PLAN.md`: the figure moved because the measurement
     was repaired and the payload did not change, naming the commit at which step 4 landed. B5.
-11. `harness check --stage commit`, and paste the output.
+13. `harness check --stage commit`, and paste the output.
 
 ## Proof
 
@@ -108,3 +132,12 @@ appended the same way at `b5c4c2f`.
 `## Files`, so steps 4 to 7 carry no cross-change invariant. `code-property-graph` reads
 `baseline.mjs`'s pack sampling but does not edit it, and its spec's B5 holds that surface
 unchanged.
+
+`evals/lib/comparison.mjs` and `test/comparison.test.mjs` are named by `compare-native-claude`,
+`complete-native-comparisons`, `graph-first-versus-grep-first` and others, so step 9 is the
+widest overlap this change carries. It is confined to one path constant and two anchor lists —
+`comparisonPairs`, `summarizeComparisons`, `runComparisons`, the budget and deadline handling and
+every recorded pair are untouched, so a concurrent change to those does not conflict with it.
+Serialization remains the agreed handling. If another change lands in that file first, step 9 is
+re-applied against its text rather than merged blind: the anchors are literal source lines, and a
+stale anchor fails loudly with `source drift` rather than silently corrupting the experiment.
