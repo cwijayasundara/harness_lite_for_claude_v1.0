@@ -39,6 +39,7 @@ as this one does; it goes last of the three.
 
 - `evals/lib/comparison.mjs`
 - `evals/lib/campaign.mjs`
+- `evals/run.mjs`
 - `evals/products.json`
 - `evals/fixtures/retrieval-app/`
 - `evals/evidence/`
@@ -55,8 +56,8 @@ as this one does; it goes last of the three.
 ## Order
 
 1. Add the `retrieval` pair to `comparisonPairs` in `evals/lib/comparison.mjs`
-   and accept `retrieval` as a `--comparison` value in `evals/run.mjs`'s
-   validation. Extend `test/comparison.test.mjs` to assert the pair's arms and
+   and accept `retrieval` as a `--comparison` value in both places that
+   enumerate the pair names: `evals/lib/comparison.mjs` and `evals/run.mjs`. Extend `test/comparison.test.mjs` to assert the pair's arms and
    that the existing three pairs are unchanged.
 2. Branch the campaign step in `evals/lib/campaign.mjs`: for `graph-first`,
    replace the retrieval sentence in the instruction and build the index in the
@@ -67,8 +68,11 @@ as this one does; it goes last of the three.
    enough modules that the file to change is not guessable, at least one symbol
    name occurring in two modules, steps with behaviours, scoped files and its
    own test command. Confirm its tests fail before each step and pass after.
-4. Confirm a do-nothing model fails the new product's assertions, the way
-   `test/rehearsal.test.mjs` requires of every task.
+4. Confirm a do-nothing model fails the new product's assertions. The suite has
+   no `test/rehearsal.test.mjs` — the file `evals/tasks.json` names no longer
+   exists — so the guarantee is proved directly: the fixture's own suite is red
+   before each step and green after, and a test asserts that the unmodified
+   fixture fails the assertions each step is graded on.
 5. Run `harness check --stage stop` with no model spend and confirm the suite is
    green, including `test/ledger-evidence.test.mjs`,
    `test/skills-context.test.mjs` and `test/host-evidence.test.mjs` unedited.
@@ -89,7 +93,7 @@ as this one does; it goes last of the three.
 | Behaviour | Test or evidence |
 |---|---|
 | B1 | `test/comparison.test.mjs`: `comparisonPairs` returns the `retrieval` pair with `grep-first` and `graph-first`, the other three pairs are byte-identical to today's, and the instruction built for each arm contains no rendered pack while differing in its retrieval sentence |
-| B2 | `evals/fixtures/retrieval-app/`'s own suite, red before each step and green after; `test/rehearsal.test.mjs` proving a do-nothing model scores zero on its assertions; a test asserting the duplicated symbol name appears in more than one module |
+| B2 | `evals/fixtures/retrieval-app/`'s own suite, red before each step and green after; `test/comparison.test.mjs` asserting the unmodified fixture fails every assertion its steps are graded on, so a do-nothing model scores zero; and that the duplicated symbol name appears in more than one module |
 | B3 | `evals/evidence/` run record: per-arm accepted changes, reported USD, latency and retries, every attempt's status retained, and the ceiling recorded alongside what did not run; `test/comparison.test.mjs` keeps proving the budget and deadline paths mark attempts incomplete rather than dropping them |
 | B4 | the rewritten lean-review graph row and closing paragraphs in `docs/IMPROVEMENT-PLAN.md`, naming the outcome, its date, the validated session-inventory pruning pair and what remains unvalidated |
 | B5 | `docs/IMPROVEMENT-PLAN.md`: one ledger figure, or each with the date it was taken |
