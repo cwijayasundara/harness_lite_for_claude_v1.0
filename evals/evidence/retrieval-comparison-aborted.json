@@ -1,0 +1,183 @@
+{
+  "kind": "retrieval-comparison-aborted",
+  "recorded_at": "2026-09-09T07:25:37.252Z",
+  "harnessRevision": "01c90fea1c741c5d3ed0144f1c9b70c9088f255a",
+  "started": "2026-09-09T07:09:53.877Z",
+  "models": {
+    "generator": "claude-sonnet-5",
+    "evaluator": "claude-opus-5",
+    "evals": "claude-haiku-4-5-20251001"
+  },
+  "ceiling": {
+    "maxUsd": 10,
+    "maxMinutes": 40,
+    "repetitions": 3
+  },
+  "outcome": "no comparison result. The first smoke attempt of each arm failed the harness approval gate, calibration was marked unsuccessful, and every paired attempt was left unmeasured.",
+  "cause": "prepareProductChange wrote campaign intents with no source/source_revision binding and specs with no ## Requirements table; both have been required since decomposition-allocation and requirement-traceability. campaign-ledger and campaign-service fail identically, so no product comparison could run after those gates landed.",
+  "repaired": "evals/lib/campaign.mjs now binds NOTES.md at the driver commit and emits a Requirements table. Verified against staged retrieval-app and campaign-ledger with real harness approve calls and no model spend.",
+  "spend": {
+    "reportedUsd": 0.1104332,
+    "projectedUsd": 2.6503967999999998,
+    "remainingUsd": 9.8895668
+  },
+  "calibrations": [
+    {
+      "pair": "retrieval",
+      "successful": false,
+      "smokeCost": 0.1104332,
+      "projectedUsd": 2.6503967999999998,
+      "remainingUsd": 9.8895668,
+      "reason": "calibration_failed_or_unknown_billing"
+    }
+  ],
+  "attempts": [
+    {
+      "pair": "retrieval",
+      "arm": "grep-first",
+      "kind": "smoke",
+      "status": "fail",
+      "completedSteps": 0,
+      "assertions": [
+        {
+          "name": "comparison-campaign",
+          "pass": false,
+          "detail": "intent requires source and source_revision plain scalar references"
+        }
+      ]
+    },
+    {
+      "pair": "retrieval",
+      "arm": "graph-first",
+      "kind": "smoke",
+      "status": "fail",
+      "completedSteps": 0,
+      "assertions": [
+        {
+          "name": "comparison-campaign",
+          "pass": false,
+          "detail": "intent requires source and source_revision plain scalar references"
+        }
+      ]
+    },
+    {
+      "pair": "retrieval",
+      "arm": "grep-first",
+      "kind": "paired",
+      "status": "unmeasured",
+      "completedSteps": 0,
+      "assertions": []
+    },
+    {
+      "pair": "retrieval",
+      "arm": "graph-first",
+      "kind": "paired",
+      "status": "unmeasured",
+      "completedSteps": 0,
+      "assertions": []
+    },
+    {
+      "pair": "retrieval",
+      "arm": "graph-first",
+      "kind": "paired",
+      "status": "unmeasured",
+      "completedSteps": 0,
+      "assertions": []
+    },
+    {
+      "pair": "retrieval",
+      "arm": "grep-first",
+      "kind": "paired",
+      "status": "unmeasured",
+      "completedSteps": 0,
+      "assertions": []
+    },
+    {
+      "pair": "retrieval",
+      "arm": "grep-first",
+      "kind": "paired",
+      "status": "unmeasured",
+      "completedSteps": 0,
+      "assertions": []
+    },
+    {
+      "pair": "retrieval",
+      "arm": "graph-first",
+      "kind": "paired",
+      "status": "unmeasured",
+      "completedSteps": 0,
+      "assertions": []
+    }
+  ],
+  "summary": {
+    "retrieval/grep-first/smoke": {
+      "attempts": 1,
+      "passed": 0,
+      "incomplete": 0,
+      "unmeasured": 0,
+      "acceptedChanges": 0,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 0.0586209,
+      "billingComplete": true,
+      "latencyMs": 45451,
+      "unnecessaryQuestions": null,
+      "usd": 0.0586209,
+      "costPerAcceptedChange": null
+    },
+    "retrieval/graph-first/smoke": {
+      "attempts": 1,
+      "passed": 0,
+      "incomplete": 0,
+      "unmeasured": 0,
+      "acceptedChanges": 0,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 0.0518123,
+      "billingComplete": true,
+      "latencyMs": 45160,
+      "unnecessaryQuestions": null,
+      "usd": 0.0518123,
+      "costPerAcceptedChange": null
+    },
+    "retrieval/grep-first/paired": {
+      "attempts": 3,
+      "passed": 0,
+      "incomplete": 0,
+      "unmeasured": 3,
+      "acceptedChanges": 0,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 0,
+      "billingComplete": false,
+      "latencyMs": 0,
+      "unnecessaryQuestions": null,
+      "usd": null,
+      "costPerAcceptedChange": null
+    },
+    "retrieval/graph-first/paired": {
+      "attempts": 3,
+      "passed": 0,
+      "incomplete": 0,
+      "unmeasured": 3,
+      "acceptedChanges": 0,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 0,
+      "billingComplete": false,
+      "latencyMs": 0,
+      "unnecessaryQuestions": null,
+      "usd": null,
+      "costPerAcceptedChange": null
+    }
+  },
+  "limitation": "Aborted before any paired attempt ran. It establishes nothing about graph-first versus Grep-first retrieval, and no result here may be read as a tie."
+}
