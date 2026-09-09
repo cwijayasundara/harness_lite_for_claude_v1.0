@@ -643,3 +643,55 @@ of the payload must move those anchors with it; a stale anchor fails loudly with
 Not taken here: whether the `superseded:` list stays in the payload. It is 25 of the 33 lines and
 grows without bound. This change makes that cost visible and gated; spending it is a separate
 decision.
+
+### The index tracks the source — 2026-09-09
+
+`the-index-tracks-the-source` extends `code-property-graph` with two behaviours that change found
+rather than planning.
+
+**The index was 83% its own history.** The audit stage landed by `code-property-graph` made the
+composition visible for the first time: of 543 indexed modules, 92 were real source. The other 451
+were directories the harness itself writes — 377 recorded comparison runs under
+`.aidlc/evals/comparisons/`, 50 agent worktree copies under `.claude/worktrees/`, and 17 recorded
+product runs. `[graph] exclude` had never named them. The consequence was not cosmetic: the audit
+reported 282 ambiguous symbol names, of which the largest was one `src/ledger.mjs` copied into
+sixty run directories, and the PageRank that replaces fan-in counting would have ranked those
+copies as the most central files in the repository.
+
+Measured before and after, on this repository:
+
+| | before | after |
+|---|---|---|
+| modules | 543 | 99 |
+| symbols | 1,650 | 593 |
+| ambiguous names | 282 | 55 |
+| index on disk | 620.1 KB | 173.9 KB |
+| full rebuild | 853 ms | 62 ms |
+
+99 rather than 92 because `.aidlc/artifacts/**` reproduction scripts are hand-written source and
+stay indexed; only machine-written run directories and worktree copies go. The exclusion lives in
+`.aidlc/lib/graph.mjs` rather than in `[graph] exclude`, because a default is a value each project
+may edit away and then silently re-index its own test history; a project's own list is unioned
+with it, never replaced.
+
+**A commit now invalidates the index.** `fingerprint()` hashed discovered paths and their contents,
+so a `git commit` — which moves co-edit weights, since those are derived from history — left the
+hash identical, `refresh()` returned `{ skipped: 'clean' }`, and nothing in the freshness loop
+could see the drift. The commit id is now part of the fingerprint, degrading to an empty component
+where there is no git, no commit or a shallow clone. The rest of the loop was already sound and is
+untouched: `refresh()` rebuilds whole rather than patching, so a rank can never lag the modules it
+summarises, and a mismatch still makes `load()` return `null`, so a stale index is a miss that
+sends the caller to search rather than a confident wrong answer. The 62 ms rebuild is what makes
+"rebuild whole, every turn" affordable enough to keep as the strategy.
+
+**A correction to the record above.** The 2026-09-09 context-baseline entry reported
+`check_stop_tokens` moving from 12 to 1,888 as part of correcting a stale file. That was wrong.
+1,888 was an artifact of capturing while the working tree was dirty: `capture()` runs the `stop`
+stage internally, the installed runtime's pinned-content check fails on an uncommitted runtime, and
+the resulting failure text is what got measured. Captured on a clean tree the figure is 12, which
+is what the 2026-08-24 baseline recorded. The `claude_md_tokens` 672 to 1,516 correction in that
+entry stands; `check_stop_tokens` never grew. `graph_modules` 543 to 99 and `graph_symbols` 1,650
+to 593 in this entry are a corrected scope, not a regression, and neither metric is in `RATCHETED`.
+
+This also means `check_stop_tokens` is only meaningful when captured on a clean tree — a property
+of the metric that was not written down before, and is now.
