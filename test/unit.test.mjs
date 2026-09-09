@@ -318,8 +318,14 @@ test('baseline: the hook emits sessionContext and holds no second assembly of it
 
   const emitted = JSON.parse(execFileSync('node', [path.join(ROOT, '.aidlc/bin/harness'), 'hook', 'session-start'],
     { cwd: ROOT, input: '{}', encoding: 'utf8' })).hookSpecificOutput.additionalContext;
-  assert.equal(emitted, sessionContext(loadConfig(ROOT)),
+  // The hook rotates the run id before assembling, so the `ledger:` counters it reports are one
+  // run behind the ones an in-process call reports afterwards. That counter is the only part of
+  // the payload the act of measuring changes, so it is normalised on both sides rather than
+  // raced against; every other line must match exactly, which is what B2 is about.
+  const norm = (s) => s.replace(/^ledger: .*$/m, 'ledger: <counts>');
+  assert.equal(norm(emitted), norm(sessionContext(loadConfig(ROOT))),
     'the hook must write exactly what sessionContext assembles');
+  assert.match(emitted, /^ledger: \d+ rows over \d+ runs \(30d\)$/m, 'the ledger line is still emitted');
 
   const hook = fs.readFileSync(path.join(ROOT, '.aidlc/hooks/dispatch.mjs'), 'utf8');
   assert.ok(!hook.includes('`harness · ${'), 'dispatch.mjs assembles the payload a second time');
