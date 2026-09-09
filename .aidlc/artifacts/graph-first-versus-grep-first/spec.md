@@ -1,9 +1,19 @@
 ---
-status: draft
+status: approved
 extends: graph-first-retrieval
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: 29672945f7595d50b00bfc464e957a377a2fe553
 parent: lean-review-graph-retrieval
+source_digest: sha256:0d9cc699d095a9f24491c16926eb66c611ba474af1805c5636414b32c1321ef5
+source_kind: repository
+intent_digest: sha256:eca697d9e884300819d12396f61aec169fa12a4fe6bd96b1a0d98903db1d26d9
+intent_input_digest: sha256:e59390c4a79b58d8fcee8a901d3f2831f029de7bf83b6c0bd901c31605b1ec2f
+intent_revision: 6ba7439d987609970cd42e6949c0c554bba8aa30
+by: cwijayasundara
+at: 2026-09-09T05:30:44.476Z
+digest: sha256:38608a741270a78d3ebbb8d755416cc098638551a093abd8496058e9303f72b3
+approval_version: 2
+approval_digest: sha256:3af59b89ba550a827abec95fbc196ce9664109bc7904c178a56f18742608f84a
 ---
 # Spec: graph-first-versus-grep-first
 

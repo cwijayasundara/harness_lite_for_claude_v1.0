@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:ce948462e069761708b60487b7f9bb7db18a7816284715e1d69bffcb2ccc5957
+spec_approval_digest: sha256:0fdcaeb7339cc919bbcc63f46de8b5abf6901cb366340f255298930a713732bc
+by: cwijayasundara
+at: 2026-09-09T05:30:44.202Z
+digest: sha256:3d2cde0e47ae5c6fefff08fa99241373681963098437b8ef957ea188bc0b295f
+approval_version: 2
+approval_digest: sha256:5aa38b08766134c17be025b242aead9431735626ce8caccb89abe38347f026f3
 ---
 # Plan: retire-change-safely
 
