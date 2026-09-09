@@ -36,10 +36,17 @@ function artifactOrState(rel) {
 }
 
 // a-block-names-its-rule B2. A refusal carries the name of the branch that produced it, so a
-// write-guard block can be called wrong by name like any other. The message is unchanged.
+// write-guard block can be called wrong by name like any other.
+//
+// `writeRefusal` is the named form; `writeBlocked` stays the refusal string every existing caller
+// already reads. Changing the shared return type instead was tried and reverted: it broke
+// assertions in four test files this change does not own, for no gain to anyone but the one
+// caller that wants the name.
 const refuse = (rule, message) => ({ rule, message });
 
-export function writeBlocked(rel, cfg) {
+export const writeBlocked = (rel, cfg) => writeRefusal(rel, cfg)?.message ?? null;
+
+export function writeRefusal(rel, cfg) {
   const norm = String(rel ?? '').replace(/^\.\//, '');
   if (!norm || norm.startsWith('..')) return null;
   // By identity, not by suffix. `norm` is already relative to the repository root, so the only

@@ -15,7 +15,7 @@ import { measure } from '../checks/budget.mjs';
 import { refresh, staleSince } from '../lib/refresh.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
-import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
+import { writeRefusal, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
 import { supersededBy, currentLine } from '../lib/artifacts.mjs';
 
 // In an installed project `.aidlc/bin/harness` is a bash shim; in this repository it is the
@@ -67,7 +67,7 @@ function preWrite(input, cfg) {
         const file = input.tool_input?.file_path ?? input.tool_input?.path ?? '';
         if (!file) return 0;
         const rel = path.relative(cfg.layout.root, path.resolve(cfg.layout.root, file));
-        const hit = writeBlocked(rel, cfg);
+        const hit = writeRefusal(rel, cfg);
         if (hit) { ledger.append({ stage: 'pre-write', control: 'write-guard', rule: hit.rule, verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(hit.message); }
         ledger.append({ stage: 'pre-write', control: 'write-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
   return 0;

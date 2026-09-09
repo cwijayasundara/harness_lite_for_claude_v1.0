@@ -94,7 +94,7 @@ test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
     // init invalidates the cache exactly as editing the generated file would.
     // lean-v2 B6 removed `.aidlc/harness.toml` from this list: it is a registry, not prompt text.
     for (const rel of ['.claude/CLAUDE.md', '.claude/settings.json', '.aidlc/instructions.md']) {
-      assert.match(writeBlocked(rel, cfg).message, /agent instructions or permissions/, `stopped guarding ${rel}`);
+      assert.match(String(writeBlocked(rel, cfg)), /agent instructions or permissions/, `stopped guarding ${rel}`);
     }
   } finally { f.cleanup(); }
 });
@@ -234,7 +234,7 @@ test('require_contract permits only paths owned by a committed approved contract
     const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
     const cfg = { layout, guard: { require_contract: true } };
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
-    assert.match(writeBlocked('src/app/handlers.py', cfg).message, /outside the current change "hyphen-titlecase"/);
+    assert.match(writeBlocked('src/app/handlers.py', cfg), /outside the current change "hyphen-titlecase"/);
     assert.equal(writeBlocked('.aidlc/artifacts/intent-refs/change.json', cfg), null);
   } finally { s.cleanup(); }
 });
@@ -250,7 +250,7 @@ test('a path named only by an older change\'s plan is refused under the current 
     approvedChange(s.work, 'second-change', ['src/app/second.py'], '2026-09-02T00:00:00.000Z');
 
     assert.equal(writeBlocked('src/app/second.py', cfg), null, 'refused a path the current plan owns');
-    const refusal = writeBlocked('src/app/text.py', cfg).message;
+    const refusal = String(writeBlocked('src/app/text.py', cfg));
     assert.match(refusal, /outside the current change "second-change"/);
     assert.doesNotMatch(refusal, /require_contract = false/);
   } finally { s.cleanup(); }
@@ -266,7 +266,7 @@ test('a current change with no approved plan refuses every product write and nam
     approvedChange(s.work, 'sprint-3', ['src/app/text.py'], '2026-09-02T00:00:00.000Z', { plan: 'draft' });
 
     for (const rel of ['src/app/text.py', 'src/app/handlers.py']) {
-      const refusal = writeBlocked(rel, cfg).message;
+      const refusal = String(writeBlocked(rel, cfg));
       assert.match(refusal, /sprint-3/);
       assert.match(refusal, /plan not approved/);
       assert.match(refusal, /harness approve sprint-3 plan/);
@@ -292,15 +292,15 @@ test('a protected path an approved committed contract names is writable', () => 
     assert.equal(writeBlocked('src/app/text.py', cfg), null, 'refused a path the approved plan owns');
 
     // Protected and owned by nothing: still refused, and the message says what would unblock it.
-    assert.match(writeBlocked('evals/fixtures/_base/x.toml', cfg).message, /protected_paths/);
+    assert.match(String(writeBlocked('evals/fixtures/_base/x.toml', cfg)), /protected_paths/);
 
     // Unowned and protected is refused by the protected-path rule, which is the narrower message.
-    assert.match(writeBlocked('src/app/handlers.py', cfg).message, /protected_paths/);
+    assert.match(String(writeBlocked('src/app/handlers.py', cfg)), /protected_paths/);
 
     // With nothing protected, the same path is refused by the ownership rule instead. Both rules
     // still refuse it; ownership is what either of them yields to.
     const unprotected = { layout, guard: { require_contract: true } };
-    assert.match(writeBlocked('src/app/handlers.py', unprotected).message, /outside the current change/);
+    assert.match(String(writeBlocked('src/app/handlers.py', unprotected)), /outside the current change/);
     assert.equal(writeBlocked('src/app/text.py', unprotected), null);
   } finally { s.cleanup(); }
 });
@@ -309,7 +309,7 @@ test('a malformed contract fails closed for product writes', () => {
   const f = tmp('guard-bad-'); try {
     f.layout.contracts = path.join(f.root, '.aidlc/artifacts/contracts'); mkdirSync(f.layout.contracts, { recursive: true });
     writeFileSync(path.join(f.layout.contracts, 'change.md'), '# malformed contract\n');
-    const refusal = writeBlocked('src/app.py', { layout: f.layout, guard: { require_contract: true } }).message;
+    const refusal = String(writeBlocked('src/app.py', { layout: f.layout, guard: { require_contract: true } }));
     assert.match(refusal, /cannot resolve selection/);
     assert.doesNotMatch(refusal, /require_contract = false/);
   } finally { f.cleanup(); }
@@ -360,7 +360,7 @@ test('lock tests writes a lock the write guard honors, and clear removes it', ()
   const f = tmp('guard-lock-'); try {
     const cfg = { layout: f.layout, guard: {} };
     lockTests(cfg, { patterns: ['tests/test_calc.py'], why: 'bug fix in progress' });
-    assert.match(writeBlocked('tests/test_calc.py', cfg).message, /test-locked/);
+    assert.match(writeBlocked('tests/test_calc.py', cfg), /test-locked/);
     assert.equal(writeBlocked('src/calc.py', cfg), null);
     clearLock(cfg);
     assert.equal(existsSync(path.join(f.layout.state, 'test-lock.json')), false);
@@ -386,7 +386,7 @@ test('a selected draft refuses writes until its gates pass or another change is 
 
     assert.equal(writeBlocked('src/app/text.py', cfg), null, 'unselected draft cannot block');
     selectChange(cfg, 'paid-never-overdue');
-    const refusal = writeBlocked('src/app/text.py', cfg).message;
+    const refusal = String(writeBlocked('src/app/text.py', cfg));
     assert.match(refusal, /"paid-never-overdue"/);
     assert.match(refusal, /awaits gate 1/);
     assert.match(refusal, /harness approve paid-never-overdue spec/);
@@ -396,7 +396,7 @@ test('a selected draft refuses writes until its gates pass or another change is 
 
     // Closing never borrows another plan; explicitly select the previous work.
     writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: closed\n---\n# Intent\n');
-    assert.match(writeBlocked('src/app/text.py', cfg).message, /closed/);
+    assert.match(writeBlocked('src/app/text.py', cfg), /closed/);
     selectChange(cfg, 'hyphen-titlecase');
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
 
@@ -405,10 +405,10 @@ test('a selected draft refuses writes until its gates pass or another change is 
     const draft = render({ status: 'draft' }, body);
     writeFileSync(path.join(dir, 'spec.md'), render({ status: 'approved', by: 'tester', at: '2026-09-03T00:00:00.000Z', digest: bodyDigest(draft) }, body));
     selectChange(cfg, 'paid-never-overdue');
-    assert.match(writeBlocked('src/app/text.py', cfg).message, /approval is not committed/);
+    assert.match(String(writeBlocked('src/app/text.py', cfg)), /approval is not committed/);
     spawnSync('git', ['add', '-A'], { cwd: s.work });
     spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', 'simulated spec approval'], { cwd: s.work });
-    assert.match(writeBlocked('src/app/text.py', cfg).message, /paid-never-overdue — plan not approved/);
+    assert.match(String(writeBlocked('src/app/text.py', cfg)), /paid-never-overdue — plan not approved/);
   } finally { s.cleanup(); }
 });
 
@@ -424,7 +424,7 @@ test('an edited approved spec refuses every product write until re-approved or r
 
     const spec = path.join(s.work, '.aidlc/artifacts/sprint-2/spec.md');
     writeFileSync(spec, readFileSync(spec, 'utf8') + '\n### B8\n\nGiven a paid invoice\nWhen asked\nThen never overdue\n');
-    const refusal = writeBlocked('src/app/text.py', cfg).message;
+    const refusal = String(writeBlocked('src/app/text.py', cfg));
     assert.match(refusal, /sprint-2\/spec\.md was edited after it was approved/);
     assert.match(refusal, /harness approve sprint-2 spec/);
     assert.match(refusal, /restore the approved text/);
@@ -494,7 +494,7 @@ test('the registry is a protected path by default, and a plan naming it still pe
   const s = stage(FIXTURES, 'contract-planned'); try {
     const cfg = loadConfig(s.work);
     assert.ok(cfg.guard.protected_paths.includes('.aidlc/harness.toml'), 'protected by default');
-    assert.match(writeBlocked('.aidlc/harness.toml', cfg).message, /protected_paths/);
+    assert.match(String(writeBlocked('.aidlc/harness.toml', cfg)), /protected_paths/);
     approvedChange(s.work, 'tune-registry', ['.aidlc/harness.toml'], '2026-09-02T00:00:00.000Z');
     assert.equal(writeBlocked('.aidlc/harness.toml', loadConfig(s.work)), null, 'a plan naming it wins');
   } finally { s.cleanup(); }

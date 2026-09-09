@@ -7,7 +7,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { ROOT } from './_paths.mjs';
 import { ruleOf } from '../.aidlc/lib/runner.mjs';
-import { writeBlocked } from '../.aidlc/lib/guard.mjs';
+import { writeBlocked, writeRefusal } from '../.aidlc/lib/guard.mjs';
 import { flag, read as readLedger, append } from '../.aidlc/lib/ledger.mjs';
 
 const read = rel => readFileSync(path.join(ROOT, rel), 'utf8');
@@ -43,28 +43,32 @@ test('B2 the write guard names which refusal fired, and the agent sees the same 
     const cfg = { layout: { root: s.root, state: s.L.state },
       guard: { require_contract: true, protected_paths: ['evals/fixtures/'] } };
 
-    const prefix = writeBlocked('.claude/CLAUDE.md', cfg);
+    const prefix = writeRefusal('.claude/CLAUDE.md', cfg);
     assert.equal(prefix.rule, 'prefix-cache');
     assert.match(prefix.message, /configures agent instructions or permissions/);
 
-    const protectedPath = writeBlocked('evals/fixtures/clean-app/x.mjs', cfg);
+    const protectedPath = writeRefusal('evals/fixtures/clean-app/x.mjs', cfg);
     assert.equal(protectedPath.rule, 'protected-path');
     assert.match(protectedPath.message, /protected_paths/);
 
     mkdirSync(s.L.state, { recursive: true });
     writeFileSync(path.join(s.L.state, 'test-lock.json'),
       JSON.stringify({ patterns: ['test/locked'], why: 'a bug fix is in progress' }));
-    const locked = writeBlocked('test/locked.test.mjs', cfg);
+    const locked = writeRefusal('test/locked.test.mjs', cfg);
     assert.equal(locked.rule, 'test-lock');
     assert.match(locked.message, /test-locked because/);
     rmSync(path.join(s.L.state, 'test-lock.json'));
 
-    const scope = writeBlocked('src/anything.mjs', cfg);
+    const scope = writeRefusal('src/anything.mjs', cfg);
     assert.equal(scope.rule, 'write-scope');
     assert.ok(scope.message.length > 0, 'the refusal still carries text for the agent');
 
-    assert.equal(writeBlocked('.aidlc/artifacts/x/intent.md', cfg), null,
+    assert.equal(writeRefusal('.aidlc/artifacts/x/intent.md', cfg), null,
       'an artifact stays writable: a gate you cannot draft is not a gate');
+
+    // Every existing caller keeps the refusal string it has always read.
+    assert.equal(writeBlocked('src/anything.mjs', cfg), scope.message);
+    assert.equal(writeBlocked('.aidlc/artifacts/x/intent.md', cfg), null);
 
     // The hook records the name and denies with the message, not the object.
     assert.match(DISPATCH, /control: 'write-guard', rule: hit\.rule, verdict: 'fail'/);
