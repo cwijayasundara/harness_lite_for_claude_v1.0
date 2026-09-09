@@ -282,8 +282,12 @@ engineering](https://martinfowler.com/articles/harness-engineering.html):
   code graph, and the explorer agent.
 - **Sensors** observe the result — tests, lint, types, secret and plan scope-drift checks, the hook
   bindings, and the evaluator and verifier agents.
-- **The ledger** records every sensor invocation, so controls that are noisy or never useful get
-  deleted instead of accumulating.
+- **The ledger** records every sensor invocation: what fired, how often, and how often a human
+  called a fire wrong. A fire rate says how busy a control is, not what it prevented, and a
+  `[deterrents]` entry proves a planted defect still reaches a control that never fires, not that
+  the control pays for itself. On its own evidence the audit authorises deleting only an
+  `unreliable` control; `never-fired` and `unwired` are printed as questions for a person holding
+  the control's `why:`.
 
 The budget is fixed in `[limits]` of `.aidlc/harness.toml` and nowhere else. Adding one means deleting one; the commit stage enforces it.
 
