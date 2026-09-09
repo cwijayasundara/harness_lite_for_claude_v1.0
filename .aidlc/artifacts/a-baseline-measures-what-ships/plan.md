@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:89ca9ddb2f8880bc3a49aeef1cbb01330a71593b7416d86cbbb22913960ea6ff
+spec_approval_digest: sha256:d5a77f5b685a6cd0780450fb5bdd77e4915d88be17b73a3192fa6f85bd40d063
+by: cwijayasundara
+at: 2026-09-09T14:16:34.757Z
+digest: sha256:7efc705e2ac07e4eae97d18c15f59d5a352ec47679f79303243d40d06c61a117
+approval_version: 2
+approval_digest: sha256:056177bd6e78c5ce9abb0d80e370b9d174ff9bdff49bc8789270acc152c26acb
 ---
 # Plan: a-baseline-measures-what-ships
 

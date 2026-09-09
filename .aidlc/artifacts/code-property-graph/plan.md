@@ -1,6 +1,13 @@
 ---
-status: draft
+status: approved
 depends_on: graph-first-versus-grep-first
+spec_digest: sha256:bd3e93595f2bc2581de95d117c0a9637c09e2422d306e54edc68bd5921e1c799
+spec_approval_digest: sha256:39e56720a883056c7ca6a5e49fd05dca3bd9245dfbe780e8f7971cbb1fba6a50
+by: cwijayasundara
+at: 2026-09-09T14:16:34.911Z
+digest: sha256:b697c6f8b20c7099c02d0bb539385309dc4567f80244e0939f9388534a3d8ab2
+approval_version: 2
+approval_digest: sha256:3c3c730f84f810222bb28f65b5b81589439501853e44d323a4d9136c8d33bf20
 ---
 # Plan: code-property-graph
 
