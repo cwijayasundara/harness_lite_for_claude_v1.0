@@ -6,26 +6,15 @@
 
 import { appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { loadConfig } from '../lib/config.mjs';
 import { findRepoRoot, PREFIX_CACHE_PATHS } from '../lib/paths.mjs';
 import { check, render } from '../lib/runner.mjs';
 import * as ledger from '../lib/ledger.mjs';
-import { measure } from '../checks/budget.mjs';
-import { refresh, staleSince } from '../lib/refresh.mjs';
+import { refresh } from '../lib/refresh.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
 import { writeRefusal, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
-import { supersededBy, currentLine } from '../lib/artifacts.mjs';
-
-// In an installed project `.aidlc/bin/harness` is a bash shim; in this repository it is the
-// executable itself, and `bash` on it dies with a shell syntax error. The banner printed the
-// same line in both, so the harness's own first instruction did not run in its own repository.
-const HARNESS = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const invocation = (cfg) =>
-  path.resolve(cfg.layout.aidlc) === path.resolve(HARNESS)
-    ? 'node .aidlc/bin/harness'
-    : '.aidlc/bin/harness';
+import { invocation, sessionContext } from '../lib/session.mjs';
 
 const readStdin = () => new Promise((res) => {
   let d = ''; process.stdin.setEncoding('utf8');
@@ -140,42 +129,10 @@ export async function dispatch(event) {
         // from here until the next session belongs to this one. The 30-day report below reads
         // history, so rotating first costs it nothing.
         ledger.newRun(cfg.layout);
-        const m = measure(cfg);
-        const led = ledger.report(cfg.layout, { days: 30 });
-        const noisy = led.controls.filter((c) => c.verdict === 'unreliable' || c.verdict === 'candidate-for-deletion').slice(0, 3);
-        const lines = [
-          `harness · ${cfg.project.name ?? path.basename(cfg.layout.root)}`,
-          `check:  ${invocation(cfg)} check --stage fast --changed`,
-          `budget: ${Object.entries(m).map(([k, v]) => `${k} ${v}/${cfg.limits[k] ?? '-'}`).join(' · ')}`,
-          `ledger: ${led.rows} rows over ${led.runs} runs (30d)`,
-        ];
-        if (noisy.length) lines.push(`review: ${noisy.map((c) => `${c.control} (${c.verdict})`).join(', ')}`);
-        const stale = staleSince(cfg);
-        if (stale) lines.push(`graph:  STALE since ${stale} — verify anything load-bearing against the source`);
-
-        // B11. Two lines, so the session knows the map exists and what it says the hubs are.
-        // The index was measured at 90% recall and a 96.5% token reduction against reading the
-        // files, and nothing had ever used it, because nothing said it was there.
-        try {
-          const g = graph.load(cfg);
-          if (g) lines.push(...codemap.summary(cfg, g));
-        } catch { /* no index yet: the map line would be noise, not help */ }
-        if (cfg.guard?.require_contract) lines.push('contract: product file edits need the current change\'s committed approved plan to name the path');
-        else lines.push('contract: scope enforcement is off; set [guard].require_contract = true for product repositories');
-        // a-diff-belongs-to-one-change B6. Which change a write belongs to, and whether that
-        // change can permit one yet. Pushed here for the F6 reason: an agent that starts working
-        // immediately never asks `status`, and a refusal it cannot predict is one it routes around.
-        try { lines.push(currentLine(cfg)); } catch { /* artifacts unreadable: the guard will say so on the first write */ }
-
-        // B4: the same reason F7's map line is here rather than only in `status` — a fact
-        // available on request does not reach an agent that begins working immediately (F6). A
-        // superseded behaviour's spec is never edited, so nothing else at session start would
-        // ever surface it.
-        try {
-          for (const [link, by] of supersededBy(cfg)) lines.push(`superseded: ${link} — superseded by ${by.join(', ')}`);
-        } catch { /* computed from artifacts already on disk; a read failure here is not fatal */ }
-
-        process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: lines.join('\n') } }));
+        // a-baseline-measures-what-ships B2. The payload is assembled by lib/session.mjs and by
+        // nothing else. It used to be built here and reconstructed in baseline.mjs, and the two
+        // drifted until the ratchet was grading a string this hook never wrote.
+        process.stdout.write(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: sessionContext(cfg) } }));
         return 0;
       }
 
