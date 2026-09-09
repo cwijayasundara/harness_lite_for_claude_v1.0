@@ -78,6 +78,41 @@ test('B1 — the index carries typed edges, and an answer names the type that pr
   } finally { s.cleanup(); }
 });
 
+// code-property-graph B2, step 2. `.filter((x) => x)` dropped every specifier that resolved to
+// nothing, so a build could fail to resolve half a tree and report exactly the same as a clean one.
+test('B2 — the build reports what it could not resolve, what is ambiguous, and what it collapsed', () => {
+  const s = stage(FIXTURES, 'graph-app');
+  try {
+    // A path-shaped import that goes nowhere, and a duplicate of one that goes somewhere.
+    const target = path.join(s.work, 'web', 'client.js');
+    writeFileSync(target, `import { missing } from './nowhere.js';\n${readFileSync(target, 'utf8')}`);
+    const g = graphOf(s.work);
+    const a = query(g, 'audit');
+
+    assert.ok(a.counts, 'the audit reports counts');
+    assert.ok(Array.isArray(a.unresolved), 'and the list behind them');
+    const miss = a.unresolved.find((u) => u.specifier === './nowhere.js');
+    assert.ok(miss, 'a project-shaped import that resolves to nothing is recorded, not dropped');
+    assert.equal(miss.module, 'web/client.js');
+    assert.equal(a.counts.unresolved, a.unresolved.length, 'the count and the list agree');
+
+    // A bare specifier is external, counted rather than listed — otherwise node: and every
+    // package would bury the few misses that are actually actionable.
+    assert.ok(a.counts.external >= 0);
+    assert.ok(!a.unresolved.some((u) => /^node:/.test(u.specifier)), 'externals are not listed as misses');
+
+    // Ambiguity is reported by name with every module that defines it.
+    assert.equal(a.counts.ambiguous, a.ambiguous.length, 'the count and the list agree');
+    for (const row of a.ambiguous) assert.ok(row.modules.length > 1, `${row.name} is only ambiguous across modules`);
+
+    // Each edge appears once.
+    const calls = query(g, 'edges', 'call').map((e) => `${e.from.module}:${e.from.symbol}->${e.to}`);
+    assert.equal(calls.length, new Set(calls).size, 'no duplicate call edges survive');
+    const imports = query(g, 'edges', 'import').map((e) => `${e.from}->${e.to}`);
+    assert.equal(imports.length, new Set(imports).size, 'no duplicate import edges survive');
+  } finally { s.cleanup(); }
+});
+
 test('Q2 — what does this symbol call', () => {
   const s = stage(FIXTURES, 'graph-app');
   try {

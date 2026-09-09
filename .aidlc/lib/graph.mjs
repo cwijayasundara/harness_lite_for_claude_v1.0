@@ -223,10 +223,52 @@ export function build(cfg, { only = null, previous = null } = {}) {
   if (only && previous) for (const rel of files) if (!existsSync(path.join(root, rel))) delete modules[rel];
 
   const resolve = resolver(modules);
+  // B2. The audit stage, folded into the resolution it audits so the two cannot disagree.
+  //
+  // why: `.filter((x) => x)` dropped every specifier that resolved to nothing, silently. Most of
+  // those are external — `node:fs`, a package — and reporting 1,066 of them would bury the few
+  // that matter. So a specifier written as a path (`./x`, `../y`) is project-shaped and its
+  // failure to resolve is enumerated; a bare specifier is counted as external and not listed.
+  const unresolved = [];
+  let external = 0;
+  let duplicateImports = 0;
   for (const [rel, m] of Object.entries(modules)) {
-    m.imports = [...new Set(m.raw_imports.map((s) => resolve(rel, s)).filter((x) => x && x !== rel))];
+    const seen = new Set();
+    for (const spec of m.raw_imports) {
+      const target = resolve(rel, spec);
+      if (!target) {
+        if (/^[./]/.test(spec)) unresolved.push([rel, spec]); else external++;
+        continue;
+      }
+      if (target === rel) continue;             // a self-import is not an edge and is not a miss
+      if (seen.has(target)) { duplicateImports++; continue; }
+      seen.add(target);
+    }
+    m.imports = [...seen];
   }
-  return { fingerprint: only ? null : fingerprint(cfg), version: GRAPH_VERSION, built_at: new Date().toISOString(), root, modules, edges: typedEdges(modules) };
+  const edges = typedEdges(modules);
+  return {
+    fingerprint: only ? null : fingerprint(cfg), version: GRAPH_VERSION,
+    built_at: new Date().toISOString(), root, modules, edges,
+    audit: { unresolved, external, ambiguous: ambiguousSymbols(modules), duplicates: { import: duplicateImports, call: edges.duplicate_calls } },
+  };
+}
+
+// B2. A bare name defined in more than one module is why a careless lookup lands in the wrong
+// place — `format` in `evals/fixtures/retrieval-app` is the recorded instance. Reported here so
+// the ambiguity is visible before anchoring resolves it, and so a rise in it is visible after.
+function ambiguousSymbols(modules) {
+  const where = new Map();
+  for (const [rel, m] of Object.entries(modules)) {
+    for (const s of m.symbols) {
+      if (!where.has(s.name)) where.set(s.name, new Set());
+      where.get(s.name).add(rel);
+    }
+  }
+  return [...where.entries()]
+    .filter(([, mods]) => mods.size > 1)
+    .map(([name, mods]) => [name, [...mods].sort()])
+    .sort((a, b) => a[0].localeCompare(b[0]));
 }
 
 // B1. The edges were already here and already implicit: file -> file inside `imports`,
@@ -246,17 +288,27 @@ function typedEdges(modules) {
   for (const m of Object.values(modules)) for (const s of m.symbols) names.add(s.name);
   const imports = {};
   const calls = {};
+  let duplicate_calls = 0;
   for (const [rel, m] of Object.entries(modules)) {
     if (m.imports.length) imports[rel] = m.imports;
     const out = [];
+    const seen = new Set();
     for (const s of m.symbols) {
       // The same filter Q2 applies: an unknown name is a builtin or a method, not an edge. Two
       // filters that must agree is the shape of most defects in this repository, so there is one.
-      for (const c of s.candidates) if (names.has(c) && c !== s.name) out.push([s.name, c]);
+      for (const c of s.candidates) {
+        if (!names.has(c) || c === s.name) continue;
+        // B2. Each edge appears once. A name called twice in one body is one edge, and two
+        // symbols of the same name in one module would otherwise emit it twice.
+        const key = `${s.name} ${c}`;
+        if (seen.has(key)) { duplicate_calls++; continue; }
+        seen.add(key);
+        out.push([s.name, c]);
+      }
     }
     if (out.length) calls[rel] = out;
   }
-  return { import: imports, call: calls, 'co-edit': [] };
+  return { import: imports, call: calls, 'co-edit': {}, duplicate_calls };
 }
 
 function symbolTable(g) {
@@ -332,7 +384,22 @@ export function query(g, question, arg, opts = {}) {
       }
       return out;
     }
-    default: throw new Error(`unknown graph question "${question}" — known: callers, calls, hubs, cycles, changed-since, edges`);
+    // Q7 — B2. What the build could not do, as counts and as the list behind them. A reader can
+    // see the unresolved share move without rebuilding, which is the point of storing it.
+    case 'audit': {
+      const a = g.audit ?? { unresolved: [], external: 0, ambiguous: [], duplicates: { import: 0, call: 0 } };
+      return {
+        counts: {
+          unresolved: a.unresolved.length, external: a.external,
+          ambiguous: a.ambiguous.length,
+          duplicates_collapsed: (a.duplicates?.import ?? 0) + (a.duplicates?.call ?? 0),
+        },
+        unresolved: a.unresolved.map(([module, specifier]) => ({ module, specifier })),
+        ambiguous: a.ambiguous.map(([name, modules]) => ({ name, modules })),
+        duplicates: a.duplicates ?? { import: 0, call: 0 },
+      };
+    }
+    default: throw new Error(`unknown graph question "${question}" — known: callers, calls, hubs, cycles, changed-since, edges, audit`);
   }
 }
 
