@@ -15,6 +15,17 @@ approval_digest: sha256:5c421f4e41b7241086c7220a61548c272e7d1799ad4a4b9ca89b34a4
 
 Build the arms, build the product, prove both without spending, then spend once.
 
+Building it turned up two things the spec did not anticipate, both recorded here
+before any further code. First, `gradeComparisonProduct` has no generic path: it
+dispatches on the product name to `verifyLedger` or `verifyService`, so a new
+product needs its own verifier in `evals/lib/assertions.mjs`, now declared.
+Second, `configureComparison` neuters the staged plugin's `graph.mjs` for every
+harness arm — `load` returns null and `ensure` returns an empty graph — so an
+agent told to run `harness graph query` in the work directory would query
+nothing. The `graph-first` arm must be exempt from that suppression, or the
+comparison measures an index that was switched off. Neither changes what the
+experiment is; both change what it takes to run it honestly.
+
 The pair and the arm branch come first because they are small and testable with
 no model: `comparisonPairs` is a pure function with unit coverage, and the
 campaign's prompt construction can be asserted by inspecting the instruction the
@@ -40,6 +51,7 @@ as this one does; it goes last of the three.
 - `evals/lib/comparison.mjs`
 - `evals/lib/campaign.mjs`
 - `evals/run.mjs`
+- `evals/lib/assertions.mjs`
 - `evals/products.json`
 - `evals/fixtures/retrieval-app/`
 - `evals/evidence/`
@@ -64,36 +76,44 @@ as this one does; it goes last of the three.
    work directory; inject no pack for either arm. Leave `config.graph`'s
    existing injection path untouched. Assert the two arms' instructions differ
    in the intended way and that neither contains a rendered pack.
-3. Build `evals/fixtures/retrieval-app/` and its `evals/products.json` entry:
+3. Exempt the `graph-first` arm from the graph suppression in
+   `configureComparison`, so the index it is told to query is the real one,
+   and assert that the `grep-first` arm and every existing arm still have the
+   suppression they have today.
+4. Add `verifyReporting` to `evals/lib/assertions.mjs` and dispatch to it from
+   `gradeComparisonProduct`, following the declarative call-and-assert shape
+   `verifyLedger` already uses. Leave the ledger and service verifiers
+   untouched.
+5. Build `evals/fixtures/retrieval-app/` and its `evals/products.json` entry:
    enough modules that the file to change is not guessable, at least one symbol
    name occurring in two modules, steps with behaviours, scoped files and its
    own test command. Confirm its tests fail before each step and pass after.
-4. Confirm a do-nothing model fails the new product's assertions. The suite has
+6. Confirm a do-nothing model fails the new product's assertions. The suite has
    no `test/rehearsal.test.mjs` — the file `evals/tasks.json` names no longer
    exists — so the guarantee is proved directly: the fixture's own suite is red
    before each step and green after, and a test asserts that the unmodified
    fixture fails the assertions each step is graded on.
-5. Run `harness check --stage stop` with no model spend and confirm the suite is
+7. Run `harness check --stage stop` with no model spend and confirm the suite is
    green, including `test/ledger-evidence.test.mjs`,
    `test/skills-context.test.mjs` and `test/host-evidence.test.mjs` unedited.
-6. Run the comparison once:
+8. Run the comparison once:
    `node evals/run.mjs --compare --comparison retrieval --max-suite-usd 10
    --max-suite-minutes 40`. Copy portable outcomes into `evals/evidence/`,
    retaining failed and interrupted attempts.
-7. Rewrite the lean-review graph row and the closing paragraphs in
+9. Rewrite the lean-review graph row and the closing paragraphs in
    `docs/IMPROVEMENT-PLAN.md` with the outcome, its date, the validated and
    unvalidated removal experiments, and the structural finding about the former
    `graph` pair.
-8. Give the undated ledger figure its date or remove it in favour of the dated
+10. Give the undated ledger figure its date or remove it in favour of the dated
    snapshot.
-9. Run `harness check --stage stop`, then `--stage commit`.
+11. Run `harness check --stage stop`, then `--stage commit`.
 
 ## Proof
 
 | Behaviour | Test or evidence |
 |---|---|
-| B1 | `test/comparison.test.mjs`: `comparisonPairs` returns the `retrieval` pair with `grep-first` and `graph-first`, the other three pairs are byte-identical to today's, and the instruction built for each arm contains no rendered pack while differing in its retrieval sentence |
-| B2 | `evals/fixtures/retrieval-app/`'s own suite, red before each step and green after; `test/comparison.test.mjs` asserting the unmodified fixture fails every assertion its steps are graded on, so a do-nothing model scores zero; and that the duplicated symbol name appears in more than one module |
+| B1 | `test/comparison.test.mjs`: `comparisonPairs` returns the `retrieval` pair with `grep-first` and `graph-first` only when asked for by name, a default run still returns the same three pairs, the instruction built for each arm contains no rendered pack while differing in its retrieval sentence, and `configureComparison` leaves the graph intact for `graph-first` while still suppressing it for every other harness arm |
+| B2 | `evals/fixtures/retrieval-app/`'s own suite, red before each step and green after; `test/comparison.test.mjs` asserting `verifyReporting` fails against the unmodified fixture, so a do-nothing model scores zero, and that the duplicated symbol name is exported by more than one module |
 | B3 | `evals/evidence/` run record: per-arm accepted changes, reported USD, latency and retries, every attempt's status retained, and the ceiling recorded alongside what did not run; `test/comparison.test.mjs` keeps proving the budget and deadline paths mark attempts incomplete rather than dropping them |
 | B4 | the rewritten lean-review graph row and closing paragraphs in `docs/IMPROVEMENT-PLAN.md`, naming the outcome, its date, the validated session-inventory pruning pair and what remains unvalidated |
 | B5 | `docs/IMPROVEMENT-PLAN.md`: one ledger figure, or each with the date it was taken |

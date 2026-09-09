@@ -361,7 +361,7 @@ async function main() {
   const comparisons=argv.includes('--compare')||prune;
   if(argv.includes('--comparison')){
     if(!argv.includes('--compare'))throw new Error('--comparison requires --compare');
-    if(!['native','graph','generation'].includes(flag('comparison')))throw new Error('--comparison requires native, graph or generation');
+    if(!['native','graph','generation','retrieval'].includes(flag('comparison')))throw new Error('--comparison requires native, graph, generation or retrieval');
   }
   if(flag('prune-arm') && !prune)throw new Error('--prune-arm requires --prune');
   const products=argv.includes('--products')||comparisons;

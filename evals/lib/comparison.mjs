@@ -10,8 +10,16 @@ import {verifyLedger,verifyService,ledgerDescriptionExplainsPaidRule} from './as
 export function comparisonPairs(models, {prune=false,pruneArm=null,pair=null}={}) {
   for(const key of (prune?['generator','evaluator']:['generator','evaluator','evals']))if(!models?.[key])throw new Error(`comparison requires explicit ${key} model; no substitution`);
   if(pruneArm && (!prune || !['baseline','lean'].includes(pruneArm)))throw new Error('prune-arm must be baseline or lean, with --prune');
-  if(pair && (prune || !['native','graph','generation'].includes(pair)))throw new Error('comparison pair must be native, graph or generation, without --prune');
+  if(pair && (prune || !['native','graph','generation','retrieval'].includes(pair)))throw new Error('comparison pair must be native, graph, generation or retrieval, without --prune');
   if(prune)return [{id:'session-inventory',arms:[{id:'baseline',model:models.generator,prune:false},{id:'lean',model:models.generator,prune:true}].filter(arm=>!pruneArm||arm.id===pruneArm)}];
+  // graph-first-versus-grep-first B1. The `graph` pair pastes a rendered pack into the prompt, so
+  // it measures advisory packing, not retrieval. These arms differ in how the agent is told to
+  // find code and in whether an index is there to query; neither is handed a pack. Reachable only
+  // by name, so a default `--compare` run still runs exactly the pairs it ran before.
+  if(pair==='retrieval')return [{id:'retrieval',arms:[
+    {id:'grep-first',model:models.generator},
+    {id:'graph-first',model:models.generator,graphFirst:true},
+  ]}];
   return [
     {id:'native',arms:[{id:'native',native:true,model:models.generator},{id:'harness',model:models.generator}]},
     {id:'graph',arms:[{id:'without-graph',model:models.generator},{id:'with-graph',model:models.generator,graph:true}]},

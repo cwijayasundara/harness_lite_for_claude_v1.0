@@ -1,0 +1,27 @@
+[project]
+name = "retrieval-app"
+
+# graph-first-versus-grep-first B2. Wider than the other campaign fixtures on purpose: the file a
+# request lands in cannot be guessed from the request, and `format` is exported by two modules, so
+# a careless lookup answers from the wrong one. That is the whole reason this product exists —
+# the four existing arms all accepted 33/33 on products small enough that retrieval never mattered.
+#
+# Zero-dependency for the same reason campaign-ledger is: a staged copy has no node_modules, and a
+# capability that shells out would fail every step before the model was asked anything.
+[capabilities]
+fmt       = ""
+lint      = ""
+typecheck = ""
+test      = "node --test"
+
+[formats]
+test = "generic"
+
+[graph]
+include = ["src"]
+exclude = ["node_modules", ".git"]
+
+[stages]
+fast   = ["fmt", "lint", "typecheck"]
+stop   = ["fast", "test"]
+commit = ["stop", "secrets", "scope-drift", "budget", "tamper", "arch", "test_quality"]

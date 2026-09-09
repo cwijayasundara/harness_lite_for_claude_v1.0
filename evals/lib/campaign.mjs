@@ -427,7 +427,20 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
         const g=build(graphCfg);context=step.files.filter(f=>f.startsWith('src/')).map(f=>renderPack(pack(graphCfg,g,f,{budget:1200}))).join('\n');
         event('graph-context',{context,fingerprint:g.fingerprint});
       }
-      const instruction=`Simulated approval: implement ${step.request}\n${step.behaviours.join('\n')}\n${scope}\nAdd meaningful tests and run ${PRODUCT_TEST_COMMAND}. Use rg and bounded reads as needed. Do not modify approval artifacts. ${step.missingTool?'missing-product-tool is unavailable; use Node and do not install a replacement.':''}\n${context}`;
+      // graph-first-versus-grep-first B1. The index is built where the agent can query it, and the
+      // retrieval sentence changes. Nothing is pasted into the prompt: injection is what the
+      // `graph` pair already measures, and what the lean review says is not this comparison.
+      if(config.graphFirst){
+        const {build,save}=await import('../../.aidlc/lib/graph.mjs');
+        const {layout}=await import('../../.aidlc/lib/paths.mjs');
+        const graphCfg={layout:layout(s.work),graph:{include:['src'],exclude:[]}};
+        const g=build(graphCfg);save(graphCfg,g);
+        event('graph-index-built',{modules:Object.keys(g.modules).length,fingerprint:g.fingerprint});
+      }
+      const retrieval=config.graphFirst
+        ?'Locate code with `.aidlc/bin/harness graph query callers <symbol>`, `calls <symbol>` and `.aidlc/bin/harness pack <symbol>` first; rg and bounded reads are the miss path.'
+        :'Use rg and bounded reads as needed.';
+      const instruction=`Simulated approval: implement ${step.request}\n${step.behaviours.join('\n')}\n${scope}\nAdd meaningful tests and run ${PRODUCT_TEST_COMMAND}. ${retrieval} Do not modify approval artifacts. ${step.missingTool?'missing-product-tool is unavailable; use Node and do not install a replacement.':''}\n${context}`;
       await call(instruction,'implement');
       const validateScope=()=>{
         const previous=new Map(authorized),current=new Map(sourceDigest());
