@@ -164,13 +164,19 @@ export function modifiedNotReplaced(dir, file, markers) {
 
 // Product orchestration stays in the existing campaign module. The parent owns scenario data,
 // scripted decisions, hidden acceptance functions, and immutable evidence outside agent mounts.
+// graph-first-versus-grep-first, found running it: the approval gate has required an intent to
+// bind a committed repository source since decomposition landed, and this wrote none, so every
+// product campaign failed its first `harness approve` with "intent requires source and
+// source_revision". NOTES.md is the one document every product fixture ships, and HEAD is the
+// revision the driver has just committed.
 export function prepareProductChange(s, step) {
   const dir=path.join(s.work,'.aidlc/artifacts',step.slug); mkdirSync(dir,{recursive:true});
-  writeFileSync(path.join(dir,'intent.md'),render({status:'draft'},`# ${step.slug}\n\n${step.request}\n${step.incident?`Source: local incident .aidlc/artifacts/incident/${step.slug}.md`:''}\n`));
+  const revision=execFileSync('git',['rev-parse','HEAD'],{cwd:s.work,encoding:'utf8'}).trim();
+  writeFileSync(path.join(dir,'intent.md'),render({status:'draft',source:'NOTES.md',source_revision:revision},`# ${step.slug}\n\n${step.request}\n${step.incident?`Source: local incident .aidlc/artifacts/incident/${step.slug}.md`:''}\n`));
   const behaviours=(step.initialBehaviours??step.behaviours).map((b,i)=>`### B${i+1}\n${b}`).join('\n\n');
   selectChange({ layout: { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts') } }, step.slug);
   writeFileSync(path.join(dir,'spec.md'),render({status:'draft',...(step.supersedes?{supersedes:step.supersedes}:{})},
-    `# ${step.slug}\n\n${behaviours}\n\n## Safeguards\nPreserve existing public behaviour except the explicitly superseded requirement. No dependencies or remote deployment.\n`));
+    `# ${step.slug}\n\n${behaviours}\n\n## Requirements\n\n| Source criterion | Behaviour IDs |\n|---|---|\n| local:${step.slug} | ${(step.initialBehaviours??step.behaviours).map((_,i)=>`B${i+1}`).join(', ')} |\n\n## Safeguards\nPreserve existing public behaviour except the explicitly superseded requirement. No dependencies or remote deployment.\n`));
   writeFileSync(path.join(dir,'plan.md'),render({status:'draft'},`# ${step.slug}\n\n## Approach\nUse existing patterns and small behavioural slices. Run public regression tests and the external driver's runtime proof.\n\n## Files\n${step.files.map(f=>'`'+f+'`').join('\n')}\n\n## Order\n1. Inspect existing code and reproduce the required change.\n2. Implement and add regression coverage.\n\n## Proof\n| Behaviour | Evidence |\n|---|---|\n${step.behaviours.map((_,i)=>`| B${i+1} | External driver runtime acceptance and public regression suite |`).join('\n')}\n`));
 }
 

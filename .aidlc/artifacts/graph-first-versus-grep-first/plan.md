@@ -26,6 +26,18 @@ nothing. The `graph-first` arm must be exempt from that suppression, or the
 comparison measures an index that was switched off. Neither changes what the
 experiment is; both change what it takes to run it honestly.
 
+Running it turned up a third, larger thing: the product campaign harness has
+drifted behind the harness's own approval gates. `prepareProductChange` writes
+an intent with no `source`/`source_revision` and a spec with no `## Requirements`
+table, and both have been required since decomposition and requirement
+traceability landed. The first smoke attempt failed on `intent requires source
+and source_revision`, and the calibration abandoned the run — USD 0.11 of the
+ceiling spent, nothing measured. This is not specific to the retrieval pair: it
+breaks `campaign-ledger` and `campaign-service` identically, so no product
+comparison could have run since those gates landed, and the comparison evidence
+already on record predates them. Repairing it is what step 8 costs; both
+products are verified to pass both gates afterwards, with no model spend.
+
 The pair and the arm branch come first because they are small and testable with
 no model: `comparisonPairs` is a pure function with unit coverage, and the
 campaign's prompt construction can be asserted by inspecting the instruction the
@@ -99,20 +111,25 @@ as this one does; it goes last of the three.
 7. Run `harness check --stage stop` with no model spend and confirm the suite is
    green, including `test/ledger-evidence.test.mjs`,
    `test/skills-context.test.mjs` and `test/host-evidence.test.mjs` unedited.
-8. Run the comparison once, scoped to the product built for it:
+8. Repair `prepareProductChange` in `evals/lib/campaign.mjs` so the intent binds
+   a committed repository source and the generated spec carries a
+   `## Requirements` table covering its behaviours. Verify with a real staged
+   product and a real `harness approve`, with no model spend, for the retrieval
+   product and an existing one.
+9. Run the comparison once, scoped to the product built for it:
    `node evals/run.mjs --compare --comparison retrieval --id retrieval-app
    --max-suite-usd 10 --max-suite-minutes 40`. Without `--id` the pair also runs
    against `campaign-ledger` and `campaign-service`, which is three times the
    spend on two products already known not to discriminate. Run it detached and
    never from an interactive shell loop. Copy portable outcomes into `evals/evidence/`,
    retaining failed and interrupted attempts.
-9. Rewrite the lean-review graph row and the closing paragraphs in
+10. Rewrite the lean-review graph row and the closing paragraphs in
    `docs/IMPROVEMENT-PLAN.md` with the outcome, its date, the validated and
    unvalidated removal experiments, and the structural finding about the former
    `graph` pair.
-10. Give the undated ledger figure its date or remove it in favour of the dated
+11. Give the undated ledger figure its date or remove it in favour of the dated
    snapshot.
-11. Run `harness check --stage stop`, then `--stage commit`.
+12. Run `harness check --stage stop`, then `--stage commit`.
 
 ## Proof
 
@@ -120,7 +137,7 @@ as this one does; it goes last of the three.
 |---|---|
 | B1 | `test/comparison.test.mjs`: `comparisonPairs` returns the `retrieval` pair with `grep-first` and `graph-first` only when asked for by name, a default run still returns the same three pairs, the instruction built for each arm contains no rendered pack while differing in its retrieval sentence, and `configureComparison` leaves the graph intact for `graph-first` while still suppressing it for every other harness arm |
 | B2 | `evals/fixtures/retrieval-app/`'s own suite, red before each step and green after; `test/comparison.test.mjs` asserting `verifyReporting` fails against the unmodified fixture, so a do-nothing model scores zero, and that the duplicated symbol name is exported by more than one module |
-| B3 | `evals/evidence/` run record: per-arm accepted changes, reported USD, latency and retries, every attempt's status retained, and the ceiling recorded alongside what did not run; `test/comparison.test.mjs` keeps proving the budget and deadline paths mark attempts incomplete rather than dropping them |
+| B3 | `test/comparison.test.mjs`: a staged product's generated intent and spec pass `harness approve` for both gates, so a campaign reaches its first implementation phase at all; `evals/evidence/` run record: per-arm accepted changes, reported USD, latency and retries, every attempt's status retained, and the ceiling recorded alongside what did not run; `test/comparison.test.mjs` keeps proving the budget and deadline paths mark attempts incomplete rather than dropping them |
 | B4 | the rewritten lean-review graph row and closing paragraphs in `docs/IMPROVEMENT-PLAN.md`, naming the outcome, its date, the validated session-inventory pruning pair and what remains unvalidated |
 | B5 | `docs/IMPROVEMENT-PLAN.md`: one ledger figure, or each with the date it was taken |
 
