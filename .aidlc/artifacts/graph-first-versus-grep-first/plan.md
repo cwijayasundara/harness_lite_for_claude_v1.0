@@ -1,6 +1,13 @@
 ---
-status: draft
+status: approved
 depends_on: retire-change-safely, a-block-names-its-rule
+spec_digest: sha256:38608a741270a78d3ebbb8d755416cc098638551a093abd8496058e9303f72b3
+spec_approval_digest: sha256:3af59b89ba550a827abec95fbc196ce9664109bc7904c178a56f18742608f84a
+by: cwijayasundara
+at: 2026-09-09T06:37:51.428Z
+digest: sha256:3a4118f08c1a23665b89d7417b30e6f3493b832bf62e4a65e790b12f71617817
+approval_version: 2
+approval_digest: sha256:b549d9d72542c96dfedb57dd55ad9310258b9e80e797766e24b0f334d6f89677
 ---
 # Plan: graph-first-versus-grep-first
 
