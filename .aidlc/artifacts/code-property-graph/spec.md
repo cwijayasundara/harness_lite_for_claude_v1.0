@@ -6,12 +6,12 @@ source_revision: b5c4c2fc2329b48b31b97cbcb8859bf60d36f9ae
 source_kind: repository
 intent_digest: sha256:7aaee3b2c820d966ff35e2032c0c2dc238d8fb6c73dc8507a4dca80c4cda2509
 intent_input_digest: sha256:cf5de41c08596b2f93dc8ff0c1c2efac4b5fb3d20bca51af2cc2e49865ab7e02
-intent_revision: 28f06864b92a4af0aabf19ebb10aa69e3875c449
+intent_revision: f186cce4ddc466ff5b1eefcac3a1a189c70a54af
 by: cwijayasundara
-at: 2026-09-09T16:18:35.558Z
-digest: sha256:75bd992e3e16fe16b9ecc59b450c0503593f4d91987473a9ee6dd28485881271
+at: 2026-09-09T20:36:00.724Z
+digest: sha256:7146aa61da6c8c8c7c1f4cbb72105997b85252becd1b01300761f5373e2a9f0b
 approval_version: 2
-approval_digest: sha256:573d1c40d5c8762229b1687a8ce02d07ca34b2da275636153663c6f653da4204
+approval_digest: sha256:6cb592cba6262ba2a49a8893846d5f6ab8f31db751e6e8b3aae19a5484541341
 ---
 # Spec: code-property-graph
 

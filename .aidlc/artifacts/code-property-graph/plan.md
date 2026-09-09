@@ -1,12 +1,12 @@
 ---
 status: approved
-spec_digest: sha256:75bd992e3e16fe16b9ecc59b450c0503593f4d91987473a9ee6dd28485881271
-spec_approval_digest: sha256:573d1c40d5c8762229b1687a8ce02d07ca34b2da275636153663c6f653da4204
+spec_digest: sha256:7146aa61da6c8c8c7c1f4cbb72105997b85252becd1b01300761f5373e2a9f0b
+spec_approval_digest: sha256:6cb592cba6262ba2a49a8893846d5f6ab8f31db751e6e8b3aae19a5484541341
 by: cwijayasundara
-at: 2026-09-09T16:18:35.966Z
-digest: sha256:2f5c20a91659dbc6c41a1d03b2c0d1dd72a059816b418abdd3b1b771e2b0c582
+at: 2026-09-09T20:36:01.345Z
+digest: sha256:70055678818685bc4c8b7e6bc2c696df40d4b441f440635afc4db49b1dbfcb21
 approval_version: 2
-approval_digest: sha256:85cb17dd3ab372211ae195a4d399ade7925cdf88bffc5573ddbf8611485fb3df
+approval_digest: sha256:e2b75f53d26747af1c5a366de1be027c688bd0ec9a825d5b5b3ec13291e191c2
 ---
 # Plan: code-property-graph
 
