@@ -87,9 +87,9 @@ node ids; the repository has no pytest execution to match them against. Passing 
 requires a reviewer to judge whether each row proves its behaviour, and B5's row is a document,
 which no test can grade.
 
-## Dependencies
+## Coordination
 
-None. This change has no `depends_on`.
+This change has no `depends_on` and declares no `## Dependencies` table: it waits on nothing.
 
 `docs/IMPROVEMENT-PLAN.md` is also named in the in-flight `graph-first-versus-grep-first` plan's
 `## Files`, so `harness status` reports an overlap on it. The overlap is real and was accepted by

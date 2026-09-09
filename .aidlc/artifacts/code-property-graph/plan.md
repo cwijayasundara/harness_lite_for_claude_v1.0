@@ -97,7 +97,9 @@ outside this change's control.
 
 | Change | Interface | Revision |
 |---|---|---|
-| graph-first-versus-grep-first | `evals/lib/comparison.mjs` | 2c95b85bba1de7f5b11128a4077f7d69e62aa83b |
+| graph-first-versus-grep-first | evals/lib/comparison.mjs | 2c95b85bba1de7f5b11128a4077f7d69e62aa83b |
+
+## Coordination
 
 `graph-first-versus-grep-first` builds and runs the comparison whose recorded outcome step 1
 requires. It is a delivery prerequisite, not an extension, so it sits in `depends_on` and not in
