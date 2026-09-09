@@ -230,7 +230,7 @@ Once installed, hooks fire on their own:
 Claude repairs failures itself and pastes the evidence. It should never ask you to run a check.
 
 Claude also picks skills on its own from ordinary requests — "fix this bug" pulls in `diagnose`,
-"refactor this" pulls in `pure-refactor`, unfamiliar code pulls in the `explorer` subagent. You
+"refactor this" pulls in `change-safely`, unfamiliar code pulls in the `explorer` subagent. You
 don't invoke them by name.
 
 ---
@@ -293,7 +293,10 @@ deleted. Re-run `harness init --into .` after upgrading the
 harness, or the recorded half of that count goes stale.
 
 A control enters only with a failing eval or a defect recorded while building a real application
-through the harness. Law 11 in the constitution says why.
+through the harness. Law 11 in the constitution says why. That applies to a skill as much as to a
+check: A capable agent being able to follow a generic recipe is not that evidence. Skills reach a
+project through the single kernel plugin and nothing else — there is no pack, bundle, overlay or
+per-domain marketplace to install more, because that is how a budget stops being one.
 
 Plan, Design, Build, and Test run locally. Deploy and Maintain are yours: the harness ships one
 worked example, `examples/maintain/band-to-intent.mjs`, which turns a control-band breach into an

@@ -45,9 +45,3 @@ For a production incident or control-band breach, first create
 `.aidlc/artifacts/incident/<slug>.md` with `harness new incident <slug>`. Preserve the metric,
 baseline, breached band, timeline, and mitigation. Then create the linked intent with the same
 slug. When the fix ships, add one permanent eval reproducing the incident class.
-
-## Anti-patterns
-
-- Fixing the symptom at the call site instead of the cause.
-- Adding a retry to hide a race.
-- Changing three things at once, then declaring victory when the symptom moves.

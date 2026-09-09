@@ -10,14 +10,6 @@ callers with `harness graph query` / `harness pack` before whole-file reads. Rea
 implementations and tests for established patterns. Use coverage, when available, to locate
 risk; inspect assertions rather than treating a percentage as proof.
 
-| Situation | Approach |
-|---|---|
-| Meaningful coverage exists | Run the relevant checks before and after the change. |
-| Assertions miss affected behaviour | Add focused behavioural coverage. |
-| Important behaviour is untested | Run it and pin the load-bearing cases before changing it. |
-| Code is too tangled to exercise safely | Find a narrow seam and test the new behaviour there. |
-| Behaviour must remain unchanged | Refactor in small steps and preserve observable contracts. |
-
 Characterisation records reality, including surprising behaviour. Distinguish a preserved
 contract from a defect the approved change is meant to fix. A separate test commit is useful
 when it improves review, but is not required for every change. Fix an in-scope defect after
