@@ -386,6 +386,26 @@ export function query(g, question, arg, opts = {}) {
     case 'cycles': return tarjan(g).filter((c) => c.length > 1).map((c) => c.sort());
     // Q5
     case 'changed-since': return changedSymbols(g, arg ?? 'HEAD', opts.root ?? g.root);
+    // Q8 — B3, anchor. Which definition does THIS call site reach?
+    //
+    // why: symbols are keyed by bare name, so `format` — exported by two modules in
+    // `evals/fixtures/retrieval-app` — came back as two equal candidates and a careless lookup
+    // took the first. Resolution uses the resolved `import` edges already computed: a definition
+    // in the calling module wins, then a definition in exactly one module it imports. Where
+    // neither decides, the answer says so and returns the candidates rather than picking one.
+    // No type inference and no new parser; this is the smallest rule that fixes the defect.
+    case 'definition': {
+      const candidates = (table.get(arg) ?? []).map((d) => d.module);
+      const unique = [...new Set(candidates)];
+      const ambiguous = unique.length > 1;
+      if (!unique.length) return { name: arg, resolved: null, ambiguous: false, candidates: [] };
+      if (unique.length === 1) return { name: arg, resolved: unique[0], ambiguous: false, candidates: unique };
+      const from = opts.from;
+      if (from && unique.includes(from)) return { name: arg, resolved: from, ambiguous, candidates: unique };
+      const imports = from ? (g.modules[from]?.imports ?? []) : [];
+      const reachable = unique.filter((m) => imports.includes(m));
+      return { name: arg, resolved: reachable.length === 1 ? reachable[0] : null, ambiguous, candidates: unique };
+    }
     // Q6 — B1. One edge type in, only that type out, and every edge says which type produced it.
     // An unknown type throws rather than returning [], because a silent empty answer to a
     // misspelled question is indistinguishable from a true one.
@@ -417,7 +437,7 @@ export function query(g, question, arg, opts = {}) {
         duplicates: a.duplicates ?? { import: 0, call: 0 },
       };
     }
-    default: throw new Error(`unknown graph question "${question}" — known: callers, calls, hubs, cycles, changed-since, edges, audit`);
+    default: throw new Error(`unknown graph question "${question}" — known: callers, calls, hubs, cycles, changed-since, edges, audit, definition`);
   }
 }
 

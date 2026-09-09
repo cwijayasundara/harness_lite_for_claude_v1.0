@@ -207,6 +207,45 @@ test('B3 — a stale index is a miss, and a rank never outlives the modules it r
   } finally { s.cleanup(); }
 });
 
+// code-property-graph B3, step 3 — anchor. `format` is exported by two modules in this fixture,
+// and the fixture exists because of it: a lookup that stops at the first match answers the wrong
+// question. Resolution uses the resolved import edges already computed, and no type inference.
+test('B3 — a reference resolves to the definition its call site reaches, or says it cannot', () => {
+  const s = stage(FIXTURES, 'retrieval-app');
+  try {
+    const invoices = 'src/billing/invoices.mjs';
+    const summary = 'src/reporting/summary.mjs';
+    // A module that imports exactly one of the two definers.
+    writeFileSync(path.join(s.work, 'src', 'billing', 'receipt.mjs'),
+      "import { format } from './invoices.mjs';\n\nexport function receiptLine(cents) {\n  return format(cents);\n}\n");
+    const g = graphOf(s.work);
+
+    // Defined in the calling module: that one wins, and the ambiguity is still reported.
+    const local = query(g, 'definition', 'format', { from: summary });
+    assert.equal(local.resolved, summary, 'a local definition is the one the call site reaches');
+    assert.equal(local.ambiguous, true, 'the bare name is still ambiguous across the app');
+    assert.deepEqual(local.candidates.sort(), [invoices, summary]);
+
+    // Imported from exactly one definer: that one wins.
+    const imported = query(g, 'definition', 'format', { from: 'src/billing/receipt.mjs' });
+    assert.equal(imported.resolved, invoices, 'the imported definer is the one the call site reaches');
+    assert.equal(imported.ambiguous, true);
+
+    // Imports both: it says it cannot decide and hands back the candidates rather than picking.
+    const both = query(g, 'definition', 'format', { from: 'src/index.mjs' });
+    assert.equal(both.resolved, null, 'no guess where the reference genuinely cannot be resolved');
+    assert.deepEqual(both.candidates.sort(), [invoices, summary]);
+
+    // An unambiguous name resolves and says so.
+    const single = query(g, 'definition', 'rollup', { from: 'src/index.mjs' });
+    assert.equal(single.resolved, 'src/reporting/aggregate.mjs');
+    assert.equal(single.ambiguous, false);
+
+    // A name nothing defines is a miss, not an invention.
+    assert.equal(query(g, 'definition', 'nosuchsymbol', { from: 'src/index.mjs' }).resolved, null);
+  } finally { s.cleanup(); }
+});
+
 test('Q2 — what does this symbol call', () => {
   const s = stage(FIXTURES, 'graph-app');
   try {
