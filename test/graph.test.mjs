@@ -34,6 +34,50 @@ test('Q1 — who calls this symbol', () => {
   } finally { s.cleanup(); }
 });
 
+// code-property-graph B1, step 1. The edges were implicit in `raw_imports` and `symbols`, which
+// is why nothing could ask for one kind and get only that kind. They are emitted explicitly and
+// additively: the fields every consumer already reads are untouched, so this is a widening.
+test('B1 — the index carries typed edges, and an answer names the type that produced it', () => {
+  const s = stage(FIXTURES, 'graph-app');
+  try {
+    const g = graphOf(s.work);
+
+    // The contract is what `query` answers, not how the edges are stored — they are grouped by
+    // source module on disk so a path is written once rather than once per edge.
+    assert.ok(g.edges, 'the index carries an edge list');
+    for (const type of ['import', 'call', 'co-edit']) assert.ok(g.edges[type], `${type} edges are present`);
+
+    const imports = query(g, 'edges', 'import');
+    assert.ok(imports.length > 0, 'the fixture has import edges');
+    assert.ok(imports.every((e) => e.type === 'import'), 'one type requested, one type returned');
+    // An import edge is file -> file, and both ends are modules the index knows.
+    for (const e of imports) {
+      assert.ok(g.modules[e.from], `${e.from} is a known module`);
+      assert.ok(g.modules[e.to], `${e.to} is a known module`);
+    }
+    // It agrees with the field it was derived from, so the widening cannot drift from it.
+    const fromField = Object.entries(g.modules).flatMap(([rel, m]) => m.imports.map((to) => `${rel}->${to}`)).sort();
+    assert.deepEqual(imports.map((e) => `${e.from}->${e.to}`).sort(), fromField);
+
+    const calls = query(g, 'edges', 'call');
+    assert.ok(calls.length > 0, 'the fixture has call edges');
+    assert.ok(calls.every((e) => e.type === 'call'), 'one type requested, one type returned');
+    // A call edge is function -> function. An unknown callee is a builtin or a method, not an
+    // edge — the same filter Q2 applies, so the two cannot disagree.
+    const names = new Set(Object.values(g.modules).flatMap((m) => m.symbols.map((sym) => sym.name)));
+    for (const e of calls) {
+      assert.ok(names.has(e.to), `${e.to} is a known symbol`);
+      assert.ok(g.modules[e.from.module], `${e.from.module} is a known module`);
+    }
+    assert.deepEqual(
+      [...new Set(calls.filter((e) => e.from.symbol === 'place_order').map((e) => e.to))].sort(),
+      query(g, 'calls', 'place_order').sort(),
+      'the call edge list and Q2 answer the same question the same way');
+
+    assert.throws(() => query(g, 'edges', 'nonsense'), /edge type/, 'an unknown edge type is refused, not silently empty');
+  } finally { s.cleanup(); }
+});
+
 test('Q2 — what does this symbol call', () => {
   const s = stage(FIXTURES, 'graph-app');
   try {

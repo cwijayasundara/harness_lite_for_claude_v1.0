@@ -15,7 +15,11 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 
-export const GRAPH_VERSION = 4;
+export const GRAPH_VERSION = 5;
+
+// code-property-graph B1. The three edge kinds this index carries, named so a caller can ask for
+// one and receive only that one.
+export const EDGE_TYPES = ['import', 'call', 'co-edit'];
 
 const LANG_BY_EXT = {
   '.py': 'py', '.js': 'js', '.mjs': 'js', '.cjs': 'js', '.jsx': 'js',
@@ -222,7 +226,37 @@ export function build(cfg, { only = null, previous = null } = {}) {
   for (const [rel, m] of Object.entries(modules)) {
     m.imports = [...new Set(m.raw_imports.map((s) => resolve(rel, s)).filter((x) => x && x !== rel))];
   }
-  return { fingerprint: only ? null : fingerprint(cfg), version: GRAPH_VERSION, built_at: new Date().toISOString(), root, modules };
+  return { fingerprint: only ? null : fingerprint(cfg), version: GRAPH_VERSION, built_at: new Date().toISOString(), root, modules, edges: typedEdges(modules) };
+}
+
+// B1. The edges were already here and already implicit: file -> file inside `imports`,
+// function -> function inside each symbol's `candidates`. Nothing could ask for one kind and get
+// only that kind, and a third kind had nowhere to live.
+//
+// Emitted additively — `raw_imports` and `symbols` keep their meaning and every existing consumer
+// keeps reading them.
+//
+// Stored grouped by source module rather than as flat per-edge records. This repository has 481
+// import and 3,228 call edges, and a module path repeated once per edge costs more than every
+// other field combined: flat `{type,from,to}` objects took the on-disk index from 349 KB to well
+// over 900 KB, and flat tuples still reached 678 KB, for a file every hook parses. Grouped, the
+// path is written once. `query(g, 'edges', ...)` materialises the per-edge objects.
+function typedEdges(modules) {
+  const names = new Set();
+  for (const m of Object.values(modules)) for (const s of m.symbols) names.add(s.name);
+  const imports = {};
+  const calls = {};
+  for (const [rel, m] of Object.entries(modules)) {
+    if (m.imports.length) imports[rel] = m.imports;
+    const out = [];
+    for (const s of m.symbols) {
+      // The same filter Q2 applies: an unknown name is a builtin or a method, not an edge. Two
+      // filters that must agree is the shape of most defects in this repository, so there is one.
+      for (const c of s.candidates) if (names.has(c) && c !== s.name) out.push([s.name, c]);
+    }
+    if (out.length) calls[rel] = out;
+  }
+  return { import: imports, call: calls, 'co-edit': [] };
 }
 
 function symbolTable(g) {
@@ -282,7 +316,23 @@ export function query(g, question, arg, opts = {}) {
     case 'cycles': return tarjan(g).filter((c) => c.length > 1).map((c) => c.sort());
     // Q5
     case 'changed-since': return changedSymbols(g, arg ?? 'HEAD', opts.root ?? g.root);
-    default: throw new Error(`unknown graph question "${question}" — known: callers, calls, hubs, cycles, changed-since`);
+    // Q6 — B1. One edge type in, only that type out, and every edge says which type produced it.
+    // An unknown type throws rather than returning [], because a silent empty answer to a
+    // misspelled question is indistinguishable from a true one.
+    case 'edges': {
+      if (!EDGE_TYPES.includes(arg)) throw new Error(`unknown edge type "${arg}" — known: ${EDGE_TYPES.join(', ')}`);
+      const raw = g.edges?.[arg] ?? {};
+      const out = [];
+      if (arg === 'import') {
+        for (const [from, tos] of Object.entries(raw)) for (const to of tos) out.push({ type: 'import', from, to });
+      } else if (arg === 'call') {
+        for (const [module, pairs] of Object.entries(raw)) for (const [symbol, to] of pairs) out.push({ type: 'call', from: { module, symbol }, to });
+      } else {
+        for (const [from, pairs] of Object.entries(raw)) for (const [to, weight] of pairs) out.push({ type: 'co-edit', from, to, weight });
+      }
+      return out;
+    }
+    default: throw new Error(`unknown graph question "${question}" — known: callers, calls, hubs, cycles, changed-since, edges`);
   }
 }
 
