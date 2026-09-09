@@ -13,9 +13,14 @@
 import { readFileSync, readdirSync, statSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { coedit, head as coeditHead } from './coedit.mjs';
 import path from 'node:path';
 
-export const GRAPH_VERSION = 5;
+// Bumped whenever the SHAPE or the DERIVATION SEMANTICS of the index change, not just its
+// fields: `reusableCoedit` carries a previous build's co-edit weights forward while HEAD holds
+// still, so a change to how those weights are derived is invisible to it unless the version moves.
+// That is how a weight threshold added here first appeared to do nothing.
+export const GRAPH_VERSION = 6;
 
 // code-property-graph B1. The three edge kinds this index carries, named so a caller can ask for
 // one and receive only that one.
@@ -265,11 +270,30 @@ export function build(cfg, { only = null, previous = null } = {}) {
     m.imports = [...seen];
   }
   const edges = typedEdges(modules);
+  // B4. Co-edit weights come from history, so they move on a commit and not on an edit. Deriving
+  // them costs ~270 ms warm against a ~60 ms rebuild, so the previous result is reused while HEAD
+  // has not moved: bounded work done once per commit rather than once per turn. Recomputed
+  // whenever HEAD differs, which is exactly when the weights can have changed.
+  const at = coeditHead(root);
+  edges['co-edit'] = reusableCoedit(cfg, at) ?? coedit(root, new Set(Object.keys(modules)));
   return {
-    fingerprint: only ? null : fingerprint(cfg), version: GRAPH_VERSION,
+    fingerprint: only ? null : fingerprint(cfg), version: GRAPH_VERSION, head: at,
     built_at: new Date().toISOString(), root, modules, edges,
     audit: { unresolved, external, ambiguous: ambiguousSymbols(modules), duplicates: { import: duplicateImports, call: edges.duplicate_calls } },
   };
+}
+
+// The stored index read for one field only, ignoring its fingerprint. `load()` deliberately
+// refuses a graph whose fingerprint has moved — that is what makes a stale index a miss — but a
+// rebuild is exactly the case where the fingerprint HAS moved, and the co-edit weights are still
+// good whenever HEAD has not. Reading the raw file here keeps that reuse without weakening
+// `load()`.
+function reusableCoedit(cfg, at) {
+  if (!at || !cfg.layout?.graph) return null;
+  try {
+    const raw = JSON.parse(readFileSync(cfg.layout.graph, 'utf8'));
+    return raw.version === GRAPH_VERSION && raw.head === at && raw.edges?.['co-edit'] ? raw.edges['co-edit'] : null;
+  } catch { return null; }
 }
 
 // B2. A bare name defined in more than one module is why a careless lookup lands in the wrong
@@ -528,12 +552,7 @@ export function fingerprint(cfg) {
   //
   // Degrades to an empty component where there is no git, no commit, or a shallow clone, so the
   // fingerprint never throws where it previously returned.
-  hash.update('\0').update(headCommit(cfg.layout.root));
+  hash.update('\0').update(coeditHead(cfg.layout.root));
   return hash.digest('hex');
 }
 
-function headCommit(root) {
-  try {
-    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-  } catch { return ''; }
-}

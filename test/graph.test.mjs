@@ -5,8 +5,9 @@
 // nothing ever asked it a question with a known answer.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync, readFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, readFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { A, ROOT } from './_paths.mjs';
 import { build, query, fingerprint } from '../.aidlc/lib/graph.mjs';
@@ -244,6 +245,61 @@ test('B3 — a reference resolves to the definition its call site reaches, or sa
     // A name nothing defines is a miss, not an invention.
     assert.equal(query(g, 'definition', 'nosuchsymbol', { from: 'src/index.mjs' }).resolved, null);
   } finally { s.cleanup(); }
+});
+
+// code-property-graph B4, step 4 — co-edit. Structure cannot express "these change together".
+// The pair below has no import and no call edge between them and still moves as a unit.
+test('B4 — files that change together carry a weighted edge structure cannot express', () => {
+  const cfg = { graph: { include: ['.', '.claude'], exclude: ['node_modules', '.venv', 'dist', '.git', '__pycache__'] },
+    layout: { root: ROOT } };
+  const g = build(cfg);
+  const A = 'test/guard.test.mjs', B = 'test/lifecycle-cli.test.mjs';
+
+  const edge = query(g, 'edges', 'co-edit').find((e) => (e.from === A && e.to === B) || (e.from === B && e.to === A));
+  assert.ok(edge, 'the pair co-changes and the index says so');
+  assert.ok(edge.weight > 1, 'the weight reflects how often, not merely whether');
+  assert.equal(edge.type, 'co-edit');
+
+  // The point of the edge: no structural relation joins these two.
+  const structural = query(g, 'edges', 'import').some((e) => (e.from === A && e.to === B) || (e.from === B && e.to === A));
+  assert.equal(structural, false, 'no import edge joins them — this is the signal structure misses');
+
+  // Each pair once, on its lexicographically smaller end, and both ends are indexed modules.
+  const seen = new Set();
+  for (const e of query(g, 'edges', 'co-edit')) {
+    assert.ok(e.from < e.to, 'pairs are canonical, so an edge is never stored twice');
+    const key = `${e.from}\0${e.to}`;
+    assert.ok(!seen.has(key), 'no duplicate co-edit pairs');
+    seen.add(key);
+    assert.ok(g.modules[e.from] && g.modules[e.to], 'both ends are modules the index knows');
+  }
+});
+
+// A tree that arrives in one initial commit has every file "changing with" every other exactly
+// once. The file-count cap cannot see that at small scale, so the weight threshold is what stops
+// a single commit from being read as total coupling.
+test('B4 — one shared commit is a coincidence, not a clique', () => {
+  const s = stage(FIXTURES, 'graph-app');
+  try {
+    const g = graphOf(s.work);
+    assert.deepEqual(query(g, 'edges', 'co-edit'), [], 'a single co-occurrence is not coupling');
+    // Every other question is unaffected, so the edge type degrades to absent rather than wrong.
+    assert.deepEqual(query(g, 'calls', 'place_order').sort(), ['find_user', 'save_order']);
+    assert.ok(query(g, 'edges', 'import').length > 0);
+    assert.ok(Object.keys(g.modules).length > 0);
+  } finally { s.cleanup(); }
+});
+
+test('B4 — no git at all still builds, with no co-edit edges and no recorded head', () => {
+  const work = mkdtempSync(path.join(tmpdir(), 'graph-nogit-'));
+  try {
+    writeFileSync(path.join(work, 'a.mjs'), "import { b } from './b.mjs';\nexport function a() { return b(); }\n");
+    writeFileSync(path.join(work, 'b.mjs'), 'export function b() { return 1; }\n');
+    const g = build({ graph: { include: ['.'], exclude: [] }, layout: { root: work } });
+    assert.deepEqual(query(g, 'edges', 'co-edit'), [], 'absent, not wrong');
+    assert.equal(g.head, '', 'no commit to record');
+    assert.equal(query(g, 'edges', 'import').length, 1, 'structure is unaffected by the absence of history');
+  } finally { rmSync(work, { recursive: true, force: true }); }
 });
 
 test('Q2 — what does this symbol call', () => {
