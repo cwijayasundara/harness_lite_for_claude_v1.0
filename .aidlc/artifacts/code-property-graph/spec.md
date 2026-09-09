@@ -1,5 +1,17 @@
 ---
-status: draft
+status: approved
+source_digest: sha256:4e5ca318f767e590e24961b313042fb6c3cae006d0bab78e74a77b35fd0be843
+source: docs/IMPROVEMENT-PLAN.md
+source_revision: b5c4c2fc2329b48b31b97cbcb8859bf60d36f9ae
+source_kind: repository
+intent_digest: sha256:320efff2c6295e40f68b66f899e3141e58e84c34142ad28d7509439b4dd87c81
+intent_input_digest: sha256:050c597f9018487f0739cb7b603ebf23646be17ecae3fc4e681600698f152e68
+intent_revision: 4c3433f0ddbe66221df2166b810b03c93ee0ecf8
+by: cwijayasundara
+at: 2026-09-09T13:36:33.078Z
+digest: sha256:bd3e93595f2bc2581de95d117c0a9637c09e2422d306e54edc68bd5921e1c799
+approval_version: 2
+approval_digest: sha256:39e56720a883056c7ca6a5e49fd05dca3bd9245dfbe780e8f7971cbb1fba6a50
 ---
 # Spec: code-property-graph
 

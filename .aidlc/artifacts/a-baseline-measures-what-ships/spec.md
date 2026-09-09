@@ -1,5 +1,17 @@
 ---
-status: draft
+status: approved
+source_digest: sha256:4e5ca318f767e590e24961b313042fb6c3cae006d0bab78e74a77b35fd0be843
+source: docs/IMPROVEMENT-PLAN.md
+source_revision: b5c4c2fc2329b48b31b97cbcb8859bf60d36f9ae
+source_kind: repository
+intent_digest: sha256:e0f65e9a36f451c248c77f08a9ef00b956c270250112777f77e96c7c6a4f28f5
+intent_input_digest: sha256:a39baeb67459d56c2dcf5d1e2c728a154ebf6d83e0cfcff428bc1aa764107e8b
+intent_revision: 4c3433f0ddbe66221df2166b810b03c93ee0ecf8
+by: cwijayasundara
+at: 2026-09-09T13:36:32.968Z
+digest: sha256:89ca9ddb2f8880bc3a49aeef1cbb01330a71593b7416d86cbbb22913960ea6ff
+approval_version: 2
+approval_digest: sha256:d5a77f5b685a6cd0780450fb5bdd77e4915d88be17b73a3192fa6f85bd40d063
 ---
 # Spec: a-baseline-measures-what-ships
 
