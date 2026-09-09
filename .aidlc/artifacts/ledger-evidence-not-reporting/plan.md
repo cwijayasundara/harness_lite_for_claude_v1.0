@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:f074341b9d073ed0b9f01a982ebb9ca9c9807aa63fa2bd052b1ddf0faa726d2c
+spec_approval_digest: sha256:58cd43af52fa06fd5732adaeb42bd3cb9822b263dd69d222873cd721f0451ffd
+by: cwijayasundara
+at: 2026-09-09T04:36:43.932Z
+digest: sha256:5a0b4696888b0875a65c15a023b4f567fda0f9165ce13d7ada941dfb5981c8a6
+approval_version: 2
+approval_digest: sha256:bbe11a22027b998780c151ddc7fa960b5707ccee9c2b938874502191fa9ed546
 ---
 # Plan: ledger-evidence-not-reporting
 

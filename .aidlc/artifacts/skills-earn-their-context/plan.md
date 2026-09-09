@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:3e7f06b9e69307df53c36240b0235609546c23c59d07c1d50d30c3ddbebe65c5
+spec_approval_digest: sha256:28361da47799a5512fe66732ed1d2ed8c39631bc752e77f0041a3d72719e6300
+by: cwijayasundara
+at: 2026-09-09T04:36:43.754Z
+digest: sha256:00c372e86e95b9a9eb9b3df453355fb4a4b8b87723ede36a9e83c3f93c2499e5
+approval_version: 2
+approval_digest: sha256:57263dc583dc97edfdbcc062dfdbee7d190577c7603cf2c09e7d1f4e51507b8b
 ---
 # Plan: skills-earn-their-context
 
