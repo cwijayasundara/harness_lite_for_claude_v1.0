@@ -1,6 +1,18 @@
 ---
-status: draft
+status: approved
 extends: code-property-graph
+source_digest: sha256:4e5ca318f767e590e24961b313042fb6c3cae006d0bab78e74a77b35fd0be843
+source: docs/IMPROVEMENT-PLAN.md
+source_revision: b5c4c2fc2329b48b31b97cbcb8859bf60d36f9ae
+source_kind: repository
+intent_digest: sha256:0cabff7efd7f04ee9053e105636f32f9012fcf2c746267f63a30867ac1ca6d11
+intent_input_digest: sha256:c24062dee4f44b0ae6ae3ada72ee75fe39dd47eea8f8b65dc7693bdbfcca5098
+intent_revision: 910346aed4e8b68766a548120e1697611e44cb3d
+by: cwijayasundara
+at: 2026-09-09T17:58:40.598Z
+digest: sha256:a689ef919659350d8b065253e4e6faab7df8bebb80b93a03ab05aa1239325182
+approval_version: 2
+approval_digest: sha256:e9e357e7478a5c91367bf586920a9d2174e18ca9a800f520e065d53f57c1559a
 ---
 # Spec: the-index-tracks-the-source
 

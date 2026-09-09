@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:a689ef919659350d8b065253e4e6faab7df8bebb80b93a03ab05aa1239325182
+spec_approval_digest: sha256:e9e357e7478a5c91367bf586920a9d2174e18ca9a800f520e065d53f57c1559a
+by: cwijayasundara
+at: 2026-09-09T17:58:40.718Z
+digest: sha256:9212785fc1ac4c2e2e576fc32740c8f700c4a125de82dd071529ee4de27cf702
+approval_version: 2
+approval_digest: sha256:37cfc241d6f37363f6eafa19bd610432d7488475d04aec69b97b3e7f67b95549
 ---
 # Plan: the-index-tracks-the-source
 
