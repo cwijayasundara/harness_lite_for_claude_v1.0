@@ -156,11 +156,23 @@ name. Rejected by decision 3.
 - Co-edit weights as a cross-project or shipped artefact. Weights are derived locally from the
   repository's own history and never committed.
 
-## Out-of-order dependency
+## Basis
 
-This change does not begin until the graph-first versus Grep-first comparison has produced a
-recorded outcome, per decision 1. A tie or an incomplete run is a recorded outcome and unblocks
-this change; an unrun comparison does not.
+Superseding decision 1 of the intent, on the user's instruction of 2026-09-09: this change is no
+longer gated on a paid local comparison, and carries no spend ceiling of its own.
+
+The reason is that the question the comparison was to answer already has a published answer.
+Anthropic's Claude Code cost guidance recommends precise symbol navigation in place of text
+search on exactly these grounds — "a single 'go to definition' call replaces what might otherwise
+be a grep followed by reading multiple candidate files" — and names unnecessary file reads as a
+principal driver of context growth. A property graph with resolved references is that capability.
+Spending USD 10 and forty minutes to re-derive a vendor recommendation locally, on a sample small
+enough that the earlier four arms saturated at 33 of 33, buys less than it costs.
+
+What does not change is the measurement. B6 still re-runs `pack-bench.mjs` and records the result
+whichever way it comes out, against the 5,743-versus-3,436 figure already on record, and
+`pack-bench.mjs`'s exit criterion is untouched. Removing a spend gate is not removing
+accountability: this change is still measured, just after the fact rather than before it.
 
 ## Safeguards
 

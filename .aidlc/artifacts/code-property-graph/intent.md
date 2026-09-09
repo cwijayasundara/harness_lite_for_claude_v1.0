@@ -112,11 +112,14 @@ Observable from outside the system:
 
 Recorded from the user on 2026-09-09, in answer to this intent's original open questions.
 
-1. **The graph-first versus Grep-first comparison runs first.** It prices the current index and
-   gives this change a baseline to beat, at the cost of one paid run against the authorised
-   ceiling before any code is written. This change does not start until that run has produced a
-   recorded outcome — including a tie or an incomplete run, which are reportable outcomes under
-   `graph-first-versus-grep-first#B3`.
+1. ~~**The graph-first versus Grep-first comparison runs first.**~~ **Superseded on 2026-09-09,
+   later the same day, by the user's instruction to drop budget-shaped preconditions and follow
+   the published Claude guidance instead.** The comparison was to price the current index before
+   it changed; it never ran, because product trials require an API key in the environment and the
+   host keychain is not read. Rather than hold the work on a paid run, the change now rests on
+   Anthropic's cost guidance, which recommends symbol navigation over text search for precisely
+   this reason. The spec's `## Basis` section carries the argument and the trade accepted: no
+   before-and-after on this repository, and the measurement moves after the fact to B6.
 
 2. **`anchor` means resolving a reference to a specific definition** — binding a call site to the
    module that actually defines the symbol it reaches, so an ambiguous name is resolved or

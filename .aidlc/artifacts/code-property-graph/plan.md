@@ -1,6 +1,5 @@
 ---
 status: approved
-depends_on: graph-first-versus-grep-first
 spec_digest: sha256:bd3e93595f2bc2581de95d117c0a9637c09e2422d306e54edc68bd5921e1c799
 spec_approval_digest: sha256:39e56720a883056c7ca6a5e49fd05dca3bd9245dfbe780e8f7971cbb1fba6a50
 by: cwijayasundara
@@ -38,8 +37,14 @@ B4's degradation rule is a `try`/empty, not a feature flag.
 
 Sequencing against `a-baseline-measures-what-ships`: that change makes the SessionStart payload
 measured and gated, and this one changes what the hubs line inside that payload says. This change
-lands second. If it landed first, the corrected 52-to-649 figure and a ranking change would arrive
-as one movement no one could attribute.
+lands second. That ordering is now satisfied — `a-baseline-measures-what-ships` landed at
+`76b37ebf`, `session_context_tokens` is recorded at 649 and `[stages] commit` runs the ratchet, so
+any movement this change causes in the payload is attributable to it and will be caught by a gate
+rather than discovered later.
+
+No spend ceiling and no paid precondition, per the spec's `## Basis`. The accountability is
+B6: the benchmark runs after the pipeline lands and its figure is recorded whichever way it comes
+out, against the 5,743-versus-3,436 result already on record.
 
 ## Files
 
@@ -53,36 +58,33 @@ as one movement no one could attribute.
 
 ## Order
 
-1. Confirm the graph-first versus Grep-first comparison has produced a recorded outcome under
-   `evals/evidence/`. A tie or an incomplete run satisfies this; an unrun comparison does not.
-   Record the figure this change is measured against before writing code.
-2. **Starter graph.** In `.aidlc/lib/graph.mjs`, emit an explicit typed edge list — `import` and
+1. **Starter graph.** In `.aidlc/lib/graph.mjs`, emit an explicit typed edge list — `import` and
    `call` — from the existing per-module parse, additive to `raw_imports` and `symbols`. Bump
    `GRAPH_VERSION` from 4. Existing `query()` questions untouched.
-3. **Audit and deduplicate.** Add the stage that walks the edge list once: unresolved imports
+2. **Audit and deduplicate.** Add the stage that walks the edge list once: unresolved imports
    recorded rather than dropped at today's `filter(Boolean)`, symbol names defined in more than
    one module recorded as ambiguous, duplicate edges collapsed. Store the report beside the graph
    and expose it through `harness graph query`. B2.
-4. **Anchor.** Resolve each call reference to one definition using the referencing module's
+3. **Anchor.** Resolve each call reference to one definition using the referencing module's
    resolved `import` edges; leave it ambiguous and say so where that cannot decide. Add the
    failing test against `evals/fixtures/retrieval-app` first — `format` currently returns two
    equal candidates, and that assertion must fail before this step exists. B3.
-5. **Co-edit.** Add `.aidlc/lib/coedit.mjs`: `git log --name-only` over a bounded commit window,
+4. **Co-edit.** Add `.aidlc/lib/coedit.mjs`: `git log --name-only` over a bounded commit window,
    pair counts per commit, commits touching an implausibly large number of files contributing
    nothing. Returns an empty set on any git failure. Wire it as the third edge type. B4.
-6. **PageRank.** Replace the fan-in/fan-out body of `query(g, 'hubs')` with power iteration —
+5. **PageRank.** Replace the fan-in/fan-out body of `query(g, 'hubs')` with power iteration —
    uniform initial distribution, damping 0.85, dangling mass redistributed uniformly, stated
    convergence tolerance and iteration cap as named constants. Run it a second time over the
    co-edit edge set, reported separately. B5.
-7. Name the three edge types in `query()` so a caller can request one and receive only edges of
+6. Name the three edge types in `query()` so a caller can request one and receive only edges of
    that type, and so every answer names the edge type that produced it. B1.
-8. Re-run `node evals/bench/pack-bench.mjs` and write the pack, bounded-`rg` and recall figures
+7. Re-run `node evals/bench/pack-bench.mjs` and write the pack, bounded-`rg` and recall figures
    into `docs/IMPROVEMENT-PLAN.md` against the recorded 5,743-versus-3,436 result, whichever way
    it comes out. B6.
-9. Regenerate `CODEBASE-MAP.md`, which the Stop hook rewrites when the ranking changes the hubs.
-10. Check the line-cost expectation: `graph.mjs` under 550 lines, `coedit.mjs` under 90. If either
-    is exceeded, stop and bring the design back rather than landing it.
-11. `harness check --stage commit`, and paste the output.
+8. Regenerate `CODEBASE-MAP.md`, which the Stop hook rewrites when the ranking changes the hubs.
+9. Check the line-cost expectation: `graph.mjs` under 550 lines, `coedit.mjs` under 90. If either
+   is exceeded, stop and bring the design back rather than landing it.
+10. `harness check --stage commit`, and paste the output.
 
 ## Proof
 
@@ -100,18 +102,13 @@ ids. B6's row is a recorded measurement and a document paragraph; no test decide
 result justifies the change, which is the point of keeping `pack-bench.mjs`'s exit criterion
 outside this change's control.
 
-## Dependencies
-
-| Change | Interface | Revision |
-|---|---|---|
-| graph-first-versus-grep-first | evals/lib/comparison.mjs | 2c95b85bba1de7f5b11128a4077f7d69e62aa83b |
-
 ## Coordination
 
-`graph-first-versus-grep-first` builds and runs the comparison whose recorded outcome step 1
-requires. It is a delivery prerequisite, not an extension, so it sits in `depends_on` and not in
-`extends`. Its approval is not its delivery: step 1 checks for a recorded outcome under
-`evals/evidence/`, not for that change's gate state.
+This change has no `depends_on` and declares no `## Dependencies` table: it waits on nothing. The
+former dependency on `graph-first-versus-grep-first` producing a comparison outcome was removed on
+the user's instruction of 2026-09-09, along with the spend ceiling that came with it; the spec's
+`## Basis` section records why. That change still owns the comparison tooling, and running it
+later remains possible — this change simply no longer blocks on it.
 
 `docs/IMPROVEMENT-PLAN.md` is named in that change's `## Files` too, and in
 `a-baseline-measures-what-ships`'s. All three append rather than rewrite each other's rows;
