@@ -230,8 +230,7 @@ Once installed, hooks fire on their own:
 Claude repairs failures itself and pastes the evidence. It should never ask you to run a check.
 
 Claude also picks skills on its own from ordinary requests — "fix this bug" pulls in `diagnose`,
-"refactor this" pulls in `change-safely`, unfamiliar code pulls in the `explorer` subagent. You
-don't invoke them by name.
+unfamiliar code pulls in `map` and the `explorer` subagent. You don't invoke them by name.
 
 ---
 
@@ -291,10 +290,11 @@ engineering](https://martinfowler.com/articles/harness-engineering.html):
 
 The budget is fixed in `[limits]` of `.aidlc/harness.toml` and nowhere else. Adding one means deleting one; the commit stage enforces it.
 
-Your project inherits that budget **spent, not empty**. The skills the harness ships are counted
-alongside any you add, against one ceiling — so your first skill goes red until something is
-deleted. Re-run `harness init --into .` after upgrading the
-harness, or the recorded half of that count goes stale.
+Your project inherits that budget **already largely spent**. The skills the harness ships are
+counted alongside any you add, against one ceiling, so what is left to you is what the harness
+did not use — and the moment that is gone, the next one goes red until something is deleted.
+Re-run `harness init --into .` after upgrading the harness, or the recorded half of that count
+goes stale.
 
 A control enters only with a failing eval or a defect recorded while building a real application
 through the harness. Law 11 in the constitution says why. That applies to a skill as much as to a

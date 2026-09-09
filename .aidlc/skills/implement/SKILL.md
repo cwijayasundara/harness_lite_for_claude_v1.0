@@ -36,6 +36,12 @@ retain relevant regression coverage. Do not delete assertions, relax thresholds 
 expected results merely to hide a failure. If the expected behaviour is uncertain, ask the human.
 Respect explicit test locks and externally owned evaluation fixtures.
 
+Distinguish a preserved contract from a defect the approved change is meant to fix. Fix an
+in-scope defect after reproducing it, and record unrelated bugs for separate work. Fix an
+implementation bug to meet the approved requirement rather than synchronising the bug into it.
+Approval alone does not retire delivered behaviour, and historical permission never authorizes
+a new change.
+
 Never write outside `## Files` in the current approved plan. A new path requires an amended,
 re-approved and committed plan. Material design, behaviour, safeguard or scope changes return
 to the human; routine choices within that boundary proceed. An approval becomes stale after

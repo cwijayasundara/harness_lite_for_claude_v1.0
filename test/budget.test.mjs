@@ -45,10 +45,10 @@ test('an installed project measures the harness it was given', () => {
   try {
     const b = budgetOf(root);
     assert.equal(b.measured.hooks, 4, 'hook bindings');
-    assert.equal(b.measured.skills, 7, 'skills');
+    assert.equal(b.measured.skills, 6, 'skills');
     assert.equal(b.measured.agents, 3, 'agents');
     assert.ok(b.measured.hook_loc > 0, `hook_loc = ${b.measured.hook_loc}`);
-    assert.equal(b.verdict, 'pass', 'a full harness in an empty project is exactly at budget');
+    assert.equal(b.verdict, 'pass', 'a full harness in an empty project sits inside its budget');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -60,17 +60,21 @@ test('init records what it shipped, and a self-install records nothing', () => {
   try {
     const record = path.join(root, '.aidlc', RECORD);
     assert.ok(existsSync(record), `${RECORD} was not written`);
-    assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).shipped, { skills: 7, agents: 3 });
+    assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).shipped, { skills: 6, agents: 3 });
     assert.equal(existsSync(path.join(A, RECORD)), false, 'a self-install must not record itself');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-// One ceiling over the total. Which side a control came from decides nothing: the twelve the
-// harness supplied are spent, so the project's first skill is the thirteenth.
-test('a project inherits a spent budget, not an empty one', () => {
+// One ceiling over the total. Which side a control came from decides nothing. retire-change-safely
+// deleted a skill and deliberately left the ceiling where it was, so the one place the harness no
+// longer uses is the project's to spend — and the one after it is refused, which is the half of
+// "spent, not empty" that still holds.
+test('a project inherits the harness budget less what the harness did not use', () => {
   const root = installed();
   try {
     mkdirSync(path.join(root, '.claude', 'skills', 'my-own-skill'), { recursive: true });
+    assert.equal(budgetOf(root).verdict, 'pass', 'the place the harness left unused is the project\'s');
+    mkdirSync(path.join(root, '.claude', 'skills', 'one-more'), { recursive: true });
     const b = budgetOf(root);
     assert.equal(b.measured.skills, 8);
     assert.equal(b.verdict, 'fail');
@@ -148,7 +152,7 @@ test('the budget reads nothing outside the project', () => {
 // the recorded half must never apply here, or this repository could stop counting its own.
 test('the self-install measures the harness itself, not a record', () => {
   const m = measure({ layout: { aidlc: A, claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
-  assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 7, agents: 3, hooks: 4 });
+  assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 6, agents: 3, hooks: 4 });
   assert.ok(m.hook_loc > 0, `hook_loc = ${m.hook_loc}`);
 });
 
@@ -160,6 +164,8 @@ test('an eighth skill is refused by name', () => {
   const root = installed();
   try {
     assert.equal(budgetOf(root).verdict, 'pass', 'a fresh install sits inside the budget');
+    // Six shipped plus the project's own place is exactly the ceiling; this is the one after it.
+    mkdirSync(path.join(root, '.claude', 'skills', 'the-projects-own'), { recursive: true });
     mkdirSync(path.join(root, '.claude', 'skills', 'one-too-many'), { recursive: true });
     writeFileSync(path.join(root, '.claude', 'skills', 'one-too-many', 'SKILL.md'), '---\nname: one-too-many\n---\n');
     const b = budgetOf(root);

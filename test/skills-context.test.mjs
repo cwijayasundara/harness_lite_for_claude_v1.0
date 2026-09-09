@@ -15,9 +15,9 @@ const PLAN = read('docs/IMPROVEMENT-PLAN.md');
 const HARNESS = read('.aidlc/bin/harness');
 
 // The reviewed set, by name rather than by count, so a swap fails as loudly as an addition.
-const SHIPPED = ['change-safely', 'diagnose', 'implement', 'intent', 'map', 'plan', 'spec'];
+const SHIPPED = ['diagnose', 'implement', 'intent', 'map', 'plan', 'spec'];
 
-test('B1 the shipped skills are the reviewed seven, and the ceiling has not moved', () => {
+test('B1 the shipped skills are the reviewed six, and the ceiling has not moved', () => {
   const dirs = readdirSync(path.join(A, 'skills'), { withFileTypes: true })
     .filter(e => e.isDirectory()).map(e => e.name).sort();
   assert.deepEqual(dirs, SHIPPED,
@@ -31,19 +31,15 @@ test('B1 the shipped skills are the reviewed seven, and the ceiling has not move
     'the registry ceiling moved; the budget is spent, not a starting position');
 });
 
-test('B2 the two generic skills are shorter, and every specific rule in them survives', () => {
-  // Baselines are the line counts at 89b5c20, before this change trimmed them.
+test('B2 diagnose stays trimmed, and change-safely\'s four unduplicated rules live in implement', () => {
+  // Baseline is the line count at 89b5c20, before skills-earn-their-context trimmed it.
   const diagnose = skill('diagnose');
-  const changeSafely = skill('change-safely');
   assert.ok(lines(diagnose) < 53, `diagnose grew back: ${lines(diagnose)} lines`);
-  assert.ok(lines(changeSafely) < 42, `change-safely grew back: ${lines(changeSafely)} lines`);
 
   // Generic prose that names nothing here and that no record motivates. `## Anti-patterns`
   // arrived at 303b58b, before any lean-era spec.
   assert.doesNotMatch(diagnose, /## Anti-patterns/);
-  assert.doesNotMatch(changeSafely, /\| Situation \| Approach \|/);
 
-  // What must not be lost with it: the harness-specific core of each file.
   for (const rule of [
     /bash \.aidlc\/bin\/harness check/,          // the loop is built from this repository's checks
     /harness new incident <slug>/,               // control-band breach -> incident -> linked intent
@@ -51,14 +47,24 @@ test('B2 the two generic skills are shorter, and every specific rule in them sur
     /test locks and external evaluation fixtures remain protected/,
   ]) assert.match(diagnose, rule, 'a harness-specific rule was cut from diagnose');
 
+  // retire-change-safely B2. Asserted one by one, so losing a single rule fails rather than
+  // passing on a partial match. These four had no home anywhere else when the file was deleted.
+  const implement = skill('implement');
   for (const rule of [
-    /harness graph query. \/ .harness pack. before whole-file reads/,
-    /approved file scope, test\s+locks and external evaluation ownership/,
-    /supersedes link/,
-    /extends where applicable/,
-    /revision-specific product context when recorded\s+delivery evidence exists/,
-    /Fix implementation bugs to meet the approved requirement/,
-  ]) assert.match(changeSafely, rule, 'a harness-specific rule was cut from change-safely');
+    /Distinguish a preserved contract from a defect the approved change is meant to fix/,
+    /Fix an\s+in-scope defect after reproducing it, and record unrelated bugs for separate work/,
+    /implementation bug to meet the approved requirement rather than synchronising the bug into it/,
+    /Approval alone does not retire delivered behaviour/,
+    /historical permission never authorizes\s+a new change/,
+  ]) assert.match(implement, rule, 'a rule rescued from change-safely was lost');
+
+  // B1: the rules that were already stated elsewhere are still stated there.
+  assert.match(implement, /Locate callers and definitions with\s+.harness pack. \/ .graph query./);
+  assert.match(implement, /Respect explicit test locks and externally owned evaluation\s+fixtures/);
+  assert.match(implement, /Never write outside .## Files./);
+  assert.match(skill('spec'), /supersedes: <slug>#<behaviour-id>/);
+  assert.match(skill('spec'), /extends: <slug>/);
+  assert.match(skill('map'), /Revision-specific product context/);
 });
 
 test('B3 every skill and agent the README presents as shipped exists', () => {

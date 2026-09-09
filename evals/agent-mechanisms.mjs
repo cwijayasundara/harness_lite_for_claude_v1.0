@@ -67,7 +67,7 @@ function compareGuidance(base) {
   loadDotEnv(root);
   const model = loadConfig(root).models.generator;
   const revision = execFileSync('git', ['rev-parse', '--verify', `${base}^{commit}`], { cwd: root, encoding: 'utf8' }).trim();
-  const files = ['.aidlc/instructions.md', ...['intent','spec','plan','implement','change-safely','diagnose','map'].map(s => `.aidlc/skills/${s}/SKILL.md`)];
+  const files = ['.aidlc/instructions.md', ...['intent','spec','plan','implement','diagnose','map'].map(s => `.aidlc/skills/${s}/SKILL.md`)];
   const evidence = { kind: 'bounded-guidance-comparison', base: revision, model,
     cli: execFileSync('claude', ['--version'], { encoding: 'utf8' }).trim(), cases: guidanceCases,
     limitation: 'One paired decision sample; workflowInterventions counts proposed unnecessary stops/splits, not observed repair turns. Product proof is limited to two function outputs. Full product campaigns remain item 3.',
