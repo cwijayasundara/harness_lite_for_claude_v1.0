@@ -44,7 +44,7 @@ goes second.
 
 | Change | Interface | Revision |
 |---|---|---|
-| retire-change-safely | `docs/IMPROVEMENT-PLAN.md` | `39b65553686aee3f50828f7e6106a0eb87e1278f` |
+| retire-change-safely | docs/IMPROVEMENT-PLAN.md | 39b65553686aee3f50828f7e6106a0eb87e1278f |
 
 ## Order
 

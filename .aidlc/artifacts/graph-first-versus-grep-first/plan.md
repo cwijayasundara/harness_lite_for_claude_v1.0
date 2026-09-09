@@ -38,13 +38,6 @@ model and are done regardless of how the run ends.
 - `test/comparison.test.mjs`
 - `docs/IMPROVEMENT-PLAN.md`
 
-## Dependencies
-
-| Change | Interface | Revision |
-|---|---|---|
-| retire-change-safely | `docs/IMPROVEMENT-PLAN.md` | the commit that lands it |
-| a-block-names-its-rule | `docs/IMPROVEMENT-PLAN.md` | the commit that lands it |
-
 ## Order
 
 1. Add the `retrieval` pair to `comparisonPairs` in `evals/lib/comparison.mjs`
