@@ -50,6 +50,7 @@ out, against the 5,743-versus-3,436 result already on record.
 
 - `.aidlc/lib/graph.mjs`
 - `.aidlc/lib/coedit.mjs`
+- `.aidlc/lib/rank.mjs`
 - `.aidlc/lib/pack.mjs`
 - `test/graph.test.mjs`
 - `evals/bench/pack-bench.mjs`
@@ -72,18 +73,22 @@ out, against the 5,743-versus-3,436 result already on record.
 4. **Co-edit.** Add `.aidlc/lib/coedit.mjs`: `git log --name-only` over a bounded commit window,
    pair counts per commit, commits touching an implausibly large number of files contributing
    nothing. Returns an empty set on any git failure. Wire it as the third edge type. B4.
-5. **PageRank.** Replace the fan-in/fan-out body of `query(g, 'hubs')` with power iteration —
-   uniform initial distribution, damping 0.85, dangling mass redistributed uniformly, stated
-   convergence tolerance and iteration cap as named constants. Run it a second time over the
-   co-edit edge set, reported separately. B5.
+5. **PageRank.** Move centrality whole into a new `.aidlc/lib/rank.mjs`: the existing
+   fan-in/fan-out body of `query(g, 'hubs')` goes with it, and is replaced there by power
+   iteration — uniform initial distribution, damping 0.85, dangling mass redistributed uniformly,
+   stated convergence tolerance and iteration cap as named constants. A second ranking runs over
+   the co-edit edge set and is returned separately, never blended. `query()` delegates and keeps
+   its signature, so `map.mjs`, the SessionStart hubs line and `baseline.mjs` are untouched. The
+   move is what returns `graph.mjs` under its ceiling; it is not a way around it. B5.
 6. Name the three edge types in `query()` so a caller can request one and receive only edges of
    that type, and so every answer names the edge type that produced it. B1.
 7. Re-run `node evals/bench/pack-bench.mjs` and write the pack, bounded-`rg` and recall figures
    into `docs/IMPROVEMENT-PLAN.md` against the recorded 5,743-versus-3,436 result, whichever way
    it comes out. B6.
 8. Regenerate `CODEBASE-MAP.md`, which the Stop hook rewrites when the ranking changes the hubs.
-9. Check the line-cost expectation: `graph.mjs` under 550 lines, `coedit.mjs` under 90. If either
-   is exceeded, stop and bring the design back rather than landing it.
+9. Check the line-cost expectation: `graph.mjs` under 550 lines, `coedit.mjs` under 90,
+   `rank.mjs` under 90. If any is exceeded, stop and bring the design back rather than landing it —
+   as step 4 did, which is why `rank.mjs` exists.
 10. `harness check --stage commit`, and paste the output.
 
 ## Proof
@@ -94,7 +99,7 @@ out, against the 5,743-versus-3,436 result already on record.
 | B2 | `test/graph.test.mjs` — a fixture with a deliberately unresolvable import reports it as unresolved rather than dropping it; a fixture with one symbol name in two modules reports it as ambiguous; a duplicated edge appears once. Counts and the enumerable list are both asserted. |
 | B3 | `test/graph.test.mjs` against `evals/fixtures/retrieval-app` — resolving `format` from a call site in a module importing one definer names that one definition and reports the ambiguity; from a module importing both, the answer says it cannot decide and returns the candidates. Written failing at step 4. |
 | B4 | `test/graph.test.mjs` — on this repository the `co-edit` edge between `test/guard.test.mjs` and `test/lifecycle-cli.test.mjs` exists with a weight reflecting repeated co-change, and no `import` or `call` edge joins them. A second case builds against a directory with no git history and asserts an empty co-edit set, a successful build, and every other query unchanged. |
-| B5 | `test/graph.test.mjs` — on a hand-built graph whose PageRank ordering differs from its degree ordering, `query(g, 'hubs')` returns the PageRank ordering; iteration converges within the stated cap; the co-edit ranking is returned separately and no call returns a blended score. |
+| B5 | `test/graph.test.mjs` — on a hand-built graph whose PageRank ordering differs from its degree ordering, `query(g, 'hubs')` returns the PageRank ordering; iteration converges within the stated cap; the co-edit ranking is returned separately and no call returns a blended score. `query()`'s signature is unchanged, so the existing `Q3 — what are the hubs` test keeps passing against the moved implementation. |
 | B6 | `node evals/bench/pack-bench.mjs` output, recorded in `docs/IMPROVEMENT-PLAN.md` at step 8 with the date. Runtime evidence, not an assertion — the benchmark's own `recall >= 0.9` gate still passes or fails the run, but whether the token figure improved is a number a reviewer reads, not a test that grades it. |
 
 `test/graph.test.mjs` is `node:test`, so these rows are file-and-test-name rather than pytest node

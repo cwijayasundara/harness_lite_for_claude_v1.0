@@ -132,11 +132,20 @@ manufacture a fully connected graph.
 `GRAPH_VERSION` moves from 4, which invalidates every cached index; `ensure()` already rebuilds on
 a version mismatch, so no migration is written.
 
-**Line cost.** `graph.mjs` is 366 lines of a 4,841-line kernel, and the lean review names 33%
-core growth as the standing risk. The expectation this spec sets: the ranking and the pipeline
-stages stay inside `graph.mjs` and it ends under 550 lines; co-edit derivation, which is the only
-part that shells out to git, goes in its own module under 90 lines. A design that needs more than
-that is a design to bring back to the human, not to land quietly.
+**Line cost.** `graph.mjs` was 366 lines of a 4,841-line kernel when this spec was written, and the
+lean review names 33% core growth as the standing risk. The expectation this spec set: the ranking
+and the pipeline stages stay inside `graph.mjs` and it ends under 550 lines; co-edit derivation,
+which is the only part that shells out to git, goes in its own module under 90 lines. A design that
+needs more than that is a design to bring back to the human, not to land quietly.
+
+That expectation was reached at step 4 and brought back rather than quietly raised. With the
+starter, audit, anchor and co-edit stages landed and the ranking still to come, `graph.mjs` stood
+at 558 lines and the kernel at 5,257. The user's decision on 2026-09-09 was to split rather than to
+raise: centrality moves whole into `.aidlc/lib/rank.mjs` — the PageRank and the existing `hubs`
+body with it — cohesive on its own as "how central is this module", and the same reason co-edit
+was split out. The ceilings stand rather than move: `graph.mjs` under 550, `coedit.mjs` under 90,
+`rank.mjs` under 90. Splitting is not a way around the number. The number is what forced the split,
+and a third module that still does not fit is still a design to bring back.
 
 The rejected alternative is one blended PageRank over all three edge types. It produces a single
 number that is easier to consume and impossible to explain — a file ranked high because it is
