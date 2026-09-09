@@ -608,3 +608,38 @@ exit criterion is unchanged, and its recorded 5,743-versus-3,436 token result is
 replacement is measured against.
 
 No runtime mechanism, dependency, gate, control or budget was added by this review.
+
+### Context baseline repaired — 2026-09-09
+
+`a-baseline-measures-what-ships` landed at `76b37ebf1200521db6cbd713524f868945ea729f`. The
+SessionStart payload is assembled by `.aidlc/lib/session.mjs` and by nothing else; the hook writes
+what that function returns and `baseline.mjs`'s `capture()` measures the same string. The
+synthetic four-line reconstruction is deleted rather than corrected, and a test fails if a second
+assembly reappears in the hook.
+
+`session_context_tokens` moved from 52 to 649. **This is a corrected measurement of an unchanged
+payload, not a regression.** The emitted string was verified byte-identical across the extraction —
+2,594 characters, 33 lines — before and after. The old figure counted four hand-written lines; the
+real payload also carries the map, hubs, contract, current-change and 25 `superseded:` lines.
+
+The recapture also corrected a record stale since 2026-08-24: `claude_md_tokens` 672 to 1,516,
+`check_stop_tokens` 12 to 1,888, `pack_tokens_p50` 476 to 1,186, and `wiki_index_tokens` removed —
+a key `capture()` had stopped producing. `compare()` now reports such a key instead of ignoring it,
+so a file that has drifted from its schema is visible rather than silently graded. That the whole
+file was stale is the same defect as the headline one: nothing ran the ratchet, so nothing noticed.
+
+The ratchet is now a control. `.aidlc/checks/baseline.mjs` runs the existing `compare()` and
+`[stages] commit` names it, so a rise beyond the recorded 1.10 tolerance fails a build and the
+finding carries the metric and both figures. No measurement was invented and no `[limits]` value
+moved; `hook_loc` fell from 255 to 212 as a side effect of the extraction.
+
+One collision was found while implementing and is recorded because it constrains future work:
+`evals/lib/comparison.mjs` rewrites source **text** to run the session-inventory pruning
+experiment, and its anchors were the lines this change moved. It is re-anchored onto
+`lib/session.mjs` rather than abandoned, because that pair is the one validated removal experiment
+on record and one that cannot be re-run against current code stops being evidence. Any future move
+of the payload must move those anchors with it; a stale anchor fails loudly with `source drift`.
+
+Not taken here: whether the `superseded:` list stays in the payload. It is 25 of the 33 lines and
+grows without bound. This change makes that cost visible and gated; spending it is a separate
+decision.
