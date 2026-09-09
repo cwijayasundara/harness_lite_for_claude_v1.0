@@ -16,6 +16,13 @@ import * as ledger from './ledger.mjs';
 import * as artifacts from './artifacts.mjs';
 import { candidateBoundary, validateCheckout, changedFiles } from './diff.mjs';
 
+// a-block-names-its-rule B1. The checks already tag their findings and the report already prints
+// the tag; the ledger row dropped it, so 54 blocks could not be reached by `harness ledger flag`,
+// which matches on `rule`. One row records one rule: the first tagged finding, which is the one
+// the operator reads first and therefore the one they are calling wrong. A list would turn the
+// row into a summary and make the audit's per-rule split ambiguous.
+export const ruleOf = (findings) => (findings ?? []).find((f) => f?.rule)?.rule ?? null;
+
 // Exported so a test can resolve stage entries against the runner's own list rather than a
 // copy of it. Two lists that must agree is the shape of most defects in this repository.
 export const LOCAL_CHECKS = {
@@ -170,8 +177,10 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
     ledger.append({ kind: 'check-invocation', provenance, stage, ok: report.ok, identity_errors: identityErrors,
       controls_count: results.length, ...(evidence ? { revision: evidence } : {}) }, cfg.layout);
     for (const r of results) {
+      const rule = ruleOf(r.findings);
       ledger.append({ provenance,
         stage, control: r.control, verdict: r.verdict, ms: r.ms,
+        ...(r.verdict === 'fail' && rule ? { rule } : {}),
         findings: (r.findings ?? []).length, changed_files: files.length,
         ...(evidence ? { revision: evidence } : {}),
         ...(r.error ? { error: String(r.error).slice(0, 400) } : {}),

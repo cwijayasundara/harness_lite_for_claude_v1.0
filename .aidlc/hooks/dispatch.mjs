@@ -68,7 +68,7 @@ function preWrite(input, cfg) {
         if (!file) return 0;
         const rel = path.relative(cfg.layout.root, path.resolve(cfg.layout.root, file));
         const hit = writeBlocked(rel, cfg);
-        if (hit) { ledger.append({ stage: 'pre-write', control: 'write-guard', verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(hit); }
+        if (hit) { ledger.append({ stage: 'pre-write', control: 'write-guard', rule: hit.rule, verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(hit.message); }
         ledger.append({ stage: 'pre-write', control: 'write-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
   return 0;
 }

@@ -35,6 +35,10 @@ function artifactOrState(rel) {
   return rel.startsWith('.aidlc/artifacts/') || rel.startsWith('.aidlc/state/');
 }
 
+// a-block-names-its-rule B2. A refusal carries the name of the branch that produced it, so a
+// write-guard block can be called wrong by name like any other. The message is unchanged.
+const refuse = (rule, message) => ({ rule, message });
+
 export function writeBlocked(rel, cfg) {
   const norm = String(rel ?? '').replace(/^\.\//, '');
   if (!norm || norm.startsWith('..')) return null;
@@ -59,7 +63,7 @@ export function writeBlocked(rel, cfg) {
   for (const p of PREFIX_CACHE_PATHS) {
     if (norm === p) {
       if (owned()) break;
-      return `${p} configures agent instructions or permissions. Name it in the approved plan before changing it; reload the session to apply instruction changes. ${scope?.line ?? ""}`;
+      return refuse('prefix-cache', `${p} configures agent instructions or permissions. Name it in the approved plan before changing it; reload the session to apply instruction changes. ${scope?.line ?? ""}`);
     }
   }
 
@@ -71,7 +75,7 @@ export function writeBlocked(rel, cfg) {
   for (const p of protectedPaths) {
     if (norm === p || norm.startsWith(p.replace(/\/$/, '') + '/')) {
       if (owned()) break;
-      return `${p} is listed in harness.toml [guard].protected_paths. Only a committed approved contract that names this exact path may change it. ${scope?.line ?? ""}`;
+      return refuse('protected-path', `${p} is listed in harness.toml [guard].protected_paths. Only a committed approved contract that names this exact path may change it. ${scope?.line ?? ""}`);
     }
   }
   const lock = path.join(cfg.layout.state, 'test-lock.json');
@@ -79,7 +83,7 @@ export function writeBlocked(rel, cfg) {
     try {
       const { patterns = [], why = 'a bug fix is in progress' } = JSON.parse(readFileSync(lock, 'utf8'));
       for (const pat of patterns) {
-        if (pat && norm.includes(pat)) return `${norm} is test-locked because ${why}. Fix the code, not the test. Run: .aidlc/bin/harness lock clear`;
+        if (pat && norm.includes(pat)) return refuse('test-lock', `${norm} is test-locked because ${why}. Fix the code, not the test. Run: .aidlc/bin/harness lock clear`);
       }
     } catch { /* a malformed lock must not block work */ }
   }
@@ -87,8 +91,8 @@ export function writeBlocked(rel, cfg) {
     try {
       if (!scope) scope = contractScopeState(cfg);
       const { declared, parseError } = scope;
-      if (parseError && !declared.length) return contractRefusal(norm, scope);
-      if (!declared.length || !matchesDeclared(norm, declared)) return contractRefusal(norm, scope);
+      if (parseError && !declared.length) return refuse('write-scope', contractRefusal(norm, scope));
+      if (!declared.length || !matchesDeclared(norm, declared)) return refuse('write-scope', contractRefusal(norm, scope));
     } catch { return null; }
   }
   return null;
