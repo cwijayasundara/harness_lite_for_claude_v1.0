@@ -127,7 +127,7 @@ test('re-running init refreshes the recorded inventory', () => {
     assert.match(legacy.stderr, /unverified/);
     const again = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
     assert.equal(again.status, 0, again.stderr);
-    assert.equal(budgetOf(root).measured.skills, 7);
+    assert.equal(budgetOf(root).measured.skills, 6);
     assert.equal(budgetOf(root).measured.agents, 3);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -139,7 +139,7 @@ test('the budget reads nothing outside the project', () => {
   const home = mkdtempSync(path.join(tmpdir(), 'empty-home-'));
   try {
     const b = budgetOf(root, { HOME: home, USERPROFILE: home });
-    assert.equal(b.measured.skills, 7);
+    assert.equal(b.measured.skills, 6);
     assert.equal(b.measured.agents, 3);
     assert.equal(b.measured.hooks, 4);
   } finally {

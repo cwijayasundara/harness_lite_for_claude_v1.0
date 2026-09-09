@@ -38,6 +38,7 @@ the new behaviour.
 - `.aidlc/skills/implement/SKILL.md`
 - `test/skills-context.test.mjs`
 - `test/budget.test.mjs`
+- `test/graph-first.test.mjs`
 - `README.md`
 - `evals/agent-mechanisms.mjs`
 - `docs/IMPROVEMENT-PLAN.md`
@@ -60,7 +61,10 @@ the new behaviour.
 6. Update `README.md`: the skill-selection sentence no longer offers
    `change-safely`, and the budget paragraph describes a partly spent budget
    without stating a number.
-7. Update the skill list in `evals/agent-mechanisms.mjs`.
+7. Update the skill list in `evals/agent-mechanisms.mjs`, and remove the deleted
+   file from the steering-surface map in `test/graph-first.test.mjs`, which
+   reads it by path. Every assertion that test makes over the remaining
+   surfaces is kept; only the deleted surface leaves the map.
 8. Record in the lean-review skills row in `docs/IMPROVEMENT-PLAN.md` that the
    recommendation was taken, when, and that the ceiling was deliberately left.
 9. Run `harness check --stage stop`, then `--stage commit`.
@@ -72,7 +76,7 @@ the new behaviour.
 | B1 | `test/skills-context.test.mjs`: the frozen skill set is the six that remain, and each harness-specific rule the deleted file carried is asserted by name in `implement`, `map` or `spec`; `.aidlc/artifacts/retire-change-safely/review.md` records the sentence-by-sentence mapping, including the four generic rules deliberately dropped |
 | B2 | `test/skills-context.test.mjs`: `implement` states each of the four rules B2 names, asserted individually so losing one fails; `test/contracts.test.mjs` keeps proving its frontmatter, its generator binding, the 130-line stop and the eight-step rule |
 | B3 | `test/budget.test.mjs`: the recorded inventory equals what is shipped, a project's first skill is accommodated and its second is refused with the stage red, and an unaccountable surface is still red rather than green; `test/contracts.test.mjs` keeps proving no document states a budget number of its own |
-| B4 | `test/skills-context.test.mjs`: neither `README.md` nor `evals/agent-mechanisms.mjs` names `change-safely`, every skill the README presents as shipped resolves on disk, and the lean-review row records the decision and its date |
+| B4 | `test/skills-context.test.mjs`: neither `README.md` nor `evals/agent-mechanisms.mjs` names `change-safely`, every skill the README presents as shipped resolves on disk, and the lean-review row records the decision and its date; `test/graph-first.test.mjs` keeps proving graph-first steering over every surface that still exists |
 
 ## Gate status
 
