@@ -26,15 +26,15 @@ product runs. `[graph] exclude` lists `node_modules`, `.venv`, `dist`, `.git`, `
 
 The consequences are not cosmetic. The audit reports 282 ambiguous symbol names, and the samples
 are one `src/ledger.mjs` copied into sixty recorded run directories rather than a real collision.
-The index is 620 KB, most of it evidence. And the ranking `code-property-graph#B5` is about to
-replace fan-in counting with PageRank would rank those copies as the most central files in the
+The index is 620 KB, most of it evidence. And the PageRank the property-graph change is about to
+put in place of fan-in counting would rank those copies as the most central files in the
 repository — making the SessionStart hubs line worse than the metric it replaces, on the surface
 `a-baseline-measures-what-ships` has just made measurable and gated.
 
 **Co-edit weights rot silently.** `fingerprint(cfg)` hashes discovered paths and their contents.
 `refresh()` compares it and returns `{ skipped: 'clean' }` when it matches. A `git commit` changes
 co-edit weights — they are derived from history — while touching no working-tree file, so the
-fingerprint is identical and the refresh is skipped. `code-property-graph#B4` adds that edge type;
+fingerprint is identical and the refresh is skipped. The property-graph change adds that edge type;
 nothing in the existing freshness loop can see it move.
 
 The rest of the freshness loop is sound and this change does not disturb it: `refresh()` rebuilds
@@ -64,7 +64,8 @@ Observable from outside the system:
 - `.aidlc/lib/pack.mjs` and the pre-search hook — fewer candidate modules, same miss path.
 - Every consuming project: they inherit the same defect today and would each have to fix it by
   hand in their own `[graph] exclude`.
-- `code-property-graph`, which this extends: its B5 ranking is only worth landing once B8 has.
+- `code-property-graph`, which this extends: its PageRank step is only worth landing once the
+  exclusion below has, and its co-edit step wants the fingerprint fix.
 
 ## Constraints
 

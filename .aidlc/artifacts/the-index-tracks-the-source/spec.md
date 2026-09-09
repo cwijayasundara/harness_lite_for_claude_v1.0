@@ -35,7 +35,7 @@ Given a commit that changes no file in the working tree,
 When `refresh()` runs,
 Then it does not report `clean`: the fingerprint covers the current commit id as well as
 discovered paths and their contents, so history-derived edges are recomputed. Under a
-content-only fingerprint the co-edit weights `code-property-graph#B4` adds would report identical
+content-only fingerprint the co-edit weights the property-graph change adds would report identical
 before and after a commit that changed them, and nothing in the refresh loop could see it.
 Deriving those weights stays bounded work done once per commit rather than once per turn.
 
@@ -60,7 +60,8 @@ knows about them.
 
 B2 adds the commit id to `fingerprint()`. `git rev-parse HEAD` is one cheap call already available
 — `changedSymbols` shells out to git in the same module — and a repository with no commits or no
-git yields an empty component rather than an error, matching how `code-property-graph#B4` degrades.
+git yields an empty component rather than an error, matching how the co-edit edge type degrades
+where there is no history.
 
 B3 is largely an assertion that existing properties survive rather than new code. `refresh()`'s
 whole-rebuild is deliberate and stays; the `skipped: 'clean'` path stays, now correctly gated by a
@@ -99,5 +100,5 @@ because after B1 the whole rebuild is cheap enough that the saving is not worth 
   clone, so the fingerprint never throws where it previously succeeded.
 - The `graph_modules` and `graph_symbols` drop is a recapture of `.aidlc/baseline.json`, and the
   record must state that it is a corrected scope rather than a regression — the same discipline
-  `a-baseline-measures-what-ships#B5` established. Neither metric is in `RATCHETED`, so no gate
-  reads the change as a rise.
+  the context-baseline repair established when it recorded 52 to 649 as a corrected measurement
+  of an unchanged payload. Neither metric is in `RATCHETED`, so no gate reads the drop as a rise.
