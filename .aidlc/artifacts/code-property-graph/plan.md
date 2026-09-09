@@ -87,7 +87,7 @@ out, against the 5,743-versus-3,436 result already on record.
    it comes out. B6.
 8. Regenerate `CODEBASE-MAP.md`, which the Stop hook rewrites when the ranking changes the hubs.
 9. Check the line-cost expectation: `graph.mjs` under 550 lines, `coedit.mjs` under 90,
-   `rank.mjs` under 90. If any is exceeded, stop and bring the design back rather than landing it —
+   `rank.mjs` under 100. If any is exceeded, stop and bring the design back rather than landing it —
    as step 4 did, which is why `rank.mjs` exists.
 10. `harness check --stage commit`, and paste the output.
 

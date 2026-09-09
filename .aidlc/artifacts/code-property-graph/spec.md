@@ -144,8 +144,16 @@ at 558 lines and the kernel at 5,257. The user's decision on 2026-09-09 was to s
 raise: centrality moves whole into `.aidlc/lib/rank.mjs` — the PageRank and the existing `hubs`
 body with it — cohesive on its own as "how central is this module", and the same reason co-edit
 was split out. The ceilings stand rather than move: `graph.mjs` under 550, `coedit.mjs` under 90,
-`rank.mjs` under 90. Splitting is not a way around the number. The number is what forced the split,
+`rank.mjs` under 100. Splitting is not a way around the number. The number is what forced the split,
 and a third module that still does not fit is still a design to bring back.
+
+`rank.mjs`'s figure was itself brought back once. Written as 90 before the module existed, it was
+an estimate; the module came in at 105 and trimmed to 99, of which 34 lines are the `why:` comments
+the constitution requires. Cutting those to reach 90 would be deleting the reasoning to satisfy a
+number, which is the same move as weakening a test to make a build pass. The user raised it to 100
+on 2026-09-09 rather than accept that trade. `graph.mjs`'s 550 was not touched, and it is the
+figure that mattered: the split brought that module from 558 down to 547, which is what the
+ceiling existed to force.
 
 The rejected alternative is one blended PageRank over all three edge types. It produces a single
 number that is easier to consume and impossible to explain — a file ranked high because it is
