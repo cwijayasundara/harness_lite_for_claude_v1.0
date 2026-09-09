@@ -4,14 +4,14 @@ source_digest: sha256:4e5ca318f767e590e24961b313042fb6c3cae006d0bab78e74a77b35fd
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: b5c4c2fc2329b48b31b97cbcb8859bf60d36f9ae
 source_kind: repository
-intent_digest: sha256:320efff2c6295e40f68b66f899e3141e58e84c34142ad28d7509439b4dd87c81
-intent_input_digest: sha256:050c597f9018487f0739cb7b603ebf23646be17ecae3fc4e681600698f152e68
-intent_revision: 4c3433f0ddbe66221df2166b810b03c93ee0ecf8
+intent_digest: sha256:7aaee3b2c820d966ff35e2032c0c2dc238d8fb6c73dc8507a4dca80c4cda2509
+intent_input_digest: sha256:cf5de41c08596b2f93dc8ff0c1c2efac4b5fb3d20bca51af2cc2e49865ab7e02
+intent_revision: 28f06864b92a4af0aabf19ebb10aa69e3875c449
 by: cwijayasundara
-at: 2026-09-09T13:36:33.078Z
-digest: sha256:bd3e93595f2bc2581de95d117c0a9637c09e2422d306e54edc68bd5921e1c799
+at: 2026-09-09T16:18:35.558Z
+digest: sha256:75bd992e3e16fe16b9ecc59b450c0503593f4d91987473a9ee6dd28485881271
 approval_version: 2
-approval_digest: sha256:39e56720a883056c7ca6a5e49fd05dca3bd9245dfbe780e8f7971cbb1fba6a50
+approval_digest: sha256:573d1c40d5c8762229b1687a8ce02d07ca34b2da275636153663c6f653da4204
 ---
 # Spec: code-property-graph
 
