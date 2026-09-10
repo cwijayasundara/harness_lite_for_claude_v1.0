@@ -209,17 +209,27 @@ test('the contract guard does not block a command that writes no product file', 
 });
 
 // p0-unblock-the-loop B2. Narrowing the guard must not open it.
-test('the contract guard still blocks an unowned write to a product file', () => {
+//
+// D1 repair, round 2: `assert.ok` alone let the `sed -i '' s/a/b/ src/app.py` row pass while
+// naming `s/a/b` — the sed script `writeTargets` also extracts as an argument — instead of the
+// file actually being written. A truthy refusal is not evidence it named the right thing; the
+// message is asserted against the real path for every row now.
+test('the contract guard still blocks an unowned write to a product file, and names the file, not a fragment', () => {
   const f = tmp('contract-guard-write-'); try {
     const cfg = contractCfg(f);
-    for (const cmd of [
-      'echo x > src/app.py',
-      'echo x >> src/app.py',
-      "sed -i '' s/a/b/ src/app.py",
-      'cat x | tee src/app.py',
-      'node build.mjs 2>&1 > dist/out.js',
-      'cp /tmp/other.py src/app.py',
-    ]) assert.ok(bashContractBlocked(cmd, cfg), `allowed an unowned product write: ${cmd}`);
+    for (const [cmd, named] of [
+      ['echo x > src/app.py', 'src/app.py'],
+      ['echo x >> src/app.py', 'src/app.py'],
+      ["sed -i '' s/a/b/ src/app.py", 'src/app.py'],
+      ["sed -i '' 's/a/b/' src/app.py", 'src/app.py'],
+      ['cat x | tee src/app.py', 'src/app.py'],
+      ['node build.mjs 2>&1 > dist/out.js', 'dist/out.js'],
+      ['cp /tmp/other.py src/app.py', 'src/app.py'],
+    ]) {
+      const refusal = String(bashContractBlocked(cmd, cfg));
+      assert.match(refusal, new RegExp(`^${named.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}:`),
+        `did not name ${named}: ${cmd} => ${refusal}`);
+    }
   } finally { f.cleanup(); }
 });
 
@@ -313,6 +323,10 @@ test('a protected path an approved committed contract names is writable', () => 
 // owned, unowned, a protected path, an artifact path, and a /dev/ target. `norm` reproduces the
 // same repository-relative computation `preWrite` in dispatch.mjs applies before calling
 // writeBlocked, so the two sides are handed the same string rather than two different ones.
+//
+// D1 repair, round 2: `assert.equal(Boolean(bash), Boolean(write))` proved both sides refused,
+// never that they refused for the same reason. B1's own clause is "the refusal is the same
+// message the Write tool returns for that same path" — the two are now compared verbatim.
 test('the bash path and the write path return one verdict for one target', async () => {
   const { loadConfig } = await import('../.aidlc/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
@@ -328,7 +342,7 @@ test('the bash path and the write path return one verdict for one target', async
     for (const [label, target] of rows) {
       const write = writeBlocked(norm(target), cfg);
       const bash = bashContractBlocked(`echo x > ${target}`, cfg);
-      assert.equal(Boolean(bash), Boolean(write),
+      assert.equal(bash, write,
         `${label} target "${target}" disagreed — bash=${JSON.stringify(bash)} write=${JSON.stringify(write)}`);
     }
   } finally { s.cleanup(); }
@@ -375,6 +389,48 @@ test('a shell redirect to a path the approved plan owns proceeds', async () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
     const cfg = loadConfig(s.work);
     assert.equal(bashContractBlocked('echo x > src/app/text.py', cfg), null);
+  } finally { s.cleanup(); }
+});
+
+// D1 repair, round 2. Routing every extracted token through `writeRefusal` (the first round of
+// this repair) made `writeTargets`' own over-extraction consequential: a read-only `grep` whose
+// pattern mentioned `sed`, a `sed -i` script quoted as its own argument, and `~` unexpanded by
+// `path.resolve` were all refused, on a fixture where `hyphen-titlecase` owns `src/app/text.py`.
+// Each row reproduces one false block from the evaluator's table and asserts it is now allowed.
+test('a token writeTargets extracted that cannot be a path is dropped, not refused', async () => {
+  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const cfg = loadConfig(s.work);
+
+    // p0-unblock-the-loop's own defect class: a read-only command is never refused because a
+    // word inside it looks like a write verb. `sed` here is data inside a quoted grep pattern
+    // and `.` is the search root, not a destination.
+    assert.equal(bashContractBlocked('grep -rn "sed -i" --exclude-dir=.git . 2>/dev/null', cfg), null,
+      'refused a read-only grep whose pattern mentioned sed');
+
+    // B2: `sed -i` on a path the approved plan owns proceeds — the sed script quoted as its own
+    // argument must not be asked about instead of the file actually being edited.
+    assert.equal(bashContractBlocked("sed -i '' 's/a/b/' src/app/text.py", cfg), null,
+      'refused sed -i on a path the approved plan owns');
+
+    // B4: `~` is a shell expansion `path.resolve` does not perform on its own. Left unexpanded,
+    // `~/notes.txt` resolved under the repository root by accident and never reached the
+    // out-of-tree carve-out.
+    assert.equal(bashContractBlocked('echo x > ~/notes.txt', cfg), null,
+      'refused a write outside the repository under the home directory');
+
+    // A multi-word quoted filename that writeTargets' plain `\s+` split breaks into fragments
+    // ('"my', 'notes.txt"') is dropped rather than escalated on either fragment. "When in doubt,
+    // drop": a write may slip through, a read is never blocked.
+    assert.equal(bashContractBlocked('cat x | tee "my notes.txt"', cfg), null,
+      'refused a command whose quoted target writeTargets split into fragments');
+
+    // Narrowing the guard must not open it: an unowned single-word target through each of those
+    // same command shapes is still refused, and still names the real file.
+    assert.match(String(bashContractBlocked("sed -i '' 's/a/b/' src/app/handlers.py", cfg)),
+      /^src\/app\/handlers\.py /, 'stopped blocking an unowned sed -i once the script quoting changed');
+    assert.match(String(bashContractBlocked('cat x | tee "handlers.py"', cfg)),
+      /^handlers\.py /, 'stopped blocking an unowned quoted single-word target');
   } finally { s.cleanup(); }
 });
 

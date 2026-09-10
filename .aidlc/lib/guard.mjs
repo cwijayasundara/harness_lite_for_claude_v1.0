@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { homedir } from 'node:os';
 import { PREFIX_CACHE_PATHS } from './paths.mjs';
 import { governingPlans, currentLine, currentChange, draftsAwaitingGate, awaitingGateRemedy } from './artifacts.mjs';
 
@@ -193,6 +194,34 @@ export function bashTouchesProtected(cmd, protectedPaths) {
 // each surviving target is now asked the one question `writeRefusal` already answers for Write
 // and Edit, so the two tools cannot disagree about the same path again — there is no second
 // implementation of what ## Files means.
+// repair (a-shell-redirect-is-a-write, evaluator round 2). `writeTargets` over-extracts: a search
+// pattern that merely mentions `sed`, a `sed` script quoted as its own argument, a multi-word
+// quoted filename split apart by `writeTargets`' plain `\s+` split, and a redirection descriptor
+// are none of them a path a real `## Files` entry could ever name. Consequential-ising every one
+// of those (the previous round of this repair did, by asking `writeRefusal` about every
+// survivor) reintroduced the exact defect class `p0-unblock-the-loop` fixed: a read-only `grep`
+// whose pattern contained the word `sed` was refused, `sed -i` on a path the approved plan OWNS
+// was refused for naming its own script instead of the file, and `~/notes.txt` was refused
+// because `path.resolve` does not expand `~` and the target landed inside the root by accident.
+//
+// This asks one more question before any of those reach `writeRefusal`: could this token be a
+// path at all? A token is dropped, never escalated, when it fails that question — guard.mjs
+// already states the trade this belongs to: "a write may slip through, a read is never blocked."
+// A dropped token can only widen what proceeds; it can never manufacture a new refusal.
+function isPathLikeToken(raw) {
+  let t = raw;
+  // A token symmetrically wrapped in one quote character is a whole quoted argument; look inside
+  // it. A token that is NOT symmetrically wrapped — `"my` or `notes.txt"` from splitting
+  // `tee "my notes.txt"` on whitespace — carries a quote character that answers where the split
+  // broke a real argument in two, not a filename.
+  if (t.length >= 2 && (t[0] === '"' || t[0] === "'") && t[t.length - 1] === t[0]) t = t.slice(1, -1);
+  if (!t) return false; // `''` — an empty argument (`sed -i ''`), never a filename.
+  if (/['"]/.test(t)) return false; // a quote survived unwrapping: a split-apart fragment.
+  if (/[><|&$`*]/.test(t)) return false; // a shell metacharacter a real path in this guard's reach would not have.
+  if (/^s\//.test(t)) return false; // a sed script (`s/a/b/`), not a filename.
+  return true;
+}
+
 export function bashContractRefusal(cmd, cfg) {
   if (!(cfg.guard?.require_contract ?? false)) return null;
 
@@ -207,14 +236,22 @@ export function bashContractRefusal(cmd, cfg) {
   // artifact and state trees are the harness's own bookkeeping — the old carve-out asked that of
   // the whole command string, which let any command merely *naming* an artifact path through.
   // A redirect target is a path. `<noreply@anthropic.com>"` leaves a bare quote behind, which is
-  // not one — stripping quotes and dropping what is left empty is what lets a commit trailer
-  // through. Still regex-level, per the tree-sitter decision in docs/BUILD-PLAN.md Phase 3: a
-  // `>` inside quoted prose followed by a word will still read as a write. That is the residual
-  // and it is a narrower one than refusing every co-authored commit.
+  // not one — `isPathLikeToken` above drops it before `writeRefusal` ever sees it. Still
+  // regex-level, per the tree-sitter decision in docs/BUILD-PLAN.md Phase 3: a `>` inside quoted
+  // prose followed by a word will still read as a write. That is the residual and it is a
+  // narrower one than refusing every co-authored commit.
   const root = cfg.layout?.root ? String(cfg.layout.root) : null;
   const targets = writeTargets(cmd)
+    // Ask "could this even be a path" on the raw token, before any quote-stripping smooths over
+    // the very seam (a stray quote, an empty argument, a bare sed script) that answers it.
+    .filter(isPathLikeToken)
     .map((t) => t.replace(/^['"]+|['"]+$/g, ''))
     .filter(Boolean)
+    // `~` is a shell expansion `path.resolve` does not perform. Left unexpanded, `~/notes.txt`
+    // resolves *under* the repository root by accident and B4's out-of-tree carve-out never
+    // sees it — the guard refused a path outside the repository because it misread where the
+    // path was.
+    .map((t) => (t === '~' || t.startsWith('~/') ? path.join(homedir(), t.slice(1)) : t))
     // B1/B4: the same computation `preWrite` in dispatch.mjs uses, so a target normalises to the
     // identical string on both paths. The old code stripped the root by string comparison and
     // left an out-of-tree absolute path untouched, which is why the two paths disagreed in
@@ -223,8 +260,11 @@ export function bashContractRefusal(cmd, cfg) {
     .map((t) => (root ? path.relative(root, path.resolve(root, t)) : t.replace(/^\.\//, '')))
     // B4: a path outside the repository is outside what any ## Files section can describe — the
     // same carve-out `writeRefusal`'s `norm.startsWith('..')` check already gives Write and Edit.
+    // A `/dev/` target normalises to a `..`-prefixed path by the same computation (there is no
+    // route from the repository root to `/dev` that does not climb out of it first), so this one
+    // filter is also what used to be a separate, unreachable `!t.startsWith('/dev/')` check.
     .filter((t) => t && !t.startsWith('..'))
-    .filter((t) => !t.startsWith('/dev/') && !artifactOrState(t));
+    .filter((t) => !artifactOrState(t));
 
   for (const t of targets) {
     const hit = writeRefusal(t, cfg);
