@@ -1,7 +1,17 @@
 ---
-status: draft
+status: approved
 source: docs/DEFECT-REPAIR-PLAN.md
 source_revision: 62fea335060175a6327494e6abe04cb37d3c94e4
+source_digest: sha256:b67be150acb1a9406bdef8bbd0480c3d2cdf493c26656a38e4db4791f3f2bbb7
+source_kind: repository
+intent_digest: sha256:d75e1d873f37b042db795a664410db3038eed24884c594d8d7cd5d2c82c5f466
+intent_input_digest: sha256:75cb54e47079675c6cfa2a934544d32f8ec12ef5ecdeb8972607590ac60b256e
+intent_revision: b566ecfab05118f813fc926d96f61600b453b66e
+by: cwijayasundara
+at: 2026-09-10T22:29:51.882Z
+digest: sha256:9d5f0af2b23caff2575ad827326b1cc6918bdb5bbf4a1694bf50ca1d2ef0ffde
+approval_version: 2
+approval_digest: sha256:1003e11cdf979c0b05e0888e724eef0b3b09aef77375eb671b684884c994bf10
 ---
 # Spec: the-tests-run-without-docker
 
