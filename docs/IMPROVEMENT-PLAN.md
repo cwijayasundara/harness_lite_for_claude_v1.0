@@ -695,3 +695,50 @@ to 593 in this entry are a corrected scope, not a regression, and neither metric
 
 This also means `check_stop_tokens` is only meaningful when captured on a clean tree — a property
 of the metric that was not written down before, and is now.
+
+### Code property graph — 2026-09-10
+
+`code-property-graph` landed the pipeline the user asked for: `starter graph -> audit +
+deduplicate -> anchor -> PageRank`, over three named edge types.
+
+`import` (file -> file) and `call` (function -> function) already existed but were implicit, so
+nothing could ask for one kind and receive only that kind; they are now emitted explicitly and
+additively, and `raw_imports` and `symbols` are untouched. `co-edit` (file <-> file) is new and
+derived from history. The audit stage reports what the build could not do — 3 unresolved
+path-shaped imports, 364 external specifiers counted rather than listed, 55 ambiguous names, 49
+duplicate edges collapsed — where `filter(Boolean)` previously dropped all of it in silence. The
+anchor resolves a reference to the definition its call site reaches: on `evals/fixtures/retrieval-app`,
+`format` from `src/reporting/summary.mjs` now names that module rather than returning both
+definers as equal candidates. Ranking is power iteration, damping 0.85, dangling mass
+redistributed uniformly; `.aidlc/lib/pack.mjs` at fan-in 4 now outranks `.aidlc/lib/graph.mjs` at
+fan-in 10, because pack is imported by central modules rather than by leaves.
+
+**The benchmark went against it, and that is the number that governs.**
+`evals/bench/pack-bench.mjs`, re-run on 2026-09-10 at 100% recall for both arms:
+
+| | recorded 2026-09-08 | 2026-09-10 | change |
+|---|---|---|---|
+| graph pack tokens | 5,743 | 4,102 | −29% |
+| bounded `rg` tokens | 3,436 | 2,044 | −41% |
+| ratio | 1.67x | **2.01x** | worse |
+
+The graph got cheaper and the alternative got cheaper faster. Excluding the harness's own output
+helped bounded search more than it helped packing, so on the repository's chosen exit criterion
+the graph now costs roughly twice bounded `rg` for identical recall, against 1.67 times before.
+Packing wins on 2 of the 10 golden terms. The exit criterion at `pack-bench.mjs:6` — "if the
+measured saving is not real, the graph gets cut" — is recorded here unretired, unweakened and
+unreinterpreted, and this entry is evidence for cutting, not against it.
+
+What the benchmark measures is the token cost of retrieving a symbol whose name you already know.
+It does not measure anchoring, which bounded `rg` cannot do — a `format` lookup returns both
+definers and the caller picks — nor the co-edit edge, which no text search can see, nor ranking.
+That is a statement of scope, not a defence: on what it does measure, the graph loses by 2x, and
+no product comparison exists to weigh the rest. The graph-first versus Grep-first comparison
+remains unrun, and the decision on 2026-09-09 to proceed without it means this benchmark is the
+only comparative evidence this change produced.
+
+Index composition after the change: 101 modules, 600 symbols, 285 import edges, 1,691 call edges,
+247 co-edit edges. Co-edit derivation costs ~270 ms warm and is carried forward while HEAD holds
+still, so a rebuild is 350 ms on the first build after a commit and ~53 ms within it. `graph.mjs`
+ends at 547 of 550, `coedit.mjs` at 80 of 90, `rank.mjs` at 99 of 100 — the last raised from 90 by
+the user on 2026-09-09 rather than delete the `why:` comments needed to reach it.
