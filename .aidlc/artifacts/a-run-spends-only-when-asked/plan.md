@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:6d7c935dc462550bdfddd94759a508436aa5a96e71d3740868f0b1babcd48883
+spec_approval_digest: sha256:33fdb4c81a4a0f4195578b0db930d30535a48d8c58ff1afde6206180ae315956
+by: cwijayasundara
+at: 2026-09-10T12:23:15.939Z
+digest: sha256:3a88a6d3faf5696f43e695fca1a6c8f0dec57f384885aa330d5b84865f232d13
+approval_version: 2
+approval_digest: sha256:70c73abdd0e0a54cc1ed8cdabc8062eb6477435ec6b8eceadbc8aa98bc090b76
 ---
 # Plan: a-run-spends-only-when-asked
 
