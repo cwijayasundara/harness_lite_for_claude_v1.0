@@ -652,7 +652,9 @@ test('check: a candidate-mode commit run still invokes the suite exactly once', 
     check: { fail_fast: true }, budget: { max_findings: 20 }, limits: { skills: 12 },
     graph: { include: ['.'], exclude: ['.git'] }, layout,
   };
-  const result = await check(cfg, { stage: 'commit', base: head, candidate: head, write: false });
+  // `all: true`: an unselected change makes `scope-drift` fail here, which is irrelevant to
+  // what this test proves and would otherwise fail-fast before `test`/`baseline` ever ran.
+  const result = await check(cfg, { stage: 'commit', base: head, candidate: head, write: false, all: true });
   assert.ok(result.revision, 'a --base/--candidate run carries a revision line itself');
   const baselineControl = result.controls.find((c) => c.control === 'baseline');
   assert.equal(baselineControl.verdict, 'pass');
