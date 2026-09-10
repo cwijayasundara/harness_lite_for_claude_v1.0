@@ -231,7 +231,11 @@ function resolver(modules) {
 // ---------------------------------------------------------------- build
 export function build(cfg, { only = null, previous = null } = {}) {
   const root = cfg.layout.root;
-  const files = only ?? discover(cfg);
+  // B6. `only` comes from a caller's dirty list, not from `discover()`, so it never passed
+  // through `walk()`'s exclusions. No caller passes it today; the incremental refresh work is
+  // what would give it one, and it would silently re-index the 451 modules of the harness's own
+  // output that the full path excludes. Fixed while it is still latent.
+  const files = (only ?? discover(cfg)).filter((rel) => !isHarnessOutput(rel));
   const modules = only && previous ? { ...previous.modules } : {};
   for (const rel of files) {
     const lang = langOf(root, rel);

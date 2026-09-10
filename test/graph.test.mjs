@@ -151,30 +151,78 @@ test('B1 — the harness does not index its own output, and a project exclude st
 
 // B2. fingerprint() hashed paths and contents only, so a commit moved the co-edit weights while
 // refresh() reported `clean` and nothing in the loop could see it.
-test('B2 — a commit with no working-tree change still moves the fingerprint', () => {
+// B3 and B5. The approved behaviour is stated at `refresh()` — "it does not report clean" — and
+// was proven one layer below it by comparing two `fingerprint()` values. It is asserted at the
+// boundary now. The git helper also carries the `-c commit.gpgsign=false` that stage.mjs passes
+// deliberately, and checks status, so a refused commit reports itself instead of surfacing later
+// as an assertion about production code.
+test('B3 — a commit with no working-tree change moves the fingerprint and refresh does not report clean', async () => {
+  const { refresh } = await import('../.aidlc/lib/refresh.mjs');
   const s = stage(FIXTURES, 'graph-app');
   try {
-    const cfg = { graph: { include: ['.'], exclude: [] }, layout: { root: s.work } };
-    const git = (...args) => spawnSync('git', args, { cwd: s.work, encoding: 'utf8' });
-    git('init', '-q');
+    const state = path.join(s.work, '.aidlc', 'state');
+    mkdirSync(state, { recursive: true });
+    const cfg = { graph: { include: ['.'], exclude: [] },
+      layout: { root: s.work, state, graph: path.join(state, 'graph.json'),
+        graphDirty: path.join(state, 'graph-dirty.jsonl'), ledger: path.join(state, 'ledger.jsonl'),
+        runId: path.join(state, 'run-id') } };
+
+    const git = (...args) => {
+      const r = spawnSync('git', ['-c', 'commit.gpgsign=false', ...args], { cwd: s.work, encoding: 'utf8' });
+      assert.equal(r.status, 0, `git ${args[0]} failed: ${r.stderr || r.stdout}`);
+      return r;
+    };
+    // stage() already initialised and committed this fixture, so only the identity is set here.
     git('config', 'user.email', 't@t');
     git('config', 'user.name', 't');
-    git('add', '-A');
-    git('commit', '-q', '-m', 'first');
 
     const before = fingerprint(cfg);
+    assert.equal(refresh(cfg).skipped, undefined, 'the first refresh builds');
+    assert.equal(refresh(cfg).skipped, 'clean', 'an unchanged tree at an unchanged commit is clean');
+
     git('commit', '-q', '--allow-empty', '-m', 'a commit that changes no file');
-    const after = fingerprint(cfg);
-    assert.notEqual(before, after, 'history moved, so the index must be rebuilt');
+
+    assert.notEqual(fingerprint(cfg), before, 'history moved, so the index identity moved');
+    assert.notEqual(refresh(cfg).skipped, 'clean',
+      'refresh must rebuild across a commit — co-edit weights derive from history, not from files');
   } finally { s.cleanup(); }
 });
 
-test('B2 — a directory with no git still fingerprints rather than throwing', () => {
-  const s = stage(FIXTURES, 'graph-app');
+// the-gate-grades-what-it-can-measure B2. The previous version of this test used `stage()`, which
+// git-initialises and commits every fixture — so `headCommit()` always succeeded, the empty
+// component was never reached, and `typeof === 'string'` was true before the change too. It could
+// not fail, and stood in for an approved safeguard.
+test('B2 — no git and no commit both reach the empty component, and a commit changes the value', () => {
+  const dirs = [];
+  const make = (body) => {
+    const d = mkdtempSync(path.join(tmpdir(), 'graph-fp-'));
+    dirs.push(d);
+    writeFileSync(path.join(d, 'a.mjs'), body);
+    return { root: d, cfg: { graph: { include: ['.'], exclude: [] }, layout: { root: d } } };
+  };
   try {
-    const cfg = { graph: { include: ['.'], exclude: [] }, layout: { root: s.work } };
-    assert.equal(typeof fingerprint(cfg), 'string', 'no git degrades to a value, not an error');
-  } finally { s.cleanup(); }
+    const SRC = 'export function only() { return 1; }\n';
+    const noGit = make(SRC);
+    const noCommit = make(SRC);
+    const committed = make(SRC);
+
+    const git = (root, ...args) => {
+      const r = spawnSync('git', ['-c', 'commit.gpgsign=false', ...args], { cwd: root, encoding: 'utf8' });
+      assert.equal(r.status, 0, `git ${args[0]} failed: ${r.stderr}`);
+    };
+    git(noCommit.root, 'init', '-q');
+    git(committed.root, 'init', '-q');
+    git(committed.root, 'config', 'user.email', 't@t');
+    git(committed.root, 'config', 'user.name', 't');
+    git(committed.root, 'add', '-A');
+    git(committed.root, 'commit', '-qm', 'first');
+
+    // Identical trees, so any difference is the commit component and nothing else.
+    assert.equal(fingerprint(noGit.cfg), fingerprint(noCommit.cfg),
+      'no git and no commit both degrade to the same empty component');
+    assert.notEqual(fingerprint(committed.cfg), fingerprint(noGit.cfg),
+      'a repository with a commit fingerprints differently — the component is real, not decorative');
+  } finally { for (const d of dirs) rmSync(d, { recursive: true, force: true }); }
 });
 
 // B3. Not new code so much as three existing properties that must survive the two changes above,
@@ -300,6 +348,44 @@ test('B4 — no git at all still builds, with no co-edit edges and no recorded h
     assert.equal(g.head, '', 'no commit to record');
     assert.equal(query(g, 'edges', 'import').length, 1, 'structure is unaffected by the absence of history');
   } finally { rmSync(work, { recursive: true, force: true }); }
+});
+
+// B4. The safeguard that stops 451 removed modules becoming confident "not found" answers. The
+// plan booked it and nothing asserted it.
+test('B4 — a symbol in an excluded path is a miss that names search, not an absence', async () => {
+  const { pack, renderPack } = await import('../.aidlc/lib/pack.mjs');
+  const s = stage(FIXTURES, 'graph-app');
+  try {
+    mkdirSync(path.join(s.work, '.aidlc', 'evals', 'comparisons', 'run-1'), { recursive: true });
+    writeFileSync(path.join(s.work, '.aidlc/evals/comparisons/run-1/ledger.mjs'),
+      'export function onlyInAnExcludedPath() { return 1; }\n');
+    const cfg = { graph: { include: ['.', '.claude'], exclude: [] }, layout: { root: s.work } };
+    const g = build(cfg);
+
+    assert.equal(Object.keys(g.modules).some((m) => m.startsWith('.aidlc/evals/')), false,
+      'the excluded path is not indexed, which is the premise of this test');
+
+    const rendered = renderPack(pack(cfg, g, 'onlyInAnExcludedPath', { budget: 1200 }));
+    assert.match(rendered, /no graph entry/i, 'the answer is a miss');
+    assert.match(rendered, /grep|search/i, 'and it names search as the next step');
+    assert.doesNotMatch(rendered, /does not exist|not found in the codebase/i,
+      'a miss is never a claim of absence');
+  } finally { s.cleanup(); }
+});
+
+// B6. `only` bypasses discover()/walk(), so the exclusions were not applied on that path.
+test('B6 — an incremental rebuild applies the same exclusions as a full one', () => {
+  const s = stage(FIXTURES, 'graph-app');
+  try {
+    const rel = '.aidlc/evals/comparisons/run-1/ledger.mjs';
+    mkdirSync(path.join(s.work, path.dirname(rel)), { recursive: true });
+    writeFileSync(path.join(s.work, rel), 'export function shouldNotBeIndexed() { return 1; }\n');
+    const cfg = { graph: { include: ['.', '.claude'], exclude: [] }, layout: { root: s.work } };
+    const full = build(cfg);
+    const incremental = build(cfg, { only: [rel], previous: full });
+    assert.equal(incremental.modules[rel], undefined,
+      'an incremental rebuild naming an excluded path must not index it');
+  } finally { s.cleanup(); }
 });
 
 test('Q2 — what does this symbol call', () => {

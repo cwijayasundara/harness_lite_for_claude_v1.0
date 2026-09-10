@@ -66,6 +66,13 @@ export async function capture(cfg) {
     graph_modules: Object.keys(g.modules).length,
     graph_symbols: Object.values(g.modules).reduce((n, m) => n + m.symbols.length, 0),
     errored_controls: errored,
+    // the-gate-grades-what-it-can-measure B1. Whether the stage this measured was green.
+    //
+    // why: `check_stop_tokens` is the size of a GREEN stage's output — two PASS lines here — and
+    // it was graded whether or not the stage was green. `--stage commit` runs by construction on
+    // an uncommitted tree, where the stage fails and the rendered failure text is a hundred times
+    // larger, so the gate reported a 157x rise that said nothing about the change.
+    stop_ok: report.ok,
     // Filled by the eval suite when it runs with a key; never fabricated here.
     model: null,
   };
@@ -86,12 +93,20 @@ export function compare(base, now) {
   // and a control people learn to ignore is a control that has already died.
   const envDiffers = JSON.stringify([...(base.errored_controls ?? [])].sort())
     !== JSON.stringify([...(now.errored_controls ?? [])].sort());
+  // B1. The same incomparability, one step out: a control that ERRORS is caught above, and a
+  // control that FAILS is caught here. `undefined` reads as green so a baseline recorded before
+  // this field existed keeps grading — the same "record what has no history, do not grade it"
+  // rule already applied to a missing metric.
+  const stopDiffers = (base.stop_ok !== false) !== (now.stop_ok !== false) || now.stop_ok === false;
   const rows = RATCHETED.map((k) => {
     const was = base[k] ?? 0;
     const is = now[k] ?? 0;
-    const skipped = envDiffers && ENVIRONMENT_SENSITIVE.has(k)
-      ? `toolchain differs (${(now.errored_controls ?? []).join(', ') || 'none'} vs ${(base.errored_controls ?? []).join(', ') || 'none'})`
-      : null;
+    const skipped = !ENVIRONMENT_SENSITIVE.has(k) ? null
+      : envDiffers
+        ? `toolchain differs (${(now.errored_controls ?? []).join(', ') || 'none'} vs ${(base.errored_controls ?? []).join(', ') || 'none'})`
+        : stopDiffers
+          ? `stage outcome differs (stop ${now.stop_ok === false ? 'failed' : 'passed'} now, ${base.stop_ok === false ? 'failed' : 'passed'} when recorded) — this metric measures a green stage`
+          : null;
     // A metric with no baseline yet is recorded, not graded — the same rule the eval suite uses.
     const regressed = !skipped && was > 0 && is > was * tol;
     return { metric: k, was, is, delta: was ? (is - was) / was : 0, regressed, skipped };

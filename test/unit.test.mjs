@@ -386,6 +386,45 @@ test('baseline: the gate is in commit, grades a rise, and reports a drifted sche
   } finally { s.cleanup(); }
 });
 
+// the-gate-grades-what-it-can-measure B1. `check_stop_tokens` measures what a GREEN stop stage
+// puts in front of the model, and was graded whether or not the stage was green. `capture()`
+// re-runs that stage, and `--stage commit` runs by construction on an uncommitted tree where it
+// fails — so the gate reported check_stop_tokens = 1888 against a recorded 12, a 157x rise that
+// says nothing about the change. Every --stage commit run recorded on 2026-09-09 and 2026-09-10
+// passed only because it followed a commit.
+//
+// ENVIRONMENT_SENSITIVE did not reach it: the skip fires when `errored_controls` differ, and a
+// control that FAILS is not a control that ERRORS.
+test('baseline: an ungreen stop stage makes check_stop_tokens incomparable, not a regression', async () => {
+  const { compare } = await import('../.aidlc/lib/baseline.mjs');
+  const green = { tolerance: 1.10, claude_md_tokens: 100, session_context_tokens: 50,
+    check_stop_tokens: 12, pack_tokens_p50: 100, errored_controls: [], stop_ok: true };
+
+  // The dirty-tree case: same toolchain, same errored set, but the stage failed, so its rendered
+  // output is failure text rather than two PASS lines.
+  const dirty = compare(green, { ...green, check_stop_tokens: 1888, stop_ok: false });
+  assert.equal(dirty.ok, true, 'a failing stage is not a token regression');
+  const row = dirty.rows.find((r) => r.metric === 'check_stop_tokens');
+  assert.match(row.skipped, /stage/i, 'the reason names the stage outcome that made it incomparable');
+  assert.equal(row.regressed, false);
+
+  // The other half, which is what stops this being an accommodation: on a green capture the
+  // metric still grades, with the same tolerance and the same finding.
+  const risen = compare(green, { ...green, check_stop_tokens: 1888, stop_ok: true });
+  assert.equal(risen.ok, false, 'a real rise on a green stage still fails');
+  assert.equal(risen.rows.find((r) => r.metric === 'check_stop_tokens').regressed, true);
+
+  // A baseline recorded before this change carries no stage outcome, and must keep grading rather
+  // than silently becoming exempt.
+  const { stop_ok, ...legacy } = green;
+  const old = compare(legacy, { ...legacy, check_stop_tokens: 1888, stop_ok: true });
+  assert.equal(old.ok, false, 'an older record without stop_ok is still graded');
+
+  // Every other ratcheted metric is unaffected by the stage outcome.
+  const other = compare(green, { ...green, claude_md_tokens: 900, stop_ok: false });
+  assert.equal(other.ok, false, 'the skip is scoped to the metric the stage outcome affects');
+});
+
 test('baseline: an incomparable toolchain is not a regression', async () => {
   const { compare } = await import('../.aidlc/lib/baseline.mjs');
   const base = { tolerance: 1.10, claude_md_tokens: 100, session_context_tokens: 50, check_stop_tokens: 18, wiki_index_tokens: 80, pack_tokens_p50: 100, errored_controls: [] };
