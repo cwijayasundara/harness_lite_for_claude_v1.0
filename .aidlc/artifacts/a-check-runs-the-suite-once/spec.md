@@ -1,7 +1,17 @@
 ---
-status: draft
+status: approved
 source: docs/DEFECT-REPAIR-PLAN.md
 source_revision: 62fea335060175a6327494e6abe04cb37d3c94e4
+source_digest: sha256:b67be150acb1a9406bdef8bbd0480c3d2cdf493c26656a38e4db4791f3f2bbb7
+source_kind: repository
+intent_digest: sha256:4feaab3fc2784c0f3d3dcfa25f3d0950ccf3ce2cf91f2b60d5228845a646ce7a
+intent_input_digest: sha256:84b539cd006b10455aa23380702eaef4ff542c11cd848db735e62ffd994d65d0
+intent_revision: 6d31e93d669f54382c907b037b12ed8cceb076b6
+by: cwijayasundara
+at: 2026-09-10T17:27:12.321Z
+digest: sha256:94a1f63049d52f7892906a15781401172b9fc9c06ddaa7839f2051fc4e34f7f4
+approval_version: 2
+approval_digest: sha256:440878c5fefa8c170520e90b148554e185c3d577cb8cdbf72d149eeaec69fcf4
 ---
 # Spec: a-check-runs-the-suite-once
 
