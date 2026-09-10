@@ -186,7 +186,14 @@ export function bashTouchesProtected(cmd, protectedPaths) {
   return null;
 }
 
-export function bashContractBlocked(cmd, cfg) {
+// D1 (a-shell-redirect-is-a-write). This used to ask "is *any* change approved?" rather than
+// "is *this* target approved?": `if (!scope.parseError && scope.declared.length) return null`
+// let any selected change with a non-empty ## Files make every path in the repository writable
+// through a shell redirect, because the extracted target was discarded rather than tested. B1:
+// each surviving target is now asked the one question `writeRefusal` already answers for Write
+// and Edit, so the two tools cannot disagree about the same path again — there is no second
+// implementation of what ## Files means.
+export function bashContractRefusal(cmd, cfg) {
   if (!(cfg.guard?.require_contract ?? false)) return null;
 
   // Ask what the command writes *to*, not whether a `>` appears somewhere in it. The previous
@@ -204,22 +211,34 @@ export function bashContractBlocked(cmd, cfg) {
   // through. Still regex-level, per the tree-sitter decision in docs/BUILD-PLAN.md Phase 3: a
   // `>` inside quoted prose followed by a word will still read as a write. That is the residual
   // and it is a narrower one than refusing every co-authored commit.
-  //
-  // artifactOrState wants a repo-relative path, and the string it replaces matched anywhere in
-  // the command — including inside an absolute one. Rooting the target first keeps that carve-out
-  // for `> /abs/repo/.aidlc/state/x`, which the narrowing would otherwise have started refusing.
-  const root = cfg.layout?.root ? String(cfg.layout.root).replace(/\/+$/, '') + '/' : null;
+  const root = cfg.layout?.root ? String(cfg.layout.root) : null;
   const targets = writeTargets(cmd)
     .map((t) => t.replace(/^['"]+|['"]+$/g, ''))
-    .map((t) => (root && t.startsWith(root) ? t.slice(root.length) : t))
-    .map((t) => t.replace(/^\.\//, ''))
-    .filter((t) => t && !t.startsWith('/dev/') && !artifactOrState(t));
-  if (!targets.length) return null;
-  try {
-    const scope = contractScopeState(cfg);
-    if (!scope.parseError && scope.declared.length) return null;
-    return contractRefusal(targets[0], scope);
-  } catch { return `${targets[0]}: execution state unreadable — run harness status --change <slug> and verify its approvals`; }
+    .filter(Boolean)
+    // B1/B4: the same computation `preWrite` in dispatch.mjs uses, so a target normalises to the
+    // identical string on both paths. The old code stripped the root by string comparison and
+    // left an out-of-tree absolute path untouched, which is why the two paths disagreed in
+    // *both* directions rather than one — a session could neither write its own scratchpad
+    // through Bash today, nor be stopped from writing anywhere in the repository through it.
+    .map((t) => (root ? path.relative(root, path.resolve(root, t)) : t.replace(/^\.\//, '')))
+    // B4: a path outside the repository is outside what any ## Files section can describe — the
+    // same carve-out `writeRefusal`'s `norm.startsWith('..')` check already gives Write and Edit.
+    .filter((t) => t && !t.startsWith('..'))
+    .filter((t) => !t.startsWith('/dev/') && !artifactOrState(t));
+
+  for (const t of targets) {
+    const hit = writeRefusal(t, cfg);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+// `bashContractBlocked` stays the string-returning form: `test/guard.test.mjs` and
+// `test/worktree-selection.test.mjs` both import it and assert on the message, and
+// `test/worktree-selection.test.mjs` is not a file this change owns. Same split `writeRefusal`
+// and `writeBlocked` already use, for the same reason.
+export function bashContractBlocked(cmd, cfg) {
+  return bashContractRefusal(cmd, cfg)?.message ?? null;
 }
 
 export function lockTests(cfg, { patterns = ['tests'], why = 'bug fix in progress' } = {}) {

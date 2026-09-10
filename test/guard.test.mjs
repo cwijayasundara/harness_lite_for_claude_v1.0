@@ -305,6 +305,115 @@ test('a protected path an approved committed contract names is writable', () => 
   } finally { s.cleanup(); }
 });
 
+// D1 (a-shell-redirect-is-a-write) B1. bashContractBlocked used to ask only "is *any* change
+// approved?" instead of "is *this* target approved?": any selected change with a non-empty
+// ## Files made every path in the repository writable through a shell redirect, because the
+// extracted target was discarded rather than tested. This table asserts the bash path and the
+// Write/Edit path answer the same question about the same target, across every class B1 names:
+// owned, unowned, a protected path, an artifact path, and a /dev/ target. `norm` reproduces the
+// same repository-relative computation `preWrite` in dispatch.mjs applies before calling
+// writeBlocked, so the two sides are handed the same string rather than two different ones.
+test('the bash path and the write path return one verdict for one target', async () => {
+  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const cfg = loadConfig(s.work);
+    const norm = (t) => path.relative(cfg.layout.root, path.resolve(cfg.layout.root, t));
+    const rows = [
+      ['owned', 'src/app/text.py'],
+      ['unowned', 'src/app/handlers.py'],
+      ['protected', '.aidlc/harness.toml'],
+      ['artifact', '.aidlc/artifacts/hyphen-titlecase/plan.md'],
+      ['/dev/', '/dev/null'],
+    ];
+    for (const [label, target] of rows) {
+      const write = writeBlocked(norm(target), cfg);
+      const bash = bashContractBlocked(`echo x > ${target}`, cfg);
+      assert.equal(Boolean(bash), Boolean(write),
+        `${label} target "${target}" disagreed — bash=${JSON.stringify(bash)} write=${JSON.stringify(write)}`);
+    }
+  } finally { s.cleanup(); }
+});
+
+// B4. A path outside the repository — an absolute path under a temporary directory, or one that
+// resolves above the repository root — is outside what any ## Files section can describe, so it
+// is allowed on both paths. This is a relaxation of the old bash behaviour (refused when nothing
+// was approved) to match what the Write path already did, and the two paths compute the
+// repository-relative path the same way, so they cannot disagree about which side of the root a
+// target falls on.
+test('an out-of-tree target is allowed on both paths', async () => {
+  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const cfg = loadConfig(s.work);
+    const outside = path.join(tmpdir(), 'harness-probe.txt');
+
+    assert.equal(bashContractBlocked(`echo x > ${outside}`, cfg), null, 'refused an absolute out-of-tree target');
+    assert.equal(writeBlocked(path.relative(cfg.layout.root, outside), cfg), null, 'the write path refused it too');
+
+    assert.equal(bashContractBlocked('echo x > ../outside.txt', cfg), null, 'refused a ../ escape');
+    assert.equal(writeBlocked('../outside.txt', cfg), null);
+  } finally { s.cleanup(); }
+});
+
+// B1's last clause: several write targets are refused if any one of them would be, and the
+// refusal names that target rather than the first one extracted. The command below writes the
+// owned path first and the unowned path second, so a refusal naming the first target would prove
+// nothing changed — this proves the verdict is per target, not per command.
+test('a command with several write targets is refused for the unowned one, not the first extracted', async () => {
+  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const cfg = loadConfig(s.work);
+    const refusal = String(bashContractBlocked('cat src/app/text.py > src/app/text.py; echo x > src/app/handlers.py', cfg));
+    assert.match(refusal, /^src\/app\/handlers\.py /, `refusal did not name the unowned target: ${refusal}`);
+  } finally { s.cleanup(); }
+});
+
+// B2. The suite only proved the bash guard refuses a product write when nothing is approved —
+// precisely the blind spot that let D1 live. A selected change's approved plan makes its own
+// paths writable through the shell, exactly as it does through Write and Edit.
+test('a shell redirect to a path the approved plan owns proceeds', async () => {
+  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const s = stage(FIXTURES, 'contract-planned'); try {
+    const cfg = loadConfig(s.work);
+    assert.equal(bashContractBlocked('echo x > src/app/text.py', cfg), null);
+  } finally { s.cleanup(); }
+});
+
+// B5. A bash refusal names the rule that actually produced it, so `harness ledger audit` can
+// tell a caught mistake from a false block — a single `contract-scope` label across four
+// different rules could not answer that question. Drives the real `dispatch('pre-bash')` hook,
+// the same harness the two tests above at lines 106 and 443 use, and reads the appended row.
+test('a bash refusal names the rule that produced it, in the ledger', async () => {
+  const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
+  const { read } = await import('../.aidlc/lib/ledger.mjs');
+  const home = mkdtempSync(path.join(tmpdir(), 'dispatch-rule-'));
+  mkdirSync(path.join(home, '.aidlc'), { recursive: true });
+  writeFileSync(path.join(home, '.aidlc/harness.toml'), '[project]\nname = "dispatch-test"\n');
+
+  const ask = async (command) => {
+    const write = process.stdout.write.bind(process.stdout);
+    process.stdout.write = () => true;
+    const stdin = process.stdin;
+    const { Readable } = await import('node:stream');
+    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_input: { command } })]), configurable: true });
+    try { await dispatch('pre-bash'); } finally {
+      process.stdout.write = write;
+      Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
+    }
+  };
+
+  try {
+    await ask('echo x > src/app.py');             // unowned: no change is selected in this repo
+    await ask('echo x > .aidlc/harness.toml');     // protected by default
+
+    const rows = read({ ledger: path.join(home, '.aidlc/state/ledger.jsonl') })
+      .filter((r) => r.control === 'bash-guard' && r.verdict === 'fail');
+    assert.equal(rows[0]?.rule, 'write-scope', `expected write-scope, got ${rows[0]?.rule}`);
+    assert.equal(rows[1]?.rule, 'protected-path', `expected protected-path, got ${rows[1]?.rule}`);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
 test('a malformed contract fails closed for product writes', () => {
   const f = tmp('guard-bad-'); try {
     f.layout.contracts = path.join(f.root, '.aidlc/artifacts/contracts'); mkdirSync(f.layout.contracts, { recursive: true });

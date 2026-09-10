@@ -13,7 +13,7 @@ import * as ledger from '../lib/ledger.mjs';
 import { refresh } from '../lib/refresh.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
-import { writeRefusal, productionDenied, bashTouchesProtected, bashContractBlocked, commandText } from '../lib/guard.mjs';
+import { writeRefusal, productionDenied, bashTouchesProtected, bashContractRefusal, commandText } from '../lib/guard.mjs';
 import { invocation, sessionContext } from '../lib/session.mjs';
 
 const readStdin = () => new Promise((res) => {
@@ -87,8 +87,12 @@ function preBash(input, cfg) {
         }
         const prod = productionDenied(cmd, process.env);
         if (prod) return fired('release-authorization', prod);
-        const planned = bashContractBlocked(cmd, cfg);
-        if (planned) return fired('contract-scope', planned);
+        // D1 (a-shell-redirect-is-a-write) B5: the rule id is `hit.rule` — `write-scope`,
+        // `protected-path`, `prefix-cache` or `test-lock` — not the single `contract-scope`
+        // label every one of those used to be flattened into, which left `harness ledger audit`
+        // unable to tell a caught mistake from a false block.
+        const hit = bashContractRefusal(cmd, cfg);
+        if (hit) return fired(hit.rule, hit.message);
         const p = bashTouchesProtected(cmd, PREFIX_CACHE_PATHS);
         if (p) return fired('prompt-prefix', `this command writes to ${p} through the shell, which bypasses the write guard. Instruction and permission changes require the approved scope.`);
         ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
