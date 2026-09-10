@@ -20,7 +20,6 @@ and no daemon.
 | D3/F18: timeouts and failures leave no orphaned child processes | B4 |
 | D3/F18: any remaining container test is a separate opt-in suite reporting honestly | B5 |
 | D3/F18: removing a test dependency must not remove an agent's sandbox | B6 |
-| D3/F18: no model calls, no credentials | Safeguards |
 
 ## Observable behaviours
 
