@@ -1,8 +1,7 @@
 # GitHub requires workflows at this exact path, so this is the one file that cannot live
 # under .aidlc/. It is infrastructure, not a generated artefact.
 # Pushes validate branches before a PR exists (and direct, explicitly authorized merges).
-# PRs also run the credentialed golden-suite job; duplicate deterministic checks on PR branches
-# are deliberate so a push run cannot cancel or substitute for that PR-only evidence.
+# Live model trials are explicit manual subscription runs; PR checks require no model credentials.
 name: harness
 on:
   push:
@@ -10,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       model_smoke:
-        description: Run the bounded live Claude mechanism smoke (requires repository API key)
+        description: Run live Claude smoke using subscription allocation (requires OAuth token)
         type: boolean
         default: false
 
@@ -122,56 +121,29 @@ jobs:
         env:
           HARNESS_HOME: ${{ github.workspace }}/.aidlc
 
-  # Law 9: the suite runs on any diff touching the steering surface — CLAUDE.md, a skill, a role,
-  # a hook, the registry. That trigger IS the governance model; it replaces certification tiers.
-  #
-  # lean-v2 B12. Three repairs. The path filter named `.aidlc/agents.json`, deleted in cut 4, and
-  # did not name `.aidlc/sensors/`, which is a steering surface now. The run had no model, so it
-  # could not use the cheap one. And it had no aggregate cap: per-task ceilings bound each task
-  # and nothing bounded the run.
+  # Explicit subscription usage only. Ordinary PRs never invoke a model.
   evals:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.model_smoke)
+    if: github.event_name == 'workflow_dispatch' && inputs.model_smoke
+    timeout-minutes: 20
     env:
-      HAS_ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      HAS_SUBSCRIPTION_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
-      - id: touched
-        env:
-          BASE_REF: ${{ github.base_ref }}
+      - if: env.HAS_SUBSCRIPTION_TOKEN != 'true'
         run: |
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          git diff --name-only "origin/$BASE_REF...HEAD" \
-            | grep -E '^(\.aidlc/(bin/|instructions\.md|harness\.toml|skills/|roles/|policies/|adapters/|checks/|sensors/|lib/|hooks/|templates/)|\.claude/(CLAUDE\.md|settings\.json)|\.claude-plugin/|\.github/workflows/harness\.yml|evals/(tasks\.json|products\.json|Dockerfile|expected\.json|fixtures/|lib/|bench/|run\.mjs|agent-mechanisms\.mjs))' \
-            && echo "run=true" >> "$GITHUB_OUTPUT" || echo "run=false" >> "$GITHUB_OUTPUT"
-
-      # Without a key the job says so and stops. It does not pass quietly: a steering change that
-      # merged with no eval evidence is exactly what this exists to prevent, and a green tick that
-      # means "we did not look" is worse than a red one.
-      - if: steps.touched.outputs.run == 'true' && env.HAS_ANTHROPIC_API_KEY != 'true'
-        run: |
-          echo "::error::a steering surface changed and ANTHROPIC_API_KEY is not set — the eval suite cannot run"
+          echo "::error::CLAUDE_CODE_OAUTH_TOKEN is required for this requested live run. API billing is disabled."
           exit 1
 
-      - if: steps.touched.outputs.run == 'true' && env.HAS_ANTHROPIC_API_KEY == 'true'
+      - if: env.HAS_SUBSCRIPTION_TOKEN == 'true'
         run: npm install --global @anthropic-ai/claude-code@2.1.263
 
-      - if: github.event_name == 'pull_request' && steps.touched.outputs.run == 'true' && env.HAS_ANTHROPIC_API_KEY == 'true'
-        run: node evals/run.mjs --require-auth --max-suite-usd 5
-        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }
-
-      - if: github.event_name == 'pull_request' && steps.touched.outputs.run == 'true' && env.HAS_ANTHROPIC_API_KEY == 'true'
-        run: node .aidlc/bin/harness evals gate
-
-      - if: github.event_name == 'workflow_dispatch' && env.HAS_ANTHROPIC_API_KEY == 'true'
-        run: node evals/agent-mechanisms.mjs
-        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }
+      - if: env.HAS_SUBSCRIPTION_TOKEN == 'true'
+        run: node evals/agent-mechanisms.mjs --live
+        env: { CLAUDE_CODE_OAUTH_TOKEN: '${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}' }
 
       - if: always()
         uses: actions/upload-artifact@v4

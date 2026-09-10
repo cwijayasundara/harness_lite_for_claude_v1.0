@@ -67,7 +67,7 @@ It applies the kill criteria and prints a decision per control:
 | `unreliable` | errors on >10% of invocations | fix it or delete it — an erroring control is a lie |
 | `insufficient-data` | under 50 invocations | wait. A verdict without evidence is not a verdict |
 
-**Deleting is the point.** Remove the control, run `node evals/run.mjs`, and if nothing
+**Deleting is the point.** Remove the control, run `node evals/run.mjs --live`, and if nothing
 regresses it was not doing anything. That is the whole argument for having built the eval suite
 first, and it is the mechanism v6 never had — which is why v6 could only grow.
 
@@ -106,8 +106,8 @@ Build once and run:
 docker build -t lean-harness-product:2.1.263 - < evals/Dockerfile
 HARNESS_PRODUCT_DOCKER=1 node --test test/product-trials.test.mjs
 node evals/run.mjs --products --dry --max-suite-usd 20
-node evals/run.mjs --products --id campaign-ledger --through 1 --max-suite-usd 3 --require-auth
-node evals/run.mjs --products --max-suite-usd 20 --require-auth
+node evals/run.mjs --live --products --id campaign-ledger --through 1 --max-suite-usd 3
+node evals/run.mjs --live --products --max-suite-usd 20
 ```
 
 `--through` is calibration only and is labelled in results. All attempts retain phase outputs,
@@ -324,15 +324,15 @@ it only speaks for one unusual codebase. `harness init --into <repo>` takes abou
 
 ## Item 1 integration verification
 
-`node evals/agent-mechanisms.mjs` loads the actual installed plugin for generator turns and checks
+`node evals/agent-mechanisms.mjs --live` loads the actual installed plugin for generator turns and checks
 that SessionStart ran. Planning has read tools only; externally approved implementation gains
 Write/Edit, with tests executed by the driver. The evaluator receives a separate safe-mode
 session and explicit revisions. Evidence, including review findings, is saved under
 `.aidlc/evals/smoke/`. This bounded mechanism test does not replace product campaigns.
 
 The GitHub workflow runs deterministic tests, graph benchmarks and the Python example's verified
-cost comparison on pushes. PRs retain their golden-suite evaluation path. A manual dispatch with
-`model_smoke=true` runs the focused live integration with a repository API key; no credentials
+cost comparison on pushes. PR checks invoke no models. A manual dispatch with
+`model_smoke=true` runs the focused live integration with a `CLAUDE_CODE_OAUTH_TOKEN` subscription secret; no credentials
 means failure, not fabricated model evidence. The harness remains dependency-free; the Python
 example installs its own pytest/reporting/ruff tools for its executable checks.
 
@@ -351,7 +351,7 @@ remains equivalent or stronger. Do not weaken assertions to conceal a failure. T
 external evaluation ownership still apply. Material design, behaviour, safeguard or scope
 changes return to a human; artifact edits still invalidate approval digests.
 
-`node evals/agent-mechanisms.mjs --guidance-base <commit>` compares the same bounded scenarios
+`node evals/agent-mechanisms.mjs --live --guidance-base <commit>` compares the same bounded scenarios
 using the configured capable generator with old and current guidance. The parent grades decisions
 and executes two returned function expressions against undisclosed cases. It records questions,
 proposed unnecessary stops/splits, boundary violations, product results, model metadata and cost

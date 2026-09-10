@@ -328,8 +328,10 @@ intent, and no deployment code at all.
 | `examples/` | Small consumer projects and a maintenance recipe; not scaffold contents |
 
 During application development, hooks run the application's configured fast/stop checks.
-Paid harness evaluations run only through explicit evaluation commands or the configured
-credentialed development CI jobs. `harness evals gate` reads saved results; it makes no model call.
+Live harness evaluations require `--live` and Claude Code subscription authentication.
+API keys are rejected; runners never load repository `.env` files. PR checks are offline;
+the manual CI smoke uses `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`.
+`harness evals gate` reads saved results; it makes no model call.
 
 ```bash
 node --test test/*.test.mjs

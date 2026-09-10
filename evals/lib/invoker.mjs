@@ -3,6 +3,7 @@
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { productDockerArgs } from './stage.mjs';
+import { requireSubscription, subscriptionArgs } from '../../.aidlc/lib/claude-auth.mjs';
 
 // Comparison models are explicit; unavailable models are never substituted.
 export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null, product = false, sessionId = null, review = false, native = false, comparison = false }) {
@@ -51,11 +52,16 @@ export function invokerEnv({ pluginDir = null, base = {} }) {
 
 export function claudeInvoker({ pluginDir, model = null, native = false, comparison = false }) {
   return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task, sandbox = null, phase = 'plan', sessionId = null }) {
-    const args = invokerArgs({ prompt, model, pluginDir, budgetUsd, product: !!sandbox, sessionId, review: phase === 'review', native, comparison });
+    const args = subscriptionArgs(invokerArgs({ prompt, model, pluginDir, budgetUsd, product: !!sandbox, sessionId, review: phase === 'review', native, comparison }));
     const started = Date.now();
     const env = invokerEnv({ task, pluginDir, base: process.env });
+    try { requireSubscription({ env, cwd, product: !!sandbox }); }
+    catch (error) {
+      if (error.code === 'ENOENT') return { notInstalled: true, transcript: '', usage: {}, exitCode: -1, error: 'the `claude` CLI is not on PATH' };
+      throw error;
+    }
     const name = sandbox ? `harness-agent-${randomUUID()}` : null;
-    const credentials = Object.fromEntries(['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL', 'CLAUDE_CODE_OAUTH_TOKEN'].filter(k => env[k]).map(k => [k, undefined]));
+    const credentials = Object.fromEntries(['CLAUDE_CODE_OAUTH_TOKEN'].filter(k => env[k]).map(k => [k, undefined]));
     const command = sandbox ? 'docker' : 'claude';
     const commandArgs = sandbox ? [...productDockerArgs(sandbox, { phase, name, network: true, env: credentials }), 'claude', ...args] : args;
     const r = spawnSync(command, commandArgs, { cwd, env, encoding: 'utf8', timeout: timeoutMs,

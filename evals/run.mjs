@@ -17,6 +17,7 @@ import { parse } from '../.aidlc/lib/artifacts.mjs';
 import { approvalDriver } from './lib/approvals.mjs';
 import { loadConfig } from '../.aidlc/lib/config.mjs';
 import { layout } from '../.aidlc/lib/paths.mjs';
+import { requireSubscription } from '../.aidlc/lib/claude-auth.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.dirname(HERE);
@@ -86,32 +87,9 @@ export function promptCount(t) {
   return t.prompt ? 1 : 0;
 }
 
-// Node does not read `.env`. Someone who puts a key there and runs the suite gets "no Claude
-// credentials found", which is a true statement about `process.env` and a misleading one about
-// what they did — and the next move after a misleading message is usually to paste the key
-// somewhere worse. `process.loadEnvFile` is built in (Node 20.12+), so this stays zero-dependency.
-//
-// The file is gitignored and never read for its value here: this only makes the variable visible
-// to the CLI that performs the run. CI passes the same variable from a repository secret and has
-// no file at all.
-export function loadDotEnv(root, env = process.env) {
-  const file = path.join(root, '.env');
-  if (!existsSync(file) || typeof process.loadEnvFile !== 'function') return false;
-  // An already-set variable wins: an explicit `ANTHROPIC_API_KEY=... node evals/run.mjs` must not
-  // be silently overridden by a stale file.
-  const had = { ...env };
-  try { process.loadEnvFile(file); } catch { return false; }
-  for (const [k, v] of Object.entries(had)) if (v !== undefined) process.env[k] = v;
-  return true;
-}
-
 export function claudeAuthenticated(env = process.env, run = spawnSync, {product=false}={}) {
-  if (env.ANTHROPIC_API_KEY || env.CLAUDE_CODE_OAUTH_TOKEN || env.ANTHROPIC_AUTH_TOKEN) return true;
-  if(product)return false; // Host keychains are deliberately absent from the container.
-  const result = run('claude', ['auth', 'status'], { encoding: 'utf8', env });
-  if (result.error?.code === 'ENOENT') return false;
-  try { return JSON.parse(result.stdout ?? '').loggedIn === true; }
-  catch { return result.status === 0 && /logged.?in\s*[:=]?\s*true/i.test(`${result.stdout ?? ''}${result.stderr ?? ''}`); }
+  try { requireSubscription({ env, run, product }); return true; }
+  catch { return false; }
 }
 
 function assertsOf(t) {
@@ -388,10 +366,16 @@ async function main() {
     return 0;
   }
 
+  if (!argv.includes('--live')) {
+    console.error('No model calls made. Live subscription trials require --live; use --dry for offline validation.');
+    return 2;
+  }
+  const authentication = requireSubscription({ product: products, cwd: PLUGIN_ROOT });
+  console.log(`authentication: ${authentication}; API billing disabled; repository .env not loaded`);
+
   if (comparisons) {
     const {runComparisons}=await import('./lib/comparison.mjs');
     const {claudeInvoker}=await import('./lib/invoker.mjs');
-    loadDotEnv(PLUGIN_ROOT);
     const models=loadConfig(PLUGIN_ROOT).models;
     const available=claudeAuthenticated(process.env,spawnSync,{product:true})&&spawnSync('docker',['info'],{stdio:'ignore',timeout:15000}).status===0;
     const stamp=new Date().toISOString().replace(/[:.]/g,'-');
@@ -402,22 +386,6 @@ async function main() {
       log:console.log});
     console.log(JSON.stringify({evidenceRoot,summary:out.summary,calibrations:out.calibrations},null,2));
     return out.attempts.every(a=>a.status==='pass')?0:1;
-  }
-
-  // Claude may store OAuth credentials in an OS keychain rather than a repository-visible file.
-  // Ask the CLI that will perform the run; environment tokens remain the non-interactive CI path.
-  const fromFile = loadDotEnv(PLUGIN_ROOT);
-  const authed = claudeAuthenticated(process.env,spawnSync,{product:products});
-  if (fromFile && authed) console.log('credentials: .env');
-  if (!authed && (products || !argv.includes('--force'))) {
-    if (products || argv.includes('--require-auth')) {
-      console.error(products?'Product trials require an environment API key or token; host keychains are not mounted.':'Claude credentials are required for this eval run, but none were found.');
-      return 2;
-    }
-    // Never block a contributor who only wanted `node --test`.
-    console.log('No Claude credentials found — skipping the model half of the suite. Tasks validated.');
-    console.log('Run `claude auth login`, then confirm `claude auth status` reports "loggedIn": true.');
-    return 0;
   }
 
   const { claudeInvoker } = await import('./lib/invoker.mjs');

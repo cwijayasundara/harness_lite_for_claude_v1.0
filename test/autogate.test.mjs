@@ -189,7 +189,7 @@ test('B7: the results JSON of a fake-invoker run lists the auto-approved artifac
 test('invoker strips former bypass flags from campaigns and single-prompt tasks', () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'stub-claude-'));
   const envLog = path.join(dir, 'env.txt');
-  writeFileSync(path.join(dir, 'claude'), `#!/usr/bin/env bash\nenv > ${JSON.stringify(envLog)}\necho '{"result":"done","total_cost_usd":0}'\n`);
+  writeFileSync(path.join(dir, 'claude'), `#!/usr/bin/env bash\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"authMethod":"claude.ai","apiProvider":"firstParty"}'; exit 0; fi\nenv > ${JSON.stringify(envLog)}\necho '{"result":"done","total_cost_usd":0}'\n`);
   chmodSync(path.join(dir, 'claude'), 0o755);
   const previousPath = process.env.PATH;
   process.env.PATH = `${dir}:${previousPath}`;

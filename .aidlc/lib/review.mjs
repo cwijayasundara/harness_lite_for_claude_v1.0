@@ -4,6 +4,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { resolveCommit } from './diff.mjs';
+import { runSubscriptionClaude } from './claude-auth.mjs';
 
 // Read-only GitHub evidence, separate from local --by and independent model findings.
 // Sources: docs.github.com/en/graphql/reference/pulls (reviewDecision, reviews),
@@ -107,7 +108,7 @@ export function reviewArgs({ model, prompt, budgetUsd }) {
 }
 
 export function review({ root, base, candidate, model, output, budgetUsd = 2, timeoutMs = 180000,
-  invoke = (args, options) => spawnSync('claude', args, options) }) {
+  invoke = runSubscriptionClaude }) {
   if (![base, candidate, model, output].every(v => typeof v === 'string' && v.trim())) {
     throw new Error('review requires --base, --candidate, --out and a configured evaluator model');
   }

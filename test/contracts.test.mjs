@@ -151,24 +151,16 @@ test('the examples still differ from each other', () => {
     'two examples that run identical stages are one example');
 });
 
-// ci-is-green-without-a-key B2/B4/B7. Every push turned the Actions tab red because six
-// workflows passed an ANTHROPIC_API_KEY this repository does not have, and none was gated. A
-// result that has never carried information is one nobody reads. This is the part that keeps the
-// guarantee true: the next workflow someone adds cannot re-open the hole quietly.
-// lean-v2 B12. The gate is gone and the rule that replaces it is stricter, not looser.
-//
-// `vars.HARNESS_MODEL_JOBS` switched the eval job off wholesale, so a change to CLAUDE.md, a
-// skill or a hook could merge with no eval evidence and a green tick. A tick that means "we did
-// not look" is worse than a red one. Now the job always runs on a steering change, and a missing
-// key is an error rather than a silent skip.
-test('a steering change cannot merge without eval evidence', () => {
+// Subscription-only policy: offline PR checks, explicitly requested live CI evidence.
+test('live CI is manual, subscription-only, and missing OAuth fails explicitly', () => {
   const workflow = readFileSync(path.join(ROOT, '.github', 'workflows', 'harness.yml'), 'utf8');
-  assert.doesNotMatch(workflow, /HARNESS_MODEL_JOBS/,
-    'a switch that turns the suite off is a switch that turns governance off');
-  assert.match(workflow, /::error::.*ANTHROPIC_API_KEY is not set/,
-    'no key on a steering change must fail the job, not skip it');
+  assert.doesNotMatch(workflow, /ANTHROPIC_API_KEY/);
+  const job = workflow.slice(workflow.indexOf('\n  evals:'));
+  assert.match(job, /if: github.event_name == 'workflow_dispatch' && inputs.model_smoke/);
+  assert.doesNotMatch(job, /pull_request/);
+  assert.match(workflow, /::error::CLAUDE_CODE_OAUTH_TOKEN is required/);
   assert.match(workflow, /exit 1/);
-  assert.match(workflow, /harness evals gate/, 'running the suite is not grading it');
+  assert.match(workflow, /agent-mechanisms.mjs --live/);
 });
 
 test('the jobs that need no key are not gated', () => {
@@ -182,20 +174,10 @@ test('the jobs that need no key are not gated', () => {
   }
 });
 
-test('CI model evals cover every steering surface and require authentication', () => {
+test('CI live smoke uses a subscription secret only on its explicit run step', () => {
   const workflow = readFileSync(path.join(ROOT, '.github', 'workflows', 'harness.yml'), 'utf8');
-  for (const surface of [String.raw`CLAUDE\.md`, String.raw`settings\.json`, String.raw`harness\.toml`, 'skills/', 'roles/', 'hooks/', 'sensors/', 'templates/', 'evals/']) {
-    assert.ok(workflow.includes(surface), surface);
-  }
-  assert.match(workflow, /run\.mjs --require-auth/);
-  const pattern = workflow.match(/grep -E '([^']+)'/)?.[1];
-  assert.ok(pattern, 'the workflow must select steering changes');
-  for (const file of ['.aidlc/bin/harness', '.aidlc/instructions.md', '.aidlc/policies/review.md',
-    '.aidlc/adapters/claude/hooks.json', '.claude-plugin/plugin.json', '.aidlc/lib/runner.mjs',
-    'evals/fixtures/clean-app/src/app/text.py', 'evals/expected.json', '.github/workflows/harness.yml']) {
-    assert.equal(spawnSync('grep', ['-E', pattern], { input: file + '\n' }).status, 0, file);
-  }
-  assert.equal(spawnSync('grep', ['-E', pattern], { input: 'docs/IMPROVEMENT-PLAN.md\n' }).status, 1);
+  assert.match(workflow, /env: \{ CLAUDE_CODE_OAUTH_TOKEN: /);
+  assert.match(workflow, /timeout-minutes: 20/);
   assert.doesNotMatch(workflow, /^\s*-?\s*if:.*\bsecrets\./m,
     'GitHub Actions does not permit the secrets context in step conditions');
 });

@@ -14,7 +14,7 @@ import { claudeInvoker } from '../evals/lib/invoker.mjs';
 function withStub(body, script) {
   const dir = mkdtempSync(path.join(tmpdir(), 'stub-claude-'));
   const argvLog = path.join(dir, 'argv.txt');
-  writeFileSync(path.join(dir, 'claude'), `#!/usr/bin/env bash\nprintf '%s\\n' "$@" > ${JSON.stringify(argvLog)}\n${script ?? body}\n`);
+  writeFileSync(path.join(dir, 'claude'), `#!/usr/bin/env bash\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"authMethod":"claude.ai","apiProvider":"firstParty"}'; exit 0; fi\nprintf '%s\\n' "$@" > ${JSON.stringify(argvLog)}\n${script ?? body}\n`);
   chmodSync(path.join(dir, 'claude'), 0o755);
   const previous = process.env.PATH;
   process.env.PATH = `${dir}:${previous}`;
@@ -34,7 +34,10 @@ test('invoker: builds the argv the CLI expects and extracts usage from its JSON'
     assert.ok(argv.includes('--dangerously-skip-permissions'));
     // Inert without its enabler: edits are denied and the task fails with an empty transcript.
     assert.ok(argv.includes('--allow-dangerously-skip-permissions'));
-    assert.deepEqual(argv.slice(-6), ['--output-format', 'json', '--plugin-dir', '/plugins/lean', '--max-budget-usd', '0.75']);
+    const outputIndex = argv.indexOf('--output-format');
+    assert.deepEqual(argv.slice(outputIndex, outputIndex + 6), ['--output-format', 'json', '--plugin-dir', '/plugins/lean', '--max-budget-usd', '0.75']);
+    assert.equal(JSON.parse(argv[argv.indexOf('--settings') + 1]).forceLoginMethod, 'claudeai');
+    assert.equal(argv[argv.indexOf('--max-turns') + 1], '30');
     assert.match(out.transcript, /I fixed the divide bug\./);
     assert.equal(out.usage.usd, 0.0234);
     assert.equal(out.usage.output_tokens, 871);
@@ -128,8 +131,72 @@ test('invoker: a missing CLI is a broken harness, not twenty failed tasks', asyn
   } finally { process.env.PATH = previous; rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('the real claude CLI is present, so the suite can run when a key is supplied', () => {
+test('the real claude CLI is present for explicitly requested subscription trials', () => {
   const r = spawnSync('bash', ['-lc', 'command -v claude'], { encoding: 'utf8' });
   assert.equal(r.status, 0, 'no `claude` on PATH — the eval suite cannot run here');
   assert.ok(existsSync(r.stdout.trim()));
+});
+
+// B5. The container boundary. A product trial has no host keychain, so whatever crosses this
+// line is the whole of what it can bill. Before this change the list also carried
+// ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN and ANTHROPIC_BASE_URL, which meant an isolated trial
+// could bill an API account or a gateway while the harness reported it as a subscription run.
+function withStubDocker(body) {
+  const dir = mkdtempSync(path.join(tmpdir(), 'stub-docker-'));
+  const argvLog = path.join(dir, 'argv.txt');
+  writeFileSync(path.join(dir, 'docker'),
+    `#!/usr/bin/env bash\nprintf '%s\\n' "$@" > ${JSON.stringify(argvLog)}\necho '{"result":"ok","total_cost_usd":0}'\n`);
+  chmodSync(path.join(dir, 'docker'), 0o755);
+  const previousPath = process.env.PATH;
+  const previousEnv = { ...process.env };
+  process.env.PATH = `${dir}:${previousPath}`;
+  try { return body(dir, argvLog); } finally {
+    process.env.PATH = previousPath;
+    for (const key of Object.keys(process.env)) if (!(key in previousEnv)) delete process.env[key];
+    for (const [key, value] of Object.entries(previousEnv)) process.env[key] = value;
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+const sandboxFixture = dir => ({
+  work: path.join(dir, 'work'), home: path.join(dir, 'home'), plugin: path.join(dir, 'plugin'),
+  data: path.join(dir, 'data'), image: 'lean-harness-product:test', native: false,
+});
+
+test('invoker: only the subscription token crosses into the product container', () => {
+  withStubDocker((dir, argvLog) => {
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_AUTH_TOKEN;
+    delete process.env.ANTHROPIC_BASE_URL;
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = 'oauth-fixture-value';
+
+    claudeInvoker({ pluginDir: path.join(dir, 'plugin'), model: 'claude-sonnet-5' })({
+      prompt: 'implement the slice', cwd: dir, timeoutMs: 30000, budgetUsd: 1,
+      sandbox: sandboxFixture(dir), phase: 'plan',
+    });
+
+    const argv = readFileSync(argvLog, 'utf8').split('\n').filter(Boolean);
+    const forwarded = argv.filter((a, i) => argv[i - 1] === '--env');
+    assert.ok(forwarded.includes('CLAUDE_CODE_OAUTH_TOKEN'),
+      `the subscription token must reach the container: ${forwarded.join(' ')}`);
+    // Passed by name, so the value is never written into an argument list a process listing shows.
+    assert.doesNotMatch(readFileSync(argvLog, 'utf8'), /oauth-fixture-value/);
+    for (const denied of ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL']) {
+      assert.ok(!forwarded.some(f => f.startsWith(denied)), `${denied} must not cross the boundary`);
+    }
+  });
+});
+
+test('invoker: a product trial with an API key present refuses before starting a container', () => {
+  withStubDocker((dir, argvLog) => {
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = 'oauth-fixture-value';
+    process.env.ANTHROPIC_API_KEY = 'sk-fixture-never-spend';
+
+    assert.throws(() => claudeInvoker({ pluginDir: path.join(dir, 'plugin'), model: 'claude-sonnet-5' })({
+      prompt: 'implement the slice', cwd: dir, timeoutMs: 30000, budgetUsd: 1,
+      sandbox: sandboxFixture(dir), phase: 'plan',
+    }), /API billing is disabled/);
+
+    assert.ok(!existsSync(argvLog), 'no container may be started once a conflicting credential is present');
+  });
 });

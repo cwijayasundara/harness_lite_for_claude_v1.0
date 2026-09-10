@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Opt-in, bounded real-Claude integration smoke. No model calls in the unit suite.
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, existsSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -12,7 +12,7 @@ import { loadConfig } from '../.aidlc/lib/config.mjs';
 import { layout } from '../.aidlc/lib/paths.mjs';
 import { render } from '../.aidlc/lib/artifacts.mjs';
 import { approvalDriver } from './lib/approvals.mjs';
-import { loadDotEnv } from './run.mjs';
+import { requireSubscription, runSubscriptionClaude } from '../.aidlc/lib/claude-auth.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 // This comparison measures guidance decisions, not end-to-end workflow repair turns.
@@ -64,7 +64,7 @@ export function gradeGuidance(responses) {
 }
 
 function compareGuidance(base) {
-  loadDotEnv(root);
+  requireSubscription({ cwd: root });
   const model = loadConfig(root).models.generator;
   const revision = execFileSync('git', ['rev-parse', '--verify', `${base}^{commit}`], { cwd: root, encoding: 'utf8' }).trim();
   const files = ['.aidlc/instructions.md', ...['intent','spec','plan','implement','diagnose','map'].map(s => `.aidlc/skills/${s}/SKILL.md`)];
@@ -82,7 +82,7 @@ function compareGuidance(base) {
       evidence.runs.push(run);
       console.log(`guidance comparison: ${variant} with ${model}`);
       const prompt = `Apply this workflow guidance to each independent scenario. Do not invent missing facts. Return only a JSON array, one object per scenario: {id, action: "proceed"|"ask"|"split", questions: [actual questions you would ask now], source: "function expression when requested", reason: "brief reason"}. Proceed means carry out the requested current stage, not bypass future gates. Follow the guidance when deciding whether to ask or split.\n${guidance}\nScenarios:\n${JSON.stringify(guidanceCases)}`;
-      const out = spawnSync('claude', ['-p', prompt, '--model', model, '--tools', '', '--safe-mode',
+      const out = runSubscriptionClaude(['-p', prompt, '--model', model, '--tools', '', '--safe-mode',
         '--permission-mode', 'dontAsk', '--setting-sources', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
         '--settings', '{"disableAllHooks":true}', '--no-session-persistence', '--output-format', 'json', '--max-budget-usd', '1'],
         { cwd: work, env: process.env, encoding: 'utf8', timeout: 180000, maxBuffer: 16*1024*1024 });
@@ -118,12 +118,18 @@ function compareGuidance(base) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// The runner refuses the same way. A stack trace reads as a crash, and the operator's next move
+// after a crash is to run it again rather than to decide whether they meant to spend.
+if (!process.argv.includes('--live')) {
+  console.error('No model calls made. Live subscription trials require --live.');
+  process.exit(2);
+}
 const guidanceIndex = process.argv.indexOf('--guidance-base');
 if (guidanceIndex !== -1) {
   assert.ok(process.argv[guidanceIndex + 1], '--guidance-base requires a revision');
   compareGuidance(process.argv[guidanceIndex + 1]);
 } else {
-loadDotEnv(root);
+requireSubscription({ cwd: root });
 const models = loadConfig(root).models;
 const work = mkdtempSync(path.join(tmpdir(), 'agent-mechanisms-'));
 const git = (...args) => execFileSync('git', args, { cwd: work, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -132,7 +138,7 @@ const evidence = { kind: 'agent-mechanisms-smoke', models, cli: execFileSync('cl
 let session;
 function phase(text) { evidence.phases.push(text); console.log(text); }
 function invoke(prompt, tools = 'Read,Grep,Glob') {
-  const out = spawnSync('claude', ['-p', prompt, '--model', models.generator,
+  const out = runSubscriptionClaude(['-p', prompt, '--model', models.generator,
     '--setting-sources', '', '--plugin-dir', root, '--tools', tools, '--permission-mode', tools.includes('Edit') ? 'acceptEdits' : 'dontAsk',
     '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--output-format', 'json',
     '--max-budget-usd', '1', ...(session ? ['--resume', session] : [])],
