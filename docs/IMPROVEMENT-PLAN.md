@@ -742,3 +742,59 @@ Index composition after the change: 101 modules, 600 symbols, 285 import edges, 
 still, so a rebuild is 350 ms on the first build after a commit and ~53 ms within it. `graph.mjs`
 ends at 547 of 550, `coedit.mjs` at 80 of 90, `rank.mjs` at 99 of 100 — the last raised from 90 by
 the user on 2026-09-09 rather than delete the `why:` comments needed to reach it.
+
+### Independent review, and what it found — 2026-09-10
+
+The evaluator reviewed `the-index-tracks-the-source` read-only over the committed snapshot
+(claude-opus-5, USD 1.71) and returned **changes-requested**. Its findings are filed at
+`.aidlc/artifacts/the-index-tracks-the-source/review.md`; `the-gate-grades-what-it-can-measure`
+repairs them.
+
+**The review found a regression three deterministic gates had passed.** `check_stop_tokens`
+measures the size of a *green* stop stage's output — two PASS lines, 12 tokens — and was graded
+regardless of whether the stage was green. `capture()` re-runs that stage, and
+`harness check --stage commit` runs by construction on an uncommitted tree where it fails, so the
+gate reported 1,888 against a recorded 12: a 157x rise that said nothing about the change.
+Confirmed by running it. `ENVIRONMENT_SENSITIVE` did not reach it, because its skip fires when
+`errored_controls` differ and a control that **fails** is not a control that **errors**.
+
+Every `--stage commit` run recorded on 2026-09-09 and 2026-09-10 passed only because it was run
+immediately after a commit. The verification method hid the defect; a reader with no shell found
+it from three files.
+
+**A correction to this change's own spec.** Its B1 says `harness check --stage commit` "passes on
+a dirty tree when the change is sound". That is not achieved and was not achievable. The
+`baseline` control no longer fails on a dirty tree — verified in isolation, verdict `pass` — but
+the stage still fails there on the `test` control, because `budget.test.mjs`,
+`candidate-scope.test.mjs` and others install the harness into temporary roots and an installed
+harness requires a clean committed runtime (`runtime unverified`, `runner.mjs:117-126`). That is
+existing designed behaviour, not a defect this change introduced or should remove, and it is why
+the workflow is commit-then-verify. What this change actually delivers is narrower than B1's first
+sentence: the ratchet no longer adds a *second, spurious* failure on top of it.
+
+**Three safeguards were booked as proven and were not.** The no-git degradation test used
+`stage()`, which git-initialises and commits every fixture, so `headCommit()` always succeeded,
+the empty-component branch was never reached, and the assertion was true before the change too —
+it could not fail. The `refresh()` clause was proven one layer below it at `fingerprint()`. The
+`pack` miss path, which is the safeguard stopping 451 removed modules from becoming confident
+"not found" answers, had no assertion at all. Each now has one, and each was demonstrated able to
+fail by removing the production behaviour and watching it go red — the check that a repair for an
+unfailable test is not itself unfailable.
+
+**One latent defect fixed while still latent.** `build(cfg, { only })` bypasses `discover()` and
+`walk()`, so the harness-output exclusions were not applied on that path. It has no caller today;
+the incremental refresh work is what would give it one, and would have silently re-indexed the 451
+modules the exclusions removed.
+
+Two review findings are recorded and deliberately not fixed here: `refresh()` computes
+`fingerprint()` twice per invocation, and `HARNESS_OUTPUT` overlaps a list in
+`test/install.test.mjs` that additionally names `.aidlc/state` and `.claude/state`. Both are real,
+neither is a behavioural defect, and neither file is otherwise touched by this change.
+
+**And a defect in the reviewer itself.** `harness review` hardcodes a 180-second timeout that the
+CLI exposes no flag for, while `review_diff_max_bytes` advertises 200 KB diffs as reviewable. No
+real review fits: a 17 KB diff timed out, and so did a 165 KB one. On timeout it throws
+`review incomplete`, so no partial findings survive and the spend goes unrecorded — the JSON
+carrying `total_cost_usd` never arrives. Two runs were paid for and produced nothing. The review
+above was obtained by calling the same `review()` with a 900-second timeout. The harness cannot
+currently review its own changes through its own command.
