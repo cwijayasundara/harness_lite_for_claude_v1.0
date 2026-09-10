@@ -14,6 +14,7 @@ import { readFileSync, readdirSync, statSync, existsSync, writeFileSync, mkdirSy
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { coedit, head as coeditHead } from './coedit.mjs';
+import { hubs, coeditHubs } from './rank.mjs';
 import path from 'node:path';
 
 // Bumped whenever the SHAPE or the DERIVATION SEMANTICS of the index change, not just its
@@ -30,8 +31,6 @@ const LANG_BY_EXT = {
   '.py': 'py', '.js': 'js', '.mjs': 'js', '.cjs': 'js', '.jsx': 'js',
   '.ts': 'js', '.tsx': 'js', '.go': 'go', '.java': 'java', '.rs': 'rs',
 };
-const IS_TEST = /(^|\/)(tests?|__tests__)\//.test.bind(/(^|\/)(tests?|__tests__)\//) ;
-const isTestModule = (m) => /(^|\/)(tests?|__tests__)\//.test(m) || /(^|\/)(test_[^/]+|[^/]+[._](test|spec)\.[a-z]+)$/.test(m);
 
 const RESERVED = new Set([
   'if', 'for', 'while', 'return', 'print', 'len', 'str', 'int', 'float', 'dict', 'list', 'set',
@@ -391,21 +390,11 @@ export function query(g, question, arg, opts = {}) {
       for (const d of defs) for (const c of d.candidates) if (table.has(c) && c !== arg) out.add(c);
       return [...out];
     }
-    // Q3 — test modules do not confer hub status. v6's committed wiki ranked test/helpers/
-    // as its top two hubs, which is how a graph looks useful while telling you nothing.
-    case 'hubs': {
-      const fanIn = new Map();
-      const fanOut = new Map();
-      for (const [rel, m] of Object.entries(g.modules)) {
-        fanOut.set(rel, m.imports.length);
-        if (isTestModule(rel)) continue;
-        for (const i of m.imports) fanIn.set(i, (fanIn.get(i) ?? 0) + 1);
-      }
-      return [...fanIn.entries()]
-        .map(([module, fan_in]) => ({ module, fan_in, fan_out: fanOut.get(module) ?? 0 }))
-        .sort((a, b) => b.fan_in - a.fan_in || a.module.localeCompare(b.module))
-        .slice(0, opts.limit ?? 20);
-    }
+    // Q3 — B5. Centrality lives in rank.mjs; this is the same question with a better answer.
+    case 'hubs': return hubs(g, opts);
+    // Q9 — B5. The historical ranking, reported separately and never blended with the structural
+    // one. Empty where there is no history.
+    case 'co-edit-hubs': return coeditHubs(g, opts);
     // Q4 — Tarjan, components of size >= 2.
     case 'cycles': return tarjan(g).filter((c) => c.length > 1).map((c) => c.sort());
     // Q5
@@ -461,7 +450,7 @@ export function query(g, question, arg, opts = {}) {
         duplicates: a.duplicates ?? { import: 0, call: 0 },
       };
     }
-    default: throw new Error(`unknown graph question "${question}" — known: callers, calls, hubs, cycles, changed-since, edges, audit, definition`);
+    default: throw new Error(`unknown graph question "${question}" — known: callers, calls, hubs, co-edit-hubs, cycles, changed-since, edges, audit, definition`);
   }
 }
 
