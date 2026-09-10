@@ -1,7 +1,17 @@
 ---
-status: draft
+status: approved
 source: docs/DEFECT-REPAIR-PLAN.md
 source_revision: 62fea335060175a6327494e6abe04cb37d3c94e4
+source_digest: sha256:b67be150acb1a9406bdef8bbd0480c3d2cdf493c26656a38e4db4791f3f2bbb7
+source_kind: repository
+intent_digest: sha256:35f60502e8c61891cfcc1aade02f44a1a4e398de08942cb9fb38620240b3c730
+intent_input_digest: sha256:db1f0ac7af6b8e82f11fcf8a87c17cef9d7e48ca33d383e5f1d5e7b22a77bb24
+intent_revision: b083b2381bcdc5e078b525bdd6a21fbf3f886c92
+by: cwijayasundara
+at: 2026-09-10T13:29:44.873Z
+digest: sha256:caac2fb92238b930dc0b984f8553a93c12d9c92b0659cfdd4e06a93a94e7a854
+approval_version: 2
+approval_digest: sha256:66bc44d4d1f3970ef0907db80f597de14b2b8bd3cdb38ae24a4083ddbf22f161
 ---
 # Spec: a-shell-redirect-is-a-write
 
