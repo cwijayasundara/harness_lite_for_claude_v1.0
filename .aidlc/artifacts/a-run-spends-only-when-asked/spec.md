@@ -1,8 +1,18 @@
 ---
-status: draft
+status: approved
 supersedes: lean-v2#B12
 source: docs/LEAN-HARNESS-IMPLEMENTATION-BACKLOG.md
 source_revision: 9ee37dcb10f6f0e173d25f600ee81100f02fff76
+source_digest: sha256:6d9879fc27a28adc68da23916379110abad0dabf3a61a1e167adf96bfcfdfa5d
+source_kind: repository
+intent_digest: sha256:b9d4258920517a44b05b875781e8a6faacbc17fbdfc8fad1f6f4d24df5853715
+intent_input_digest: sha256:8e8f3238fcccafe5907f8dba64eb624bac3f0e9a9fba104c3cefbfa626f82dab
+intent_revision: 6443805674db5c5f11d71393ddb3f3f02d8469cb
+by: cwijayasundara
+at: 2026-09-10T12:13:01.901Z
+digest: sha256:6d7c935dc462550bdfddd94759a508436aa5a96e71d3740868f0b1babcd48883
+approval_version: 2
+approval_digest: sha256:33fdb4c81a4a0f4195578b0db930d30535a48d8c58ff1afde6206180ae315956
 ---
 # Spec: a-run-spends-only-when-asked
 
