@@ -1,29 +1,55 @@
----
-status: draft
----
-# Review: code-property-graph
+# Independent review
 
-Written by the evaluator against `spec.md` and `.aidlc/policies/review.md`. Every finding cites a
-behaviour id or a review pass, and carries a severity.
+Base: f375fe85a7c8d438c5ee0d598093af739a1db3b1
+Candidate: 737df627b99b87bf6dec0378a1a5ad05fd2f64a5
+Model: claude-opus-5
+Cost USD: 1.8672852500000003
+Checks: run separately; not claimed by this review.
+
+# Review: `code-property-graph` + `the-index-tracks-the-source`
+
+Base `f375fe85a7c8d438c5ee0d598093af739a1db3b1` → candidate `737df627b99b87bf6dec0378a1a5ad05fd2f64a5`.
+Read from `candidate.diff` and the `candidate/` snapshot only. Passes per `.aidlc/policies/review.md`: Bugs, Security, Compliance.
+
+## Overrides, thresholds and suppressions the diff introduced
+
+Taken first, because these are the points where a control was moved rather than met.
+
+- **`rank.mjs` ceiling raised 90 → 100** (`spec.md`, diff 114–120; plan step 9, diff 54–56). Authorized and recorded: the module came in at 105, trimmed to 99, of which 34 lines are constitution-required `why:` comments; the user raised the figure on 2026-09-09 rather than delete reasoning to hit a number. The figure that mattered — `graph.mjs` under 550 — was **not** touched, and the split is what brought it from 558 to 547. I verified the three counts statically: `graph.mjs` 547 (hunk `@@ -362,5 +530,18 @@`), `coedit.mjs` 80, `rank.mjs` 99. This is an authorized rule change with the old value, the new value, the decider and the date all in the approved spec. No action.
+- **`GRAPH_VERSION` 4 → 6** with a comment stating that derivation-semantics changes must bump it because `reusableCoedit` carries weights forward (`graph.mjs:20-24`). This is a control being added, not overridden.
+- **Three new constants in `coedit.mjs`**: `WINDOW = 400`, `MAX_FILES_PER_COMMIT = 50`, `MIN_WEIGHT = 2`. `MIN_WEIGHT` discards 503 of 750 raw pairs — the largest single filter in the change — and is documented with a `MEASURED:` note and the degenerate initial-commit-clique rationale (`coedit.mjs:20-33`). Consistent with B4's "how often rather than merely whether". Accepted; see Nit 1 for its effect on the B4 assertion.
+- **Baseline metrics rewritten** (`.aidlc/baseline.json`): `check_stop_tokens` 1888 → 12, `pack_tokens_p50` 1186 → 1175, `session_context_tokens` 649 → 648, `graph_modules` 543 → 99, `graph_symbols` 1650 → 593. `tolerance` unchanged at 1.1. Every ratcheted metric moved **down**, which tightens the gate; `graph_modules`/`graph_symbols` are not in `RATCHETED` (`.aidlc/lib/baseline.mjs:20-22`), matching what the spec claims. Nothing was loosened.
+- **No `# noqa`, no lint-disable, no skipped or deleted test, no relaxed assertion** anywhere in the diff. The only removals from `graph.mjs` are the dead `IS_TEST` binding and the `isTestModule`/`hubs` bodies that moved to `rank.mjs`; nothing in the snapshot still references `isTestModule` from `graph.mjs`, so the move is safe.
 
 ## Findings
 
 | Severity | Cites | Finding |
 |---|---|---|
+| **Blocking** | B5 (`code-property-graph`), Compliance + Bugs | **B5 has no test.** Its Proof row (diff 64–65) requires a hand-built graph whose PageRank ordering differs from its degree ordering, convergence within the stated cap, and the co-edit ranking returned separately with no blended score. The diff adds nine tests to `test/graph.test.mjs` — all for B1/B2/B3/B4 — and none touches ranking. `pagerank` (`rank.mjs:21`), `hubs` (`rank.mjs:57`), `coeditHubs` (`rank.mjs:90`) and `case 'co-edit-hubs'` (`graph.mjs:398`) have zero coverage in the snapshot: grepping `coeditHubs|co-edit-hubs` across `candidate/` matches only their two definition sites. The one hubs test is pre-existing, `test/graph.test.mjs:315-325`, and asserts `hubs[0].module === 'src/app/models.py'` with `fan_in === 3` — evidence that would pass identically under the fan-in/fan-out sum B5 forbids, so it cannot distinguish the new implementation from the old. Separately, `pagerank()` returns only a `Map`, so "converges within the stated cap" is not observable from outside and cannot be asserted as written without exposing an iteration count. The plan's claim that the existing Q3 test "keeps passing against the moved implementation" is satisfied; that is regression protection, not B5's proof. |
+| **Important** | B3 (`the-index-tracks-the-source`), B4 (`code-property-graph`), Bugs | **Reused co-edit edges can name modules the build does not contain.** `graph.mjs:277` — `edges['co-edit'] = reusableCoedit(cfg, at) ?? coedit(root, new Set(Object.keys(modules)))`. `reusableCoedit` (`graph.mjs:290-296`) gates reuse on `raw.version` and `raw.head` only, never on the module set or on `cfg.graph.exclude`. Delete or rename a file in the working tree, or edit `[graph] exclude`: the fingerprint moves (so a rebuild runs) while HEAD holds still (so the stale edge set is adopted verbatim). `query(g,'edges','co-edit')` then returns edges whose ends are absent from `g.modules`, and `coeditHubs` (`rank.mjs:90-99`) lists those phantom modules with `rank.get(m) ?? 0` = 0. This contradicts B3's "a build's ranking and audit describe exactly the module set that build produced" and `coedit.mjs`'s own stated invariant that "a co-edit edge to something that is not a module is not an edge anyone can follow" (`coedit.mjs:25-27`). No test reaches it: the B3 assertion at `test/graph.test.mjs:207` re-checks `import` edges only, and the B4 "both ends are modules the index knows" assertion at `:274` runs against a cfg with no `layout.graph` (`:253-254`), so the reuse path never engages there. One filter against `Object.keys(modules)` on the reused set, or an exclusion/module-set component in the reuse key, closes it. |
+| **Important** | B5 (`code-property-graph`), Bugs | **`hubs()` withholds part of the ranking B5 approves.** B5 states the ranking is PageRank "over `import` and `call`". `rank.mjs:74-80` feeds both edge kinds into the power iteration, but `rank.mjs:82` gates the *output* on `modules.filter((m) => (fanIn.get(m) ?? 0) > 0)`, where `fanIn` counts import edges alone (`rank.mjs:78`). A module that is central only through call edges can never appear in the answer, however high it ranks. This is inherited from the old fan-in implementation, where the filter was structural rather than a choice; carried into a PageRank answer it silently narrows the approved behaviour. |
+| **Important** | B5 (`code-property-graph`), Compliance | **The map now orders by rank under a legend that promises dependents-count order.** `map.mjs:39` still reads "Where things are, ranked by how much depends on them", `map.mjs:54` heads the only numeric column "Depended on by", and `map.mjs:60` renders `h.fan_in` and nothing else — while the ordering is now PageRank. The rendered result shows it plainly: `.aidlc/lib/pack.mjs \| 4` above `evals/lib/stage.mjs \| 11`, and `.aidlc/lib/eval-gate.mjs \| 1` above `.aidlc/lib/config.mjs \| 10`. B5's promise that `map.mjs` "keeps calling what it calls today and receives a better ordering" holds mechanically, but the page every SessionStart points at now misdescribes its own order and shows no `rank` column to explain it. `map.mjs` is not in either plan's `## Files`, so this needs the file added to a plan or a follow-up change — I am flagging the source string, not the generated file, which policy excludes. |
+
+**Security pass:** nothing to report. Both git calls use `execFileSync` with fixed argument arrays and no shell (`coedit.mjs:34-40`, `:47-49`), `stdio` discards stderr, `maxBuffer` is bounded at 64 MB, and the stored-index read is `JSON.parse` inside a `try`/`catch` returning `null`. No new secrets, logging, or network paths.
+
+## Nits (5)
+
+1. `test/graph.test.mjs:260` — `assert.ok(edge.weight > 1)` cannot fail: `MIN_WEIGHT = 2` (`coedit.mjs:41`) means every returned edge already satisfies it. B4 names nine co-changes for this pair; asserting a figure the threshold does not already guarantee would make the assertion load-bearing.
+2. `test/graph.test.mjs:253-263` binds to this repository's live history inside a sliding `WINDOW = 400` (`coedit.mjs:28`). As commits accumulate, the `guard.test.mjs`/`lifecycle-cli.test.mjs` pair can leave the window and the test flips with no code change. The plan's B4 row asks for exactly this repo-level case, so it is approved — recording the fragility, not objecting to it.
+3. `typedEdges` returns `duplicate_calls` inside the same object as the three edge types (diff 764), so the on-disk index carries a non-edge key beside them. `EDGE_TYPES` guards `query` (`graph.mjs:427`), so it is unreachable there, but `Object.keys(g.edges)` reads as an edge-type list and no longer is one.
+4. `.aidlc/baseline.json` `captured_at` is `2026-09-09T18:03`, before the ranking landed on 2026-09-10, and `capture()` samples pack terms from `query(g,'hubs')` (`baseline.mjs:51`). So the RATCHETED `pack_tokens_p50: 1175` describes hub selection under the fan-in ordering, not the shipped one; recorded `graph_modules: 99` against the shipped 101 (`CODEBASE-MAP.md:1`) has the same cause. The commit-stage `baseline` control catches a move beyond 10%; a sub-tolerance drift is not caught, and the point here is that the recorded figure predates the change it is meant to measure.
+5. `fingerprint()` now spawns `git rev-parse HEAD` on every call (`graph.mjs:530-535` region), and `load()` calls `fingerprint()` (`graph.mjs:513`), so every hook-driven index read gains a subprocess. The spec calls this "one cheap call" and I have no reason to doubt it, but the recorded 62 ms is a rebuild figure and does not cover the per-`load()` cost.
 
 ## Evidence and uncertainty
 
-<Checks actually observed, unverified paths and limits of the review. Do not claim tests ran
-without evidence. The caller runs checks separately from the evaluator.>
+- **No tests, checks or commands were run by this reviewer.** I have no shell. Everything above is static reading of `candidate.diff` and the `candidate/` snapshot. Whether `harness check --stage commit` passes is unverified here.
+- Verified statically: the absence of any B5 test (grep for `coeditHubs|co-edit-hubs|pagerank` across the snapshot); the three line counts (547/80/99, from diff hunk arithmetic and file lengths); `RATCHETED`'s membership (`baseline.mjs:20-22`); that no consumer still imports `isTestModule` from `graph.mjs`; that the commit-stage `test_quality` sensor is a presence heuristic (`.aidlc/sensors/test-quality.mjs:1-14`) and `test/contracts.test.mjs` does not map proof rows to tests, so neither would have caught the B5 gap.
+- **Unverified runtime claims**, read as records rather than proof: 543 → 99 modules, 1,650 → 593 symbols, 282 → 55 ambiguous names, 620.1 → 173.9 KB, 853 → 62 ms rebuild, ~270 ms co-edit derivation, and every figure in the benchmark table.
+- The `check_stop_tokens` 1888 → 12 correction rests on the dirty-tree explanation at `docs/IMPROVEMENT-PLAN.md:686-696`. I could not reproduce it. The direction is safe — it tightens a ratcheted metric and is `ENVIRONMENT_SENSITIVE` in `compare()` — so I am not blocking on it, but the earlier record it corrects was itself wrong, which is a reason to want the clean-tree capture condition asserted somewhere rather than only written down.
+- **For the human, not a finding:** B6 is satisfied exactly as approved — the benchmark was re-run and recorded whichever way it came out — and it came out against the graph: 4,102 pack tokens versus 2,044 bounded `rg` at 100% recall for both, a 2.01× ratio against the 1.67× on record, with packing winning 2 of 10 golden terms. The record states plainly that this is evidence for cutting. No test grades that ratio; `test/graph.test.mjs:423-432` asserts recall ≥ 0.9 and reduction ≥ 0.9 against *full-file* reads, a different quantity, so the `pack-bench.mjs:6` exit criterion is intact, unweakened and now unmet. Whether the subsystem lands on that number is a decision above this review.
 
 ## Recommendation
 
-<approve | changes-requested, and why in one sentence.>
+**changes-requested** — B5's approved proof is entirely absent, so the change's central behaviour is unverified, and the co-edit reuse path can serve edges for modules the build does not contain, contrary to B3.
 
-## Design and delivery context
-
-Classify discrepancies as authorized rule changes, preserved-behavior refactors, or bugs to fix
-against the approved contract. Cite source/behavior and design references at exact revisions.
-Inspect `harness graph query product --revision <commit>` where delivery records exist; retain
-unknown coverage and conflicts. Approval is a proposal, integration is repository state, and
-neither establishes deployment. Do not infer executed proof from a filename or graph edge.
+Returning to `implement` for the Blocking finding and the three Important ones. Per the loop rule this may return here at most twice; a third automated repair on the same finding goes to the human instead.
