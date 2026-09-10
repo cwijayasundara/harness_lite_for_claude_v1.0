@@ -1,6 +1,18 @@
 ---
-status: draft
+status: approved
 extends: the-index-tracks-the-source
+source_digest: sha256:2c7edd535c8a5de16e712feebff488d419341ea63a4927ee89cfd84560227a22
+source: .aidlc/artifacts/the-index-tracks-the-source/review.md
+source_revision: dd19f82e62beaafca951ecbb6bc309aa06ada08e
+source_kind: repository
+intent_digest: sha256:4384d86aa838d8da0e032f0cb0488dafb5eca2aae2d31fdfcebf1a8ed7861dc2
+intent_input_digest: sha256:7161a6e28740fe1a7778c72b557698e178dd6c28166360331989854a566ebfc3
+intent_revision: c166d00f2ce157dc234abc97cc4150dfde34f257
+by: cwijayasundara
+at: 2026-09-10T05:42:26.770Z
+digest: sha256:9763dda2cf58bc28fd3ddbb393c689afd9a925fc737c05fd597c0578da15758c
+approval_version: 2
+approval_digest: sha256:322dc25e7bcdabb6e63488a016420659b23d0bc7ded9cd35af1a777fe7f3b098
 ---
 # Spec: the-gate-grades-what-it-can-measure
 

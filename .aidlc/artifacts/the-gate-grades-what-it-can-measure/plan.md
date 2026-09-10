@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:9763dda2cf58bc28fd3ddbb393c689afd9a925fc737c05fd597c0578da15758c
+spec_approval_digest: sha256:322dc25e7bcdabb6e63488a016420659b23d0bc7ded9cd35af1a777fe7f3b098
+by: cwijayasundara
+at: 2026-09-10T05:42:26.932Z
+digest: sha256:76fba73252e18e44397452e2611b00058c203d7a219574e9f68e341c9aa90954
+approval_version: 2
+approval_digest: sha256:503e418c2e85c838110d564183dae78b860ede6ffd04f4b22aad29be9fd6e158
 ---
 # Plan: the-gate-grades-what-it-can-measure
 
