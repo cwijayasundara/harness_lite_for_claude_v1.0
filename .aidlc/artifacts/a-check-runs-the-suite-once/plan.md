@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:94a1f63049d52f7892906a15781401172b9fc9c06ddaa7839f2051fc4e34f7f4
+spec_approval_digest: sha256:440878c5fefa8c170520e90b148554e185c3d577cb8cdbf72d149eeaec69fcf4
+by: cwijayasundara
+at: 2026-09-10T18:12:59.840Z
+digest: sha256:dd6150bb6d4bf20ef5b9904d47922ea823d1a4d6b6b79e6693d2808fb93516d9
+approval_version: 2
+approval_digest: sha256:fb5774706d290916a81c8a2c1dbc590a1818bec65651214cd5f0bb6d6b0235c0
 ---
 # Plan: a-check-runs-the-suite-once
 
