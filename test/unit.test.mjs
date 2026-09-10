@@ -440,6 +440,227 @@ test('baseline: an incomparable toolchain is not a regression', async () => {
   assert.equal(sameEnv.ok, false);
 });
 
+// D2/F04 B1. `commit` runs `stop` (which includes `test`) and then `baseline`, and `baseline`
+// used to call `capture()`, which ran the whole `stop` stage a SECOND time -- doubling the
+// elapsed time of every commit-stage run for no new information. A configured `test` command
+// that appends to a counter file proves the invocation count directly, rather than trusting
+// elapsed time.
+test('check: a commit-stage run invokes the test command exactly once', async () => {
+  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-once-'));
+  seedRuntimeRecord(root);
+  const aidlc = path.join(root, '.aidlc');
+  const state = path.join(aidlc, 'state');
+  fs.mkdirSync(state, { recursive: true });
+  const counter = path.join(root, 'counter');
+  fs.writeFileSync(counter, '');
+  // A baseline must already be recorded, or the `baseline` control returns before ever calling
+  // `capture()` -- the duplicate run only happens on the path this test exists to prove is fixed.
+  fs.writeFileSync(path.join(aidlc, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
+  const layout = {
+    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), aidlc,
+    state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'),
+    lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id'),
+  };
+  const cfg = {
+    project: { name: 'once' },
+    capabilities: { test: `printf x >> '${counter}'` },
+    formats: {}, stages: { stop: ['test'], commit: ['stop', 'baseline'] },
+    check: { fail_fast: true }, budget: { max_findings: 20 }, limits: { skills: 12 },
+    graph: { include: ['.'], exclude: ['.git'] }, layout,
+  };
+  const result = await check(cfg, { stage: 'commit' });
+  assert.deepEqual(result.controls.map((c) => c.verdict), ['pass', 'pass'],
+    JSON.stringify(result.controls.map((c) => ({ control: c.control, note: c.note, error: c.error }))));
+  assert.equal(fs.readFileSync(counter, 'utf8').length, 1,
+    'the test command must run exactly once for one commit-stage check');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// D2/F04 B4. `stop` fails fast at `test`, so `baseline` -- later in `commit` -- is never reached:
+// this is what makes reusing `stop`'s in-flight results sound (spec B4). Asserted rather than
+// assumed, because the whole repair's soundness rests on it.
+test('check: a failing suite fails the commit stage before baseline is ever reached', async () => {
+  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-failfast-'));
+  seedRuntimeRecord(root);
+  const aidlc = path.join(root, '.aidlc');
+  const state = path.join(aidlc, 'state');
+  fs.mkdirSync(state, { recursive: true });
+  fs.writeFileSync(path.join(aidlc, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
+  const layout = {
+    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), aidlc,
+    state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'),
+    lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id'),
+  };
+  const cfg = {
+    project: { name: 'failfast' }, capabilities: { test: 'exit 1' },
+    formats: {}, stages: { stop: ['test'], commit: ['stop', 'baseline'] },
+    check: { fail_fast: true }, budget: { max_findings: 20 }, limits: { skills: 12 },
+    graph: { include: ['.'], exclude: ['.git'] }, layout,
+  };
+  const result = await check(cfg, { stage: 'commit' });
+  assert.deepEqual(result.controls.map((c) => c.control), ['test', 'baseline']);
+  assert.equal(result.controls[0].verdict, 'fail');
+  assert.equal(result.controls[1].verdict, 'skipped', 'baseline must never read pass on a failed stage');
+  assert.match(result.controls[1].note, /test failed first/);
+  assert.equal(result.ok, false);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// D2/F04 B3. `harness baseline capture`/`check` call `run(cfg)` with no third argument, exactly
+// as a standalone invocation with no run in flight does. There is nothing to borrow, so nothing
+// is borrowed: `capture()` must still run its own stop stage.
+test('baseline: the standalone verb still runs its own stop stage with no run in flight', async () => {
+  const { run: baselineRun } = await import('../.aidlc/checks/baseline.mjs');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-standalone-'));
+  seedRuntimeRecord(root);
+  const aidlc = path.join(root, '.aidlc');
+  const state = path.join(aidlc, 'state');
+  fs.mkdirSync(state, { recursive: true });
+  const counter = path.join(root, 'counter');
+  fs.writeFileSync(counter, '');
+  fs.writeFileSync(path.join(aidlc, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
+  const layout = {
+    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), aidlc,
+    state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'),
+    lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id'),
+  };
+  const cfg = {
+    project: { name: 'standalone' }, capabilities: { test: `printf x >> '${counter}'` },
+    formats: {}, stages: { stop: ['test'], commit: ['stop', 'baseline'] },
+    check: { fail_fast: true }, budget: { max_findings: 20 }, limits: { skills: 12 },
+    graph: { include: ['.'], exclude: ['.git'] }, layout,
+  };
+  const result = await baselineRun(cfg);
+  assert.equal(result.verdict, 'pass');
+  assert.equal(fs.readFileSync(counter, 'utf8').length, 1, 'the standalone verb still runs the suite once, itself');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// D2/F04 B2. `stopReportFrom` must answer the same question `check(cfg, { stage: 'stop', all:
+// true })` answers, because that is the call it is standing in for. `render()` writes elapsed ms
+// into the string it measures (.aidlc/lib/runner.mjs render()), so two runs of an identical green
+// tree never render identically -- ms is normalised out and is the only field permitted to
+// differ (spec B2).
+test('baseline: the reconstructed stop report matches a freshly computed one, ms aside', async () => {
+  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const { stopReportFrom } = await import('../.aidlc/checks/baseline.mjs');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-b2-'));
+  seedRuntimeRecord(root);
+  const aidlc = path.join(root, '.aidlc');
+  const state = path.join(aidlc, 'state');
+  fs.mkdirSync(state, { recursive: true });
+  const layout = {
+    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), aidlc,
+    state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'),
+    lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id'),
+  };
+  const cfg = {
+    project: { name: 'b2' }, capabilities: { secrets: 'exit 0', test: 'exit 0' },
+    formats: {}, stages: { stop: ['secrets', 'test'], commit: ['stop', 'baseline'] },
+    check: { fail_fast: true }, budget: { max_findings: 20 }, limits: { skills: 12 },
+    graph: { include: ['.'], exclude: ['.git'] }, layout,
+  };
+  // Two independent "stop" runs, standing in for: the results a commit run gathers on its way to
+  // `baseline`, and the fresh call `capture()` falls back to. `ms` will differ; nothing else may.
+  const inFlight = await check(cfg, { stage: 'stop', all: true, write: false });
+  const reconstructed = stopReportFrom(cfg, inFlight.controls);
+  const fresh = await check(cfg, { stage: 'stop', all: true, write: false });
+  const norm = (report) => report.controls.map((c) => ({ ...c, ms: 0 }));
+  assert.deepEqual(norm(reconstructed), norm(fresh));
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+// D2/F04 B6. The in-flight results of a commit run are a SUPERSET of `stop` -- they also hold
+// scope-drift, budget, tamper, arch and test_quality -- and a `--base`/`--candidate` run adds a
+// revision line render() would emit (.aidlc/lib/runner.mjs render()). Reusing the commit report
+// wholesale would change `check_stop_tokens` outright, which this behaviour exists to prevent.
+test('baseline: the reconstructed report is stop-shaped -- exact stop verbs, in order, no revision or extra identity errors', async () => {
+  const { stopReportFrom } = await import('../.aidlc/checks/baseline.mjs');
+  const cfg = {
+    budget: { max_findings: 20 },
+    stages: { stop: ['secrets', 'test'], commit: ['stop', 'scope-drift', 'budget', 'baseline'] },
+  };
+  // The superset a commit run -- including one invoked with --base/--candidate, whose extra
+  // results are identical in kind, just more of them -- accumulates by the time it reaches
+  // `baseline`: scope-drift and budget ahead of test in commit's own order, and out of stop's
+  // ['secrets', 'test'] order too.
+  const results = [
+    { control: 'scope-drift', verdict: 'pass', ms: 5, findings: [] },
+    { control: 'test', verdict: 'pass', ms: 40, findings: [] },
+    { control: 'budget', verdict: 'pass', ms: 2, findings: [] },
+    { control: 'secrets', verdict: 'pass', ms: 3, findings: [] },
+  ];
+  const report = stopReportFrom(cfg, results);
+  assert.deepEqual(report.controls.map((c) => c.control), ['secrets', 'test'],
+    'exactly the stop verbs, in stage order -- not commit order, and not the superset');
+  // `stopReportFrom` is never handed an `evidence`/revision value at all -- structurally, not by
+  // convention, it cannot leak a `candidate ... from ...` line, whether the enclosing run was
+  // invoked locally or with --base/--candidate.
+  assert.equal('revision' in report, false);
+  assert.deepEqual(report.identity_errors, []);
+
+  // A partial set -- a stop verb the caller has not actually run -- is not a measurement.
+  assert.equal(stopReportFrom(cfg, [{ control: 'secrets', verdict: 'pass', ms: 1, findings: [] }]), undefined);
+  assert.equal(stopReportFrom(cfg, undefined), undefined);
+});
+
+// D2/F04 B6, end to end. A `--base`/`--candidate` commit run carries its own revision line, and
+// still runs the suite exactly once -- extending B1 into candidate mode, where the in-flight
+// results baseline reuses are a superset carrying `scope-drift` and a revision `stopReportFrom`
+// is never given.
+test('check: a candidate-mode commit run still invokes the suite exactly once', async () => {
+  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { execFileSync } = await import('node:child_process');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-candidate-once-'));
+  const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  git('init', '-q');
+  seedRuntimeRecord(root);
+  const aidlc = path.join(root, '.aidlc');
+  const state = path.join(aidlc, 'state');
+  fs.mkdirSync(state, { recursive: true });
+  const counter = path.join(root, 'counter');
+  fs.writeFileSync(counter, '');
+  fs.writeFileSync(path.join(aidlc, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
+  git('add', '-A');
+  git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'seed');
+  const head = git('rev-parse', 'HEAD');
+  const layout = {
+    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), aidlc,
+    state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'),
+    lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id'),
+  };
+  const cfg = {
+    project: { name: 'candidate-once' }, capabilities: { test: `printf x >> '${counter}'` },
+    formats: {}, stages: { stop: ['test'], commit: ['stop', 'baseline'] },
+    check: { fail_fast: true }, budget: { max_findings: 20 }, limits: { skills: 12 },
+    graph: { include: ['.'], exclude: ['.git'] }, layout,
+  };
+  const result = await check(cfg, { stage: 'commit', base: head, candidate: head, write: false });
+  assert.ok(result.revision, 'a --base/--candidate run carries a revision line itself');
+  const baselineControl = result.controls.find((c) => c.control === 'baseline');
+  assert.equal(baselineControl.verdict, 'pass');
+  assert.equal(fs.readFileSync(counter, 'utf8').length, 1,
+    'the suite must still run exactly once under --base/--candidate');
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 // p0-unblock-the-loop B4. runId() only ever creates an id, so with no rotation point the file
 // written on the very first invocation stays the run id forever. This repo reached 1,185 rows
 // across eight days under one id, which pins every control at `insufficient-data` and leaves

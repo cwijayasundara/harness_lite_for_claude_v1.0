@@ -23,7 +23,7 @@ export const RATCHETED = [
 
 const fileTokens = (p) => (existsSync(p) ? estimateTokens(readFileSync(p, 'utf8')) : 0);
 
-export async function capture(cfg) {
+export async function capture(cfg, { stopReport } = {}) {
   const g = graph.ensure(cfg);
 
   // B1. What SessionStart puts in the model's context every single session — the exact string,
@@ -37,7 +37,13 @@ export async function capture(cfg) {
 
   // What a green stage puts in front of the model on the way to "done".
   // `all: true` so the measurement does not depend on fail-fast stopping early.
-  const report = await check(cfg, { stage: 'stop', files: [], write: false, all: true });
+  //
+  // D2/F04. Inside a commit-stage run, `stop` has already run by the time `baseline` reaches
+  // here -- `.aidlc/checks/baseline.mjs` hands over the in-flight results reconstructed into the
+  // same shape this call would have produced, and running the whole stage a second time is
+  // skipped. The standalone `harness baseline capture`/`check` verbs pass nothing and this call
+  // is unchanged.
+  const report = stopReport ?? await check(cfg, { stage: 'stop', files: [], write: false, all: true });
   const rendered = render(report, cfg.layout);
   // Which controls could not run here at all. A machine missing ruff renders "tool not
   // installed" instead of three PASS lines, and grading that against a machine that has ruff
