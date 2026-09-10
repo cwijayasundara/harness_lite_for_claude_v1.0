@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:caac2fb92238b930dc0b984f8553a93c12d9c92b0659cfdd4e06a93a94e7a854
+spec_approval_digest: sha256:66bc44d4d1f3970ef0907db80f597de14b2b8bd3cdb38ae24a4083ddbf22f161
+by: cwijayasundara
+at: 2026-09-10T13:35:27.193Z
+digest: sha256:06258b4beb5d7cea1bd710ffb0bd85741541778e85644bad0d95c1690571fa56
+approval_version: 2
+approval_digest: sha256:d6121f05434bd414c2fee3e91153e5f554a36313439a435b6b34dcd2156f4932
 ---
 # Plan: a-shell-redirect-is-a-write
 
