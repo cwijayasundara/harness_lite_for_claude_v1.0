@@ -31,8 +31,8 @@ test('product staging exposes only portable plugin files and uses separate phase
   } finally { s.cleanup(); }
 });
 
-test('private ledger acceptance rejects no-op and seeded faulty products', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},()=>{
-  const s=isolateStage(stage(fixtures,'campaign-ledger'),ROOT);
+test('private ledger acceptance rejects no-op and seeded faulty products', ()=>{
+  const s=isolateStage(stage(fixtures,'campaign-ledger',{exec:'process'}),ROOT);
   try {
     assert.equal(verifyLedger(s,0).pass,true);
     assert.throws(()=>verifyLedger(s,1));
@@ -47,8 +47,8 @@ export function isOverdue(id,today){if(!invoices.has(id))throw new Error('unknow
   }finally{s.cleanup();}
 });
 
-test('deterministic product campaign preserves failed no-op evidence and external approvals', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
-  const s=isolateStage(stage(fixtures,'campaign-ledger'),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-evidence-'));
+test('deterministic product campaign preserves failed no-op evidence and external approvals', async()=>{
+  const s=isolateStage(stage(fixtures,'campaign-ledger',{exec:'process'}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-evidence-'));
   try {
     const task={id:'deterministic-no-op',product:'ledger',timeoutMs:1000,budgetUsd:1,steps:[{
       slug:'balance',request:'Add balance and overdue queries.',behaviours:['Expose balance and overdue queries.'],files:['src/ledger.mjs'],level:1}]};
@@ -63,9 +63,9 @@ test('deterministic product campaign preserves failed no-op evidence and externa
   }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
 });
 
-test('incomplete product calls retain evidence and never invent missing billing', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+test('incomplete product calls retain evidence and never invent missing billing', async()=>{
   for(const reason of ['timeout','invocation_error']){
-    const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-incomplete-'));
+    const s=isolateStage(stage(fixtures,'campaign-service',{product:true,exec:'process'}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-incomplete-'));
     try{
       const task={id:'deterministic-incomplete',product:'service',timeoutMs:1000,budgetUsd:1,steps:[{
         slug:'service-create',request:'Create the service.',behaviours:['Expose HTTP health.'],files:['src/server.mjs'],level:1}]};
@@ -83,9 +83,9 @@ test('incomplete product calls retain evidence and never invent missing billing'
   }
 });
 
-test('private HTTP acceptance exercises persistence, rule changes and storage failure outside the server', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+test('private HTTP acceptance exercises persistence, rule changes and storage failure outside the server', async()=>{
   const {verifyService}=await import('../evals/lib/assertions.mjs');
-  const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT);
+  const s=isolateStage(stage(fixtures,'campaign-service',{product:true,exec:'process'}),ROOT);
   try {
     assert.equal(existsSync(path.join(s.work,'src/app')),false,'greenfield product has no unrelated Python source');
     assert.throws(()=>verifyService(s,1),'an empty product must fail acceptance');
@@ -117,10 +117,10 @@ test('private HTTP acceptance exercises persistence, rule changes and storage fa
   }finally{s.cleanup();}
 });
 
-test('comparison campaigns grade both configurations and detect unapproved writes', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+test('comparison campaigns grade both configurations and detect unapproved writes', async()=>{
   const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
   for(const native of [true,false])for(const premature of [false,true]){
-    const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native}),ROOT);
+    const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native,exec:'process'}),ROOT);
     const evidence=mkdtempSync(path.join(tmpdir(),'comparison-proof-'));
     try{
       const task={id:'ledger',product:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'queries',request:'Add balance and overdue queries',behaviours:['Add balance and overdue queries'],files:['src/ledger.mjs'],level:1}]};
@@ -136,9 +136,9 @@ test('comparison campaigns grade both configurations and detect unapproved write
   }
 });
 
-test('unparseable independent comparison review is incomplete and does not request implementation repairs', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+test('unparseable independent comparison review is incomplete and does not request implementation repairs', async()=>{
   const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
-  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native:true}),ROOT);
+  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native:true,exec:'process'}),ROOT);
   const evidence=mkdtempSync(path.join(tmpdir(),'comparison-review-'));let implementations=0;
   try{
     const task={id:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'keep-api',request:'Preserve current behaviour',behaviours:['Keep API'],files:['src/ledger.mjs'],level:1}]};
@@ -151,9 +151,9 @@ test('unparseable independent comparison review is incomplete and does not reque
   }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
 });
 
-test('comparison detects agent self-approval before the driver replaces its proposal', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+test('comparison detects agent self-approval before the driver replaces its proposal', async()=>{
   const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
-  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'comparison-forged-'));
+  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,exec:'process'}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'comparison-forged-'));
   try{
     const task={id:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'keep-api',request:'Preserve API',behaviours:['Preserve API'],files:['src/ledger.mjs'],level:1}]};
     const out=await runComparisonCampaign({task,config:{id:'harness'},sandbox:s,evidenceDir:evidence,evaluateProduct:()=>{throw new Error('must not reach acceptance');},invoke:async()=>{
@@ -164,8 +164,8 @@ test('comparison detects agent self-approval before the driver replaces its prop
   }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
 });
 
-test('failed product tests with leaked servers return findings before the invocation deadline', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},()=>{
-  const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT);
+test('failed product tests with leaked servers return findings before the invocation deadline', ()=>{
+  const s=isolateStage(stage(fixtures,'campaign-service',{product:true,exec:'process'}),ROOT);
   try{
     writeFileSync(path.join(s.work,'tests/leaked-server.test.mjs'),"import test from 'node:test'; import assert from 'node:assert/strict'; import http from 'node:http'; test('failure before cleanup',()=>{http.createServer().listen(0);assert.fail('seeded failure');});\n");
     const out=runProductCheck(s,25000);

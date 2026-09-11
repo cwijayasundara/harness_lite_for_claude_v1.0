@@ -7,7 +7,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { selectChange } from '../../.aidlc/lib/artifacts.mjs';
 
-export const PRODUCT_TEST_ARGS = ['--test', '--test-timeout=10000'];
+// `--test-timeout` bounds a test that hangs; it does not bound a test that FAILS while leaving a
+// listening socket open, because the failure is instant and it is the file's process that then
+// refuses to exit. Without `--test-force-exit` such a seeded defect converts a reported failure
+// into an outer invocation timeout, which is the one outcome the leaked-server trial forbids.
+export const PRODUCT_TEST_ARGS = ['--test', '--test-timeout=10000', '--test-force-exit'];
 export const PRODUCT_TEST_COMMAND = `node ${PRODUCT_TEST_ARGS.join(' ')}`;
 
 export const FIXTURES = path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), 'fixtures');
@@ -67,17 +71,30 @@ export function claimPort() {
   return port;
 }
 
+// `node --test` marks its children with NODE_TEST_CONTEXT so they report over IPC instead of
+// exiting on their own verdict. A product check spawned from inside the suite inherits that mark,
+// and the product's own `node --test` then reports a real failure as exit 0 — a failing product
+// silently graded as passing. Docker never forwarded it, because only explicit --env crosses the
+// boundary, which is why the container path never saw this. The process path must clear it
+// deliberately: inheriting the parent environment is exactly what makes it unsafe.
+const PRODUCT_ENV_STRIP = ['NODE_TEST_CONTEXT', 'NODE_TEST_WORKER_ID'];
+function productEnv(env) {
+  const merged = { ...process.env, ...env };
+  for (const key of PRODUCT_ENV_STRIP) delete merged[key];
+  return merged;
+}
+
 export function execNode(cwd, nodeArgs, { input, timeout = 15000, env } = {}) {
   const r = spawnSync(process.execPath, nodeArgs, {
     cwd, input, encoding: 'utf8', timeout, killSignal: 'SIGKILL', maxBuffer: 1024 * 1024,
-    detached: true, env: env ? { ...process.env, ...env } : undefined,
+    detached: true, env: productEnv(env),
   });
   if ((r.error || r.signal) && r.pid) killProcessGroup(r.pid);
   return r;
 }
 
 export function spawnDetachedProcess(cwd, nodeArgs, env = {}) {
-  const child = spawn(process.execPath, nodeArgs, { cwd, detached: true, stdio: 'ignore', env: { ...process.env, ...env } });
+  const child = spawn(process.execPath, nodeArgs, { cwd, detached: true, stdio: 'ignore', env: productEnv(env) });
   child.unref();
   return child;
 }
