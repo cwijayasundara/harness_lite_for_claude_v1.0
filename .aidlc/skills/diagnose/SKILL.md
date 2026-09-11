@@ -41,7 +41,7 @@ a test defect requires it, explaining the change without weakening the regressio
 Existing test locks and external evaluation fixtures remain protected; the owner decides any
 lock change. Report the observed result and any uncertainty.
 
-For a production incident or control-band breach, first create
-`.aidlc/artifacts/incident/<slug>.md` with `harness new incident <slug>`. Preserve the metric,
-baseline, breached band, timeline, and mitigation. Then create the linked intent with the same
-slug. When the fix ships, add one permanent eval reproducing the incident class.
+For a production incident or control-band breach, run `harness new <slug>`. Preserve the metric,
+baseline, breached band, timeline and mitigation in the `intent.md` it scaffolds — the incident
+record and the intent are one artifact, under one slug. When the fix ships, add
+one permanent eval reproducing the incident class with `harness new eval <slug>`.

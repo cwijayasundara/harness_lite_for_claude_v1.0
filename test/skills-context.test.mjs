@@ -42,7 +42,7 @@ test('B2 diagnose stays trimmed, and change-safely\'s four unduplicated rules li
 
   for (const rule of [
     /bash \.aidlc\/bin\/harness check/,          // the loop is built from this repository's checks
-    /harness new incident <slug>/,               // control-band breach -> incident -> linked intent
+    /control-band breach, run `harness new <slug>`/, // breach -> intent, on the verb that exists
     /one permanent eval reproducing the incident class/,
     /test locks and external evaluation fixtures remain protected/,
   ]) assert.match(diagnose, rule, 'a harness-specific rule was cut from diagnose');

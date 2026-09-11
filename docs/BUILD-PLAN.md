@@ -245,8 +245,9 @@ reader to `grep -rn ""` — a complete answer misreported as ignorance. And the 
 released by truncation without the take path treating an empty file as free, so the second
 refresh in any session was permanently blocked.
 
-**The budget is now full: skills 12/12, agents 3/3, hook bindings 5/5.** Every further addition
-requires a deletion, which is the state Law 5 exists to force.
+**The budget is now full**, at the ceilings `[limits]` carried on that commit. Every further
+addition requires a deletion, which is the state Law 5 exists to force. The numbers are not
+repeated here: Law 5 keeps them in `harness.toml` so no document can disagree with the test.
 
 ### Phase 4 — Second language, then the cost ratchet · **COMPLETE**
 

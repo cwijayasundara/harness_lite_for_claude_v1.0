@@ -24,14 +24,14 @@ firing where the work happens.
 ```
 .aidlc/bin/harness ledger              # what fired, how often, how slow
 .aidlc/bin/harness baseline check      # did the token surface grow
-.aidlc/bin/harness status              # artifact progress, SLA, playbook indicators
+.aidlc/bin/harness status              # artifact progress, gates, current change
 ```
 
-`status` now includes the playbook leading indicators: intent survival (accepted vs closed),
-mean hours to a committed intent, spec commits after the first plan commit, first-pass review
-share, and the latest eval pass rate when `evals/results/` exists. Missing clocks are
-`unmeasured`, never a fabricated zero. Close an intent that will not enter Design by setting
-`Status: closed` and committing it.
+`status` reports where each open change sits in the chain, whether its approvals still bind,
+and which change currently owns product writes. It measures no elapsed time: the playbook's
+leading indicators were part of lean-v2's unreachable-kernel cut and are parked as a candidate
+below. Close a change that will not enter Design by setting `status: closed` in its `intent.md`
+and committing it.
 
 Two questions:
 
@@ -140,21 +140,23 @@ editing root CLAUDE.md does not invalidate an already loaded prompt mid-session.
 
 ## When something goes wrong in production
 
-1. Run `harness new incident <slug>` and record the deterministic signal, impact, and mitigation.
-2. Run `harness new intent <slug>` and link it to the incident. The loop now re-enters Plan.
-3. Fix it through the normal intent → spec → plan → diff → review chain.
-4. **Add an eval to `evals/tasks.json`, permanently.** One incident, one task, forever. This is
-   the only sanctioned way the suite grows.
-5. Only then ask whether a control would have prevented it.
+1. Run `harness new <slug>`. It scaffolds the whole chain; record the deterministic signal, the
+   impact and the mitigation in the `intent.md` it writes. The loop has re-entered Plan.
+2. Fix it through the normal intent → spec → plan → diff → review chain.
+3. **Keep the incident as an eval, permanently.** `harness new eval <slug>` writes the regression
+   under `.aidlc/evals/pending/`; promote it into `evals/tasks.json`. One incident, one task,
+   forever. This is the only sanctioned way the suite grows.
+4. Only then ask whether a control would have prevented it.
 
 ## Stage SLAs
 
-The `[sla]` table in `harness.toml` defines elapsed-time targets. `harness status` reads the
-artifact chain and git timestamps; it exits non-zero for an invalid transition, an uncommitted
-approval, or a breached target. It finds the first commit where each status became `approved`,
-so editing a file to say approved without committing it does not pass a gate. Unavailable clocks
-are reported `unmeasured` rather than assigned invented dates.
-Use `--json` for CI or a weekly report. These are flow SLAs, not estimates of coding effort.
+There are none, and there is no `[sla]` table. Elapsed-time targets went with lean-v2's
+unreachable-kernel cut; what `harness status` reads the artifact chain for is gate *state*, not
+elapsed time. It exits non-zero when an approved spec or plan has changed since it was approved,
+and when an approved plan declares no files under `## Files`. A v2 approval also binds its
+inputs: an uncommitted or edited `intent.md` invalidates the spec's binding, so saying approved
+in a file nobody committed does not pass a gate. Use `--json` for CI or a weekly report. Flow
+targets are a parked candidate below, not a thing this harness measures today.
 
 ## A gate reads content too
 
@@ -265,8 +267,8 @@ In this order, and stop at the first that works:
    never the first. Cheapest possible fix, costs a few tokens per session.
 2. **A check** — if the line does not hold, make it mechanical. Needs a `why:` naming this
    finding.
-3. **A skill** — only if both of the above failed, and only by deleting another skill. The
-   budget is full at 12/12.
+3. **A skill** — only if both of the above failed, and only by deleting another skill once
+   `[limits] skills` is at its ceiling. The ceiling lives in `harness.toml` and nowhere else.
 
 Most things stop at step 1. That ordering is the single most important habit in this document.
 
@@ -282,6 +284,13 @@ Write them here rather than building them. Each needs the ledger to justify it.
 - A `pack`-aware read guard that nudges whole-file reads toward `harness pack`. Only worth it if
   the ledger shows the token surface growing despite the pack existing.
 - Coverage as a ratcheted metric. Needs a project where coverage is actually measured first.
+- The playbook's metrics framework: time from idea to committed artifact, first-pass review
+  share, rework cycles, change failure rate. The playbook's central claim is that the bottleneck
+  *moves* to plan, review and deploy, and nothing here can currently see it move — the weekly
+  question "did anything block you that should not have" is answered from memory. The timestamps
+  are already in git and the artifact chain, so this is a read over data we keep rather than a
+  subsystem. It stays parked until Law 11 is satisfied: a defect recorded while building a
+  non-harness application through the harness, not another argument from this repository.
 
 ## Running the sensors in a project's CI
 
