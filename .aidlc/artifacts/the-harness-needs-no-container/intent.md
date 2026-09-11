@@ -1,10 +1,18 @@
 ---
 status: draft
+source: https://claude.ai/code/session_01FusCKFhEQq1PmJFUCnhZjv
+source_revision: 2026-09-11-decision-remove-docker-completely
 ---
 # Intent: the-harness-needs-no-container
 
 - **Date:** 2026-09-11
 - **Author:** cwijayasundara
+- **Source:** no document describes this change. It originates in an explicit instruction from
+  cwijayasundara — "I need to remove Docker dependency completely" — given in the session bound
+  above, after the consequence for the live product-trial sandbox was put to them and they
+  reaffirmed. The binding is `external-asserted` for that reason: it records where the decision
+  was made, not a specification to implement from. `docs/DEFECT-REPAIR-PLAN.md` does not cover it.
+- **Applies to:** `52e930f`, `main` with D1, D2 and D3 merged.
 - **Supersedes:** `the-tests-run-without-docker` B5 and B6, which this change reverses. Those
   behaviours are approved and merged at `52e930f`; the reversal belongs here, with
   `supersedes:` in the spec, rather than in an edit to that change.
