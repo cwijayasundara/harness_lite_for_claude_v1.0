@@ -1,7 +1,7 @@
 // Staging: _base, then the fixture on top, then a pristine snapshot to diff against.
 // The work copy is a real git repo, because scope-drift and the commit stage read the diff.
 import { cpSync, mkdtempSync, existsSync, rmSync, mkdirSync, chmodSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,7 +12,7 @@ export const PRODUCT_TEST_COMMAND = `node ${PRODUCT_TEST_ARGS.join(' ')}`;
 
 export const FIXTURES = path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), 'fixtures');
 
-export function stage(fixturesDir, name, { product = false, native = false } = {}) {
+export function stage(fixturesDir, name, { product = false, native = false, exec = 'container' } = {}) {
   const base = path.join(fixturesDir, '_base');
   const fx = path.join(fixturesDir, name);
   if (!existsSync(fx)) throw new Error(`no fixture "${name}" in ${fixturesDir}`);
@@ -50,7 +50,41 @@ export function stage(fixturesDir, name, { product = false, native = false } = {
   // The baseline compares source bytes, not repository internals. Copying .git adds mutable
   // object/maintenance state and produced intermittent copy failures on the hosted runner.
   cpSync(work, pristine, { recursive: true, filter: source => path.basename(source) !== '.git' });
-  return { root, work, pristine, native, cleanup: () => rmSync(root, { recursive: true, force: true }) };
+  return { root, work, pristine, native, exec, harnessBin: realBin, cleanup: () => rmSync(root, { recursive: true, force: true }) };
+}
+
+// The process branch is a host child process — never a sandbox, and never called one. It mirrors
+// the container branch's own cleanup discipline (`if(r.error||r.signal) docker rm -f name`): a
+// timed-out or errored run's whole process group is killed, not just the direct child, so a
+// script that itself forked children cannot leak one. Ports are claimed the same way a real
+// server binds one — by asking the OS for port 0 and reading back what it assigned, never by
+// picking a constant.
+export function claimPort() {
+  const probe = "const s=require('net').createServer();s.listen(0,()=>{process.stdout.write(String(s.address().port));s.close(()=>process.exit(0));});";
+  const r = spawnSync(process.execPath, ['-e', probe], { encoding: 'utf8', timeout: 5000 });
+  const port = Number((r.stdout || '').trim());
+  if (!port) throw new Error(`failed to claim an ephemeral port: ${r.stderr || r.stdout || r.error?.message}`);
+  return port;
+}
+
+export function execNode(cwd, nodeArgs, { input, timeout = 15000, env } = {}) {
+  const r = spawnSync(process.execPath, nodeArgs, {
+    cwd, input, encoding: 'utf8', timeout, killSignal: 'SIGKILL', maxBuffer: 1024 * 1024,
+    detached: true, env: env ? { ...process.env, ...env } : undefined,
+  });
+  if ((r.error || r.signal) && r.pid) killProcessGroup(r.pid);
+  return r;
+}
+
+export function spawnDetachedProcess(cwd, nodeArgs, env = {}) {
+  const child = spawn(process.execPath, nodeArgs, { cwd, detached: true, stdio: 'ignore', env: { ...process.env, ...env } });
+  child.unref();
+  return child;
+}
+
+export function killProcessGroup(pid) {
+  if (!pid) return;
+  try { process.kill(-pid, 'SIGKILL'); } catch { /* already gone */ }
 }
 
 // Product trials mount an allowlisted plugin, never the repository containing private scenarios.

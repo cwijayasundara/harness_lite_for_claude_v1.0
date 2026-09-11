@@ -52,6 +52,10 @@ export function invokerEnv({ pluginDir = null, base = {} }) {
 
 export function claudeInvoker({ pluginDir, model = null, native = false, comparison = false }) {
   return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task, sandbox = null, phase = 'plan', sessionId = null }) {
+    // A live agent must never reach the weaker, unenforced process path even by mistake — this
+    // property matters more than the rest of the change combined. Refuse before any invocation
+    // setup, including auth, so the guard cannot be bypassed by an unrelated environment failure.
+    if (sandbox?.exec === 'process') throw new Error('a live product trial cannot select exec:"process"; only container mode is permitted for a live agent');
     const args = subscriptionArgs(invokerArgs({ prompt, model, pluginDir, budgetUsd, product: !!sandbox, sessionId, review: phase === 'review', native, comparison }));
     const started = Date.now();
     const env = invokerEnv({ task, pluginDir, base: process.env });

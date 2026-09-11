@@ -4,7 +4,7 @@ import { readFileSync, existsSync, writeFileSync, symlinkSync, mkdtempSync, rmSy
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { stage, isolateStage, productDockerArgs, assertProductTree } from '../evals/lib/stage.mjs';
-import { invokerArgs } from '../evals/lib/invoker.mjs';
+import { invokerArgs, claudeInvoker } from '../evals/lib/invoker.mjs';
 import {tmpdir} from 'node:os';
 import {verifyLedger} from '../evals/lib/assertions.mjs';
 import {runProductCampaign,runProductCheck} from '../evals/lib/campaign.mjs';
@@ -173,4 +173,71 @@ test('failed product tests with leaked servers return findings before the invoca
     assert.equal(out.status,1,'the failed test must remain a failure');
     assert.match(out.stdout,/FAIL\s+test/);
   }finally{s.cleanup();}
+});
+
+// the-tests-run-without-docker: exec:'process' staging runs the product under test as a plain
+// Node child process, with no Docker executable and no daemon required. Container remains the
+// default and unaffected shape when `exec` is omitted (B1, B3).
+test('exec:"process" staging returns its own work directory and a real ephemeral port; container stays the default', async () => {
+  const { claimPort } = await import('../evals/lib/stage.mjs');
+  const a = stage(fixtures, 'campaign-service', { product: true, exec: 'process' });
+  const b = stage(fixtures, 'campaign-service', { product: true, exec: 'process' });
+  const c = stage(fixtures, 'campaign-ledger');
+  try {
+    assert.equal(a.exec, 'process'); assert.equal(b.exec, 'process');
+    assert.notEqual(a.work, b.work, 'two concurrent process-mode stages must not share a directory');
+    assert.equal(c.exec, 'container', 'container remains the default when exec is omitted');
+    const portA = claimPort(), portB = claimPort();
+    assert.ok(Number.isInteger(portA) && portA > 0, 'a port claimed by binding port 0 must be a real port number');
+    assert.ok(Number.isInteger(portB) && portB > 0);
+    assert.notEqual(portA, portB, 'a port is read back from the OS, never picked as a constant');
+  } finally { a.cleanup(); b.cleanup(); c.cleanup(); }
+});
+
+// B4: a process-mode run that times out must leave no live descendant — asserted, not assumed.
+test('a process-mode run that times out leaves no live descendant process', async () => {
+  const { execNode } = await import('../evals/lib/stage.mjs');
+  const r = execNode(ROOT, ['-e', 'setInterval(()=>{},1000)'], { timeout: 200 });
+  assert.equal(r.error?.code, 'ETIMEDOUT', 'the run must be observed timing out');
+  assert.ok(r.pid, 'the helper must report the pid it started');
+  assert.throws(() => process.kill(r.pid, 0), /ESRCH/, 'the timed-out process must be gone, not orphaned');
+});
+
+// B6: a live product trial cannot select exec:'process' even by mistake — the invoker refuses it,
+// while the container path keeps emitting the boundary arguments it already builds.
+test('a live product trial cannot select exec:"process"; the container path still emits its hardening flags', () => {
+  const s = isolateStage(stage(fixtures, 'campaign-ledger'), ROOT);
+  try {
+    const args = productDockerArgs(s, { phase: 'runtime' });
+    for (const flag of ['--read-only', '--cap-drop=ALL', '--security-opt=no-new-privileges']) assert.ok(args.includes(flag), flag);
+    assert.ok(args.includes('none'), '--network none must still be the runtime default');
+    assert.ok(args.some(a => a === `${process.getuid?.() || 1000}:${process.getgid?.() || 1000}`), 'an unprivileged uid:gid must still be passed');
+    const invoke = claudeInvoker({ pluginDir: '/plugin-dir' });
+    assert.throws(() => invoke({ prompt: 'p', cwd: s.work, timeoutMs: 1000, budgetUsd: 1, task: {}, sandbox: { ...s, exec: 'process' } }), /process/i);
+  } finally { s.cleanup(); }
+});
+
+// B5, native half: alongside the container-only isolation tests (moved to
+// test/container/product-boundary.test.mjs), the native path asserts what it genuinely provides —
+// the private grading file sits outside the tree handed to the child process. This is never
+// described as isolation; a directory is not a sandbox.
+test('process-mode staging keeps the private grading file outside the tree handed to the child process', () => {
+  const s = isolateStage(stage(fixtures, 'campaign-ledger', { exec: 'process' }), ROOT);
+  try {
+    const secret = path.join(s.root, 'private-grading.json');
+    writeFileSync(secret, 'private');
+    assert.ok(!secret.startsWith(s.work + path.sep) && secret !== s.work, 'the private grading file must sit outside s.work');
+    assert.equal(existsSync(path.join(s.work, path.relative(s.root, secret))), false);
+  } finally { s.cleanup(); }
+});
+
+// B5: the container boundary is a distinct opt-in suite, outside the ordinary glob, and its
+// absence is stated in the output rather than inferred from a missing line.
+test('the container boundary is a distinct opt-in suite and this run states whether it was verified', () => {
+  const containerSuite = path.join(ROOT, 'test/container/product-boundary.test.mjs');
+  assert.ok(existsSync(containerSuite), 'the container-boundary suite must exist outside test/*.test.mjs');
+  const verified = process.env.HARNESS_PRODUCT_DOCKER === '1';
+  console.log(verified
+    ? 'container boundary: verified this run by test/container/product-boundary.test.mjs'
+    : 'container boundary: NOT verified this run (HARNESS_PRODUCT_DOCKER unset) — the container boundary was not exercised');
 });
