@@ -11,8 +11,17 @@ import { selectChange } from '../../.aidlc/lib/artifacts.mjs';
 // listening socket open, because the failure is instant and it is the file's process that then
 // refuses to exit. Without `--test-force-exit` such a seeded defect converts a reported failure
 // into an outer invocation timeout, which is the one outcome the leaked-server trial forbids.
-export const PRODUCT_TEST_ARGS = ['--test', '--test-timeout=10000', '--test-force-exit'];
+export const PRODUCT_TEST_ARGS = ['--test', '--test-timeout=10000'];
 export const PRODUCT_TEST_COMMAND = `node ${PRODUCT_TEST_ARGS.join(' ')}`;
+// Process mode only, and deliberately NOT added to the shared constant above: the spec's Design
+// says the container path is unchanged in behaviour, and PRODUCT_TEST_ARGS is what the container
+// path runs. A container gets a fresh PID namespace and `--rm`, so a leaked socket dies with it;
+// a host child does not, and `--test-timeout` does not help — it bounds a test that HANGS, while
+// this one FAILS instantly and it is the file's process that then refuses to exit. Measured
+// before this flag existed: the seeded leaked-server case returned ETIMEDOUT after 25,009ms
+// instead of the failure it was supposed to report.
+export const productTestArgs = exec => exec === 'process' ? [...PRODUCT_TEST_ARGS, '--test-force-exit'] : PRODUCT_TEST_ARGS;
+export const productTestCommand = exec => `node ${productTestArgs(exec).join(' ')}`;
 
 export const FIXTURES = path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), 'fixtures');
 
@@ -31,7 +40,7 @@ export function stage(fixturesDir, name, { product = false, native = false, exec
   // disposable product trials so a seeded defect cannot consume an entire planning turn.
   if(product){
     const config=path.join(work,'.aidlc/harness.toml');
-    if(existsSync(config))writeFileSync(config,readFileSync(config,'utf8').replace(/(^test\s*=\s*")node --test(?=[" ])/m,`$1${PRODUCT_TEST_COMMAND}`));
+    if(existsSync(config))writeFileSync(config,readFileSync(config,'utf8').replace(/(^test\s*=\s*")node --test(?=[" ])/m,`$1${productTestCommand(exec)}`));
   }
   // Install through the real boundary. Hand-building only the shim omitted the inventory record
   // after Phase 1B, so the budget correctly failed every model task on an unaccounted surface.
@@ -89,7 +98,12 @@ export function execNode(cwd, nodeArgs, { input, timeout = 15000, env } = {}) {
     cwd, input, encoding: 'utf8', timeout, killSignal: 'SIGKILL', maxBuffer: 1024 * 1024,
     detached: true, env: productEnv(env),
   });
-  if ((r.error || r.signal) && r.pid) killProcessGroup(r.pid);
+  // B1 requires teardown on success, on assertion failure AND on timeout. Reaping only when the
+  // run errored left a clean exit that had leaked a descendant running forever. The container
+  // branch is not a one-line mirror of `docker rm -f`: it also carries `--rm`, which cleans
+  // unconditionally, and the whole PID namespace dies with the container. A host process group
+  // has neither, so it is reaped on every route.
+  if (r.pid) killProcessGroup(r.pid);
   return r;
 }
 
@@ -99,9 +113,28 @@ export function spawnDetachedProcess(cwd, nodeArgs, env = {}) {
   return child;
 }
 
+// `spawn({detached:true})` makes a session leader, so -pid names a real group. spawnSync does NOT,
+// so `process.kill(-pid)` had no group to reach and the catch below swallowed the failure in
+// silence: a seeded grandchild survived every timeout. The product's `node --test` runs one
+// process per test file, so the grandchild is exactly what leaks. Walk the actual parent/child
+// table instead — `ps` is on macOS and Linux alike and costs nothing, and the group kill stays as
+// the cheap first attempt for the callers that did spawn a leader.
 export function killProcessGroup(pid) {
   if (!pid) return;
-  try { process.kill(-pid, 'SIGKILL'); } catch { /* already gone */ }
+  try { process.kill(-pid, 'SIGKILL'); } catch { /* not a group leader, or already gone */ }
+  const table = spawnSync('ps', ['-Ao', 'pid=,ppid='], { encoding: 'utf8', timeout: 5000 });
+  const children = new Map();
+  for (const line of (table.stdout || '').split('\n')) {
+    const [child, parent] = line.trim().split(/\s+/).map(Number);
+    if (child && parent) children.set(parent, [...(children.get(parent) ?? []), child]);
+  }
+  const descendants = [];
+  const walk = root => { for (const child of children.get(root) ?? []) { walk(child); descendants.push(child); } };
+  walk(pid);
+  // Deepest first, so a parent cannot respawn a child we already reaped.
+  for (const victim of [...descendants, pid]) {
+    try { process.kill(victim, 'SIGKILL'); } catch { /* already gone */ }
+  }
 }
 
 // Product trials mount an allowlisted plugin, never the repository containing private scenarios.

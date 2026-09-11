@@ -4,7 +4,7 @@
 //
 // ctx = { work, pristine, transcript, harness, usage, baseline }
 
-import { readFileSync, readdirSync, statSync, existsSync, rmSync, cpSync, mkdtempSync, chmodSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, existsSync, rmSync, cpSync, mkdtempSync, chmodSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import assert from 'node:assert/strict';
@@ -393,7 +393,14 @@ export function verifyService(s, level) {
   } finally{server.stop();}
   if(level===3)cpSync(s.data,baseline,{recursive:true});
   if(level>=6){
-    const failing=serviceProcess(s,{dataFile:'/unwritable/items.json'});
+    // A path under a REGULAR FILE, not a directory the caller merely lacks permission on: the
+    // container got its unwritability from --read-only, but on the host `/unwritable` is only
+    // unwritable for an unprivileged user — running as root (dev container, root CI) mkdirSync
+    // succeeds and this case silently inverts, asserting the opposite of what it means to.
+    // ENOTDIR binds for every user, including root.
+    const blocked=path.join(s.root,'not-a-directory');
+    if(!existsSync(blocked))writeFileSync(blocked,'');
+    const failing=serviceProcess(s,{dataFile:path.join(blocked,'items.json')});
     try {status(failing.request('POST','/items',{title:'Lost'}),503);
       assert.deepEqual(status(failing.request('GET','/items'),200),[]);
       assert.equal(status(failing.request('GET','/health'),200).ok,true);

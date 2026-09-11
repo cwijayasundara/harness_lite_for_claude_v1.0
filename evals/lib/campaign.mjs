@@ -9,7 +9,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { loadConfig } from '../../.aidlc/lib/config.mjs';
 import { approvalDriver } from './approvals.mjs';
-import { assertProductTree, productDockerArgs, PRODUCT_TEST_ARGS, PRODUCT_TEST_COMMAND, execNode } from './stage.mjs';
+import { assertProductTree, productDockerArgs, PRODUCT_TEST_ARGS, PRODUCT_TEST_COMMAND, productTestArgs, execNode } from './stage.mjs';
 import { behavioursOf, proofRowsOf, testRowIn, promiseSpecs, currentChange, currentLine, selectChange, render, parse, ownedFiles } from '../../.aidlc/lib/artifacts.mjs';
 
 // Driver updates use atomic replacement so each new container sees the new file identity.
@@ -298,7 +298,7 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, sandb
       const status = s.exec === 'process'
         ? spawnSync(process.execPath, [s.harnessBin, 'status'], { cwd: s.work, encoding: 'utf8', timeout: 15000, env: { ...process.env, HARNESS_HOME: path.dirname(path.dirname(s.harnessBin)) } })
         : spawnSync('docker',[...productDockerArgs(s,{phase:'check'}),'node','/plugin/.aidlc/bin/harness','status'],{encoding:'utf8',timeout:15000});
-      assert.equal(status.status,0,status.stderr);assert.ok(status.stdout.includes(`current: ${step.slug} (plan approved)`),`container must see committed approvals: ${status.stdout}`);
+      assert.equal(status.status,0,status.stderr);assert.ok(status.stdout.includes(`current: ${step.slug} (plan approved)`),`the product tree must see committed approvals: ${status.stdout}`);
       if(step.characterize){
         await call('Write only tests/ledger.test.mjs to characterize the existing addCustomer, addInvoice and listInvoices behaviour, including the unknown-customer error. Do not implement new exports or change source. The driver will execute these tests against the original source before the next implementation turn.','characterize');
         assert.ok(existsSync(path.join(s.work,'tests/ledger.test.mjs')),'characterization tests must exist before implementation');
@@ -387,7 +387,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
   };
   const publicCheck=()=>{
     if (s.exec === 'process') {
-      const out=execNode(s.work,PRODUCT_TEST_ARGS,{timeout:60000});
+      const out=execNode(s.work,productTestArgs(s.exec),{timeout:60000});
       assert.equal(out.status,0,`public tests failed: ${out.stdout}${out.stderr}`);return out.stdout;
     }
     const name=`comparison-check-${randomUUID()}`;
@@ -412,13 +412,15 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
   try {
     result.fixtureRevision=git('rev-parse','HEAD');
     result.fixtureTree=git('rev-parse','HEAD^{tree}');
-    for(const [key,command,args] of [['cli','claude',['--version']],['node','node',['--version']],['rg','rg',['--version']]]) {
-      // No image to inspect here — these are ordinary tool-availability checks, not a
-      // container-security property, so exec:'process' has an honest equivalent: run them
-      // directly on the host instead of through docker.
-      const out = s.exec === 'process'
-        ? spawnSync(command,args,{encoding:'utf8',timeout:15000})
-        : spawnSync('docker',[...productDockerArgs(s),command,...args],{encoding:'utf8',timeout:15000});
+    // These probe the IMAGE's provisioning: that the agent's container ships claude, node and rg.
+    // Running them on the host instead answers a different question and makes three ordinary
+    // tests depend on the Claude CLI and ripgrep being installed on whatever laptop runs the
+    // suite — which is how a change about removing a Docker dependency would quietly acquire two
+    // new ones. `result.cli` would also record the host's version while claiming to describe the
+    // image. In process mode there is no image, so the honest record is that there was none.
+    if (s.exec === 'process') result.exec = 'process';
+    else for(const [key,command,args] of [['cli','claude',['--version']],['node','node',['--version']],['rg','rg',['--version']]]) {
+      const out = spawnSync('docker',[...productDockerArgs(s),command,...args],{encoding:'utf8',timeout:15000});
       assert.equal(out.status,0,out.stderr);result[key]=out.stdout.trim();
     }
     for(const step of t.steps) {

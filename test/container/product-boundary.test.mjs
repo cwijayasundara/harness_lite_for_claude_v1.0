@@ -17,7 +17,18 @@ import { runProductCheck } from '../../evals/lib/campaign.mjs';
 import { ROOT } from '../_paths.mjs';
 const fixtures = path.join(ROOT, 'evals/fixtures');
 
-test('real container denies private reads and writes across planning and implementation boundaries', { skip: process.env.HARNESS_PRODUCT_DOCKER !== '1' }, () => {
+// You only reach this file by naming it. Skipping here would hand back the green line the whole
+// change exists to remove — so an unusable environment is a FAILURE, stated in full, never a
+// `# SKIP`. The suite either exercises the boundary or says loudly that it could not.
+test('the container boundary suite has a usable Docker daemon, or fails rather than skipping', () => {
+  assert.equal(process.env.HARNESS_PRODUCT_DOCKER, '1',
+    'this suite is opt-in and asserts a real OS boundary: run it as HARNESS_PRODUCT_DOCKER=1 node --test test/container/*.test.mjs, or do not run it at all — it must never report success without exercising the container');
+  const daemon = spawnSync('docker', ['info', '--format', '{{.ServerVersion}}'], { encoding: 'utf8', timeout: 15000 });
+  assert.equal(daemon.status, 0,
+    `the container boundary cannot be verified without a reachable daemon: ${daemon.error?.message ?? daemon.stderr ?? 'docker info failed'}`);
+});
+
+test('real container denies private reads and writes across planning and implementation boundaries', () => {
   const s = isolateStage(stage(fixtures, 'campaign-ledger'), ROOT);
   try {
     const privateFile = path.join(s.root, 'private-assertions.json');
@@ -40,7 +51,7 @@ test('real container denies private reads and writes across planning and impleme
   } finally {s.cleanup();}
 });
 
-test('timed-out public product tests remove their container, not just the Docker client', { skip: process.env.HARNESS_PRODUCT_DOCKER !== '1' }, () => {
+test('timed-out public product tests remove their container, not just the Docker client', () => {
   const s = isolateStage(stage(fixtures, 'campaign-service', {product:true}), ROOT);
   const containers = () => spawnSync('docker',['ps','-aq','--filter','name=harness-check-'],{encoding:'utf8',timeout:5000}).stdout.trim();
   const before = containers();
@@ -52,7 +63,7 @@ test('timed-out public product tests remove their container, not just the Docker
   } finally { s.cleanup(); }
 });
 
-test('native comparison sandbox provides rg and tests while protecting planning, Git and private grading', { skip: process.env.HARNESS_PRODUCT_DOCKER !== '1' }, () => {
+test('native comparison sandbox provides rg and tests while protecting planning, Git and private grading', () => {
   const s = isolateStage(stage(fixtures, 'campaign-ledger', {product:true,native:true}), ROOT);
   try {
     const secret = path.join(s.root, 'private-grading.json'); writeFileSync(secret, 'private');

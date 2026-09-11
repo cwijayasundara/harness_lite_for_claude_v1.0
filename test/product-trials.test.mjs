@@ -197,10 +197,21 @@ test('exec:"process" staging returns its own work directory and a real ephemeral
 // B4: a process-mode run that times out must leave no live descendant — asserted, not assumed.
 test('a process-mode run that times out leaves no live descendant process', async () => {
   const { execNode } = await import('../evals/lib/stage.mjs');
-  const r = execNode(ROOT, ['-e', 'setInterval(()=>{},1000)'], { timeout: 200 });
+  // A direct child proves nothing here: spawnSync's own killSignal already reaps it, so this test
+  // passed with killProcessGroup deleted. The group kill exists for the GRANDCHILD — the product's
+  // `node --test` spawns a process per test file, and those are what outlive a killed parent. So
+  // the child reports its grandchild's pid on stdout before hanging, and we check that one.
+  const spawnGrandchild = "const {spawn}=require('child_process');"
+    + "const g=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});"
+    + "console.log(g.pid);setInterval(()=>{},1000);";
+  const r = execNode(ROOT, ['-e', spawnGrandchild], { timeout: 1500 });
   assert.equal(r.error?.code, 'ETIMEDOUT', 'the run must be observed timing out');
   assert.ok(r.pid, 'the helper must report the pid it started');
+  const grandchild = Number((r.stdout || '').trim());
+  assert.ok(grandchild > 0, `the child must report its grandchild pid, got: ${JSON.stringify(r.stdout)}`);
   assert.throws(() => process.kill(r.pid, 0), /ESRCH/, 'the timed-out process must be gone, not orphaned');
+  assert.throws(() => process.kill(grandchild, 0), /ESRCH/,
+    'the grandchild must be gone too: killing only the direct child leaves the product test running, which is the defect the process group exists to prevent');
 });
 
 // B6: a live product trial cannot select exec:'process' even by mistake — the invoker refuses it,
@@ -236,8 +247,11 @@ test('process-mode staging keeps the private grading file outside the tree hande
 test('the container boundary is a distinct opt-in suite and this run states whether it was verified', () => {
   const containerSuite = path.join(ROOT, 'test/container/product-boundary.test.mjs');
   assert.ok(existsSync(containerSuite), 'the container-boundary suite must exist outside test/*.test.mjs');
-  const verified = process.env.HARNESS_PRODUCT_DOCKER === '1';
-  console.log(verified
-    ? 'container boundary: verified this run by test/container/product-boundary.test.mjs'
-    : 'container boundary: NOT verified this run (HARNESS_PRODUCT_DOCKER unset) — the container boundary was not exercised');
+  // HARNESS_PRODUCT_DOCKER says nothing about whether the container suite ran: it is a separate
+  // `node --test` invocation, and an operator can set the variable here while that file is never
+  // collected — which is exactly what `docs/OPERATING.md`'s documented command does. Reporting
+  // "verified" from a variable would be the B5 defect wearing a new hat, so this states only what
+  // it can actually know, unconditionally, and never prints a green claim about the boundary.
+  console.log('container boundary: NOT exercised by this suite — it is verified only by '
+    + 'test/container/product-boundary.test.mjs, which this glob does not collect (CI job: container-boundary)');
 });
