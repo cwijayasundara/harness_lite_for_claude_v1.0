@@ -206,6 +206,27 @@ process mode. **Repaired**: both now derive from `productTestCommand(s.exec)`.
 - `node --test test/container/*.test.mjs` with no daemon: 4 tests, 0 pass, 4 fail, 0 skipped
 - reaper probe: child alive `false`, grandchild alive `false`
 
+## Round 2 uncertainty
+
+Nothing was executed by the evaluator in either round; both are read-only inspection over the
+evidence the caller supplied.
+
+- **R2.1 is derived from source**, not observed: `os.tmpdir()` on Linux, the `--tmpfs /tmp:rw` in
+  `productDockerArgs`, and the reference server's recursive `mkdirSync`. Confirming it needs a
+  Linux container run of `verifyService(s, 6)`. On macOS it will keep passing either way.
+- **`--test-force-exit` may truncate pipe-buffered stdout.** `process.exit()` does not flush pipes,
+  and `test/product-trials.test.mjs:173` asserts `out.stdout` matches `/FAIL\s+test/`. It passed in
+  every run here, including at load average 9.5, but that is not proof it cannot truncate. This is
+  a latent flake in an assertion this change made depend on that flush.
+- The grandchild check could observe a zombie before init reaps it. That is a false **failure**,
+  not a false pass.
+- Pid-reuse probability inside the reap window (R2.3) is unmeasured; the race was not exercised.
+- **No container-path claim in either round has been executed.** There is no Docker daemon on this
+  machine, so every statement about the container path — including that it is now byte-identical —
+  is read from source. The `container-boundary` CI job is the first thing that will actually run
+  it. That is a property of the machine, not of the change, and it is exactly the condition B5
+  exists to make visible rather than assumed.
+
 ## Standing decision for the human
 
 R2.2 is the only finding left unrepaired, because fixing it means writing to two files the
