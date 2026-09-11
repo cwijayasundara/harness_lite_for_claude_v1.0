@@ -98,12 +98,15 @@ export function execNode(cwd, nodeArgs, { input, timeout = 15000, env } = {}) {
     cwd, input, encoding: 'utf8', timeout, killSignal: 'SIGKILL', maxBuffer: 1024 * 1024,
     detached: true, env: productEnv(env),
   });
-  // B1 requires teardown on success, on assertion failure AND on timeout. Reaping only when the
-  // run errored left a clean exit that had leaked a descendant running forever. The container
-  // branch is not a one-line mirror of `docker rm -f`: it also carries `--rm`, which cleans
-  // unconditionally, and the whole PID namespace dies with the container. A host process group
-  // has neither, so it is reaped on every route.
-  if (r.pid) killProcessGroup(r.pid);
+  // Only the routes where WE killed the child. Review finding 4 asked for a reap on the success
+  // route too; that is unsafe and useless here, and the measurement says so. Useless: after a
+  // clean exit the child is gone and any descendant it left has been reparented to init, so a
+  // ppid walk from its pid finds nothing. Unsafe: pids are recycled, so walking a dead pid can
+  // name a live unrelated process's children and kill them. It also put a `ps` on every ledger
+  // and service call — `--stage stop` went from 66s to past 600s. B1's "teardown on success, on
+  // assertion failure and on timeout" is the STAGE teardown, which the tests run in `finally`;
+  // the orphan reap is B4, and B4 is about the timeout.
+  if ((r.error || r.signal) && r.pid) killProcessGroup(r.pid);
   return r;
 }
 
@@ -121,19 +124,23 @@ export function spawnDetachedProcess(cwd, nodeArgs, env = {}) {
 // the cheap first attempt for the callers that did spawn a leader.
 export function killProcessGroup(pid) {
   if (!pid) return;
-  try { process.kill(-pid, 'SIGKILL'); } catch { /* not a group leader, or already gone */ }
-  const table = spawnSync('ps', ['-Ao', 'pid=,ppid='], { encoding: 'utf8', timeout: 5000 });
-  const children = new Map();
+  // `detached` does make the child a group leader (measured: pid == pgid), but once spawnSync's
+  // own SIGKILL has reaped the leader, `process.kill(-pid)` no longer reaches the survivors —
+  // measured directly: child dead, grandchild alive. The grandchild is what matters, because the
+  // product's `node --test` runs one process per test file.
+  //
+  // So resolve the group explicitly. Membership is by PGID, never by PPID: a dead pid's children
+  // are reparented to init, and pids are recycled, so a ppid walk can name a live unrelated
+  // process's children — which is exactly what happened, killing processes belonging to tests
+  // running concurrently and turning a 400ms test into a 123s failure. A pgid equal to our
+  // child's pid belongs to our child's group and to nothing else while that group exists.
+  try { process.kill(-pid, 'SIGKILL'); } catch { /* leader already reaped; the group walk follows */ }
+  const table = spawnSync('ps', ['-Ao', 'pid=,pgid='], { encoding: 'utf8', timeout: 5000 });
   for (const line of (table.stdout || '').split('\n')) {
-    const [child, parent] = line.trim().split(/\s+/).map(Number);
-    if (child && parent) children.set(parent, [...(children.get(parent) ?? []), child]);
-  }
-  const descendants = [];
-  const walk = root => { for (const child of children.get(root) ?? []) { walk(child); descendants.push(child); } };
-  walk(pid);
-  // Deepest first, so a parent cannot respawn a child we already reaped.
-  for (const victim of [...descendants, pid]) {
-    try { process.kill(victim, 'SIGKILL'); } catch { /* already gone */ }
+    const [member, group] = line.trim().split(/\s+/).map(Number);
+    if (group === pid && member && member !== process.pid) {
+      try { process.kill(member, 'SIGKILL'); } catch { /* already gone */ }
+    }
   }
 }
 
