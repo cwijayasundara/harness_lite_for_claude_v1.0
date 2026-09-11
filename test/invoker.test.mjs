@@ -137,66 +137,41 @@ test('the real claude CLI is present for explicitly requested subscription trial
   assert.ok(existsSync(r.stdout.trim()));
 });
 
-// B5. The container boundary. A product trial has no host keychain, so whatever crosses this
-// line is the whole of what it can bill. Before this change the list also carried
-// ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN and ANTHROPIC_BASE_URL, which meant an isolated trial
-// could bill an API account or a gateway while the harness reported it as a subscription run.
-function withStubDocker(body) {
-  const dir = mkdtempSync(path.join(tmpdir(), 'stub-docker-'));
-  const argvLog = path.join(dir, 'argv.txt');
-  writeFileSync(path.join(dir, 'docker'),
-    `#!/usr/bin/env bash\nprintf '%s\\n' "$@" > ${JSON.stringify(argvLog)}\necho '{"result":"ok","total_cost_usd":0}'\n`);
-  chmodSync(path.join(dir, 'docker'), 0o755);
-  const previousPath = process.env.PATH;
-  const previousEnv = { ...process.env };
-  process.env.PATH = `${dir}:${previousPath}`;
-  try { return body(dir, argvLog); } finally {
-    process.env.PATH = previousPath;
-    for (const key of Object.keys(process.env)) if (!(key in previousEnv)) delete process.env[key];
-    for (const [key, value] of Object.entries(previousEnv)) process.env[key] = value;
-    rmSync(dir, { recursive: true, force: true });
-  }
-}
-
-const sandboxFixture = dir => ({
-  work: path.join(dir, 'work'), home: path.join(dir, 'home'), plugin: path.join(dir, 'plugin'),
-  data: path.join(dir, 'data'), image: 'lean-harness-product:test', native: false,
-});
-
-test('invoker: only the subscription token crosses into the product container', () => {
-  withStubDocker((dir, argvLog) => {
-    delete process.env.ANTHROPIC_API_KEY;
-    delete process.env.ANTHROPIC_AUTH_TOKEN;
-    delete process.env.ANTHROPIC_BASE_URL;
-    process.env.CLAUDE_CODE_OAUTH_TOKEN = 'oauth-fixture-value';
-
-    claudeInvoker({ pluginDir: path.join(dir, 'plugin'), model: 'claude-sonnet-5' })({
-      prompt: 'implement the slice', cwd: dir, timeoutMs: 30000, budgetUsd: 1,
-      sandbox: sandboxFixture(dir), phase: 'plan',
-    });
-
-    const argv = readFileSync(argvLog, 'utf8').split('\n').filter(Boolean);
-    const forwarded = argv.filter((a, i) => argv[i - 1] === '--env');
-    assert.ok(forwarded.includes('CLAUDE_CODE_OAUTH_TOKEN'),
-      `the subscription token must reach the container: ${forwarded.join(' ')}`);
-    // Passed by name, so the value is never written into an argument list a process listing shows.
-    assert.doesNotMatch(readFileSync(argvLog, 'utf8'), /oauth-fixture-value/);
-    for (const denied of ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL']) {
-      assert.ok(!forwarded.some(f => f.startsWith(denied)), `${denied} must not cross the boundary`);
-    }
-  });
-});
-
-test('invoker: a product trial with an API key present refuses before starting a container', () => {
-  withStubDocker((dir, argvLog) => {
-    process.env.CLAUDE_CODE_OAUTH_TOKEN = 'oauth-fixture-value';
+// What used to be here: two tests over a stubbed container runtime, asserting that one credential
+// crossed into the product container and that a conflicting API key refused before one started.
+// the-harness-needs-no-container removed the container, so no product invocation happens at all
+// and nothing crosses anything. The forwarding test is deleted rather than reworded — there is no
+// boundary for a credential to cross, and a test that asserts otherwise would be fiction.
+//
+// The billing guard it shared a purpose with is NOT deleted: `requireSubscription` refuses a
+// conflicting API key before the `product` branch is reached, so it is asserted here on the
+// invocation path that still exists. Keeping it on a product invocation would have made it pass
+// for the wrong reason — the boundary refusal fires first and would mask a broken billing guard.
+test('invoker: a conflicting API key refuses before any invocation, on the path that still runs', () => {
+  const previous = { ...process.env };
+  try {
+    delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
     process.env.ANTHROPIC_API_KEY = 'sk-fixture-never-spend';
+    assert.throws(() => claudeInvoker({ model: 'claude-sonnet-5' })({
+      prompt: 'implement the slice', cwd: process.cwd(), timeoutMs: 30000, budgetUsd: 1, phase: 'plan',
+    }), /API billing is disabled/, 'a conflicting credential must refuse before the CLI is spawned');
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key];
+    for (const [key, value] of Object.entries(previous)) process.env[key] = value;
+  }
+});
 
-    assert.throws(() => claudeInvoker({ pluginDir: path.join(dir, 'plugin'), model: 'claude-sonnet-5' })({
-      prompt: 'implement the slice', cwd: dir, timeoutMs: 30000, budgetUsd: 1,
-      sandbox: sandboxFixture(dir), phase: 'plan',
-    }), /API billing is disabled/);
-
-    assert.ok(!existsSync(argvLog), 'no container may be started once a conflicting credential is present');
-  });
+test('invoker: a product trial refuses because there is no boundary, not because of billing', () => {
+  const previous = { ...process.env };
+  try {
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.CLAUDE_CODE_OAUTH_TOKEN = 'oauth-fixture-value';
+    assert.throws(() => claudeInvoker({ model: 'claude-sonnet-5' })({
+      prompt: 'implement the slice', cwd: process.cwd(), timeoutMs: 30000, budgetUsd: 1,
+      sandbox: { work: process.cwd() }, phase: 'plan',
+    }), /no boundary to run in/, 'a sandboxed invocation must refuse for the absent boundary');
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key];
+    for (const [key, value] of Object.entries(previous)) process.env[key] = value;
+  }
 });

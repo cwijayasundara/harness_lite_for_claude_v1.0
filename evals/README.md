@@ -50,11 +50,10 @@ Merge that stub into `evals/tasks.json` before treating the incident as closed. 
 suite in this checkout is the golden tasks in `evals/tasks.json`.
 
 
-Product trials require the local Docker image built from `evals/Dockerfile` and a subscription
-OAuth token in the environment. The configured capable generator and evaluator run in
-separate CLI contexts. `--products --through 1 --id campaign-ledger --max-suite-usd 3` calibrates
-one change and explicitly records a partial trial. `HARNESS_PRODUCT_DOCKER=1 node --test
- test/product-trials.test.mjs` exercises isolation and grading with no model calls.
+Live product trials cannot run: `the-harness-needs-no-container` removed the container they ran
+inside, and `evals/lib/invoker.mjs` refuses a sandboxed invocation rather than executing a coding
+agent with Bash on the host. `node --test test/product-trials.test.mjs` exercises grading and the
+campaign protocol with no model calls and no container runtime.
 Every attempt retains source snapshots and phase evidence under `.aidlc/evals/products/`, even
 when it fails. Those private outputs are not mounted into the agent container.
 
@@ -75,7 +74,7 @@ Each experiment starts with a first-change infrastructure smoke for each arm and
 smoke spend per model call is scaled to the campaign's planned calls and multiplied by two before
 starting three paired repetitions. Arm order alternates between repetitions. The suite cap includes
 smokes, failures and repairs; missing billing reserves the entire invocation allowance. Calibration
-failure, missing credentials/isolation and insufficient remaining budget produce explicit unmeasured
+failure, unavailable live trials and insufficient remaining budget produce explicit unmeasured
 records for the scheduled repetitions. Provider/model errors remain incomplete, with no fallback.
 The CLI exits nonzero if any scheduled attempt is failed, incomplete or unmeasured.
 

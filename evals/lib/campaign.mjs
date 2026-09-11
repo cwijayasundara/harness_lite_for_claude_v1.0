@@ -9,7 +9,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { loadConfig } from '../../.aidlc/lib/config.mjs';
 import { approvalDriver } from './approvals.mjs';
-import { assertProductTree, productDockerArgs, PRODUCT_TEST_ARGS, productTestArgs, productTestCommand, execNode } from './stage.mjs';
+import { assertProductTree, productTestArgs, productTestCommand, execNode } from './stage.mjs';
 import { behavioursOf, proofRowsOf, testRowIn, promiseSpecs, currentChange, currentLine, selectChange, render, parse, ownedFiles } from '../../.aidlc/lib/artifacts.mjs';
 
 // Driver updates use atomic replacement so each new container sees the new file identity.
@@ -181,14 +181,7 @@ export function prepareProductChange(s, step) {
 }
 
 export function runProductCheck(s, timeoutMs=60000) {
-  if (s.exec === 'process') {
-    return execNode(s.work, [s.harnessBin, 'check', '--stage', 'stop'], { timeout: timeoutMs, env: { HARNESS_HOME: path.dirname(path.dirname(s.harnessBin)) } });
-  }
-  const name=`harness-check-${randomUUID()}`;
-  const out=spawnSync('docker',[...productDockerArgs(s,{phase:'check',name}),'node','/plugin/.aidlc/bin/harness','check','--stage','stop'],{encoding:'utf8',timeout:timeoutMs,killSignal:'SIGKILL'});
-  // Killing only the Docker client leaves a hanging product test alive in the daemon.
-  if(out.error||out.signal)spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:10000});
-  return out;
+  return execNode(s.work, [s.harnessBin, 'check', '--stage', 'stop'], { timeout: timeoutMs, env: { HARNESS_HOME: path.dirname(path.dirname(s.harnessBin)) } });
 }
 
 export async function runProductCampaign({task:t, invoke, evaluateProduct, sandbox:s, harnessBin, evaluatorModel, evidenceDir, log=()=>{}}) {
@@ -229,23 +222,8 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, sandb
     return out.stdout;
   };
   try {
-    // Both checks below are provisioning checks for the container image and have no honest
-    // equivalent off it; in exec:'process' mode they do not run, and the result records `exec`
-    // instead of `image`. Neither belongs to any of the eight behavioural tests this campaign
-    // runs on behalf of, so no assertion any of them makes is weakened by skipping these two.
-    if (s.exec === 'process') {
-      result.exec = s.exec;
-    } else {
-      const image=spawnSync('docker',['image','inspect',s.image,'--format','{{.Id}}'],{encoding:'utf8',timeout:15000});
-      if(image.status!==0)throw Object.assign(new Error(`product image unavailable: ${s.image}`),{incomplete:{reason:'isolation_unavailable'}});
-      result.image=image.stdout.trim();
-    }
     result.fixtureRevision=git('rev-parse','HEAD');
     result.harnessRevision=execFileSync('git',['rev-parse','HEAD'],{cwd:path.dirname(path.dirname(harnessBin)),encoding:'utf8'}).trim();
-    if (s.exec !== 'process') {
-      const version=spawnSync('docker',[...productDockerArgs(s),'claude','--version'],{encoding:'utf8',timeout:15000});
-      assert.equal(version.status,0,version.stderr);result.cli=version.stdout.trim();
-    }
     for(let i=0;i<t.steps.length;i++) {
       const step=t.steps[i];
       if(step.restart){const previous=sessionId;sessionId=null;event('session-restart',{previous});}
@@ -291,13 +269,11 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, sandb
         approvals.decide({slug:step.slug,kind:'plan',decision:'approve'});
       }
       if(step.missingTool){
-        const out=spawnSync('docker',[...productDockerArgs(s),'missing-product-tool'],{encoding:'utf8',timeout:15000});
-        assert.notEqual(out.status,0);event('missing-tool-reproduced',{exitCode:out.status});
+        const out=spawnSync('missing-product-tool',[],{encoding:'utf8',timeout:15000});
+        assert.ok(out.status!==0||out.error,'an absent tool must not report success');event('missing-tool-reproduced',{exitCode:out.status,error:out.error?.code});
       }
       approvals.assertImplementation(step.slug);
-      const status = s.exec === 'process'
-        ? spawnSync(process.execPath, [s.harnessBin, 'status'], { cwd: s.work, encoding: 'utf8', timeout: 15000, env: { ...process.env, HARNESS_HOME: path.dirname(path.dirname(s.harnessBin)) } })
-        : spawnSync('docker',[...productDockerArgs(s,{phase:'check'}),'node','/plugin/.aidlc/bin/harness','status'],{encoding:'utf8',timeout:15000});
+      const status = spawnSync(process.execPath, [s.harnessBin, 'status'], { cwd: s.work, encoding: 'utf8', timeout: 15000, env: { ...process.env, HARNESS_HOME: path.dirname(path.dirname(s.harnessBin)) } });
       assert.equal(status.status,0,status.stderr);assert.ok(status.stdout.includes(`current: ${step.slug} (plan approved)`),`the product tree must see committed approvals: ${status.stdout}`);
       if(step.characterize){
         await call('Write only tests/ledger.test.mjs to characterize the existing addCustomer, addInvoice and listInvoices behaviour, including the unknown-customer error. Do not implement new exports or change source. The driver will execute these tests against the original source before the next implementation turn.','characterize');
@@ -386,13 +362,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
     return out;
   };
   const publicCheck=()=>{
-    if (s.exec === 'process') {
-      const out=execNode(s.work,productTestArgs(s.exec),{timeout:60000});
-      assert.equal(out.status,0,`public tests failed: ${out.stdout}${out.stderr}`);return out.stdout;
-    }
-    const name=`comparison-check-${randomUUID()}`;
-    const out=spawnSync('docker',[...productDockerArgs(s,{phase:'runtime',name}),'node',...PRODUCT_TEST_ARGS],{encoding:'utf8',timeout:60000,killSignal:'SIGKILL'});
-    if(out.error||out.signal)spawnSync('docker',['rm','-f',name],{timeout:10000});
+    const out=execNode(s.work,productTestArgs,{timeout:60000});
     assert.equal(out.status,0,`public tests failed: ${out.stdout}${out.stderr}`);return out.stdout;
   };
   const review=async(base,step,seeded=false)=>{
@@ -412,17 +382,12 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
   try {
     result.fixtureRevision=git('rev-parse','HEAD');
     result.fixtureTree=git('rev-parse','HEAD^{tree}');
-    // These probe the IMAGE's provisioning: that the agent's container ships claude, node and rg.
-    // Running them on the host instead answers a different question and makes three ordinary
-    // tests depend on the Claude CLI and ripgrep being installed on whatever laptop runs the
-    // suite — which is how a change about removing a Docker dependency would quietly acquire two
-    // new ones. `result.cli` would also record the host's version while claiming to describe the
-    // image. In process mode there is no image, so the honest record is that there was none.
-    if (s.exec === 'process') result.exec = 'process';
-    else for(const [key,command,args] of [['cli','claude',['--version']],['node','node',['--version']],['rg','rg',['--version']]]) {
-      const out = spawnSync('docker',[...productDockerArgs(s),command,...args],{encoding:'utf8',timeout:15000});
-      assert.equal(out.status,0,out.stderr);result[key]=out.stdout.trim();
-    }
+    // The image provisioning probes that used to live here asked whether the agent's
+    // container shipped claude, node and rg. There is no image to ask about, and asking
+    // the host instead would answer a different question while making ordinary tests
+    // depend on the Claude CLI and ripgrep being installed on whatever machine runs the
+    // suite -- a change about removing one dependency quietly acquiring two.
+    result.node = process.version;
     for(const step of t.steps) {
       if(step.restart){sessionId=null;event('session-restart');}
       if(step.rename){renameSync(path.join(s.work,...step.rename[0].split('/')),path.join(s.work,...step.rename[1].split('/')));event('external-file-rename',{paths:step.rename});}
@@ -433,7 +398,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
       if(cfg)prepareProductChange(s,step);
       const initial=(step.initialBehaviours??step.behaviours).join('\n');
       const scope=`Approved implementation scope when permission arrives: ${step.files.join(', ')}. Preserve other files and existing public behaviour. No dependencies or deployment.`;
-      await call(`Current proposal: ${step.request}\n${initial}\n${scope}\nInspect relevant source and propose your approach. If reproducing a failure, use ${productTestCommand(s.exec)} so leaked test resources cannot stall the turn. Request approval and stop before implementation. The external driver supplies simulated decisions. ${cfg?`Read .aidlc/artifacts/${step.slug}/{intent,spec,plan}.md.`:''}`);
+      await call(`Current proposal: ${step.request}\n${initial}\n${scope}\nInspect relevant source and propose your approach. If reproducing a failure, use ${productTestCommand} so leaked test resources cannot stall the turn. Request approval and stop before implementation. The external driver supplies simulated decisions. ${cfg?`Read .aidlc/artifacts/${step.slug}/{intent,spec,plan}.md.`:''}`);
       // The completed planning turn and unchanged source/approval metadata prove the pause.
       // Natural requests such as 'Should I proceed?' must not fail a keyword test.
       event('planning-paused',{slug:step.slug,sessionId});
@@ -451,8 +416,8 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
       result.decisions.push({slug:step.slug,decision:'approve',simulated:true,revision:git('rev-parse','HEAD'),requirementsDigest:createHash('sha256').update(JSON.stringify({request:step.request,behaviours:step.behaviours,files:step.files})).digest('hex')});
       if(cfg)approvals.assertImplementation(step.slug);
       const authorized=sourceDigest();
-      if(step.missingTool){const out=spawnSync('docker',[...productDockerArgs(s),'missing-product-tool'],{encoding:'utf8',timeout:15000});assert.notEqual(out.status,0);event('missing-tool-reproduced');}
-      if(step.characterize){await call(`Simulated approval: write only tests/ledger.test.mjs to characterize addCustomer, addInvoice and listInvoices including unknown-customer errors. Keep source unchanged. Run ${productTestCommand(s.exec)}.`,'characterize');publicCheck();event('characterization-passed');}
+      if(step.missingTool){const out=spawnSync('missing-product-tool',[],{encoding:'utf8',timeout:15000});assert.ok(out.status!==0||out.error,'an absent tool must not report success');event('missing-tool-reproduced');}
+      if(step.characterize){await call(`Simulated approval: write only tests/ledger.test.mjs to characterize addCustomer, addInvoice and listInvoices including unknown-customer errors. Keep source unchanged. Run ${productTestCommand}.`,'characterize');publicCheck();event('characterization-passed');}
       let context='';
       if(config.graph){
         const {build}=await import('../../.aidlc/lib/graph.mjs');const {pack,renderPack}=await import('../../.aidlc/lib/pack.mjs');
@@ -473,7 +438,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
       const retrieval=config.graphFirst
         ?'Locate code with `.aidlc/bin/harness graph query callers <symbol>`, `calls <symbol>` and `.aidlc/bin/harness pack <symbol>` first; rg and bounded reads are the miss path.'
         :'Use rg and bounded reads as needed.';
-      const instruction=`Simulated approval: implement ${step.request}\n${step.behaviours.join('\n')}\n${scope}\nAdd meaningful tests and run ${productTestCommand(s.exec)}. ${retrieval} Do not modify approval artifacts. ${step.missingTool?'missing-product-tool is unavailable; use Node and do not install a replacement.':''}\n${context}`;
+      const instruction=`Simulated approval: implement ${step.request}\n${step.behaviours.join('\n')}\n${scope}\nAdd meaningful tests and run ${productTestCommand}. ${retrieval} Do not modify approval artifacts. ${step.missingTool?'missing-product-tool is unavailable; use Node and do not install a replacement.':''}\n${context}`;
       await call(instruction,'implement');
       const validateScope=()=>{
         const previous=new Map(authorized),current=new Map(sourceDigest());

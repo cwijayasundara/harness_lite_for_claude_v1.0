@@ -377,7 +377,12 @@ async function main() {
     const {runComparisons}=await import('./lib/comparison.mjs');
     const {claudeInvoker}=await import('./lib/invoker.mjs');
     const models=loadConfig(PLUGIN_ROOT).models;
-    const available=claudeAuthenticated(process.env,spawnSync,{product:true})&&spawnSync('docker',['info'],{stdio:'ignore',timeout:15000}).status===0;
+    // A comparison arm runs a real coding agent against a seeded product — a live product trial,
+    // which `evals/lib/invoker.mjs` now refuses because there is no boundary to run it in. This
+    // records that as the explicit unmeasured result `credentials_or_isolation_unavailable`, the
+    // same one an unreachable daemon used to produce, rather than attempting the run and throwing.
+    // Being authenticated is no longer sufficient, so it is not asked.
+    const available=false;
     const stamp=new Date().toISOString().replace(/[:.]/g,'-');
     const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',prune?`prune-${stamp}`:stamp);
     const out=await runComparisons({tasks,models,prune,pruneArm:flag('prune-arm'),pair:flag('comparison'),root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),

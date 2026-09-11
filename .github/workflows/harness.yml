@@ -58,23 +58,6 @@ jobs:
             .aidlc/state/ledger.jsonl
           if-no-files-found: warn
 
-  # The container boundary a live coding agent runs inside. These three tests assert operating
-  # system isolation — that a process cannot read the private grading files, the comparison
-  # secret, or the Docker socket — and there is no honest native equivalent, so they live in
-  # test/container/ which the ordinary `test/*.test.mjs` glob does not reach. This job is the one
-  # environment where Docker is guaranteed. Its failure is a failure: a container job that did not
-  # run is never evidence that the boundary holds.
-  container-boundary:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: '22' }
-      - run: docker build -t lean-harness-product:2.1.263 - < evals/Dockerfile
-      - run: node --test test/container/*.test.mjs
-        env: { HARNESS_PRODUCT_DOCKER: '1' }
-
   unit:
     runs-on: ubuntu-latest
     steps:

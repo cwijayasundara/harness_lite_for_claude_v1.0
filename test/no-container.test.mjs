@@ -15,7 +15,21 @@ import { ROOT } from './_paths.mjs';
 
 const EXECUTABLE = ['evals', 'test', '.aidlc', '.github/workflows'];
 const SKIP = /(^|\/)(\.git|node_modules|evidence|artifacts|state)(\/|$)/;
-const FORBIDDEN = [/\bdocker\b/i, /productDockerArgs/, /PRODUCT_IMAGE/, /HARNESS_PRODUCT_DOCKER/, /docker\.sock/];
+// B1 forbids *invoking or requiring* the runtime, which is what these match: naming it as a
+// command, the helpers that built its arguments, the image identifiers, the opt-in variable and
+// the socket. Prose is deliberately not matched. A comment recording why a variable is stripped,
+// or the slug `the-tests-run-without-docker`, requires nothing — and banning the word outright
+// would have forced an edit to `.aidlc/sensors/architecture.mjs`, whose unrelated docker-compose
+// example this change does not own. The dependency cannot come back without matching one of
+// these, because it cannot be invoked without being named as a command.
+const FORBIDDEN = [
+  /['"`]docker['"`]/,
+  /\bdocker\s+(build|run|info|ps|exec|rm|image|logs|compose)\b/i,
+  /productDockerArgs/,
+  /PRODUCT_IMAGE|HARNESS_PRODUCT_IMAGE/,
+  /HARNESS_PRODUCT_DOCKER/,
+  /docker\.sock/,
+];
 
 function sourceFiles(rel) {
   const abs = path.join(ROOT, rel);

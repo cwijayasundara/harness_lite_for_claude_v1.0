@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {comparisonPairs,summarizeComparisons,configureComparison,pruneSessionInventory,restoreSessionInventory,runComparisons} from '../evals/lib/comparison.mjs';
-import {stage,isolateStage,productDockerArgs,FIXTURES} from '../evals/lib/stage.mjs';
+import {stage,isolateStage,FIXTURES} from '../evals/lib/stage.mjs';
 import {invokerArgs} from '../evals/lib/invoker.mjs';
 import {ledgerDescriptionExplainsPaidRule} from '../evals/lib/assertions.mjs';
 import {loadConfig} from '../.aidlc/lib/config.mjs';
@@ -89,8 +89,7 @@ test('native staging has normal instructions, public tests and no harness plugin
     isolateStage(s,root);assert.ok(existsSync(path.join(s.work,'CLAUDE.md')));
     assert.ok(!existsSync(path.join(s.work,'.aidlc')));assert.ok(!existsSync(path.join(s.work,'.claude')));
     assert.ok(!existsSync(path.join(s.work,'products.json')));
-    const mounts=productDockerArgs(s,{phase:'implement'}).join(' ');
-    assert.ok(!mounts.includes('dst=/plugin'));assert.ok(mounts.includes('dst=/work/.git,readonly'));
+    assert.ok(!existsSync(path.join(s.work,'plugin')),'the native arm gets no harness plugin');
     const args=invokerArgs({product:true,native:true,comparison:true,model:'capable',budgetUsd:1});
     assert.ok(!args.includes('--plugin-dir'));assert.equal(args[args.indexOf('--allowedTools')+1],'Bash');
     const review=invokerArgs({product:true,review:true,comparison:true,model:'strong',budgetUsd:1});

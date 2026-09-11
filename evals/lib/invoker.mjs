@@ -66,7 +66,7 @@ export function claudeInvoker({ pluginDir, model = null, native = false, compari
     // Past the refusal above, `sandbox` is always null: this is the harness's own invocation —
     // the evaluator and the golden suite — which has always run `claude` directly and is not what
     // this change is about. `product` is therefore false, and the container naming, credential
-    // forwarding and `docker rm -f` cleanup that only a sandboxed run needed are gone with it.
+    // forwarding and container cleanup that only a sandboxed run needed are gone with it.
     const args = subscriptionArgs(invokerArgs({ prompt, model, pluginDir, budgetUsd, product: false, sessionId, review: phase === 'review', native, comparison }));
     const started = Date.now();
     const env = invokerEnv({ task, pluginDir, base: process.env });

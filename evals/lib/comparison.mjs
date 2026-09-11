@@ -116,7 +116,7 @@ export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot
   try{pairs=comparisonPairs(models,{prune,pruneArm,pair});}catch(error){writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify({kind:prune?'pruning-comparison':'native-comparisons',status:'unmeasured',reason:error.message.startsWith('prune-arm')?'invalid_prune_arm':error.message.startsWith('comparison pair')?'invalid_comparison_pair':'models_unconfigured',detail:error.message,models,attempts:[]},null,2)+'\n');throw error;}
   const revision=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
   const out={kind:prune?'pruning-comparison':'native-comparisons',started:new Date().toISOString(),harnessRevision:revision,
-    tools:{node:process.version,git:spawnSync('git',['--version'],{encoding:'utf8'}).stdout?.trim()??null,docker:spawnSync('docker',['--version'],{encoding:'utf8'}).stdout?.trim()??null},
+    tools:{node:process.version,git:spawnSync('git',['--version'],{encoding:'utf8'}).stdout?.trim()??null},
     scenarioDigest:createHash('sha256').update(JSON.stringify(tasks)).digest('hex'),models,maxUsd,maxMinutes,repetitions,attempts:[],calibrations:[],remainingUsd:maxUsd};
   out.scheduledAttempts=pairs.flatMap(pair=>[0,...Array.from({length:repetitions},(_,i)=>i+1)].flatMap(repeat=>pair.arms.flatMap(config=>tasks.map(task=>`${pair.id}-${config.id}-${repeat?'paired':'smoke'}-${repeat}-${task.id}`))));
   const unavailable=()=>shouldStop()?'operator_abandoned':now()>=deadline?'suite_time_exhausted':!available?'credentials_or_isolation_unavailable':remaining<=0?'budget_exhausted':null;
