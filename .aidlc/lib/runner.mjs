@@ -44,7 +44,7 @@ function interpolate(cmd, files, reportPath) {
   return cmd.replace(/\{files\}|\{report\}/g, placeholder => placeholder === '{files}' ? list : quote(reportPath));
 }
 
-export async function runOne(cfg, verb, files) {
+export async function runOne(cfg, verb, files, results) {
   const started = Date.now();
   const base = { control: verb, verdict: 'skipped', ms: 0, findings: [], command: '' };
 
@@ -53,7 +53,7 @@ export async function runOne(cfg, verb, files) {
   if (LOCAL_CHECKS[verb] && (verb !== 'secrets' || !cfg.capabilities[verb]?.trim())) {
     try {
       const mod = await LOCAL_CHECKS[verb]();
-      const res = await mod.run(cfg, files);
+      const res = await mod.run(cfg, files, results);
       return { ...base, ...res, ms: Date.now() - started };
     } catch (e) {
       return { ...base, verdict: 'errored', ms: Date.now() - started, error: e.message };
@@ -94,6 +94,35 @@ export async function runOne(cfg, verb, files) {
   }
 }
 
+
+// D2/F04. The report-assembly question -- which controls, in what order, with the cap and the
+// truncated count applied -- has exactly one answer, computed here. `check()` calls this with a
+// fully-run set of results; `.aidlc/checks/baseline.mjs` calls it a second time with the subset
+// of an in-flight commit run's results that make up `stop`, to avoid re-running that stage. Two
+// implementations of this question would disagree invisibly, and what depends on the answer is a
+// 12-token metric (`check_stop_tokens`) with a 1.2-token budget.
+export function buildReport(cfg, { stage, provenance, identityErrors, evidence, files, results, validCandidate = false }) {
+  const trace = traceEvidence(cfg, results, { validCandidate });
+  const cap = cfg.budget.max_findings;
+  return {
+    stage, provenance, identity_errors: identityErrors,
+    ...(evidence ? { revision: evidence } : {}),
+    trace,
+    // why: an unavailable configured sensor previously returned exit 0 from `check`.
+    // Unconfigured capabilities stay skipped; an attempted check must actually succeed.
+    ok: identityErrors.length === 0 && results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped'),
+    changed_files: files,
+    controls: results.map((r) => ({
+      control: r.control, verdict: r.verdict, ms: r.ms,
+      ...(r.command ? { command: r.command } : {}),
+      ...(r.execution ? { execution: r.execution } : {}),
+      findings: (r.findings ?? []).slice(0, cap),
+      truncated: Math.max(0, (r.findings ?? []).length - cap),
+      ...(r.note ? { note: r.note } : {}),
+      ...(r.error ? { error: r.error } : {}),
+    })),
+  };
+}
 
 export async function check(cfg, { stage = 'fast', files = [], write = true, all = false, base, candidate, change, actor } = {}) {
   const verbs = resolveStage(cfg, stage);
@@ -136,7 +165,7 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
       results.push({ control: verb, verdict: 'skipped', ms: 0, findings: [], note: `not run — ${stopped} failed first (use --all to run everything)` });
       continue;
     }
-    const r = await runOne(cfg, verb, files);
+    const r = await runOne(cfg, verb, files, results);
     results.push(r);
     if (failFast && (r.verdict === 'fail' || r.verdict === 'errored')) stopped = verb;
   }
@@ -153,26 +182,7 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
   if (JSON.stringify(after.runtime) !== JSON.stringify(provenance.runtime) || JSON.stringify(after.policy) !== JSON.stringify(provenance.policy)) identityErrors.push('runtime or policy changed during checks');
   provenance.consistent = identityErrors.length === 0;
   if (!provenance.consistent) validCandidate = false;
-  const trace = traceEvidence(cfg, results, { validCandidate });
-  const cap = cfg.budget.max_findings;
-  const report = {
-    stage, provenance, identity_errors: identityErrors,
-    ...(evidence ? { revision: evidence } : {}),
-    trace,
-    // why: an unavailable configured sensor previously returned exit 0 from `check`.
-    // Unconfigured capabilities stay skipped; an attempted check must actually succeed.
-    ok: identityErrors.length === 0 && results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped'),
-    changed_files: files,
-    controls: results.map((r) => ({
-      control: r.control, verdict: r.verdict, ms: r.ms,
-      ...(r.command ? { command: r.command } : {}),
-      ...(r.execution ? { execution: r.execution } : {}),
-      findings: (r.findings ?? []).slice(0, cap),
-      truncated: Math.max(0, (r.findings ?? []).length - cap),
-      ...(r.note ? { note: r.note } : {}),
-      ...(r.error ? { error: r.error } : {}),
-    })),
-  };
+  const report = buildReport(cfg, { stage, provenance, identityErrors, evidence, files, results, validCandidate });
 
   if (write) {
     ledger.append({ kind: 'check-invocation', provenance, stage, ok: report.ok, identity_errors: identityErrors,
