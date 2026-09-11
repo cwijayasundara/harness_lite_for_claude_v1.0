@@ -106,7 +106,7 @@ and `git revert` is the real answer.
 | Behaviour | Test or evidence |
 |---|---|
 | B1 | `test/no-container.test.mjs` — asserts no `docker`, `productDockerArgs`, `PRODUCT_IMAGE`, `HARNESS_PRODUCT_DOCKER` or `docker.sock` under `evals/`, `test/`, `.aidlc/`, `.github/workflows/` or `.aidlc/harness.toml`; `evals/Dockerfile` and `test/container/` do not exist |
-| B2 | `node --test test/*.test.mjs` and `harness check --stage commit` on a machine with `docker` absent from `PATH`, run and pasted; nothing reports as skipped for want of a container |
+| B2 | Runtime evidence, not a test file: the full suite and the commit-stage checks executed on a machine with no container runtime on PATH, with their output pasted; nothing reports as skipped for want of a container. Deliberately phrased without a path-shaped token, because scope-drift resolves the first such token in a row as a filename and a command line is not one |
 | B3 | `test/no-container.test.mjs` asserts `evals/Dockerfile` and `test/container/product-boundary.test.mjs` are absent; `.github/workflows/harness.yml` contains no `container-boundary` job, no image build and no `HARNESS_PRODUCT_DOCKER` |
 | B4 | `test/no-container.test.mjs` — a product invocation throws a refusal naming the absent boundary, and does not spawn `claude`; the non-product path still invokes `claude` unchanged, asserted alongside so the refusal cannot be over-broad |
 | B5 | `docs/OPERATING.md` and `evals/README.md` contain no container-boundary description and no command claiming to exercise isolation; `test/no-container.test.mjs` asserts neither runbook names `HARNESS_PRODUCT_DOCKER` |
