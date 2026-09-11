@@ -95,6 +95,15 @@ only the disposable product, a sanitized read-only plugin and session storage. T
 removed by `the-harness-needs-no-container`, and nothing replaced it. No OS-level boundary is
 claimed anywhere in this repository, and none exists.
 
+**One thing still runs a real agent on this machine, and it is not a product trial.**
+`evals/agent-mechanisms.mjs` invokes the CLI directly with `Read,Grep,Glob` and, for its edit
+phases, `Write,Edit` under `acceptEdits` — never `Bash` — against a disposable fixture in a
+temporary directory. It bypasses `evals/lib/invoker.mjs` entirely, so the refusal below does not
+apply to it, and CI runs it behind `workflow_dispatch` with a subscription token. It predates this
+change and was deliberately left alone: the spec scopes out the harness's own non-product
+invocations. It is written down here so that "a live product trial refuses to start" is not
+misread as "nothing runs an agent".
+
 The consequence is deliberate and enforced rather than documented and hoped for: a live product
 trial **refuses to start**. `evals/lib/invoker.mjs` throws when handed a sandbox, because the only
 alternative would be running an agent with Write, Edit and Bash directly on the operator's

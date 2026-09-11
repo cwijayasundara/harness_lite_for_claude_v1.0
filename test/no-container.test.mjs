@@ -79,6 +79,23 @@ test('B4: a live product trial refuses rather than running an agent on the host'
     () => invoke({ prompt: 'p', phase: 'implement', sandbox: { work: ROOT }, budgetUsd: 1 }),
     /no boundary to run in/,
     'a product invocation must refuse, naming that it has no boundary');
+
+  // The refusal must not be over-broad: the harness's own non-product invocation — the evaluator
+  // and the golden suite — has always run the CLI directly and still must. Proven without
+  // spawning anything: a conflicting API key makes `requireSubscription` throw, and reaching that
+  // throw at all proves execution got PAST the boundary refusal into the ordinary path.
+  const previous = { ...process.env };
+  try {
+    delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
+    process.env.ANTHROPIC_API_KEY = 'sk-fixture-never-spend';
+    assert.throws(
+      () => invoke({ prompt: 'p', phase: 'implement', budgetUsd: 1, cwd: ROOT }),
+      /API billing is disabled/,
+      'a non-product invocation must reach the ordinary path, not the boundary refusal');
+  } finally {
+    for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key];
+    for (const [key, value] of Object.entries(previous)) process.env[key] = value;
+  }
 });
 
 // Checking three literal strings was not enough: a review found five more present-tense claims in

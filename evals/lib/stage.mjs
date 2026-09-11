@@ -164,7 +164,7 @@ export function stageProduct(s, pluginRoot) {
     mkdirSync(path.dirname(target), { recursive: true });
     cpSync(path.join(pluginRoot, rel), target, { recursive: true });
   }
-  // Rootless container UIDs match the host; root-run CI uses an unprivileged fallback UID.
+  // Root-run CI leaves files the product process cannot rewrite; widen them for that case only.
   if (process.getuid?.() === 0) {
     const writable = dir => { chmodSync(dir, 0o777); for (const e of readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name); if (e.isDirectory()) writable(p); else chmodSync(p, 0o666);
@@ -184,7 +184,7 @@ export function assertProductTree(root) {
   }
 }
 
-// A fresh immutable source snapshot also avoids stale bind-mount reads after host-side edits.
+// A fresh immutable source snapshot also avoids stale reads after host-side edits.
 // The parent never imports untrusted product modules into its assertion process.
 export function runtimeSnapshot(s) {
   assertProductTree(s.work);
