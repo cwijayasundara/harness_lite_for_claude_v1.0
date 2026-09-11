@@ -4,7 +4,7 @@ import { readFileSync, existsSync, writeFileSync, symlinkSync, mkdtempSync, rmSy
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { stage, isolateStage, productDockerArgs, assertProductTree } from '../evals/lib/stage.mjs';
-import { invokerArgs } from '../evals/lib/invoker.mjs';
+import { invokerArgs, claudeInvoker } from '../evals/lib/invoker.mjs';
 import {tmpdir} from 'node:os';
 import {verifyLedger} from '../evals/lib/assertions.mjs';
 import {runProductCampaign,runProductCheck} from '../evals/lib/campaign.mjs';
@@ -31,32 +31,8 @@ test('product staging exposes only portable plugin files and uses separate phase
   } finally { s.cleanup(); }
 });
 
-test('real container denies private reads and writes across planning and implementation boundaries', { skip: process.env.HARNESS_PRODUCT_DOCKER !== '1' }, () => {
-  const s = isolateStage(stage(fixtures, 'campaign-ledger'), ROOT);
-  try {
-    const privateFile = path.join(s.root, 'private-assertions.json');
-    writeFileSync(privateFile, 'private grading sentinel');
-    writeFileSync(path.join(s.work, '.aidlc/artifacts/probe.md'), 'approved sentinel');
-    for (const phase of ['plan', 'implement']) {
-      const script = `const fs=require('fs'),assert=require('assert/strict');
-        require('child_process').execFileSync('git',['rev-parse','HEAD']);
-        for(const file of ${JSON.stringify([privateFile, path.join(ROOT,'evals/products.json'), '/plugin/evals/tasks.json','/var/run/docker.sock'])}) assert.throws(()=>fs.readFileSync(file));
-        assert.throws(()=>fs.writeFileSync('/plugin/.claude-plugin/plugin.json','tamper'));
-        assert.throws(()=>fs.writeFileSync('/work/.git/config','tamper'));
-        assert.throws(()=>fs.writeFileSync('/work/.aidlc/harness.toml','tamper'));
-        ${phase === 'plan' ? "assert.throws(()=>fs.writeFileSync('/work/src/ledger.mjs','tamper')); fs.writeFileSync('/work/.aidlc/artifacts/draft.md','draft');" : "assert.throws(()=>fs.writeFileSync('/work/.aidlc/artifacts/probe.md','tamper')); fs.writeFileSync('/work/src/owned.mjs','export const x=1;');"}
-        console.log('boundary passed');`;
-      const r = spawnSync('docker', [...productDockerArgs(s, { phase }), 'node', '-e', script], {encoding:'utf8',timeout:30000});
-      assert.equal(r.status, 0, r.stderr+r.stdout);
-      assert.match(r.stdout, /boundary passed/);
-    }
-    assert.equal(readFileSync(privateFile,'utf8'), 'private grading sentinel');
-  } finally {s.cleanup();}
-});
-
-
-test('private ledger acceptance rejects no-op and seeded faulty products', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},()=>{
-  const s=isolateStage(stage(fixtures,'campaign-ledger'),ROOT);
+test('private ledger acceptance rejects no-op and seeded faulty products', ()=>{
+  const s=isolateStage(stage(fixtures,'campaign-ledger',{exec:'process'}),ROOT);
   try {
     assert.equal(verifyLedger(s,0).pass,true);
     assert.throws(()=>verifyLedger(s,1));
@@ -71,8 +47,8 @@ export function isOverdue(id,today){if(!invoices.has(id))throw new Error('unknow
   }finally{s.cleanup();}
 });
 
-test('deterministic product campaign preserves failed no-op evidence and external approvals', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
-  const s=isolateStage(stage(fixtures,'campaign-ledger'),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-evidence-'));
+test('deterministic product campaign preserves failed no-op evidence and external approvals', async()=>{
+  const s=isolateStage(stage(fixtures,'campaign-ledger',{exec:'process'}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-evidence-'));
   try {
     const task={id:'deterministic-no-op',product:'ledger',timeoutMs:1000,budgetUsd:1,steps:[{
       slug:'balance',request:'Add balance and overdue queries.',behaviours:['Expose balance and overdue queries.'],files:['src/ledger.mjs'],level:1}]};
@@ -87,9 +63,9 @@ test('deterministic product campaign preserves failed no-op evidence and externa
   }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
 });
 
-test('incomplete product calls retain evidence and never invent missing billing', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+test('incomplete product calls retain evidence and never invent missing billing', async()=>{
   for(const reason of ['timeout','invocation_error']){
-    const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-incomplete-'));
+    const s=isolateStage(stage(fixtures,'campaign-service',{product:true,exec:'process'}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-incomplete-'));
     try{
       const task={id:'deterministic-incomplete',product:'service',timeoutMs:1000,budgetUsd:1,steps:[{
         slug:'service-create',request:'Create the service.',behaviours:['Expose HTTP health.'],files:['src/server.mjs'],level:1}]};
@@ -107,21 +83,9 @@ test('incomplete product calls retain evidence and never invent missing billing'
   }
 });
 
-test('timed-out public product tests remove their container, not just the Docker client', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},()=>{
-  const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT);
-  const containers=()=>spawnSync('docker',['ps','-aq','--filter','name=harness-check-'],{encoding:'utf8',timeout:5000}).stdout.trim();
-  const before=containers();
-  try{
-    writeFileSync(path.join(s.work,'tests/hang.test.mjs'),'setInterval(()=>{},1000);\n');
-    const out=runProductCheck(s,2000);
-    assert.equal(out.error?.code,'ETIMEDOUT');
-    assert.equal(containers(),before,'a killed client must not leave the product test running');
-  }finally{s.cleanup();}
-});
-
-test('private HTTP acceptance exercises persistence, rule changes and storage failure outside the server', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+test('private HTTP acceptance exercises persistence, rule changes and storage failure outside the server', async()=>{
   const {verifyService}=await import('../evals/lib/assertions.mjs');
-  const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT);
+  const s=isolateStage(stage(fixtures,'campaign-service',{product:true,exec:'process'}),ROOT);
   try {
     assert.equal(existsSync(path.join(s.work,'src/app')),false,'greenfield product has no unrelated Python source');
     assert.throws(()=>verifyService(s,1),'an empty product must fail acceptance');
@@ -153,27 +117,10 @@ test('private HTTP acceptance exercises persistence, rule changes and storage fa
   }finally{s.cleanup();}
 });
 
-test('native comparison sandbox provides rg and tests while protecting planning, Git and private grading', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},()=>{
-  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native:true}),ROOT);
-  try{
-    const secret=path.join(s.root,'private-grading.json');writeFileSync(secret,'private');
-    for(const phase of ['plan','implement']){
-      const script=`const fs=require('fs'),assert=require('assert/strict'),cp=require('child_process');
-        assert.throws(()=>fs.readFileSync(${JSON.stringify(secret)}));
-        assert.equal(fs.existsSync('/plugin'),false);
-        assert.throws(()=>fs.writeFileSync('/work/.git/config','tamper'));
-        cp.execFileSync('rg',['addCustomer','src/ledger.mjs']);cp.execFileSync('node',['--test']);
-        ${phase==='plan'?"assert.throws(()=>fs.writeFileSync('/work/src/ledger.mjs','tamper'));":"fs.writeFileSync('/work/src/new.mjs','export const x=1;');"}`;
-      const out=spawnSync('docker',[...productDockerArgs(s,{phase}),'node','-e',script],{encoding:'utf8',timeout:30000});
-      assert.equal(out.status,0,out.stdout+out.stderr);
-    }
-  }finally{s.cleanup();}
-});
-
-test('comparison campaigns grade both configurations and detect unapproved writes', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+test('comparison campaigns grade both configurations and detect unapproved writes', async()=>{
   const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
   for(const native of [true,false])for(const premature of [false,true]){
-    const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native}),ROOT);
+    const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native,exec:'process'}),ROOT);
     const evidence=mkdtempSync(path.join(tmpdir(),'comparison-proof-'));
     try{
       const task={id:'ledger',product:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'queries',request:'Add balance and overdue queries',behaviours:['Add balance and overdue queries'],files:['src/ledger.mjs'],level:1}]};
@@ -189,9 +136,9 @@ test('comparison campaigns grade both configurations and detect unapproved write
   }
 });
 
-test('unparseable independent comparison review is incomplete and does not request implementation repairs', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+test('unparseable independent comparison review is incomplete and does not request implementation repairs', async()=>{
   const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
-  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native:true}),ROOT);
+  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native:true,exec:'process'}),ROOT);
   const evidence=mkdtempSync(path.join(tmpdir(),'comparison-review-'));let implementations=0;
   try{
     const task={id:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'keep-api',request:'Preserve current behaviour',behaviours:['Keep API'],files:['src/ledger.mjs'],level:1}]};
@@ -204,9 +151,9 @@ test('unparseable independent comparison review is incomplete and does not reque
   }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
 });
 
-test('comparison detects agent self-approval before the driver replaces its proposal', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},async()=>{
+test('comparison detects agent self-approval before the driver replaces its proposal', async()=>{
   const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
-  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'comparison-forged-'));
+  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,exec:'process'}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'comparison-forged-'));
   try{
     const task={id:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'keep-api',request:'Preserve API',behaviours:['Preserve API'],files:['src/ledger.mjs'],level:1}]};
     const out=await runComparisonCampaign({task,config:{id:'harness'},sandbox:s,evidenceDir:evidence,evaluateProduct:()=>{throw new Error('must not reach acceptance');},invoke:async()=>{
@@ -217,8 +164,8 @@ test('comparison detects agent self-approval before the driver replaces its prop
   }finally{s.cleanup();rmSync(evidence,{recursive:true,force:true});}
 });
 
-test('failed product tests with leaked servers return findings before the invocation deadline', {skip:process.env.HARNESS_PRODUCT_DOCKER!=='1'},()=>{
-  const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT);
+test('failed product tests with leaked servers return findings before the invocation deadline', ()=>{
+  const s=isolateStage(stage(fixtures,'campaign-service',{product:true,exec:'process'}),ROOT);
   try{
     writeFileSync(path.join(s.work,'tests/leaked-server.test.mjs'),"import test from 'node:test'; import assert from 'node:assert/strict'; import http from 'node:http'; test('failure before cleanup',()=>{http.createServer().listen(0);assert.fail('seeded failure');});\n");
     const out=runProductCheck(s,25000);
@@ -226,4 +173,85 @@ test('failed product tests with leaked servers return findings before the invoca
     assert.equal(out.status,1,'the failed test must remain a failure');
     assert.match(out.stdout,/FAIL\s+test/);
   }finally{s.cleanup();}
+});
+
+// the-tests-run-without-docker: exec:'process' staging runs the product under test as a plain
+// Node child process, with no Docker executable and no daemon required. Container remains the
+// default and unaffected shape when `exec` is omitted (B1, B3).
+test('exec:"process" staging returns its own work directory and a real ephemeral port; container stays the default', async () => {
+  const { claimPort } = await import('../evals/lib/stage.mjs');
+  const a = stage(fixtures, 'campaign-service', { product: true, exec: 'process' });
+  const b = stage(fixtures, 'campaign-service', { product: true, exec: 'process' });
+  const c = stage(fixtures, 'campaign-ledger');
+  try {
+    assert.equal(a.exec, 'process'); assert.equal(b.exec, 'process');
+    assert.notEqual(a.work, b.work, 'two concurrent process-mode stages must not share a directory');
+    assert.equal(c.exec, 'container', 'container remains the default when exec is omitted');
+    const portA = claimPort(), portB = claimPort();
+    assert.ok(Number.isInteger(portA) && portA > 0, 'a port claimed by binding port 0 must be a real port number');
+    assert.ok(Number.isInteger(portB) && portB > 0);
+    assert.notEqual(portA, portB, 'a port is read back from the OS, never picked as a constant');
+  } finally { a.cleanup(); b.cleanup(); c.cleanup(); }
+});
+
+// B4: a process-mode run that times out must leave no live descendant — asserted, not assumed.
+test('a process-mode run that times out leaves no live descendant process', async () => {
+  const { execNode } = await import('../evals/lib/stage.mjs');
+  // A direct child proves nothing here: spawnSync's own killSignal already reaps it, so this test
+  // passed with killProcessGroup deleted. The group kill exists for the GRANDCHILD — the product's
+  // `node --test` spawns a process per test file, and those are what outlive a killed parent. So
+  // the child reports its grandchild's pid on stdout before hanging, and we check that one.
+  const spawnGrandchild = "const {spawn}=require('child_process');"
+    + "const g=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});"
+    + "console.log(g.pid);setInterval(()=>{},1000);";
+  const r = execNode(ROOT, ['-e', spawnGrandchild], { timeout: 1500 });
+  assert.equal(r.error?.code, 'ETIMEDOUT', 'the run must be observed timing out');
+  assert.ok(r.pid, 'the helper must report the pid it started');
+  const grandchild = Number((r.stdout || '').trim());
+  assert.ok(grandchild > 0, `the child must report its grandchild pid, got: ${JSON.stringify(r.stdout)}`);
+  assert.throws(() => process.kill(r.pid, 0), /ESRCH/, 'the timed-out process must be gone, not orphaned');
+  assert.throws(() => process.kill(grandchild, 0), /ESRCH/,
+    'the grandchild must be gone too: killing only the direct child leaves the product test running, which is the defect the process group exists to prevent');
+});
+
+// B6: a live product trial cannot select exec:'process' even by mistake — the invoker refuses it,
+// while the container path keeps emitting the boundary arguments it already builds.
+test('a live product trial cannot select exec:"process"; the container path still emits its hardening flags', () => {
+  const s = isolateStage(stage(fixtures, 'campaign-ledger'), ROOT);
+  try {
+    const args = productDockerArgs(s, { phase: 'runtime' });
+    for (const flag of ['--read-only', '--cap-drop=ALL', '--security-opt=no-new-privileges']) assert.ok(args.includes(flag), flag);
+    assert.ok(args.includes('none'), '--network none must still be the runtime default');
+    assert.ok(args.some(a => a === `${process.getuid?.() || 1000}:${process.getgid?.() || 1000}`), 'an unprivileged uid:gid must still be passed');
+    const invoke = claudeInvoker({ pluginDir: '/plugin-dir' });
+    assert.throws(() => invoke({ prompt: 'p', cwd: s.work, timeoutMs: 1000, budgetUsd: 1, task: {}, sandbox: { ...s, exec: 'process' } }), /process/i);
+  } finally { s.cleanup(); }
+});
+
+// B5, native half: alongside the container-only isolation tests (moved to
+// test/container/product-boundary.test.mjs), the native path asserts what it genuinely provides —
+// the private grading file sits outside the tree handed to the child process. This is never
+// described as isolation; a directory is not a sandbox.
+test('process-mode staging keeps the private grading file outside the tree handed to the child process', () => {
+  const s = isolateStage(stage(fixtures, 'campaign-ledger', { exec: 'process' }), ROOT);
+  try {
+    const secret = path.join(s.root, 'private-grading.json');
+    writeFileSync(secret, 'private');
+    assert.ok(!secret.startsWith(s.work + path.sep) && secret !== s.work, 'the private grading file must sit outside s.work');
+    assert.equal(existsSync(path.join(s.work, path.relative(s.root, secret))), false);
+  } finally { s.cleanup(); }
+});
+
+// B5: the container boundary is a distinct opt-in suite, outside the ordinary glob, and its
+// absence is stated in the output rather than inferred from a missing line.
+test('the container boundary is a distinct opt-in suite and this run states whether it was verified', () => {
+  const containerSuite = path.join(ROOT, 'test/container/product-boundary.test.mjs');
+  assert.ok(existsSync(containerSuite), 'the container-boundary suite must exist outside test/*.test.mjs');
+  // HARNESS_PRODUCT_DOCKER says nothing about whether the container suite ran: it is a separate
+  // `node --test` invocation, and an operator can set the variable here while that file is never
+  // collected — which is exactly what `docs/OPERATING.md`'s documented command does. Reporting
+  // "verified" from a variable would be the B5 defect wearing a new hat, so this states only what
+  // it can actually know, unconditionally, and never prints a green claim about the boundary.
+  console.log('container boundary: NOT exercised by this suite — it is verified only by '
+    + 'test/container/product-boundary.test.mjs, which this glob does not collect (CI job: container-boundary)');
 });
