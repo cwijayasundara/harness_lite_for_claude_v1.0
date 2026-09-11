@@ -1,5 +1,12 @@
 ---
-status: draft
+status: approved
+spec_digest: sha256:3db9760a43a15bab6e7b385754f4a0a6dec1b623dcc7aa45b2dbe4ac29dee271
+spec_approval_digest: sha256:3101c2eff3f27ceeb677b89ba35470f0df369d355ad309d274401baa18a954a5
+by: cwijayasundara
+at: 2026-09-11T18:39:37.414Z
+digest: sha256:77802fc5ab5d2ef789ab6e36471b005d5213c6d36e8409137311a54c07a77b41
+approval_version: 2
+approval_digest: sha256:9feac8a4b813b848aa3e0ce02f4035897fb472f7c624d032781923f27128dbdc
 ---
 # Plan: the-harness-needs-no-container
 
