@@ -9,7 +9,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { productDockerArgs, runtimeSnapshot } from './stage.mjs';
+import { productDockerArgs, runtimeSnapshot, execNode, claimPort, spawnDetachedProcess, killProcessGroup } from './stage.mjs';
 import { unseenRequirements, behavioursHaveTests, modifiedNotReplaced, diffOwnedByCurrentChange, walk } from './campaign.mjs';
 
 // A deliberately small glob: `*` inside one path segment. Enough for
@@ -184,11 +184,16 @@ export function ledgerCalls(s, calls) {
         results.push({ok:true,value:value===undefined?null:JSON.parse(JSON.stringify(value))});
       } catch(error){results.push({ok:false,error:error.message});}
     } console.log(JSON.stringify(results));`;
-  const name=`harness-ledger-${randomUUID()}`;
-  const r = spawnSync('docker', [...productDockerArgs(source,{name}), 'node', '--input-type=module', '-e', bridge], {
-    input: JSON.stringify(calls), encoding: 'utf8', timeout: 15000, killSignal: 'SIGKILL', maxBuffer: 1024*1024,
-  });
-  if(r.error||r.signal)spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:10000});
+  let r;
+  if (s.exec === 'process') {
+    r = execNode(source.work, ['--input-type=module', '-e', bridge], { input: JSON.stringify(calls) });
+  } else {
+    const name=`harness-ledger-${randomUUID()}`;
+    r = spawnSync('docker', [...productDockerArgs(source,{name}), 'node', '--input-type=module', '-e', bridge], {
+      input: JSON.stringify(calls), encoding: 'utf8', timeout: 15000, killSignal: 'SIGKILL', maxBuffer: 1024*1024,
+    });
+    if(r.error||r.signal)spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:10000});
+  }
   if (r.status !== 0) throw new Error(`ledger runtime failed: ${r.error?.message ?? r.stderr}`);
   return JSON.parse(r.stdout.trim());
   } finally {source.dispose();}
@@ -259,11 +264,16 @@ export function reportingCalls(s, calls) {
         results.push({ok:true,value:value===undefined?null:JSON.parse(JSON.stringify(value))});
       } catch(error){results.push({ok:false,error:error.message});}
     } console.log(JSON.stringify(results));`;
-  const name=`harness-reporting-${randomUUID()}`;
-  const r = spawnSync('docker', [...productDockerArgs(source,{name}), 'node', '--input-type=module', '-e', bridge], {
-    input: JSON.stringify(calls), encoding: 'utf8', timeout: 15000, killSignal: 'SIGKILL', maxBuffer: 1024*1024,
-  });
-  if(r.error||r.signal)spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:10000});
+  let r;
+  if (s.exec === 'process') {
+    r = execNode(source.work, ['--input-type=module', '-e', bridge], { input: JSON.stringify(calls) });
+  } else {
+    const name=`harness-reporting-${randomUUID()}`;
+    r = spawnSync('docker', [...productDockerArgs(source,{name}), 'node', '--input-type=module', '-e', bridge], {
+      input: JSON.stringify(calls), encoding: 'utf8', timeout: 15000, killSignal: 'SIGKILL', maxBuffer: 1024*1024,
+    });
+    if(r.error||r.signal)spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:10000});
+  }
   if (r.status !== 0) throw new Error(`reporting runtime failed: ${r.error?.message ?? r.stderr}`);
   return JSON.parse(r.stdout.trim());
   } finally { source.dispose(); }
@@ -304,22 +314,37 @@ export function verifyReporting(s, level) {
   return {name:`reporting-api-level-${level}`,pass:true,cases:calls.length};
 }
 
-export function serviceProcess(s, { dataFile='/data/items.json' }={}) {
+export function serviceProcess(s, { dataFile }={}) {
   const name=`harness-service-${randomUUID()}`;
-  let source;
+  let source, port, pid;
+  const df = dataFile ?? (s.exec === 'process' ? path.join(s.data, 'items.json') : '/data/items.json');
   const start=()=> {
     source=runtimeSnapshot(s);
-    const r=spawnSync('docker',[...productDockerArgs(source,{name,detached:true,env:{PORT:'3000',DATA_FILE:dataFile}}),'node','src/server.mjs'],{encoding:'utf8',timeout:30000});
+    if (s.exec === 'process') {
+      port = claimPort();
+      pid = spawnDetachedProcess(source.work, ['src/server.mjs'], { PORT: String(port), DATA_FILE: df }).pid;
+      return;
+    }
+    const r=spawnSync('docker',[...productDockerArgs(source,{name,detached:true,env:{PORT:'3000',DATA_FILE:df}}),'node','src/server.mjs'],{encoding:'utf8',timeout:30000});
     if(r.status!==0){source.dispose();throw new Error(`service start failed: ${r.stderr}`);}
   };
-  const stop=()=>{spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:15000});source?.dispose();};
+  const stop=()=>{
+    if (s.exec === 'process') { killProcessGroup(pid); source?.dispose(); return; }
+    spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:15000});source?.dispose();
+  };
   const request=(method,url,body,raw=false)=> {
+    const origin = s.exec === 'process' ? `http://127.0.0.1:${port}` : 'http://127.0.0.1:3000';
     const bridge=`let data='';for await(const part of process.stdin)data+=part;
       const req=JSON.parse(data); let response;
-      for(let n=0;n<30;n++){try{response=await fetch('http://127.0.0.1:3000'+req.url,{method:req.method,
+      for(let n=0;n<30;n++){try{response=await fetch('${origin}'+req.url,{method:req.method,
         headers:{'Content-Type':'application/json'},...(req.body===undefined?{}:{body:req.raw?req.body:JSON.stringify(req.body)}),signal:AbortSignal.timeout(2000)});break;}
         catch(e){if(n===29)throw e;await new Promise(r=>setTimeout(r,100));}}
       const text=await response.text(); console.log(JSON.stringify({status:response.status,body:JSON.parse(text)}));`;
+    if (s.exec === 'process') {
+      const r=execNode(source.work,['--input-type=module','-e',bridge],{input:JSON.stringify({method,url,body,raw})});
+      if(r.status!==0)throw new Error(`HTTP transport failed (exit ${r.status}, signal ${r.signal}): ${r.error?.message ?? r.stderr ?? ''} ${r.stdout??''}`);
+      return JSON.parse(r.stdout);
+    }
     const r=spawnSync('docker',['exec','-i',name,'node','--input-type=module','-e',bridge],{
       input:JSON.stringify({method,url,body,raw}),encoding:'utf8',timeout:15000,killSignal:'SIGKILL',maxBuffer:1024*1024});
     if(r.status!==0){const logs=spawnSync('docker',['logs',name],{encoding:'utf8',timeout:5000,maxBuffer:16384});throw new Error(`HTTP transport failed (exit ${r.status}, signal ${r.signal}): ${r.error?.message ?? r.stderr ?? ''} ${r.stdout??''}; server: ${logs.stdout??''}${logs.stderr??''}`);}
