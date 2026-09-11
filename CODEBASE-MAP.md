@@ -23,8 +23,8 @@ For recorded delivery context: `harness graph query product --revision <commit>`
 | `.aidlc/lib/product-context.mjs` | 2 | git, offlineRepository, safePath |
 | `evals/lib/campaign.mjs` | 3 | writeFileSync, walk, unseenRequirements |
 | `.aidlc/lib/graph.mjs` | 10 | isHarnessOutput, walk, langOf |
-| `.aidlc/lib/review.mjs` | 2 | ghQuery, hostReview, collect |
 | `evals/lib/stage.mjs` | 11 | productTestArgs, productTestCommand, stage |
+| `.aidlc/lib/review.mjs` | 2 | ghQuery, hostReview, collect |
 | `.aidlc/lib/diff.mjs` | 9 | git, resolveCommit, candidateBoundary |
 | `.aidlc/lib/paths.mjs` | 8 | findRepoRoot, layout |
 | `.aidlc/lib/eval-gate.mjs` | 1 | loadResults, verdicts, totalOf |

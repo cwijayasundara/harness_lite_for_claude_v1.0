@@ -398,9 +398,17 @@ export function verifyService(s, level) {
     // unwritable for an unprivileged user — running as root (dev container, root CI) mkdirSync
     // succeeds and this case silently inverts, asserting the opposite of what it means to.
     // ENOTDIR binds for every user, including root.
+    // Branched, because the two paths are unwritable for different reasons and neither reason
+    // carries over. The container's '/unwritable' is unwritable because '/' is --read-only; a
+    // host path is not. Conversely a host path under s.root is invisible inside the container:
+    // s.root is mkdtemp under os.tmpdir(), which on Linux is /tmp, and productDockerArgs mounts
+    // --tmpfs /tmp — so the container would see an absent directory on a WRITABLE fs, mkdirSync
+    // recursive would succeed, POST would return 201, and the 503 case would assert the opposite
+    // of what it means to. That breaks only on Linux, so it would have passed here and failed in
+    // CI and in live trials.
     const blocked=path.join(s.root,'not-a-directory');
-    if(!existsSync(blocked))writeFileSync(blocked,'');
-    const failing=serviceProcess(s,{dataFile:path.join(blocked,'items.json')});
+    if(s.exec==='process'&&!existsSync(blocked))writeFileSync(blocked,'');
+    const failing=serviceProcess(s,{dataFile:s.exec==='process'?path.join(blocked,'items.json'):'/unwritable/items.json'});
     try {status(failing.request('POST','/items',{title:'Lost'}),503);
       assert.deepEqual(status(failing.request('GET','/items'),200),[]);
       assert.equal(status(failing.request('GET','/health'),200).ok,true);

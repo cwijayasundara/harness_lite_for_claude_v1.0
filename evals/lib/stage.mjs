@@ -135,8 +135,17 @@ export function killProcessGroup(pid) {
   // running concurrently and turning a 400ms test into a 123s failure. A pgid equal to our
   // child's pid belongs to our child's group and to nothing else while that group exists.
   try { process.kill(-pid, 'SIGKILL'); } catch { /* leader already reaped; the group walk follows */ }
+  // A reuse window remains and cannot be closed from here: between spawnSync reaping the child
+  // and `ps` running, the kernel may recycle that pid onto a new group leader, whose pgid would
+  // match. It is narrow, and narrower than the PPID walk it replaced, but it is not zero.
   const table = spawnSync('ps', ['-Ao', 'pid=,pgid='], { encoding: 'utf8', timeout: 5000 });
-  for (const line of (table.stdout || '').split('\n')) {
+  // Never degrade quietly back to the group kill that was measured insufficient: a reaper that
+  // cannot enumerate is a reaper that reports success while leaving the product test running,
+  // which is the defect class this change exists to remove.
+  if (table.status !== 0 || !table.stdout) {
+    throw new Error(`cannot reap process group ${pid}: ps is unavailable (${table.error?.message ?? table.stderr ?? `exit ${table.status}`})`);
+  }
+  for (const line of table.stdout.split('\n')) {
     const [member, group] = line.trim().split(/\s+/).map(Number);
     if (group === pid && member && member !== process.pid) {
       try { process.kill(member, 'SIGKILL'); } catch { /* already gone */ }

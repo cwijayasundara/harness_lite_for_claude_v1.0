@@ -135,3 +135,79 @@ property whose loss would make this change harmful is intact.
 - The container path could not be exercised at review time: no Docker daemon was running on the
   review machine. Every container-path claim here is read from source, not observed — which is
   itself an instance of what B5 is about.
+
+---
+
+# Round 2 — the repairs (763699b..24409fd)
+
+**VERDICT: changes-requested.** One blocking regression introduced BY the round 1 repairs, three
+minor, one nit. Round 2 judged sound, with no finding: round 1's findings 1, 2, 3, 6b, the
+strengthened B4 proof, and the implementer's disagreement with finding 4.
+
+## Blocking — a regression the repairs introduced
+
+### R2.1 — B2 / Design: the 6a repair changed the CONTAINER path too
+
+`evals/lib/assertions.mjs:396-403`. The `/unwritable/items.json` replacement was applied to both
+paths. The two are unwritable for different reasons and neither carries over: the container's
+`/unwritable` is unwritable because `/` is `--read-only`, while `<s.root>/not-a-directory` is a
+host path the container cannot see at all — `s.root` is `mkdtemp` under `os.tmpdir()`, which on
+Linux is `/tmp`, and `productDockerArgs` mounts `--tmpfs /tmp`. Inside the container that path is
+an absent directory on a **writable** filesystem; the reference server saves with
+`mkdirSync(dirname, {recursive:true})`, so `POST /items` returns 201 and the 503 case asserts the
+opposite of what it means to.
+
+It fails only on Linux. On macOS `TMPDIR` is `/var/folders/...`, unmounted and under a read-only
+`/`, so it still behaves. **It would have passed on this machine and broken on ubuntu-latest and
+in Linux live trials**, and no test in the suite covers it — `verifyService` is reached in
+container mode by live product trials (`evals/run.mjs:255`, `evals/lib/comparison.mjs:99`) and
+`evals/products.json:177` has a service step at level 6.
+
+**Repaired** by branching on `s.exec`: the host path for process mode, `/unwritable/items.json`
+unchanged for the container.
+
+## Minor
+
+### R2.2 — the runbooks are stale, and are not owned
+
+`docs/OPERATING.md:107` and `evals/README.md:56` both still document
+`HARNESS_PRODUCT_DOCKER=1 node --test test/product-trials.test.mjs`, the README asserting it
+"exercises isolation". No green claim is produced any more — the report line is unconditional and
+correct — but a reader following the documented command believes the boundary was checked when the
+file it names can no longer check it. **Neither file is in the plan's `## Files`.** Ownership is
+the human's decision; this is recorded, not fixed.
+
+### R2.3 — pid reuse is narrowed, not eliminated
+
+`evals/lib/stage.mjs`. Between `spawnSync` reaping the child and `ps` running, the kernel may
+recycle that pid onto a new group leader whose `pgid` then matches. The window is real and
+narrower than the PPID walk it replaced, but it is not zero, and the same window exists on the
+`kill(-pid)` first attempt. Excluding `process.pid` is otherwise sufficient. `ps -Ao pid=,pgid=`
+is portable to macOS and procps alike. **Recorded in the code as a known limit** rather than
+papered over.
+
+### R2.4 — a missing `ps` degraded silently
+
+`evals/lib/stage.mjs`. An empty or failed `ps` left the loop doing nothing, degrading to the group
+kill already measured insufficient — a tool absence reporting success. **Repaired**: the reaper
+now throws naming `ps` rather than returning quietly.
+
+### R2.5 (nit) — instruction and configuration disagreed
+
+`evals/lib/campaign.mjs`. Agent-facing text said `PRODUCT_TEST_COMMAND` while a process-mode
+`harness.toml` was configured with `--test-force-exit`. Harmless, since B6 bars a live agent from
+process mode. **Repaired**: both now derive from `productTestCommand(s.exec)`.
+
+## Evidence after the round 2 repairs
+
+- `test/product-trials.test.mjs`: 14 pass, 0 fail, 0 skipped, 15.3s
+- full suite, `docker` absent from `PATH`: 447 tests, 446 pass, 0 fail, 1 skipped
+  (`test/trace-evidence.test.mjs:90`, `HARNESS_TRACE_PYTHON`, pre-existing, not Docker)
+- `node --test test/container/*.test.mjs` with no daemon: 4 tests, 0 pass, 4 fail, 0 skipped
+- reaper probe: child alive `false`, grandchild alive `false`
+
+## Standing decision for the human
+
+R2.2 is the only finding left unrepaired, because fixing it means writing to two files the
+approved plan does not own. Amending `## Files` and re-approving, or recording it as a follow-up
+defect, is the human's call at gate 3.
