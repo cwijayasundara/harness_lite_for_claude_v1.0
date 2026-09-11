@@ -1,6 +1,17 @@
 ---
-status: draft
+status: approved
 supersedes: the-tests-run-without-docker#B5, the-tests-run-without-docker#B6
+source: https://claude.ai/code/session_01FusCKFhEQq1PmJFUCnhZjv
+source_revision: 2026-09-11-decision-remove-docker-completely
+source_kind: external-asserted
+intent_digest: sha256:55fe4fe320ac3140a9bc6d9eeda3bc1ad7a2ce758c0636022fb72f337af9174f
+intent_input_digest: sha256:8dcc3c4ce84871a9ed7ae840a330a2e74133ed77faa57e2350d591864321fbbc
+intent_revision: 9f41f5db3167a70b0adcbe43629b6718e0e2a7ba
+by: cwijayasundara
+at: 2026-09-11T18:29:22.081Z
+digest: sha256:3db9760a43a15bab6e7b385754f4a0a6dec1b623dcc7aa45b2dbe4ac29dee271
+approval_version: 2
+approval_digest: sha256:3101c2eff3f27ceeb677b89ba35470f0df369d355ad309d274401baa18a954a5
 ---
 # Spec: the-harness-needs-no-container
 
