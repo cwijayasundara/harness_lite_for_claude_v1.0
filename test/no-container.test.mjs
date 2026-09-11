@@ -23,7 +23,7 @@ const SKIP = /(^|\/)(\.git|node_modules|evidence|artifacts|state)(\/|$)/;
 // example this change does not own. The dependency cannot come back without matching one of
 // these, because it cannot be invoked without being named as a command.
 const FORBIDDEN = [
-  /['"`]docker['"`]/,
+  /['"`][^'"`\n]*\bdocker['"`]/,   // as a command, including an absolute path to it
   /\bdocker\s+(build|run|info|ps|exec|rm|image|logs|compose)\b/i,
   /productDockerArgs/,
   /PRODUCT_IMAGE|HARNESS_PRODUCT_IMAGE/,
@@ -40,7 +40,9 @@ function sourceFiles(rel) {
     const next = `${rel}/${entry.name}`;
     if (SKIP.test(next)) continue;
     if (entry.isDirectory()) out.push(...sourceFiles(next));
-    else if (/\.(mjs|js|json|toml|ya?ml)$/.test(entry.name)) out.push(next);
+    // No extension filter: `.aidlc/bin/harness` carries this project's control flow and has no
+    // extension, so filtering by suffix left the one file most worth scanning unscanned.
+    else if (!/\.(md|png|jpe?g|gif|ico|pdf|zip|gz|lock)$/i.test(entry.name)) out.push(next);
   }
   return out;
 }
@@ -79,13 +81,56 @@ test('B4: a live product trial refuses rather than running an agent on the host'
     'a product invocation must refuse, naming that it has no boundary');
 });
 
+// Checking three literal strings was not enough: a review found five more present-tense claims in
+// evals/README.md alone ("not mounted into the agent container", "Containers need…", "Two isolated
+// product campaigns"), each phrased differently and none matched. These patterns catch the SHAPE
+// of the claim instead — a container that contains, a mount that separates, an adjective that
+// asserts containment — because the failure mode is a document that still promises a boundary,
+// not a document that uses a particular sentence.
+const BOUNDARY_CLAIMS = [
+  /HARNESS_PRODUCT_DOCKER/,
+  /exercises isolation/i,
+  /container isolation/i,
+  /(agent|product|Claude) container/i,
+  /container(s)? (need|receive|are|is|stop)/i,
+  /not mounted|mounts no|mounted into/i,
+  /isolated (product|trial|campaign|container|run)/i,
+];
+
 test('B5: the runbooks no longer describe a boundary that does not exist', () => {
+  const offenders = [];
   for (const rel of ['docs/OPERATING.md', 'evals/README.md']) {
     const text = readFileSync(path.join(ROOT, rel), 'utf8');
-    assert.ok(!text.includes('HARNESS_PRODUCT_DOCKER'), `${rel} still documents HARNESS_PRODUCT_DOCKER`);
-    assert.ok(!/exercises isolation/i.test(text), `${rel} still claims a command exercises isolation`);
-    assert.ok(!/container isolation/i.test(text), `${rel} still describes container isolation`);
+    for (const line of text.split('\n')) {
+      for (const claim of BOUNDARY_CLAIMS) {
+        if (claim.test(line)) offenders.push(`${rel}: ${line.trim().slice(0, 90)}`);
+      }
+    }
   }
+  assert.deepEqual(offenders, [], `a runbook still claims a boundary this repository does not have:\n${offenders.join('\n')}`);
+});
+
+// B5's other half, which the first round left to prose: the source must not name a plain staged
+// directory a sandbox or an isolation either. The one permitted use is evals/lib/invoker.mjs,
+// where `sandbox` names the argument that TRIGGERS the refusal — there it means "a caller that
+// wanted a boundary", which is exactly what it is.
+test('B5: no source name calls a staged directory a sandbox or an isolation', () => {
+  const offenders = [];
+  for (const rel of [...['evals', 'test'].flatMap(sourceFiles)]) {
+    if (rel === 'test/no-container.test.mjs' || rel === 'evals/lib/invoker.mjs') continue;
+    for (const [n, line] of readFileSync(path.join(ROOT, rel), 'utf8').split('\n').entries()) {
+      // Scoped to DECLARATIONS, which is the claim B5 is actually about: naming a thing a sandbox.
+      // Handing `sandbox:` to the invoker is the permitted use — it names the argument that
+      // triggers the refusal, so the caller is saying "this wanted a boundary", which is true.
+      // Matching those too would flag every call site and force the test to guess at intent from
+      // line shape, which it did, wrongly, on three continuation lines.
+      if (/\b(isolateStage|sandboxFixture)\b/.test(line)
+        || /\b(const|let|var|function|class)\s+\w*[Ss]andbox/.test(line)) {
+        offenders.push(`${rel}:${n + 1}: ${line.trim().slice(0, 80)}`);
+      }
+    }
+  }
+  assert.deepEqual(offenders, [], `a name still calls something a sandbox that is not one:\n${offenders.join('\n')}`);
 });
 
 test('B6: one execution path remains, with no mode argument and no container helper', async () => {

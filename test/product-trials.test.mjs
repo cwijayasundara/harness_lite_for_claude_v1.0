@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync, writeFileSync, symlinkSync, mkdtempSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { stage, isolateStage, assertProductTree } from '../evals/lib/stage.mjs';
+import { stage, stageProduct, assertProductTree } from '../evals/lib/stage.mjs';
 import { invokerArgs, claudeInvoker } from '../evals/lib/invoker.mjs';
 import {tmpdir} from 'node:os';
 import {verifyLedger} from '../evals/lib/assertions.mjs';
@@ -12,7 +12,7 @@ import { ROOT } from './_paths.mjs';
 const fixtures = path.join(ROOT, 'evals/fixtures');
 
 test('product staging exposes only portable plugin files, and refuses a product tree with a symlink', () => {
-  const s = isolateStage(stage(fixtures, 'campaign-ledger'), ROOT);
+  const s = stageProduct(stage(fixtures, 'campaign-ledger'), ROOT);
   try {
     for (const rel of ['evals', '.env', '.git', '.aidlc/artifacts', '.aidlc/evals']) assert.equal(existsSync(path.join(s.plugin, rel)), false, rel);
     assert.ok(existsSync(path.join(s.plugin, '.claude-plugin/plugin.json')));
@@ -26,7 +26,7 @@ test('product staging exposes only portable plugin files, and refuses a product 
 });
 
 test('private ledger acceptance rejects no-op and seeded faulty products', ()=>{
-  const s=isolateStage(stage(fixtures,'campaign-ledger'),ROOT);
+  const s=stageProduct(stage(fixtures,'campaign-ledger'),ROOT);
   try {
     assert.equal(verifyLedger(s,0).pass,true);
     assert.throws(()=>verifyLedger(s,1));
@@ -42,11 +42,11 @@ export function isOverdue(id,today){if(!invoices.has(id))throw new Error('unknow
 });
 
 test('deterministic product campaign preserves failed no-op evidence and external approvals', async()=>{
-  const s=isolateStage(stage(fixtures,'campaign-ledger'),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-evidence-'));
+  const s=stageProduct(stage(fixtures,'campaign-ledger'),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-evidence-'));
   try {
     const task={id:'deterministic-no-op',product:'ledger',timeoutMs:1000,budgetUsd:1,steps:[{
       slug:'balance',request:'Add balance and overdue queries.',behaviours:['Expose balance and overdue queries.'],files:['src/ledger.mjs'],level:1}]};
-    const out=await runProductCampaign({task,sandbox:s,harnessBin:path.join(ROOT,'.aidlc/bin/harness'),evidenceDir:evidence,
+    const out=await runProductCampaign({task,productTree:s,harnessBin:path.join(ROOT,'.aidlc/bin/harness'),evidenceDir:evidence,
       evaluateProduct:(s,step)=>verifyLedger(s,step.level),invoke:async()=>{
         writeFileSync(path.join(s.work,'.aidlc/state/current-run-id'),'deterministic-test');
         return {sessionId:'deterministic-test-session',transcript:'Await approval.',exitCode:0,usage:{usd:0}};
@@ -59,11 +59,11 @@ test('deterministic product campaign preserves failed no-op evidence and externa
 
 test('incomplete product calls retain evidence and never invent missing billing', async()=>{
   for(const reason of ['timeout','invocation_error']){
-    const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-incomplete-'));
+    const s=stageProduct(stage(fixtures,'campaign-service',{product:true}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'product-incomplete-'));
     try{
       const task={id:'deterministic-incomplete',product:'service',timeoutMs:1000,budgetUsd:1,steps:[{
         slug:'service-create',request:'Create the service.',behaviours:['Expose HTTP health.'],files:['src/server.mjs'],level:1}]};
-      const out=await runProductCampaign({task,sandbox:s,harnessBin:path.join(ROOT,'.aidlc/bin/harness'),evidenceDir:evidence,
+      const out=await runProductCampaign({task,productTree:s,harnessBin:path.join(ROOT,'.aidlc/bin/harness'),evidenceDir:evidence,
         evaluateProduct:()=>{throw new Error('incomplete calls must not reach acceptance');},invoke:async()=>{
           if(reason==='invocation_error')throw new Error('test transport disconnected');
           return {timedOut:true,incomplete:{reason},transcript:'partial response',usage:{}};
@@ -79,7 +79,7 @@ test('incomplete product calls retain evidence and never invent missing billing'
 
 test('private HTTP acceptance exercises persistence, rule changes and storage failure outside the server', async()=>{
   const {verifyService}=await import('../evals/lib/assertions.mjs');
-  const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT);
+  const s=stageProduct(stage(fixtures,'campaign-service',{product:true}),ROOT);
   try {
     assert.equal(existsSync(path.join(s.work,'src/app')),false,'greenfield product has no unrelated Python source');
     assert.throws(()=>verifyService(s,1),'an empty product must fail acceptance');
@@ -114,11 +114,11 @@ test('private HTTP acceptance exercises persistence, rule changes and storage fa
 test('comparison campaigns grade both configurations and detect unapproved writes', async()=>{
   const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
   for(const native of [true,false])for(const premature of [false,true]){
-    const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native}),ROOT);
+    const s=stageProduct(stage(fixtures,'campaign-ledger',{product:true,native}),ROOT);
     const evidence=mkdtempSync(path.join(tmpdir(),'comparison-proof-'));
     try{
       const task={id:'ledger',product:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'queries',request:'Add balance and overdue queries',behaviours:['Add balance and overdue queries'],files:['src/ledger.mjs'],level:1}]};
-      const out=await runComparisonCampaign({task,config:{id:native?'native':'harness'},sandbox:s,evidenceDir:evidence,evaluateProduct:(s,step)=>verifyLedger(s,step.level),
+      const out=await runComparisonCampaign({task,config:{id:native?'native':'harness'},productTree:s,evidenceDir:evidence,evaluateProduct:(s,step)=>verifyLedger(s,step.level),
         invoke:async({phase})=>{
           if(!native)writeFileSync(path.join(s.work,'.aidlc/state/current-run-id'),'test');
           if(phase==='implement'||premature){const file=path.join(s.work,'src/ledger.mjs');writeFileSync(file,readFileSync(file,'utf8')+`\nexport function outstandingBalance(id){return listInvoices(id).reduce((n,i)=>n+i.amountCents,0);}\nexport function isOverdue(id,today){if(!invoices.has(id))throw new Error('unknown invoice');return invoices.get(id).dueDate<today;}\n`);}
@@ -132,11 +132,11 @@ test('comparison campaigns grade both configurations and detect unapproved write
 
 test('unparseable independent comparison review is incomplete and does not request implementation repairs', async()=>{
   const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
-  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true,native:true}),ROOT);
+  const s=stageProduct(stage(fixtures,'campaign-ledger',{product:true,native:true}),ROOT);
   const evidence=mkdtempSync(path.join(tmpdir(),'comparison-review-'));let implementations=0;
   try{
     const task={id:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'keep-api',request:'Preserve current behaviour',behaviours:['Keep API'],files:['src/ledger.mjs'],level:1}]};
-    const out=await runComparisonCampaign({task,config:{id:'evaluated',evaluate:true},sandbox:s,evidenceDir:evidence,evaluateProduct:()=>({name:'preserved',pass:true}),invoke:async({phase,sandbox,sessionId})=>{
+    const out=await runComparisonCampaign({task,config:{id:'evaluated',evaluate:true},productTree:s,evidenceDir:evidence,evaluateProduct:()=>({name:'preserved',pass:true}),invoke:async({phase,sandbox,sessionId})=>{
       if(phase==='implement')implementations++;
       if(phase==='review'){assert.notEqual(sandbox.work,s.work);assert.equal(sessionId,null);}
       return {sessionId:'test',exitCode:0,usage:{usd:0},transcript:phase==='review'?'not a review verdict':'Request approval.'};
@@ -147,10 +147,10 @@ test('unparseable independent comparison review is incomplete and does not reque
 
 test('comparison detects agent self-approval before the driver replaces its proposal', async()=>{
   const {runComparisonCampaign}=await import('../evals/lib/campaign.mjs');
-  const s=isolateStage(stage(fixtures,'campaign-ledger',{product:true}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'comparison-forged-'));
+  const s=stageProduct(stage(fixtures,'campaign-ledger',{product:true}),ROOT),evidence=mkdtempSync(path.join(tmpdir(),'comparison-forged-'));
   try{
     const task={id:'ledger',budgetUsd:1,timeoutMs:1000,steps:[{slug:'keep-api',request:'Preserve API',behaviours:['Preserve API'],files:['src/ledger.mjs'],level:1}]};
-    const out=await runComparisonCampaign({task,config:{id:'harness'},sandbox:s,evidenceDir:evidence,evaluateProduct:()=>{throw new Error('must not reach acceptance');},invoke:async()=>{
+    const out=await runComparisonCampaign({task,config:{id:'harness'},productTree:s,evidenceDir:evidence,evaluateProduct:()=>{throw new Error('must not reach acceptance');},invoke:async()=>{
       const f=path.join(s.work,'.aidlc/artifacts/keep-api/spec.md');writeFileSync(f,readFileSync(f,'utf8').replace('status: draft','status: approved'));
       return {sessionId:'test',exitCode:0,usage:{usd:0},transcript:'Approval recorded.'};
     }});
@@ -159,7 +159,7 @@ test('comparison detects agent self-approval before the driver replaces its prop
 });
 
 test('failed product tests with leaked servers return findings before the invocation deadline', ()=>{
-  const s=isolateStage(stage(fixtures,'campaign-service',{product:true}),ROOT);
+  const s=stageProduct(stage(fixtures,'campaign-service',{product:true}),ROOT);
   try{
     writeFileSync(path.join(s.work,'tests/leaked-server.test.mjs'),"import test from 'node:test'; import assert from 'node:assert/strict'; import http from 'node:http'; test('failure before cleanup',()=>{http.createServer().listen(0);assert.fail('seeded failure');});\n");
     const out=runProductCheck(s,25000);
@@ -210,7 +210,7 @@ test('a run that times out leaves no live descendant process', async () => {
 // coding agent with Bash on the host. test/no-container.test.mjs owns the primary assertion;
 // this one keeps it in the product-trial suite where the behaviour lives.
 test('a live product trial refuses rather than running an agent on the host', () => {
-  const s = isolateStage(stage(fixtures, 'campaign-ledger'), ROOT);
+  const s = stageProduct(stage(fixtures, 'campaign-ledger'), ROOT);
   try {
     const invoke = claudeInvoker({ pluginDir: '/plugin-dir' });
     assert.throws(() => invoke({ prompt: 'p', cwd: s.work, timeoutMs: 1000, budgetUsd: 1, task: {}, sandbox: s }),
@@ -222,7 +222,7 @@ test('a live product trial refuses rather than running an agent on the host', ()
 // the tree handed to the child process. It is never described as isolation, and nothing here
 // claims a boundary — a directory is not a sandbox and neither is a process.
 test('staging keeps the private grading file outside the tree handed to the child process', () => {
-  const s = isolateStage(stage(fixtures, 'campaign-ledger'), ROOT);
+  const s = stageProduct(stage(fixtures, 'campaign-ledger'), ROOT);
   try {
     const secret = path.join(s.root, 'private-grading.json');
     writeFileSync(secret, 'private');

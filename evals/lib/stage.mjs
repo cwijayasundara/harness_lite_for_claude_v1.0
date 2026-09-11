@@ -66,7 +66,7 @@ export function stage(fixturesDir, name, { product = false, native = false } = {
   return { root, work, pristine, native, harnessBin: realBin, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
-// A host child process — never a sandbox, and never called one. It inherits the cleanup
+// A host child process — never a productTree, and never called one. It inherits the cleanup
 // discipline of the container runtime this harness used to run product trials in: a
 // timed-out or errored run's whole process group is killed, not just the direct child, so a
 // script that itself forked children cannot leak one. Ports are claimed the same way a real
@@ -154,7 +154,7 @@ export function killProcessGroup(pid) {
   }
 }
 
-export function isolateStage(s, pluginRoot) {
+export function stageProduct(s, pluginRoot) {
   s.plugin = path.join(s.root, 'plugin');
   s.home = path.join(s.root, 'session');
   s.data = path.join(s.root, 'data');

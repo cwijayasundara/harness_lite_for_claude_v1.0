@@ -12,7 +12,7 @@ import { approvalDriver } from './approvals.mjs';
 import { assertProductTree, productTestArgs, productTestCommand, execNode } from './stage.mjs';
 import { behavioursOf, proofRowsOf, testRowIn, promiseSpecs, currentChange, currentLine, selectChange, render, parse, ownedFiles } from '../../.aidlc/lib/artifacts.mjs';
 
-// Driver updates use atomic replacement so each new container sees the new file identity.
+// Driver updates use atomic replacement so each new run sees the new file identity.
 const writeFileSync=(file,text)=>{const temp=`${file}.driver-tmp-${process.pid}`;writeRaw(temp,text);renameSync(temp,file);};
 
 // Shared with evals/lib/assertions.mjs's diffTrees, rather than each keeping its own copy that
@@ -163,7 +163,7 @@ export function modifiedNotReplaced(dir, file, markers) {
 }
 
 // Product orchestration stays in the existing campaign module. The parent owns scenario data,
-// scripted decisions, hidden acceptance functions, and immutable evidence outside agent mounts.
+// scripted decisions, hidden acceptance functions, and immutable evidence outside the product tree.
 // graph-first-versus-grep-first, found running it: the approval gate has required an intent to
 // bind a committed repository source since decomposition landed, and this wrote none, so every
 // product campaign failed its first `harness approve` with "intent requires source and
@@ -184,7 +184,7 @@ export function runProductCheck(s, timeoutMs=60000) {
   return execNode(s.work, [s.harnessBin, 'check', '--stage', 'stop'], { timeout: timeoutMs, env: { HARNESS_HOME: path.dirname(path.dirname(s.harnessBin)) } });
 }
 
-export async function runProductCampaign({task:t, invoke, evaluateProduct, sandbox:s, harnessBin, evaluatorModel, evidenceDir, log=()=>{}}) {
+export async function runProductCampaign({task:t, invoke, evaluateProduct, productTree:s, harnessBin, evaluatorModel, evidenceDir, log=()=>{}}) {
   mkdirSync(evidenceDir,{recursive:true});
   const cfg=loadConfig(s.work), approvals=approvalDriver(cfg), completed=[];
   const result={assertions:[],usage:{usd:0},billingComplete:true,phases:[],approvals:[],transcript:'',incomplete:null};
@@ -236,7 +236,7 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, sandb
       if(step.incident){
         const dir=path.join(s.work,'.aidlc/artifacts/incident');mkdirSync(dir,{recursive:true});
         let detail='The storage-unavailable scenario returned HTTP 503 and preserved healthy state.';try{await evaluateProduct(s,step);}catch(error){detail=error.message;}
-        writeFileSync(path.join(dir,`${step.slug}.md`),`# Local operational failure\n\nSignal: storage write acceptance failed\n${detail}\n\nMitigation: disposable container stopped by driver.\nFollow-up intent: ${step.slug}\n`);
+        writeFileSync(path.join(dir,`${step.slug}.md`),`# Local operational failure\n\nSignal: storage write acceptance failed\n${detail}\n\nMitigation: disposable product tree discarded by driver.\nFollow-up intent: ${step.slug}\n`);
         event('local-incident-observed',{intent:step.slug});
       }
       if(step.characterize)event('baseline-characterization',await evaluateProduct(s,{...step,level:0}));
@@ -318,7 +318,7 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, sandb
     else result.assertions.push({name:'product-campaign',pass:false,detail:error.message});
     event('campaign-stopped',{error:error.message,incomplete:result.incomplete});
   } finally {
-    // Evidence is never mounted in either agent or product containers. Keep every attempt.
+    // Evidence is never placed inside the product tree the agent is given. Keep every attempt.
     result.completedSteps=completed.length;result.totalSteps=t.steps.length;result.approvals=approvals.events();
     result.usage.reportedUsd=result.usage.usd;if(!result.billingComplete)result.usage.usd=null;
     save();
@@ -332,7 +332,7 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, sandb
 // Item 4 uses the same products and private grader with matched prompts/tool grants.
 // Native projects have ordinary instructions and no installed harness. Driver decisions and
 // candidate reviews stay outside both configurations' writable environments.
-export async function runComparisonCampaign({task:t, config, invoke, evaluateProduct, sandbox:s, evidenceDir, log=()=>{}}) {
+export async function runComparisonCampaign({task:t, config, invoke, evaluateProduct, productTree:s, evidenceDir, log=()=>{}}) {
   mkdirSync(evidenceDir,{recursive:true});
   const cfg=s.native?null:loadConfig(s.work), approvals=cfg?approvalDriver(cfg):null;
   const result={assertions:[],phases:[],decisions:[],completedSteps:0,totalSteps:t.steps.length,
@@ -344,13 +344,13 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
   const save=()=>writeFileSync(path.join(evidenceDir,'phases.json'),JSON.stringify(result,null,2)+'\n');
   const event=(name,extra={})=>{result.phases.push({...extra,...(extra.name?{check:extra.name}:{}),name});save();log(`${config.id}/${t.id}: ${name}`);};
   const sourceDigest=()=>walk(s.work).filter(f=>s.native||(!f.startsWith('.aidlc/')&&f!=='CODEBASE-MAP.md')).map(f=>[f,createHash('sha256').update(readFileSync(path.join(s.work,f))).digest('hex')]);
-  const call=async(prompt,phase='plan',sandbox=s)=>{
+  const call=async(prompt,phase='plan',productTree=s)=>{
     const before=phase==='plan'?sourceDigest():null;
     const approvalFields=()=>cfg?walk(s.work).filter(f=>/^\.aidlc\/artifacts\/[^/]+\/(spec|plan)\.md$/.test(f)).map(f=>{const {front}=parse(readFileSync(path.join(s.work,f),'utf8'));return [f,...['status','by','at','digest','spec_digest'].map(k=>front[k]??null)];}):[];
     const beforeApprovals=phase==='plan'?approvalFields():null;
     event('invocation-started',{phase,prompt});
     let out;
-    try { out=await invoke({prompt,phase,sandbox,cwd:s.work,sessionId:phase==='review'?null:sessionId,timeoutMs:t.timeoutMs,budgetUsd:t.budgetUsd,task:t}); }
+    try { out=await invoke({prompt,phase,sandbox:productTree,cwd:s.work,sessionId:phase==='review'?null:sessionId,timeoutMs:t.timeoutMs,budgetUsd:t.budgetUsd,task:t}); }
     catch(error){result.billingComplete=false;throw Object.assign(error,{incomplete:{reason:'invocation_error',detail:error.message}});}
     if(Number.isFinite(out.usage?.usd)&&out.usage.usd>=0)result.usage.usd+=out.usage.usd;else result.billingComplete=false;
     event(`model-${phase}`,out);
