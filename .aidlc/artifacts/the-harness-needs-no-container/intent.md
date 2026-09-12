@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 source: https://claude.ai/code/session_01FusCKFhEQq1PmJFUCnhZjv
 source_revision: 2026-09-11-decision-remove-docker-completely
 ---
