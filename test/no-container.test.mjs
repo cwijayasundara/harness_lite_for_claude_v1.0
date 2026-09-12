@@ -14,7 +14,7 @@ import path from 'node:path';
 import { ROOT } from './_paths.mjs';
 
 const EXECUTABLE = ['evals', 'test', '.aidlc', '.github/workflows'];
-const SKIP = /(^|\/)(\.git|node_modules|evidence|artifacts|state)(\/|$)/;
+const SKIP = /(^|\/)(\.git|node_modules|evidence|comparisons|artifacts|state)(\/|$)/;
 // B1 forbids *invoking or requiring* the runtime, which is what these match: naming it as a
 // command, the helpers that built its arguments, the image identifiers, the opt-in variable and
 // the socket. Prose is deliberately not matched. A comment recording why a variable is stripped,
