@@ -5,7 +5,7 @@ import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {comparisonPairs,summarizeComparisons,configureComparison,pruneSessionInventory,restoreSessionInventory,runComparisons} from '../evals/lib/comparison.mjs';
-import {stage,isolateStage,productDockerArgs,FIXTURES} from '../evals/lib/stage.mjs';
+import {stage,stageProduct,FIXTURES} from '../evals/lib/stage.mjs';
 import {invokerArgs} from '../evals/lib/invoker.mjs';
 import {ledgerDescriptionExplainsPaidRule} from '../evals/lib/assertions.mjs';
 import {loadConfig} from '../.aidlc/lib/config.mjs';
@@ -86,11 +86,10 @@ test('comparison pairs hold models constant, sequence graph then evaluated gener
 test('native staging has normal instructions, public tests and no harness plugin or private inputs',()=>{
   const s=stage(FIXTURES,'campaign-ledger',{product:true,native:true});
   try{
-    isolateStage(s,root);assert.ok(existsSync(path.join(s.work,'CLAUDE.md')));
+    stageProduct(s,root);assert.ok(existsSync(path.join(s.work,'CLAUDE.md')));
     assert.ok(!existsSync(path.join(s.work,'.aidlc')));assert.ok(!existsSync(path.join(s.work,'.claude')));
     assert.ok(!existsSync(path.join(s.work,'products.json')));
-    const mounts=productDockerArgs(s,{phase:'implement'}).join(' ');
-    assert.ok(!mounts.includes('dst=/plugin'));assert.ok(mounts.includes('dst=/work/.git,readonly'));
+    assert.ok(!existsSync(path.join(s.work,'plugin')),'the native arm gets no harness plugin');
     const args=invokerArgs({product:true,native:true,comparison:true,model:'capable',budgetUsd:1});
     assert.ok(!args.includes('--plugin-dir'));assert.equal(args[args.indexOf('--allowedTools')+1],'Bash');
     const review=invokerArgs({product:true,review:true,comparison:true,model:'strong',budgetUsd:1});
@@ -101,7 +100,7 @@ test('native staging has normal instructions, public tests and no harness plugin
 test('comparison graph suppression changes only disposable plugin and leaves normal source readable',()=>{
   const original=readFileSync('.aidlc/lib/graph.mjs','utf8');
   const s=stage(FIXTURES,'campaign-ledger',{product:true});
-  try{isolateStage(s,root);configureComparison(s);
+  try{stageProduct(s,root);configureComparison(s);
     assert.match(readFileSync(path.join(s.plugin,'.aidlc/lib/graph.mjs'),'utf8'),/load\(cfg\) \{ return null/);
     assert.equal(readFileSync('.aidlc/lib/graph.mjs','utf8'),original);
     assert.ok(existsSync(path.join(s.work,'src/ledger.mjs')));
@@ -234,7 +233,7 @@ test('pruning changes only automatic session inventory in the isolated lean arm'
   for(const config of pairs[0].arms){
     const s=stage(FIXTURES,'campaign-ledger',{product:true});
     try{
-      isolateStage(s,root);configureComparison(s,config);
+      stageProduct(s,root);configureComparison(s,config);
       const session=readFileSync(path.join(s.plugin,'.aidlc/lib/session.mjs'),'utf8');
       assert.equal(session,config.prune?pruneSessionInventory(baseline):baseline);
       assert.equal(readFileSync(path.join(s.plugin,'.aidlc/lib/graph.mjs'),'utf8'),readFileSync('.aidlc/lib/graph.mjs','utf8'));

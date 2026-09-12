@@ -9,7 +9,7 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { productDockerArgs, runtimeSnapshot, execNode, claimPort, spawnDetachedProcess, killProcessGroup } from './stage.mjs';
+import { runtimeSnapshot, execNode, claimPort, spawnDetachedProcess, killProcessGroup } from './stage.mjs';
 import { unseenRequirements, behavioursHaveTests, modifiedNotReplaced, diffOwnedByCurrentChange, walk } from './campaign.mjs';
 
 // A deliberately small glob: `*` inside one path segment. Enough for
@@ -184,16 +184,7 @@ export function ledgerCalls(s, calls) {
         results.push({ok:true,value:value===undefined?null:JSON.parse(JSON.stringify(value))});
       } catch(error){results.push({ok:false,error:error.message});}
     } console.log(JSON.stringify(results));`;
-  let r;
-  if (s.exec === 'process') {
-    r = execNode(source.work, ['--input-type=module', '-e', bridge], { input: JSON.stringify(calls) });
-  } else {
-    const name=`harness-ledger-${randomUUID()}`;
-    r = spawnSync('docker', [...productDockerArgs(source,{name}), 'node', '--input-type=module', '-e', bridge], {
-      input: JSON.stringify(calls), encoding: 'utf8', timeout: 15000, killSignal: 'SIGKILL', maxBuffer: 1024*1024,
-    });
-    if(r.error||r.signal)spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:10000});
-  }
+  const r = execNode(source.work, ['--input-type=module', '-e', bridge], { input: JSON.stringify(calls) });
   if (r.status !== 0) throw new Error(`ledger runtime failed: ${r.error?.message ?? r.stderr}`);
   return JSON.parse(r.stdout.trim());
   } finally {source.dispose();}
@@ -264,16 +255,7 @@ export function reportingCalls(s, calls) {
         results.push({ok:true,value:value===undefined?null:JSON.parse(JSON.stringify(value))});
       } catch(error){results.push({ok:false,error:error.message});}
     } console.log(JSON.stringify(results));`;
-  let r;
-  if (s.exec === 'process') {
-    r = execNode(source.work, ['--input-type=module', '-e', bridge], { input: JSON.stringify(calls) });
-  } else {
-    const name=`harness-reporting-${randomUUID()}`;
-    r = spawnSync('docker', [...productDockerArgs(source,{name}), 'node', '--input-type=module', '-e', bridge], {
-      input: JSON.stringify(calls), encoding: 'utf8', timeout: 15000, killSignal: 'SIGKILL', maxBuffer: 1024*1024,
-    });
-    if(r.error||r.signal)spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:10000});
-  }
+  const r = execNode(source.work, ['--input-type=module', '-e', bridge], { input: JSON.stringify(calls) });
   if (r.status !== 0) throw new Error(`reporting runtime failed: ${r.error?.message ?? r.stderr}`);
   return JSON.parse(r.stdout.trim());
   } finally { source.dispose(); }
@@ -315,39 +297,23 @@ export function verifyReporting(s, level) {
 }
 
 export function serviceProcess(s, { dataFile }={}) {
-  const name=`harness-service-${randomUUID()}`;
   let source, port, pid;
-  const df = dataFile ?? (s.exec === 'process' ? path.join(s.data, 'items.json') : '/data/items.json');
+  const df = dataFile ?? path.join(s.data, 'items.json');
   const start=()=> {
     source=runtimeSnapshot(s);
-    if (s.exec === 'process') {
-      port = claimPort();
-      pid = spawnDetachedProcess(source.work, ['src/server.mjs'], { PORT: String(port), DATA_FILE: df }).pid;
-      return;
-    }
-    const r=spawnSync('docker',[...productDockerArgs(source,{name,detached:true,env:{PORT:'3000',DATA_FILE:df}}),'node','src/server.mjs'],{encoding:'utf8',timeout:30000});
-    if(r.status!==0){source.dispose();throw new Error(`service start failed: ${r.stderr}`);}
+    port = claimPort();
+    pid = spawnDetachedProcess(source.work, ['src/server.mjs'], { PORT: String(port), DATA_FILE: df }).pid;
   };
-  const stop=()=>{
-    if (s.exec === 'process') { killProcessGroup(pid); source?.dispose(); return; }
-    spawnSync('docker',['rm','-f',name],{encoding:'utf8',timeout:15000});source?.dispose();
-  };
+  const stop=()=>{ killProcessGroup(pid); source?.dispose(); };
   const request=(method,url,body,raw=false)=> {
-    const origin = s.exec === 'process' ? `http://127.0.0.1:${port}` : 'http://127.0.0.1:3000';
     const bridge=`let data='';for await(const part of process.stdin)data+=part;
       const req=JSON.parse(data); let response;
-      for(let n=0;n<30;n++){try{response=await fetch('${origin}'+req.url,{method:req.method,
+      for(let n=0;n<30;n++){try{response=await fetch('http://127.0.0.1:${port}'+req.url,{method:req.method,
         headers:{'Content-Type':'application/json'},...(req.body===undefined?{}:{body:req.raw?req.body:JSON.stringify(req.body)}),signal:AbortSignal.timeout(2000)});break;}
         catch(e){if(n===29)throw e;await new Promise(r=>setTimeout(r,100));}}
       const text=await response.text(); console.log(JSON.stringify({status:response.status,body:JSON.parse(text)}));`;
-    if (s.exec === 'process') {
-      const r=execNode(source.work,['--input-type=module','-e',bridge],{input:JSON.stringify({method,url,body,raw})});
-      if(r.status!==0)throw new Error(`HTTP transport failed (exit ${r.status}, signal ${r.signal}): ${r.error?.message ?? r.stderr ?? ''} ${r.stdout??''}`);
-      return JSON.parse(r.stdout);
-    }
-    const r=spawnSync('docker',['exec','-i',name,'node','--input-type=module','-e',bridge],{
-      input:JSON.stringify({method,url,body,raw}),encoding:'utf8',timeout:15000,killSignal:'SIGKILL',maxBuffer:1024*1024});
-    if(r.status!==0){const logs=spawnSync('docker',['logs',name],{encoding:'utf8',timeout:5000,maxBuffer:16384});throw new Error(`HTTP transport failed (exit ${r.status}, signal ${r.signal}): ${r.error?.message ?? r.stderr ?? ''} ${r.stdout??''}; server: ${logs.stdout??''}${logs.stderr??''}`);}
+    const r=execNode(source.work,['--input-type=module','-e',bridge],{input:JSON.stringify({method,url,body,raw})});
+    if(r.status!==0)throw new Error(`HTTP transport failed (exit ${r.status}, signal ${r.signal}): ${r.error?.message ?? r.stderr ?? ''} ${r.stdout??''}`);
     return JSON.parse(r.stdout);
   };
   start();
@@ -366,7 +332,7 @@ export function verifyService(s, level) {
       assert.ok(out.body.some(item=>item.title==='x'.repeat(80)),'previously accepted 80-character title remains readable');
     }finally{previous.stop();}
   }
-  // New mount identities avoid stale Docker Desktop reads after host-side deletion.
+  // Fresh data directories avoid stale reads after host-side deletion.
   // Restarts within this case set reuse its actual on-disk data.
   freshData();
   const server=serviceProcess(s); const ask=server.request; let cases=0;
@@ -398,17 +364,13 @@ export function verifyService(s, level) {
     // unwritable for an unprivileged user — running as root (dev container, root CI) mkdirSync
     // succeeds and this case silently inverts, asserting the opposite of what it means to.
     // ENOTDIR binds for every user, including root.
-    // Branched, because the two paths are unwritable for different reasons and neither reason
-    // carries over. The container's '/unwritable' is unwritable because '/' is --read-only; a
-    // host path is not. Conversely a host path under s.root is invisible inside the container:
-    // s.root is mkdtemp under os.tmpdir(), which on Linux is /tmp, and productDockerArgs mounts
-    // --tmpfs /tmp — so the container would see an absent directory on a WRITABLE fs, mkdirSync
-    // recursive would succeed, POST would return 201, and the 503 case would assert the opposite
-    // of what it means to. That breaks only on Linux, so it would have passed here and failed in
-    // CI and in live trials.
+    // A path under a REGULAR FILE, not a directory the caller merely lacks permission on.
+    // ENOTDIR binds for every user, root included, which is the point: on the host `/unwritable`
+    // is only unwritable for an unprivileged user, so running as root (dev container, root CI)
+    // mkdirSync would succeed and this case would silently assert the opposite of its meaning.
     const blocked=path.join(s.root,'not-a-directory');
-    if(s.exec==='process'&&!existsSync(blocked))writeFileSync(blocked,'');
-    const failing=serviceProcess(s,{dataFile:s.exec==='process'?path.join(blocked,'items.json'):'/unwritable/items.json'});
+    if(!existsSync(blocked))writeFileSync(blocked,'');
+    const failing=serviceProcess(s,{dataFile:path.join(blocked,'items.json')});
     try {status(failing.request('POST','/items',{title:'Lost'}),503);
       assert.deepEqual(status(failing.request('GET','/items'),200),[]);
       assert.equal(status(failing.request('GET','/health'),200).ok,true);

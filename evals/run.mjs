@@ -11,7 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { evaluate, KNOWN, toRegExp, verifyLedger, verifyService, ledgerDescriptionExplainsPaidRule } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
-import { stage, isolateStage } from './lib/stage.mjs';
+import { stage, stageProduct } from './lib/stage.mjs';
 import { runProductCampaign } from './lib/campaign.mjs';
 import { parse } from '../.aidlc/lib/artifacts.mjs';
 import { approvalDriver } from './lib/approvals.mjs';
@@ -248,19 +248,19 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
     for (let i = 0; i < (t.repeats ?? 1); i++) {
       const s = stage(fixturesDir, t.fixture, {product:!!t.product});
       const trialDir = t.product ? path.join(evidenceRoot, `${new Date().toISOString().replace(/[:.]/g,'-')}-${t.id}-${i+1}`) : null;
-      if(t.product) isolateStage(s,PLUGIN_ROOT);
+      if(t.product) stageProduct(s,PLUGIN_ROOT);
       try {
-        const out = t.product ? await runProductCampaign({task:t,invoke:boundedInvoke,sandbox:s,harnessBin,evaluatorModel,evidenceDir:trialDir,log,
-          evaluateProduct:async (sandbox,step)=> {
-            const checked=t.product==='ledger'?verifyLedger(sandbox,step.level):verifyService(sandbox,step.level);
+        const out = t.product ? await runProductCampaign({task:t,invoke:boundedInvoke,productTree:s,harnessBin,evaluatorModel,evidenceDir:trialDir,log,
+          evaluateProduct:async (productTree,step)=> {
+            const checked=t.product==='ledger'?verifyLedger(productTree,step.level):verifyService(productTree,step.level);
             if(t.product==='ledger' && step.level===4) {
-              if(!existsSync(path.join(sandbox.work,'src/store.mjs')))throw new Error('storage extraction is missing');
+              if(!existsSync(path.join(productTree.work,'src/store.mjs')))throw new Error('storage extraction is missing');
             }
             if(t.product==='ledger' && step.level===5) {
-              const doc=readFileSync(path.join(sandbox.work,'docs/PRODUCT.md'),'utf8');
+              const doc=readFileSync(path.join(productTree.work,'docs/PRODUCT.md'),'utf8');
               if(!/partial|payment/i.test(doc)||!ledgerDescriptionExplainsPaidRule(doc))throw new Error('current product description misses payment or paid-invoice behaviour');
               if(/overdue[^\n]*regardless of[^\n]*pa(id|yment)/i.test(doc))throw new Error('product description states superseded overdue rule');
-              if(existsSync(path.join(sandbox.work,'src/store.mjs')))throw new Error('external rename was incorrectly undone');
+              if(existsSync(path.join(productTree.work,'src/store.mjs')))throw new Error('external rename was incorrectly undone');
             }
             return checked;
           }}) : await runAttempt(t, boundedInvoke, s, harnessBin, baseline);
@@ -377,7 +377,12 @@ async function main() {
     const {runComparisons}=await import('./lib/comparison.mjs');
     const {claudeInvoker}=await import('./lib/invoker.mjs');
     const models=loadConfig(PLUGIN_ROOT).models;
-    const available=claudeAuthenticated(process.env,spawnSync,{product:true})&&spawnSync('docker',['info'],{stdio:'ignore',timeout:15000}).status===0;
+    // A comparison arm runs a real coding agent against a seeded product — a live product trial,
+    // which `evals/lib/invoker.mjs` now refuses because there is no boundary to run it in. This
+    // records that as the explicit unmeasured result `credentials_or_isolation_unavailable`, the
+    // same one an unreachable daemon used to produce, rather than attempting the run and throwing.
+    // Being authenticated is no longer sufficient, so it is not asked.
+    const available=false;
     const stamp=new Date().toISOString().replace(/[:.]/g,'-');
     const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',prune?`prune-${stamp}`:stamp);
     const out=await runComparisons({tasks,models,prune,pruneArm:flag('prune-arm'),pair:flag('comparison'),root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),

@@ -20,12 +20,12 @@ export const PRODUCT_TEST_COMMAND = `node ${PRODUCT_TEST_ARGS.join(' ')}`;
 // this one FAILS instantly and it is the file's process that then refuses to exit. Measured
 // before this flag existed: the seeded leaked-server case returned ETIMEDOUT after 25,009ms
 // instead of the failure it was supposed to report.
-export const productTestArgs = exec => exec === 'process' ? [...PRODUCT_TEST_ARGS, '--test-force-exit'] : PRODUCT_TEST_ARGS;
-export const productTestCommand = exec => `node ${productTestArgs(exec).join(' ')}`;
+export const productTestArgs = [...PRODUCT_TEST_ARGS, '--test-force-exit'];
+export const productTestCommand = `node ${productTestArgs.join(' ')}`;
 
 export const FIXTURES = path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), 'fixtures');
 
-export function stage(fixturesDir, name, { product = false, native = false, exec = 'container' } = {}) {
+export function stage(fixturesDir, name, { product = false, native = false } = {}) {
   const base = path.join(fixturesDir, '_base');
   const fx = path.join(fixturesDir, name);
   if (!existsSync(fx)) throw new Error(`no fixture "${name}" in ${fixturesDir}`);
@@ -40,7 +40,7 @@ export function stage(fixturesDir, name, { product = false, native = false, exec
   // disposable product trials so a seeded defect cannot consume an entire planning turn.
   if(product){
     const config=path.join(work,'.aidlc/harness.toml');
-    if(existsSync(config))writeFileSync(config,readFileSync(config,'utf8').replace(/(^test\s*=\s*")node --test(?=[" ])/m,`$1${productTestCommand(exec)}`));
+    if(existsSync(config))writeFileSync(config,readFileSync(config,'utf8').replace(/(^test\s*=\s*")node --test(?=[" ])/m,`$1${productTestCommand}`));
   }
   // Install through the real boundary. Hand-building only the shim omitted the inventory record
   // after Phase 1B, so the budget correctly failed every model task on an unaccounted surface.
@@ -63,11 +63,11 @@ export function stage(fixturesDir, name, { product = false, native = false, exec
   // The baseline compares source bytes, not repository internals. Copying .git adds mutable
   // object/maintenance state and produced intermittent copy failures on the hosted runner.
   cpSync(work, pristine, { recursive: true, filter: source => path.basename(source) !== '.git' });
-  return { root, work, pristine, native, exec, harnessBin: realBin, cleanup: () => rmSync(root, { recursive: true, force: true }) };
+  return { root, work, pristine, native, harnessBin: realBin, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
-// The process branch is a host child process — never a sandbox, and never called one. It mirrors
-// the container branch's own cleanup discipline (`if(r.error||r.signal) docker rm -f name`): a
+// A host child process — never a productTree, and never called one. It inherits the cleanup
+// discipline of the container runtime this harness used to run product trials in: a
 // timed-out or errored run's whole process group is killed, not just the direct child, so a
 // script that itself forked children cannot leak one. Ports are claimed the same way a real
 // server binds one — by asking the OS for port 0 and reading back what it assigned, never by
@@ -83,9 +83,10 @@ export function claimPort() {
 // `node --test` marks its children with NODE_TEST_CONTEXT so they report over IPC instead of
 // exiting on their own verdict. A product check spawned from inside the suite inherits that mark,
 // and the product's own `node --test` then reports a real failure as exit 0 — a failing product
-// silently graded as passing. Docker never forwarded it, because only explicit --env crosses the
-// boundary, which is why the container path never saw this. The process path must clear it
-// deliberately: inheriting the parent environment is exactly what makes it unsafe.
+// silently graded as passing. The container runtime this replaced never forwarded the variable,
+// because only explicitly passed environment crossed that boundary, which is why the defect
+// appeared only once trials ran as host processes. It must be cleared deliberately: inheriting
+// the parent environment is exactly what makes it unsafe.
 const PRODUCT_ENV_STRIP = ['NODE_TEST_CONTEXT', 'NODE_TEST_WORKER_ID'];
 function productEnv(env) {
   const merged = { ...process.env, ...env };
@@ -153,9 +154,7 @@ export function killProcessGroup(pid) {
   }
 }
 
-// Product trials mount an allowlisted plugin, never the repository containing private scenarios.
-export const PRODUCT_IMAGE = 'lean-harness-product:2.1.263';
-export function isolateStage(s, pluginRoot) {
+export function stageProduct(s, pluginRoot) {
   s.plugin = path.join(s.root, 'plugin');
   s.home = path.join(s.root, 'session');
   s.data = path.join(s.root, 'data');
@@ -165,44 +164,16 @@ export function isolateStage(s, pluginRoot) {
     mkdirSync(path.dirname(target), { recursive: true });
     cpSync(path.join(pluginRoot, rel), target, { recursive: true });
   }
-  // Rootless container UIDs match the host; root-run CI uses an unprivileged fallback UID.
+  // Root-run CI leaves files the product process cannot rewrite; widen them for that case only.
   if (process.getuid?.() === 0) {
     const writable = dir => { chmodSync(dir, 0o777); for (const e of readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name); if (e.isDirectory()) writable(p); else chmodSync(p, 0o666);
     } };
     for (const dir of [s.work, s.home, s.data]) writable(dir);
   }
-  s.image = process.env.HARNESS_PRODUCT_IMAGE || PRODUCT_IMAGE;
   return s;
 }
 
-export function productDockerArgs(s, { phase = 'runtime', name, network = false, detached = false, env = {} } = {}) {
-  const bind = (from, to, readonly = true) => ['--mount', `type=bind,src=${from},dst=${to}${readonly ? ',readonly' : ''}`];
-  const args = ['run', ...(detached ? ['-d'] : ['--rm', '-i']), ...(name ? ['--name', name] : []),
-    '--init', '--read-only', '--cap-drop=ALL', '--security-opt=no-new-privileges', '--pids-limit=128',
-    '--memory=1g', '--cpus=2', '--user', `${process.getuid?.() || 1000}:${process.getgid?.() || 1000}`,
-    '--network', network ? 'bridge' : 'none', '--tmpfs', '/tmp:rw,nosuid,nodev,size=128m,mode=1777',
-    '--env', 'GIT_CONFIG_COUNT=1', '--env', 'GIT_CONFIG_KEY_0=safe.directory', '--env', 'GIT_CONFIG_VALUE_0=/work',
-    '--workdir', '/work', ...bind(s.work, '/work', phase !== 'implement')];
-  if (s.native && !['runtime','review'].includes(phase)) {
-    args.push(...bind(s.home,'/session',false), ...bind(path.join(s.work,'.git'),'/work/.git'), '--env','HOME=/session', '--env','HARNESS_HOME=');
-    if (phase === 'characterize') args.push(...bind(path.join(s.work,'tests'),'/work/tests',false));
-    for (const [key,value] of Object.entries(env)) args.push('--env',value === undefined ? key : `${key}=${value}`);
-    return [...args,s.image];
-  }
-  if (phase === 'characterize') args.push(...bind(path.join(s.work,'tests'),'/work/tests',false));
-  if (!['runtime', 'review'].includes(phase)) {
-    args.push(...bind(s.plugin, '/plugin'), ...bind(s.home, '/session', false),
-      ...bind(path.join(s.work, '.git'), '/work/.git'),
-      ...bind(path.join(s.work, '.claude'), '/work/.claude'),
-      ...bind(path.join(s.work, '.aidlc/harness.toml'), '/work/.aidlc/harness.toml'),
-      ...bind(path.join(s.work, '.aidlc/state'), '/work/.aidlc/state', false),
-      ...bind(path.join(s.work, '.aidlc/artifacts'), '/work/.aidlc/artifacts', phase !== 'plan'));
-    args.push('--env', 'HOME=/session', '--env', 'HARNESS_HOME=/plugin/.aidlc');
-  } else args.push(...bind(s.data, '/data', false), '--env', 'HOME=/tmp');
-  for (const [key, value] of Object.entries(env)) args.push('--env', value === undefined ? key : `${key}=${value}`);
-  return [...args, s.image];
-}
 
 // Inspect untrusted output before the parent reads artifacts or executes Git operations.
 export function assertProductTree(root) {
@@ -213,7 +184,7 @@ export function assertProductTree(root) {
   }
 }
 
-// A fresh immutable source snapshot also avoids stale bind-mount reads after host-side edits.
+// A fresh immutable source snapshot also avoids stale reads after host-side edits.
 // The parent never imports untrusted product modules into its assertion process.
 export function runtimeSnapshot(s) {
   assertProductTree(s.work);

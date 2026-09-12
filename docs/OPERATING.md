@@ -88,38 +88,41 @@ The parent writes driver-authored draft proposals, then actual Claude Code reads
 Scripted decisions use the ordinary approval function and committed artifact path. The parent
 retains full-artifact receipts; all decisions say `simulated-test-driver`. This proves the
 protocol, not human judgment. Planning cannot write product source; approved implementation
-cannot edit artifacts, Git metadata, configuration or the plugin. Native tools exclude Bash;
-public tests and hooks still execute inside the isolated container.
+cannot edit artifacts, Git metadata, configuration or the plugin.
 
-Docker mounts only the disposable product, a sanitized read-only plugin and session storage.
-It does not mount this repository, private assertions, future scenarios, the Docker socket or
-parent receipt state. The Claude container receives only the credentials needed for its model
-connection; credentials are absent from network-disabled product/runtime containers. No host
-paths beyond the explicit mounts or privileged runtime are granted. Private assertions run in
-the parent and communicate with separate product processes through API/HTTP transports; they
-are never imported beside untrusted product modules. Each runtime starts from a fresh source
-snapshot. This is bounded container isolation, not a claim against container-runtime exploits.
+**There is no sandbox.** Product trials used to run a coding agent inside a container that mounted
+only the disposable product, a sanitized read-only plugin and session storage. That container was
+removed by `the-harness-needs-no-container`, and nothing replaced it. No OS-level boundary is
+claimed anywhere in this repository, and none exists.
 
-Build once and run:
+**One thing still runs a real agent on this machine, and it is not a product trial.**
+`evals/agent-mechanisms.mjs` invokes the CLI directly with `Read,Grep,Glob` and, for its edit
+phases, `Write,Edit` under `acceptEdits` — never `Bash` — against a disposable fixture in a
+temporary directory. It bypasses `evals/lib/invoker.mjs` entirely, so the refusal below does not
+apply to it, and CI runs it behind `workflow_dispatch` with a subscription token. It predates this
+change and was deliberately left alone: the spec scopes out the harness's own non-product
+invocations. It is written down here so that "a live product trial refuses to start" is not
+misread as "nothing runs an agent".
+
+The consequence is deliberate and enforced rather than documented and hoped for: a live product
+trial **refuses to start**. `evals/lib/invoker.mjs` throws when handed a sandbox, because the only
+alternative would be running an agent with Write, Edit and Bash directly on the operator's
+machine. Comparison runs record `credentials_or_isolation_unavailable` for the same reason.
+Restoring live trials means restoring a boundary first.
+
+What still runs, on any machine, with no container runtime installed:
 
 ```sh
-docker build -t lean-harness-product:2.1.263 - < evals/Dockerfile
-HARNESS_PRODUCT_DOCKER=1 node --test test/product-trials.test.mjs
+node --test test/*.test.mjs
+.aidlc/bin/harness check --stage commit
 node evals/run.mjs --products --dry --max-suite-usd 20
-node evals/run.mjs --live --products --id campaign-ledger --through 1 --max-suite-usd 3
-node evals/run.mjs --live --products --max-suite-usd 20
 ```
 
-`--through` is calibration only and is labelled in results. All attempts retain phase outputs,
-actual model/CLI metadata, image and commit identities, simulated decisions, private check
-results and replayable product snapshots under `.aidlc/evals/products/`. These results cannot
-replace a full golden-suite result. Costs omitted by the provider stay unknown; allowances are
-reserved conservatively. Timeouts and budget exhaustion remain incomplete. There are at most
-two automatic product repairs per step. CLI and product containers have bounded lifetimes.
-
-The deterministic Docker job runs on GitHub without model credentials. Actual product campaigns
-are opt-in local runs using the configured generator/evaluator; they do not silently substitute
-a cheaper model or claim success without credentials. Deployment is local and disposable.
+The deterministic suites are the whole of what executes. They drive a fake invoker, make no model
+calls and need no credentials. Private assertions run in the parent and communicate with separate
+product processes over API and HTTP transports; they are never imported beside untrusted product
+modules. Each runtime starts from a fresh source snapshot. Those properties are about keeping
+grading honest, not about containment, and they are not a security boundary.
 
 ## Independent review
 

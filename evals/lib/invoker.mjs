@@ -1,8 +1,6 @@
 // The real invoker. It is injected rather than imported by the runner, so the runner and the
 // assertion engine are unit-testable with no model, no key and no spend.
 import { spawnSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
-import { productDockerArgs } from './stage.mjs';
 import { requireSubscription, subscriptionArgs } from '../../.aidlc/lib/claude-auth.mjs';
 
 // Comparison models are explicit; unavailable models are never substituted.
@@ -52,25 +50,33 @@ export function invokerEnv({ pluginDir = null, base = {} }) {
 
 export function claudeInvoker({ pluginDir, model = null, native = false, comparison = false }) {
   return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task, sandbox = null, phase = 'plan', sessionId = null }) {
-    // A live agent must never reach the weaker, unenforced process path even by mistake — this
-    // property matters more than the rest of the change combined. Refuse before any invocation
-    // setup, including auth, so the guard cannot be bypassed by an unrelated environment failure.
-    if (sandbox?.exec === 'process') throw new Error('a live product trial cannot select exec:"process"; only container mode is permitted for a live agent');
-    const args = subscriptionArgs(invokerArgs({ prompt, model, pluginDir, budgetUsd, product: !!sandbox, sessionId, review: phase === 'review', native, comparison }));
+    // B4. A `sandbox` argument is what a live product trial passes: a real coding agent with
+    // Write, Edit and Bash, turned loose on a seeded product. It used to run inside a container
+    // — --read-only, --cap-drop=ALL, --network none, --security-opt=no-new-privileges, an
+    // unprivileged uid. That container is gone, and nothing replaced it.
+    //
+    // So this refuses. Falling through to the `claude` arm below would be a one-word change and
+    // would run that agent directly on the operator's machine, with their files, their
+    // credentials in the environment and their network — converting "we removed a dependency"
+    // into "we removed the boundary and said nothing". Restoring live trials means restoring a
+    // boundary first, not deleting these four lines.
+    if (sandbox) {
+      throw new Error('a live product trial has no boundary to run in: container isolation was removed by the-harness-needs-no-container, and this harness will not execute a coding agent with Bash directly on the host. Restore an OS-level boundary before running live product trials.');
+    }
+    // Past the refusal above, `sandbox` is always null: this is the harness's own invocation —
+    // the evaluator and the golden suite — which has always run `claude` directly and is not what
+    // this change is about. `product` is therefore false, and the container naming, credential
+    // forwarding and container cleanup that only a sandboxed run needed are gone with it.
+    const args = subscriptionArgs(invokerArgs({ prompt, model, pluginDir, budgetUsd, product: false, sessionId, review: phase === 'review', native, comparison }));
     const started = Date.now();
     const env = invokerEnv({ task, pluginDir, base: process.env });
-    try { requireSubscription({ env, cwd, product: !!sandbox }); }
+    try { requireSubscription({ env, cwd, product: false }); }
     catch (error) {
       if (error.code === 'ENOENT') return { notInstalled: true, transcript: '', usage: {}, exitCode: -1, error: 'the `claude` CLI is not on PATH' };
       throw error;
     }
-    const name = sandbox ? `harness-agent-${randomUUID()}` : null;
-    const credentials = Object.fromEntries(['CLAUDE_CODE_OAUTH_TOKEN'].filter(k => env[k]).map(k => [k, undefined]));
-    const command = sandbox ? 'docker' : 'claude';
-    const commandArgs = sandbox ? [...productDockerArgs(sandbox, { phase, name, network: true, env: credentials }), 'claude', ...args] : args;
-    const r = spawnSync(command, commandArgs, { cwd, env, encoding: 'utf8', timeout: timeoutMs,
+    const r = spawnSync('claude', args, { cwd, env, encoding: 'utf8', timeout: timeoutMs,
       killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024 });
-    if (sandbox && (r.error || r.signal)) spawnSync('docker', ['rm', '-f', name], { encoding: 'utf8', timeout: 10000 });
     // A missing CLI is not a failed task — it is a broken harness, and twenty tasks failing
     // with empty transcripts is the least useful way to say so. Same lesson as exit 127 in the
     // check runner: never let an absent tool masquerade as a verdict.

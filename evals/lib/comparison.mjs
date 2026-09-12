@@ -3,7 +3,7 @@ import {mkdirSync,writeFileSync,readFileSync,rmSync,existsSync} from 'node:fs';
 import {spawnSync,execFileSync} from 'node:child_process';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {stage,isolateStage} from './stage.mjs';
+import {stage,stageProduct} from './stage.mjs';
 import {runComparisonCampaign,walk} from './campaign.mjs';
 import {verifyLedger,verifyService,verifyReporting,ledgerDescriptionExplainsPaidRule} from './assertions.mjs';
 
@@ -106,7 +106,7 @@ export async function gradeComparisonProduct(s,step,product) {
   return proof;
 }
 
-export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,maxMinutes=30,prune=false,pruneArm=null,pair=null,now=Date.now,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=isolateStage}) {
+export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,maxMinutes=30,prune=false,pruneArm=null,pair=null,now=Date.now,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=stageProduct}) {
   if(!Number.isFinite(maxUsd)||maxUsd<=0)throw new Error('comparison budget must be finite and positive');
   if(!Number.isFinite(maxMinutes)||maxMinutes<=0)throw new Error('comparison time limit must be finite and positive');
   const deadline=now()+maxMinutes*60000;
@@ -116,7 +116,7 @@ export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot
   try{pairs=comparisonPairs(models,{prune,pruneArm,pair});}catch(error){writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify({kind:prune?'pruning-comparison':'native-comparisons',status:'unmeasured',reason:error.message.startsWith('prune-arm')?'invalid_prune_arm':error.message.startsWith('comparison pair')?'invalid_comparison_pair':'models_unconfigured',detail:error.message,models,attempts:[]},null,2)+'\n');throw error;}
   const revision=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
   const out={kind:prune?'pruning-comparison':'native-comparisons',started:new Date().toISOString(),harnessRevision:revision,
-    tools:{node:process.version,git:spawnSync('git',['--version'],{encoding:'utf8'}).stdout?.trim()??null,docker:spawnSync('docker',['--version'],{encoding:'utf8'}).stdout?.trim()??null},
+    tools:{node:process.version,git:spawnSync('git',['--version'],{encoding:'utf8'}).stdout?.trim()??null},
     scenarioDigest:createHash('sha256').update(JSON.stringify(tasks)).digest('hex'),models,maxUsd,maxMinutes,repetitions,attempts:[],calibrations:[],remainingUsd:maxUsd};
   out.scheduledAttempts=pairs.flatMap(pair=>[0,...Array.from({length:repetitions},(_,i)=>i+1)].flatMap(repeat=>pair.arms.flatMap(config=>tasks.map(task=>`${pair.id}-${config.id}-${repeat?'paired':'smoke'}-${repeat}-${task.id}`))));
   const unavailable=()=>shouldStop()?'operator_abandoned':now()>=deadline?'suite_time_exhausted':!available?'credentials_or_isolation_unavailable':remaining<=0?'budget_exhausted':null;
@@ -142,7 +142,7 @@ export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot
       s=stageTrial(fixturesDir,task.fixture,{product:true,native:!!config.native});isolate(s,root);configureComparison(s,config);
       row.pluginDigest=s.native?null:createHash('sha256').update(JSON.stringify(walk(s.plugin).map(f=>[f,createHash('sha256').update(readFileSync(path.join(s.plugin,f))).digest('hex')]))).digest('hex');
       const invoke=bounded(invokeFactory(config));
-      row.result=await runCampaign({task,config,invoke,sandbox:s,evidenceDir:row.evidence,evaluateProduct:(sandbox,step)=>gradeComparisonProduct(sandbox,step,task.product),log});
+      row.result=await runCampaign({task,config,invoke,productTree:s,evidenceDir:row.evidence,evaluateProduct:(productTree,step)=>gradeComparisonProduct(productTree,step,task.product),log});
       row.status=row.result.incomplete?'incomplete':row.result.pass?'pass':'fail';
     }catch(error){row.status='incomplete';row.result={pass:false,billingComplete:false,incomplete:{reason:'driver_error',detail:error.message}};}
     finally{s?.cleanup();save();}return row;
