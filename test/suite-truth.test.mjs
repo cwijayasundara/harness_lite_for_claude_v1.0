@@ -16,6 +16,8 @@ import { evaluate } from '../evals/lib/assertions.mjs';
 import { stage } from '../evals/lib/stage.mjs';
 import { gate, predatesArtifactModel, ARTIFACT_MODEL_COMMIT, RECORD_SCHEMA } from '../.aidlc/lib/eval-gate.mjs';
 import { promiseSpecs, render } from '../.aidlc/lib/artifacts.mjs';
+import { writeBlocked } from '../.aidlc/lib/guard.mjs';
+import { loadConfig } from '../.aidlc/lib/config.mjs';
 import { A, ROOT, BIN } from './_paths.mjs';
 
 const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
@@ -288,4 +290,38 @@ test('concurrent tasks keep task order and cannot overspend the suite budget', a
   assert.ok(spent <= 3 + 1e-9, `spent ${spent} against a ceiling of 3`);
   // And the tasks past the ceiling are recorded as unmeasured rather than silently passed.
   assert.ok(out.results.some((r) => r.runs.some((run) => run.incomplete?.reason === 'suite_budget_exhausted')));
+});
+
+// G23. A task that measures a refusal says which gate mode it means.
+//
+// G06 made `[gates]` a policy defaulting to `advisory`, where an out-of-scope write is a warning
+// rather than a denial. Two golden tasks assert a REFUSAL — `scope-refusal` and
+// `contract-scope-honesty` — and from that day they measured a warning and could not pass. The
+// unit tests were pinned to `human` by `test/_gates.mjs` at the time; the eval fixtures were not.
+//
+// Per task, not per fixture: `clean-app` serves both the tasks that assert a refusal and the tasks
+// that legitimately write code, and under `human` with no artifacts every write is refused.
+test('a task that asserts a refusal pins the enforcing gate, and staging applies it', () => {
+  const tasks = loadTasks();
+  const pinned = tasks.filter((t) => t.gates);
+  assert.deepEqual(pinned.map((t) => t.id).sort(), ['contract-scope-honesty', 'scope-refusal']);
+  for (const t of pinned) assert.equal(t.gates, 'human');
+
+  // The mode reaches the staged registry, and the default is untouched for everything else.
+  const enforced = stage(FIXTURES, 'contract-planned', { gates: 'human' });
+  try {
+    const cfg = loadConfig(enforced.work);
+    assert.equal(cfg.gates.plan, 'human');
+    // The task's whole point: a path the approved plan does not name is refused, and one it names
+    // is not. Both halves, because a guard that refused everything would also "pass" the first.
+    assert.ok(writeBlocked('src/app/handlers.py', cfg), 'an unowned write must be refused under human');
+    assert.equal(writeBlocked('src/app/text.py', cfg), null, 'the plan owns this one');
+  } finally { enforced.cleanup(); }
+
+  const byDefault = stage(FIXTURES, 'contract-planned');
+  try {
+    const cfg = loadConfig(byDefault.work);
+    assert.equal(cfg.gates.plan, 'advisory', 'staging must not change the default for unpinned tasks');
+    assert.equal(writeBlocked('src/app/handlers.py', cfg), null, 'advisory warns rather than refuses');
+  } finally { byDefault.cleanup(); }
 });

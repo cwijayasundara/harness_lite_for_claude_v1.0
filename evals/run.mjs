@@ -74,7 +74,7 @@ export function loadTasks(file = path.join(HERE, 'tasks.json')) {
   // turns and were recorded `ungraded: max_turns`, which is a measurement that did not happen
   // wearing the shape of one that did. The real bound on a task is its `budgetUsd`; the turn cap
   // exists to stop a runaway, not to end the work.
-  return raw.tasks.map((t) => ({ timeoutMs: d.timeoutMs, budgetUsd: d.budgetUsd, repeats: d.repeats ?? 1, maxTurns: d.maxTurns ?? null, ...t }));
+  return raw.tasks.map((t) => ({ timeoutMs: d.timeoutMs, budgetUsd: d.budgetUsd, repeats: d.repeats ?? 1, maxTurns: d.maxTurns ?? null, gates: d.gates ?? null, ...t }));
 }
 
 // --dry runs this and nothing else. A task that cannot be validated statically is a task that
@@ -258,7 +258,7 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
   const runTask = async (t) => {
     const runs = [];
     for (let i = 0; i < (t.repeats ?? 1); i++) {
-      const s = stage(fixturesDir, t.fixture, {product:!!t.product});
+      const s = stage(fixturesDir, t.fixture, {product:!!t.product, gates:t.gates ?? null});
       const trialDir = t.product ? path.join(evidenceRoot, `${new Date().toISOString().replace(/[:.]/g,'-')}-${t.id}-${i+1}`) : null;
       if(t.product) stageProduct(s,PLUGIN_ROOT);
       try {

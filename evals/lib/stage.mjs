@@ -25,7 +25,13 @@ export const productTestCommand = `node ${productTestArgs.join(' ')}`;
 
 export const FIXTURES = path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), 'fixtures');
 
-export function stage(fixturesDir, name, { product = false, native = false } = {}) {
+// G23. `gates` is the task's, not the fixture's. G06 made `[gates]` a policy defaulting to
+// `advisory`, where an out-of-scope write is a warning rather than a refusal — so the two tasks
+// that measure a REFUSAL silently started measuring a warning, and neither could pass again.
+// `clean-app` serves both kinds of task, so pinning the mode per fixture is not available: a task
+// that asserts a refusal has to say which mode it means, exactly as `test/_gates.mjs` makes the
+// unit tests say it.
+export function stage(fixturesDir, name, { product = false, native = false, gates = null } = {}) {
   const base = path.join(fixturesDir, '_base');
   const fx = path.join(fixturesDir, name);
   if (!existsSync(fx)) throw new Error(`no fixture "${name}" in ${fixturesDir}`);
@@ -59,6 +65,14 @@ export function stage(fixturesDir, name, { product = false, native = false } = {
   const installed = native ? {status:0} : spawnSync(process.execPath, [realBin, 'init', '--into', work], { cwd: work, encoding: 'utf8' });
   if (installed.status !== 0) throw new Error(`fixture harness install failed: ${installed.stderr || installed.stdout}`);
 
+  if (gates) {
+    const config = path.join(work, '.aidlc/harness.toml');
+    if (existsSync(config)) {
+      writeFileSync(config, `${readFileSync(config, 'utf8').trimEnd()}\n\n`
+        + `# Pinned by the task under test: it measures what this mode does.\n[gates]\n`
+        + `spec  = "${gates}"\nplan  = "${gates}"\nmerge = "human"\n`);
+    }
+  }
   const git = (...a) => spawnSync('git', a, { cwd: work, encoding: 'utf8' });
   git('init', '-q');
   git('config', 'user.email', 'eval@harness');
