@@ -249,3 +249,43 @@ test('B4: update accepts lowered verdicts only when the record predates the arti
   const comparable = { ...stale, commit: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim() };
   assert.throws(() => update(comparable, results, { commit: 'HEAD', cwd: ROOT }), /refusing to lower a/);
 });
+
+// G23. The suite runs tasks concurrently, and the two things that could go wrong when it does —
+// results reordering, and several tasks spending the same remaining budget — are what this pins.
+//
+// MEASURED 2026-09-13: 22 golden tasks took 1h38m for 12 of them one at a time, because each is a
+// full agent run against a staged fixture. They share nothing but the suite budget.
+test('concurrent tasks keep task order and cannot overspend the suite budget', async () => {
+  const tasks = Array.from({ length: 8 }, (_, i) => ({
+    id: `task-${i}`, fixture: 'clean-app', budgetUsd: 1, repeats: 1, assert: [{ transcript_matches: 'done' }],
+  }));
+
+  let inFlight = 0;
+  let peak = 0;
+  const order = [];
+  // Each call reports spending its whole allowance, so eight tasks want $8 against a $3 ceiling.
+  const invoke = async (args) => {
+    inFlight += 1;
+    peak = Math.max(peak, inFlight);
+    await new Promise((r) => setTimeout(r, 5));
+    inFlight -= 1;
+    order.push(args.budgetUsd);
+    return { transcript: 'done', usage: { usd: args.budgetUsd }, exitCode: 0 };
+  };
+
+  const out = await runSuite({
+    tasks, invoke, fixturesDir: FIXTURES, harnessBin: HARNESS, maxSuiteUsd: 3, concurrency: 4,
+  });
+
+  assert.ok(peak > 1, 'nothing ran concurrently, so this test measured the old behaviour');
+  assert.ok(peak <= 4, `concurrency ${peak} exceeded the requested 4`);
+  // Order is the task list's order, whatever order the runs finished in. A results file whose
+  // order depends on which task happened to be slow is a file nobody can diff.
+  assert.deepEqual(out.results.map((r) => r.id), tasks.map((t) => t.id));
+  // Reserve-before-call: the suite cannot spend more than its ceiling even with four in flight.
+  // Deducting only after a call returned let every in-flight task see the same remaining budget.
+  const spent = out.results.reduce((n, r) => n + (r.usd ?? 0), 0);
+  assert.ok(spent <= 3 + 1e-9, `spent ${spent} against a ceiling of 3`);
+  // And the tasks past the ceiling are recorded as unmeasured rather than silently passed.
+  assert.ok(out.results.some((r) => r.runs.some((run) => run.incomplete?.reason === 'suite_budget_exhausted')));
+});

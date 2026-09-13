@@ -5,7 +5,7 @@ import { requireSubscription, subscriptionArgs } from '../../.aidlc/lib/claude-a
 import { resolveBoundary, boundaryArgs } from './boundary.mjs';
 
 // Comparison models are explicit; unavailable models are never substituted.
-export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null, product = false, sessionId = null, review = false, native = false, comparison = false, boundary = null }) {
+export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null, product = false, sessionId = null, review = false, native = false, comparison = false, boundary = null, maxTurns = null }) {
   if (product && review) return ['-p', prompt, '--model', model, '--tools', 'Read,Grep,Glob',
     '--safe-mode', '--permission-mode', 'dontAsk', '--setting-sources', '', '--strict-mcp-config',
     '--mcp-config', '{"mcpServers":{}}', '--settings', '{"disableAllHooks":true}',
@@ -41,6 +41,10 @@ export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd 
       // fails with an empty transcript. That empty transcript is the tell.
       '--allow-dangerously-skip-permissions', '--dangerously-skip-permissions',
       '--output-format', 'json',
+      // G23. `subscriptionArgs` adds `--max-turns 30` when nothing else set one, and a task that
+      // legitimately needs more was graded `ungraded: max_turns` rather than passed or failed —
+      // which is a measurement that did not happen, wearing the shape of one that did.
+      ...(maxTurns ? ['--max-turns', String(maxTurns)] : []),
       ...(pluginDir ? ['--plugin-dir', pluginDir] : []),
       ...(budgetUsd ? ['--max-budget-usd', String(budgetUsd)] : []),
   ];
@@ -75,7 +79,7 @@ export function claudeInvoker({ pluginDir, model = null, native = false, compari
       throw new Error(`a live product trial has no boundary to run in: ${boundary?.why ?? resolveBoundary().why}`);
     }
     const args = subscriptionArgs([
-      ...invokerArgs({ prompt, model, pluginDir, budgetUsd, product: trial, sessionId, review: phase === 'review', native, comparison, boundary: trial ? boundary : null }),
+      ...invokerArgs({ prompt, model, pluginDir, budgetUsd, product: trial, sessionId, review: phase === 'review', native, comparison, boundary: trial ? boundary : null, maxTurns: task?.maxTurns ?? null }),
       ...(trial ? boundaryArgs(boundary, { workdir: sandbox.work ?? cwd }) : []),
     ]);
     const started = Date.now();

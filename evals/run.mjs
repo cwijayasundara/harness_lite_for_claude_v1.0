@@ -67,7 +67,14 @@ function unattendedApprovals(work) {
 export function loadTasks(file = path.join(HERE, 'tasks.json')) {
   const raw = JSON.parse(readFileSync(file, 'utf8'));
   const d = raw.defaults ?? {};
-  return raw.tasks.map((t) => ({ timeoutMs: d.timeoutMs, budgetUsd: d.budgetUsd, repeats: d.repeats ?? 1, ...t }));
+  // G23. `maxTurns` is an eval budget, and it needs to be one. `subscriptionArgs` puts
+  // `--max-turns 30` on any subscription call that did not set one — a sane default for an
+  // interactive turn, and not a considered budget for a task that writes an artifact chain and
+  // runs a stage. MEASURED on 2026-09-13: five of twenty-two golden tasks stopped at exactly 31
+  // turns and were recorded `ungraded: max_turns`, which is a measurement that did not happen
+  // wearing the shape of one that did. The real bound on a task is its `budgetUsd`; the turn cap
+  // exists to stop a runaway, not to end the work.
+  return raw.tasks.map((t) => ({ timeoutMs: d.timeoutMs, budgetUsd: d.budgetUsd, repeats: d.repeats ?? 1, maxTurns: d.maxTurns ?? null, ...t }));
 }
 
 // --dry runs this and nothing else. A task that cannot be validated statically is a task that
@@ -228,22 +235,27 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
   return { assertions, usage, timedOut, transcript, incomplete, approvals: approvals.events() };
 }
 
-export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {}, maxSuiteUsd = Infinity, evidenceRoot = path.join(PLUGIN_ROOT, '.aidlc/evals/products'), evaluatorModel = null }) {
+export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {}, maxSuiteUsd = Infinity, evidenceRoot = path.join(PLUGIN_ROOT, '.aidlc/evals/products'), evaluatorModel = null, concurrency = 1 }) {
   if (!(maxSuiteUsd > 0)) throw new Error('max-suite-usd must be positive');
   let remaining = maxSuiteUsd;
+  // Reserve before the call, settle after. Deducting only after a call returns was safe while the
+  // suite ran one task at a time; with several in flight, each would see the same `remaining` and
+  // the suite could overspend by up to the concurrency. Reserving first bounds the overrun to
+  // zero, and the settle gives back whatever the call did not use.
   const boundedInvoke = async args => {
     if (remaining <= 0) return { incomplete: { reason: 'suite_budget_exhausted' }, usage: {usd:0}, transcript: '' };
     const allowance = Math.min(args.budgetUsd, remaining);
+    remaining = Math.max(0, remaining - allowance);
     let out;
     try { out = await invoke({ ...args, budgetUsd: allowance }); }
-    catch(error) { remaining=Math.max(0,remaining-allowance);throw error; }
+    catch (error) { throw error; }   // the reservation stands: a throw may still have spent
     const reported = out.usage?.usd;
-    // Reserve the whole allowance if the CLI omits billing. Never treat missing usage as free.
-    remaining = Math.max(0, remaining - (Number.isFinite(reported) && reported >= 0 ? reported : allowance));
+    // Give back only what a reported cost says was unused. The CLI omitting billing keeps the
+    // whole reservation — never treat missing usage as free.
+    if (Number.isFinite(reported) && reported >= 0) remaining += Math.max(0, allowance - reported);
     return out;
   };
-  const results = [];
-  for (const t of tasks) {
+  const runTask = async (t) => {
     const runs = [];
     for (let i = 0; i < (t.repeats ?? 1); i++) {
       const s = stage(fixturesDir, t.fixture, {product:!!t.product});
@@ -295,7 +307,7 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
     }
     const passed = runs.filter((r) => r.pass).length;
     const ungraded = runs.filter((r) => r.incomplete).length;
-    results.push({
+    return {
       id: t.id, fixture: t.fixture, repeats: runs.length, passed,
       // A 2-of-3 is a different finding from a 3-of-3 and must never be rounded to "green".
       // A run nobody could grade is a third thing again: not green, and not the model's fault.
@@ -305,8 +317,24 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
       ...(t.product?{reportedUsd:runs.reduce((n,r)=>n+(r.usage.reportedUsd??r.usage.usd??0),0),billingComplete:runs.every(r=>r.billingComplete!==false)}:{}),
       unattended: [...new Set(runs.flatMap((r) => r.unattended ?? []))],
       runs,
-    });
-  }
+    };
+  };
+
+  // A bounded pool. Tasks are independent — each stages its own fixture in its own temp tree and
+  // claims its own port — so the only shared thing is the suite budget, which the reservation
+  // above makes safe. Results keep task order however the runs finish, because a results file
+  // whose order depends on which task happened to be slow is a file nobody can diff.
+  const results = new Array(tasks.length);
+  const lanes = Math.max(1, Math.min(Number(concurrency) || 1, 8));
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(lanes, tasks.length) }, async () => {
+    for (;;) {
+      const index = next++;
+      if (index >= tasks.length) return;
+      results[index] = await runTask(tasks[index]);
+    }
+  }));
+
   const summary = {
     total: results.length,
     pass: results.filter((r) => r.verdict === 'pass').length,
@@ -346,7 +374,14 @@ async function main() {
   if(comparisons && flag('through'))throw new Error('--compare calibrates first changes itself; --through would truncate paired campaigns');
   let tasks = loadTasks(products ? path.join(HERE,'products.json') : undefined);
   if(products && flag('through')) tasks=tasks.map(t=>({...t,calibration:true,steps:t.steps.slice(0,Number(flag('through')))}));
-  if (flag('id')) tasks = tasks.filter((t) => t.id === flag('id'));
+  // G23. A comma-separated list, so diagnosing the failing half of the baseline is one run with
+  // one ledger entry and one results file rather than ten of each.
+  if (flag('id')) {
+    const wanted = String(flag('id')).split(',').map((s) => s.trim()).filter(Boolean);
+    const unknown = wanted.filter((id) => !tasks.some((t) => t.id === id));
+    if (unknown.length) throw new Error(`no such task: ${unknown.join(', ')}`);
+    tasks = tasks.filter((t) => wanted.includes(t.id));
+  }
   // Calibration and triage: override repeats without editing tasks.json.
   if (flag('repeats')) tasks = tasks.map((t) => ({ ...t, repeats: Number(flag('repeats')) }));
   if (!tasks.length) { console.error('no tasks matched'); return 2; }
@@ -416,6 +451,11 @@ async function main() {
   const baseline = existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, 'utf8')) : {};
   const out = await runSuite({
     tasks, fixturesDir, baseline, maxSuiteUsd: Number(flag('max-suite-usd', products?20:Infinity)), evaluatorModel:models.evaluator,
+    // MEASURED 2026-09-13: 22 golden tasks took 1h38m for 12 of them, one at a time, because each
+    // is a full agent run against a staged fixture. They share nothing but the budget, so they do
+    // not have to be sequential. Default 1 — a suite that quietly changed how it runs is a suite
+    // whose numbers changed for a reason nobody recorded.
+    concurrency: Number(flag('concurrency', flag('j', 1))),
     harnessBin: path.join(PLUGIN_ROOT, '.aidlc', 'bin', 'harness'),
     invoke: args => claudeInvoker({ pluginDir: PLUGIN_ROOT, model: products && args.phase==='review' ? models.evaluator : evalModel, boundary })(args),
     log: (m) => console.log(m),
