@@ -65,6 +65,16 @@ max_findings = 20
 generator = "claude-sonnet-5"
 evaluator = "claude-opus-5"
 evals     = "claude-haiku-4-5-20251001"
+# G10. The model that decides rather than types: intent, spec, plan, design, and the evaluator.
+judgment  = "claude-opus-5"
+
+# G10. Effort per kind of work, rendered into the same frontmatter as the model and passed to the
+# driver's own turns. Typing under an approved plan is the cheap band; judging is the expensive
+# one; a repair sits between, because it is re-reading a verdict rather than writing one.
+[effort]
+implement = "low"
+repair    = "medium"
+review    = "high"
 
 # G06. A gate is a policy, not a constant: `human` refuses, `advisory` reports and lets the loop
 # continue, `auto` lets the driver record the approval with a digest of this setting. `merge`

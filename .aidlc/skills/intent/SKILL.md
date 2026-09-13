@@ -1,6 +1,8 @@
 ---
 name: intent
 description: Turns a conversation, a PRD, or a vague request into a version-controlled intent.md — the problem, the outcome, the constraints, and the questions that block progress. This skill should be used whenever someone describes something they want built or changed and no intent file exists yet, including when they paste a PRD or a ticket. Start here rather than jumping to a plan.
+model: claude-opus-5
+effort: high
 ---
 
 # Capture the problem and outcome

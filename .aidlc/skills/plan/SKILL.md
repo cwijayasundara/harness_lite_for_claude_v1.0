@@ -1,6 +1,8 @@
 ---
 name: plan
 description: Turns an approved spec into the files that will change, the order of the work, and the test that proves each behaviour. This skill should be used after a spec is approved and before implementation, and whenever someone asks how a change will be built or which files it will touch.
+model: claude-opus-5
+effort: high
 ---
 
 # Write the plan

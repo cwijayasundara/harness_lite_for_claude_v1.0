@@ -194,12 +194,25 @@ async function main() {
       // lean-v2 B7. The generator/evaluator split is two model ids in [models], rendered into the
       // two files that carry it. Written here rather than by hand so the registry stays the one
       // place either id is stated.
+      //
+      // G10 widened it: `judgment` is the model that decides rather than types, and it is rendered
+      // into the four skills that produce a human's gate material and into the evaluator's own
+      // prompt. `[effort]` rides in the same frontmatter — one band for typing under an approved
+      // plan, one for judging — so the registry stays the one place either is stated.
       try {
         if (path.resolve(L.aidlc) !== path.resolve(HERE)) throw new Error("consumer uses pinned shared guides");
-        const models = loadConfig(root).models;
+        const { models, effort } = loadConfig(root);
+        const skill = (name) => path.join(HERE, 'skills', name, 'SKILL.md');
         for (const [file, model, extra] of [
-          [path.join(HERE, 'skills', 'implement', 'SKILL.md'), models.generator, { context: 'fork' }],
-          [path.join(HERE, 'roles', 'evaluator.md'), models.evaluator, {}],
+          [skill('implement'), models.generator, { context: 'fork', effort: effort.implement }],
+          [skill('intent'), models.judgment, { effort: effort.review }],
+          [skill('spec'), models.judgment, { effort: effort.review }],
+          [skill('plan'), models.judgment, { effort: effort.review }],
+          // `design` arrives with G16 and replaces `map`; rendering both here means the skill that
+          // exists is the skill that gets the model, on either side of that change.
+          [skill('design'), models.judgment, { effort: effort.review }],
+          [skill('map'), models.judgment, { effort: effort.review }],
+          [path.join(HERE, 'roles', 'evaluator.md'), models.judgment, { effort: effort.review }],
         ]) {
           if (!existsSync(file)) continue;
           const next = renderModel(readFileSync(file, 'utf8'), model, extra);

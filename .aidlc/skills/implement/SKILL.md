@@ -3,6 +3,7 @@ name: implement
 description: Executes an approved plan in small behavioural slices with focused regression proof and runtime verification. Use whenever code is about to be written for .aidlc/artifacts/<slug>/plan.md or someone asks to build an approved change.
 context: fork
 model: claude-sonnet-5
+effort: low
 ---
 
 # Implement the approved plan

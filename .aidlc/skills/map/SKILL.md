@@ -1,6 +1,8 @@
 ---
 name: map
 description: Answers questions about how a codebase fits together using the harness graph — who calls a symbol, what it calls, which modules are hubs, what import cycles exist, and what changed under a symbol since a ref. This skill should be used before planning a change in unfamiliar code, when tracing a symbol's blast radius, and instead of reading whole files to find something.
+model: claude-opus-5
+effort: high
 ---
 
 # Understand the affected system

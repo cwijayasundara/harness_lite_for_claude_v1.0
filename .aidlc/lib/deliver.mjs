@@ -26,7 +26,7 @@ import path from 'node:path';
 import * as artifacts from './artifacts.mjs';
 import * as ledger from './ledger.mjs';
 import * as graph from './graph.mjs';
-import { gateMode, DEFAULT_DELIVER } from './config.mjs';
+import { gateMode, stageModel, DEFAULT_DELIVER } from './config.mjs';
 import { check as runnerCheck } from './runner.mjs';
 import { review as runReview } from './review.mjs';
 import { runSubscriptionClaude } from './claude-auth.mjs';
@@ -135,8 +135,9 @@ function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, s
 // post-write fast check keeps returning findings to the model inside the turn: the inner
 // code/test/refactor loop is that hook, not a driver phase.
 export function deliverInvoker({ root }) {
-  return function invoke({ prompt, model, sessionId = null, budgetUsd, timeoutMs }) {
-    const args = ['-p', prompt, '--model', model, '--tools', 'Read,Grep,Glob,Write,Edit,Bash',
+  return function invoke({ prompt, model, effort = null, sessionId = null, budgetUsd, timeoutMs }) {
+    const args = ['-p', prompt, '--model', model, ...(effort ? ['--effort', effort] : []),
+      '--tools', 'Read,Grep,Glob,Write,Edit,Bash',
       '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
       '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--output-format', 'json',
       '--max-budget-usd', String(budgetUsd), ...(sessionId ? ['--resume', sessionId] : [])];
@@ -195,8 +196,10 @@ export async function deliver(cfg, slug, {
   if (!owns.length) throw new Error(`${slug}'s plan declares no files under "## Files" — the driver has no scope to work in`);
 
   if (dry) {
-    return { slug, dry: true, phases: PHASES, models: { implement: cfg.models?.generator, repair: cfg.models?.evaluator },
-      bounds: b, gates, owns, spend: 0 };
+    return { slug, dry: true, phases: PHASES, gates, owns, bounds: b, spend: 0,
+      // A preview that does not say what it would run on is not a preview.
+      stages: Object.fromEntries(['implement', 'refactor', 'repair', 'repair-escalated', 'review']
+        .map((stage) => [stage, stageModel(cfg, stage)])) };
   }
   if (!live) throw new Error(`harness deliver invokes models; run it with --live (or --dry to preview the phases, models and bounds)`);
 
@@ -247,10 +250,14 @@ export async function deliver(cfg, slug, {
     return { slug, ok: false, stopped: state.stopped, usd: state.usd, completed: state.completed, invocation, pr: null };
   };
 
-  const turn = async (phase, prompt, model) => {
+  // G10. One table decides which model and which effort a phase runs on, and the same pair is
+  // what the ledger row names — so what ran and what was recorded cannot drift apart.
+  const turn = async (stage, prompt) => {
     const bound = exceeded();
     if (bound) return { stopped: bound };
-    const out = await invoke({ phase, prompt: `${prompt}\n\n${UNATTENDED}`, model, sessionId: state.session,
+    const { model, effort } = stageModel(cfg, stage);
+    event(stage.replace(/-escalated$/, ''), 'model-turn', { model, effort, stage });
+    const out = await invoke({ phase: stage, prompt: `${prompt}\n\n${UNATTENDED}`, model, effort, sessionId: state.session,
       budgetUsd: Math.max(0.01, b.max_usd - state.usd), timeoutMs: Math.max(1000, state.deadline - now()) });
     // An unreported cost reserves its full allowance rather than counting as free.
     state.usd += Number.isFinite(out?.usd) ? out.usd : Math.max(0.01, b.max_usd - state.usd);
@@ -272,7 +279,7 @@ export async function deliver(cfg, slug, {
 
     if (phase === 'implement') {
       const out = await turn('implement', `Use the \`implement\` skill to deliver this approved change.\n\n${contract}\n` +
-        'Work only inside the files the plan owns. Run the focused proof for each behaviour as you go.', cfg.models?.generator);
+        'Work only inside the files the plan owns. Run the focused proof for each behaviour as you go.');
       if (out.stopped) return stop(out.stopped, 'before the implement turn');
       if (!out.ok) return stop('implement', out.error ?? 'the implement turn did not complete');
       commitIfDirty(root, `${slug}: implement`);
@@ -286,8 +293,7 @@ export async function deliver(cfg, slug, {
         event(phase, 'repairing', { failed: failedControls(report) });
         const out = await turn('repair', `\`harness check --stage stop\` failed on this change.\n\n${contract}\n` +
           `Failing controls: ${failedControls(report).join(', ')}\n\n${renderFailures(report)}\n` +
-          'Fix the cause inside the plan\'s files. Do not suppress a control or relax an assertion to make it pass.',
-        cfg.models?.generator);
+          'Fix the cause inside the plan\'s files. Do not suppress a control or relax an assertion to make it pass.');
         if (out.stopped) return stop(out.stopped, 'before the check repair turn');
         commitIfDirty(root, `${slug}: repair check --stage stop`);
         report = await check('stop');
@@ -297,7 +303,7 @@ export async function deliver(cfg, slug, {
 
     if (phase === 'refactor') {
       const out = await turn('refactor', `The checks are green. Make one refactoring pass over the change: no behaviour change, ` +
-        `no new capability, no test edits that weaken a proof.\n\n${contract}`, cfg.models?.generator);
+        `no new capability, no test edits that weaken a proof.\n\n${contract}`);
       if (out.stopped) return stop(out.stopped, 'before the refactor turn');
       commitIfDirty(root, `${slug}: refactor`);
       const report = await check('stop');
@@ -319,16 +325,16 @@ export async function deliver(cfg, slug, {
         }
         // The second attempt escalates: the same model that could not fix it once is unlikely to
         // fix it twice, and the judgment model is what the review itself runs on.
-        const model = state.repairs === 0 ? cfg.models?.generator : (cfg.models?.judgment ?? cfg.models?.evaluator);
-        const out = await turn('repair', `The independent review requested changes.\n\n${contract}\n` +
+        const stage = state.repairs === 0 ? 'repair' : 'repair-escalated';
+        const out = await turn(stage, `The independent review requested changes.\n\n${contract}\n` +
           `Review report: \`${reviewResult.output}\`\n\n${reviewResult.findings.join('\n') || '(see the report)'}\n\n` +
           'Address every Blocking and Important finding inside the plan\'s files. A finding you disagree with is ' +
-          'answered in the change\'s artifacts with a reason, not silently left.', model);
+          'answered in the change\'s artifacts with a reason, not silently left.');
         if (out.stopped) return stop(out.stopped, `before repair turn ${state.repairs + 1}`);
         state.repairs += 1;
         save();
         commitIfDirty(root, `${slug}: repair review findings (${state.repairs})`);
-        event(phase, 'repaired', { attempt: state.repairs, model });
+        event(phase, 'repaired', { attempt: state.repairs, ...stageModel(cfg, stage) });
         reviewResult = await runReviewPhase();
         if (reviewResult.stopped) return stop(reviewResult.stopped, 'before the confirming review');
         state.review = reviewResult;
@@ -361,10 +367,12 @@ export async function deliver(cfg, slug, {
   async function runReviewPhase() {
     const bound = exceeded();
     if (bound) return { stopped: bound };
+    const { model, effort } = stageModel(cfg, 'review');
+    event('review', 'model-turn', { model, effort, stage: 'review' });
     const candidate = git(root, 'rev-parse', 'HEAD');
     const output = path.join(path.relative(root, cfg.layout.artifacts), slug, 'review.md');
     const result = await review({
-      root, base: state.base, candidate, model: cfg.models?.evaluator, output,
+      root, base: state.base, candidate, model, output,
       budgetUsd: Math.max(0.01, b.max_usd - state.usd),
       planFiles: owns, contextPaths: [path.join(path.relative(root, cfg.layout.artifacts), slug)],
       modules: graph.load(cfg)?.modules ?? null,

@@ -32,8 +32,8 @@ function delivery(overrides = {}) {
   const edit = (marker) => writeFileSync(path.join(s.work, OWNED), `${readFileSync(path.join(s.work, OWNED), 'utf8')}# ${marker}\n`);
   const fakes = {
     live: true,
-    async invoke({ phase, prompt, model }) {
-      calls.turns.push({ phase, model, prompt });
+    async invoke({ phase, prompt, model, effort }) {
+      calls.turns.push({ phase, model, effort, prompt });
       edit(`${phase}-${calls.turns.length}`);
       return { ok: true, usd: 0.01, sessionId: 'session-1', transcript: `${phase} done` };
     },
@@ -177,10 +177,17 @@ test('a review that keeps requesting changes stops at max_repairs, and the secon
 
     assert.equal(result.stopped.bound, 'max_repairs');
     assert.equal(readState(d.cfg, SLUG).repairs, 2);
-    const repairs = d.calls.turns.filter((t) => t.phase === 'repair');
-    assert.equal(repairs.length, 2);
+    const repairs = d.calls.turns.filter((t) => t.phase.startsWith('repair'));
+    assert.deepEqual(repairs.map((t) => t.phase), ['repair', 'repair-escalated']);
     assert.equal(repairs[0].model, d.cfg.models.generator);
-    assert.notEqual(repairs[1].model, d.cfg.models.generator, 'the second repair escalates past the model that failed once');
+    assert.equal(repairs[0].effort, d.cfg.effort.repair);
+    assert.equal(repairs[1].model, d.cfg.models.judgment, 'the second repair escalates past the model that failed once');
+    assert.notEqual(repairs[1].model, d.cfg.models.generator);
+    // G10: the ledger row for a phase names what it ran on.
+    const rows = readLedger(d.cfg.layout).filter((r) => r.kind === 'deliver-phase' && r.event === 'model-turn');
+    assert.ok(rows.some((r) => r.stage === 'repair-escalated' && r.model === d.cfg.models.judgment && r.effort === d.cfg.effort.repair));
+    assert.ok(rows.some((r) => r.stage === 'implement' && r.model === d.cfg.models.generator && r.effort === d.cfg.effort.implement));
+    assert.ok(rows.some((r) => r.stage === 'review' && r.model === d.cfg.models.evaluator && r.effort === d.cfg.effort.review));
     assert.match(repairs[0].prompt, /Blocking/, 'the repair turn is given the findings to address');
     // Three reviews: the first, and one confirming each repair.
     assert.equal(d.calls.reviews.length, 3);
@@ -204,6 +211,9 @@ test('the driver refuses to spend without --live, previews with --dry, and reads
 
     const preview = await deliver(d.cfg, SLUG, { ...d.fakes, live: false, dry: true });
     assert.deepEqual(preview.phases, PHASES);
+    assert.deepEqual(preview.stages.implement, { model: d.cfg.models.generator, effort: 'low' });
+    assert.deepEqual(preview.stages['repair-escalated'], { model: d.cfg.models.judgment, effort: 'medium' });
+    assert.deepEqual(preview.stages.review, { model: d.cfg.models.evaluator, effort: 'high' });
     assert.deepEqual(preview.bounds, { max_minutes: 5, max_usd: 3, max_repairs: 1 });
     assert.deepEqual(preview.owns, ['src/app/text.py', 'tests/test_app.py']);
     assert.equal(d.calls.turns.length, 0);

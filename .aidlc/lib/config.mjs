@@ -22,6 +22,25 @@ export const GATE_MODES = ['human', 'advisory', 'auto'];
 export const DEFAULT_GATES = { spec: 'advisory', plan: 'advisory', merge: 'human' };
 // G09. The driver's bounds. A run stops and names the bound it hit; it never exceeds one.
 export const DEFAULT_DELIVER = { max_minutes: 60, max_usd: 10, max_repairs: 2 };
+// G10. One effort band per kind of work, not per model id.
+export const EFFORT_LEVELS = ['low', 'medium', 'high'];
+export const DEFAULT_EFFORT = { implement: 'low', repair: 'medium', review: 'high' };
+
+// Which model and which effort a phase runs on. One table, so the driver, the rendered
+// frontmatter and the ledger row cannot disagree about what ran.
+export function stageModel(cfg, phase) {
+  const models = cfg?.models ?? {};
+  const effort = { ...DEFAULT_EFFORT, ...(cfg?.effort ?? {}) };
+  switch (phase) {
+    case 'implement': case 'refactor': return { model: models.generator, effort: effort.implement };
+    case 'repair': return { model: models.generator, effort: effort.repair };
+    // The second repair attempt escalates: the model that could not fix it once is unlikely to
+    // fix it twice, and `judgment` is what the review that rejected it runs on.
+    case 'repair-escalated': return { model: models.judgment ?? models.evaluator, effort: effort.repair };
+    case 'review': return { model: models.evaluator, effort: effort.review };
+    default: return { model: null, effort: null };
+  }
+}
 export const VERBS = ['fmt', 'lint', 'typecheck', 'test', 'test_quality', 'coverage', 'arch', 'secrets', 'deps'];
 export const DEFAULT_SENSOR_PROFILES = {
   behaviour: ['test', 'coverage'],
@@ -101,7 +120,18 @@ export function loadConfig(root) {
       evaluator: 'claude-opus-5',
       evals: 'claude-haiku-4-5-20251001',
       ...(raw.models ?? {}),
+      // G10. `judgment` is the model that decides rather than types: the intent, spec, plan and
+      // design skills, and the evaluator's own prompt. It defaults to `evaluator` because that is
+      // what a project that has not thought about it should get — one model marking its own
+      // homework is the failure this table exists to prevent, and a `judgment` that silently fell
+      // back to `generator` would reintroduce it.
+      judgment: raw.models?.judgment ?? raw.models?.evaluator ?? 'claude-opus-5',
     },
+    // G10. Effort per stage, rendered into the same frontmatter as the model and passed to the
+    // driver's own turns. Typing under an approved plan is the cheap band; judging is the
+    // expensive one; a repair sits between them because it is re-reading a verdict, not writing
+    // one from nothing.
+    effort: { ...DEFAULT_EFFORT, ...(raw.effort ?? {}) },
     // every-control-fires-or-goes B1: control name -> the test that plants the defect its why:
     // names. The audit reads it to tell a deterrent from a corpse; nothing else does.
     deterrents: raw.deterrents ?? {},
