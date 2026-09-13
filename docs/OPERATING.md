@@ -139,6 +139,36 @@ with the selected tests); unset, it is `skipped` like any other capability a pro
 configured, and never a silent fall back to the full run. The full suite belongs to
 `harness deliver`, once per iteration, and `harness check --stage stop` stays one command away.
 
+## Opt-in verbs: mutation, SAST, layering
+
+Three verbs the harness knows how to read and will not run for you. Each is slower or noisier than
+a commit-stage control should be until a project has decided it is worth the wait, so all three
+ship empty and none is in a default stage. What the harness supplies is the part a project cannot:
+one finding schema, so a surviving mutant, a semgrep hit and a broken layer rule reach the model in
+the same shape as a lint error.
+
+| verb | command | format |
+|---|---|---|
+| `mutation` | `npx stryker run --incremental --reporters json > /dev/null && cat reports/mutation.json` | `mutation` |
+| `sast` | `semgrep --config auto --json` | `semgrep` |
+| `layers` | `npx depcruise src --output-type json` | `depcruise` |
+| `layers` (Python) | `lint-imports` | `import-linter` |
+
+`mutation` reads the mutation-testing-elements JSON schema — what Stryker writes natively and what
+the other emitters in that ecosystem target. One schema rather than one parser per tool: a
+mutation tool that cannot emit it should write that schema, which is a smaller ask than a parser
+this repository has no way to test. A surviving mutant is a finding with a file and a line; a
+`NoCoverage` mutant is a different finding saying no test executed the line at all; a killed
+mutant is not a finding, because the suite did its job.
+
+`layers` reasons about modules, not lines, so its findings carry a file and line 0. That is
+reported rather than invented: a rule about "this module may not import that one" has no line to
+point at.
+
+Add one to `commit` when the project is ready for it — that is a decision about how long a commit
+may take, and it belongs to the project. `examples/scratch-ts` is the worked example: `layers`
+runs in its `drift` stage, and `mutation` is configured and reachable from no stage at all.
+
 ## Coverage ratchets, and every behaviour names its proof
 
 `test_quality` is gone. It counted `test(` occurrences in files whose names looked like tests —

@@ -1,0 +1,13 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "G14's worked example of the `mutation` verb. The command runner compiles and runs the suite for each mutant, so no runner plugin and no second test framework is needed.",
+  "packageManager": "npm",
+  "testRunner": "command",
+  "commandRunner": { "command": "npx tsc --outDir dist && node --test dist/test/*.test.js" },
+  "mutate": ["src/**/*.ts"],
+  "reporters": ["json", "clear-text"],
+  "jsonReporter": { "fileName": "reports/mutation.json" },
+  "coverageAnalysis": "off",
+  "tempDirName": ".stryker-tmp",
+  "cleanTempDir": true
+}

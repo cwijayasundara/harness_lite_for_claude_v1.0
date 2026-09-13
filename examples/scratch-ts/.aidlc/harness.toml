@@ -13,18 +13,27 @@ arch      = ""
 secrets   = ""
 deps      = "npm outdated --json || true"
 
+# G14. Opt-in verbs, configured here because this example is where they are demonstrated.
+# `layers` is cheap and runs in `drift`; `mutation` is configured and in no stage, which is what
+# opt-in means — a mutation run is a decision a project makes, not something a stage does to it.
+layers    = "npx depcruise src --output-type json"
+mutation  = "npx stryker run --reporters json > /dev/null && cat reports/mutation.json"
+sast      = ""      # semgrep is not a dependency of this example
+
 [formats]
 lint      = "eslint"
 typecheck = "tsc"
 test      = "tap"
 coverage  = "lcov"
+layers    = "depcruise"
+mutation  = "mutation"
 
 [stages]
 fast   = ["lint", "typecheck"]
 stop   = ["fast", "test"]
 stop_hook = ["fast", "test_changed"]
 commit = ["stop", "secrets", "scope-drift", "budget"]
-drift  = ["deps"]
+drift  = ["deps", "layers"]
 
 [graph]
 include = [".", ".aidlc"]

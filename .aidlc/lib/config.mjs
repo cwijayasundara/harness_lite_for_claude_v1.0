@@ -49,7 +49,12 @@ export function stageModel(cfg, phase) {
 // rather than a flag because a project's narrow-test command is not derivable from its full one:
 // `node --test test/*.test.mjs` has nowhere to put a file list. Unset, it is `skipped` like any
 // other capability the project has not configured (Law 6).
-export const VERBS = ['fmt', 'lint', 'typecheck', 'test', 'test_changed', 'coverage', 'arch', 'secrets', 'deps'];
+// G14. `mutation`, `sast` and `layers` are opt-in: in no default stage, empty in the template,
+// and documented in OPERATING.md with the command each expects. They are declared here so a
+// project that configures one gets the normaliser and the `doctor` row rather than a silent
+// capability the runner does not recognise.
+export const VERBS = ['fmt', 'lint', 'typecheck', 'test', 'test_changed', 'coverage', 'arch',
+  'secrets', 'deps', 'mutation', 'sast', 'layers'];
 export const DEFAULT_SENSOR_PROFILES = {
   behaviour: ['test', 'coverage'],
   architecture: ['arch'],

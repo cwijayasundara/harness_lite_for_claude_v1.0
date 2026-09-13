@@ -18,6 +18,18 @@ arch      = ""
 secrets   = ""          # empty = use the harness's built-in scanner
 deps      = ""
 
+# G14. Opt-in, and in no stage by default: each is slower or noisier than a commit-stage control
+# should be until a project has decided it is worth the wait. Add one to `commit` when it is.
+#   mutation — the mutation-testing-elements JSON report, which Stryker writes natively. Stryker
+#              names its own output path in stryker.config.json, so hand it over on stdout:
+#              "npx stryker run --incremental --reporters json > /dev/null && cat reports/mutation.json"
+#              Python: "mutmut run" followed by an export in that same schema.
+#   sast     — "semgrep --config auto --json"
+#   layers   — "npx depcruise src --output-type json" or, for Python, "lint-imports"
+mutation  = ""
+sast      = ""
+layers    = ""
+
 # How to parse each verb's stdout into the one finding schema.
 # Known: ruff · eslint · mypy · tsc · pytest · generic
 # {files}  = the changed files (or "." when running whole-repo)
