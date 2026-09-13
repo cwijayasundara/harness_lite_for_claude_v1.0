@@ -11,6 +11,7 @@ import { loadConfig } from '../../.aidlc/lib/config.mjs';
 import { approvalDriver } from './approvals.mjs';
 import { assertProductTree, productTestArgs, productTestCommand, execNode } from './stage.mjs';
 import { behavioursOf, proofRowsOf, testRowIn, promiseSpecs, currentChange, currentLine, selectChange, render, parse, ownedFiles } from '../../.aidlc/lib/artifacts.mjs';
+import { gradeSpecCompliance } from './spec-compliance.mjs';
 
 // Driver updates use atomic replacement so each new run sees the new file identity.
 const writeFileSync=(file,text)=>{const temp=`${file}.driver-tmp-${process.pid}`;writeRaw(temp,text);renameSync(temp,file);};
@@ -245,7 +246,17 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, produ
       const ownership=diffOwnedByCurrentChange(s.work,before);assert.ok(ownership.ok,ownership.violations.join('\n'));
       let verification;
       for(let attempt=0;attempt<3;attempt++){
-        try{const publicOutput=driverChecks();verification=await evaluateProduct(s,step);event('product-proof',{slug:step.slug,publicOutput,...verification});break;}
+        try{const publicOutput=driverChecks();verification=await evaluateProduct(s,step);event('product-proof',{slug:step.slug,publicOutput,...verification});
+          // G22. Recorded beside the deterministic proof, never instead of it. The endpoint check
+          // says the product behaves; this says the product still promises what it promised and no
+          // longer promises what a later sprint reversed — which is the half an endpoint cannot
+          // see, because the endpoint can be right while the README is wrong.
+          if(evaluatorModel){
+            const compliance=await gradeSpecCompliance({root:s.work,invoke,model:evaluatorModel,sprint:i+1});
+            result.assertions.push({name:'spec-compliance',pass:compliance.verdict!=='fail',detail:`${compliance.verdict} (${compliance.pass} pass, ${compliance.fail} fail)`,compliance});
+            event('spec-compliance',{slug:step.slug,verdict:compliance.verdict,pass:compliance.pass,fail:compliance.fail,votes:compliance.votes});
+          }
+          break;}
         catch(error){event('product-proof-failed',{slug:step.slug,attempt:attempt+1,detail:error.message});if(attempt===2)throw error;
           await call(`The external driver found a failure for the currently approved ${step.slug}: ${error.message}\nDiagnose and repair only approved files; preserve the stated requirements and tests. Driver will re-run private acceptance and public tests. Do not modify artifacts.`,'implement');approvals.assertImplementation(step.slug);}
       }
