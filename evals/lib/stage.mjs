@@ -30,6 +30,13 @@ export function stage(fixturesDir, name, { product = false, native = false } = {
   const fx = path.join(fixturesDir, name);
   if (!existsSync(fx)) throw new Error(`no fixture "${name}" in ${fixturesDir}`);
   const root = mkdtempSync(path.join(tmpdir(), `eval-${name}-`));
+  // A staged fixture is a few hundred files that exist for a minute and are then deleted, and it
+  // is created twenty-two times a run. MEASURED 2026-09-13: Spotlight's `mds_stores` hit 172% CPU
+  // indexing that churn while a suite ran, and the whole machine went to load 12. `.metadata_never_index`
+  // at the root of a directory is the documented way to tell Spotlight not to, it needs no
+  // permissions, and nothing here is ever searched for. The antivirus half of the same storm needs
+  // an operator exclusion — see evals/README.md.
+  writeFileSync(path.join(root, '.metadata_never_index'), '');
   const work = path.join(root, 'work');
   const pristine = path.join(root, 'pristine');
   if(product){mkdirSync(path.join(work,'.aidlc'),{recursive:true});for(const rel of ['.gitignore','.aidlc/.gitignore'])cpSync(path.join(base,rel),path.join(work,rel));}

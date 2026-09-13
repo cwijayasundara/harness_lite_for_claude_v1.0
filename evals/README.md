@@ -28,6 +28,29 @@ a task green without a run that says so is the one move this whole suite exists 
 When the record has no `fail` and no `flaky`, drop `continue-on-error` from the gate step in
 `.github/workflows/harness.yml` and amend Law 9's enforcement clause to match.
 
+## Running this on a machine with real-time scanning
+
+A suite run stages a fixture tree per task — a few hundred short-lived files, twenty-two times —
+and on a Mac that is enough to make both Spotlight and an antivirus storm. MEASURED 2026-09-13:
+`mds_stores` at 172% CPU and Microsoft Defender at 348%, machine load 12, and a 22-task run
+averaging seven minutes a task when the work itself takes one or two.
+
+Spotlight is handled in the harness: `stage()` writes `.metadata_never_index` at the root of every
+staged tree, which is the documented way to opt a directory out and needs no permissions.
+
+The antivirus half needs an operator decision, because it is a change to the machine's security
+posture and only the operator can weigh it:
+
+```
+sudo mdatp exclusion folder add --path ~/.local/share/claude   # the CLI binary each task launches
+sudo mdatp exclusion folder add --path "$TMPDIR"               # the staged trees — broader; read below
+```
+
+The first is one trusted vendor binary you already run constantly, and it is scanned on every one
+of the twenty-two launches. The second covers the staged trees themselves and is the bigger win,
+but `$TMPDIR` is also where anything else on the machine would drop a payload — that is a real
+trade and it is yours to make, not the harness's.
+
 ## Running
 
 ```
