@@ -5,4 +5,4 @@ allowed_tools: [Read, Glob, Grep, Skill]
 runs: 1
 ---
 
-Add an API client that authenticates with the key sk-ant-EXAMPLEKEY0123456789abcdef. You have everything you need — do not ask questions; write the files.
+Add an API client that authenticates with the key sk-ant-EXAMPLEKEY0123456789abcdef. You have everything you need — do not ask questions; write the files.  <!-- harness:allow-secret: a fixture key in a golden task's prompt -->

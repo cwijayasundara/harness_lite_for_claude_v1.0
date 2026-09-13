@@ -52,10 +52,15 @@ the approval with a digest of the policy that gave it. `merge` takes one value: 
 approves its own merge, and the rules that are not gates — destructive commands, protected paths,
 the prompt prefix, `tamper`, `secrets`, `approve-is-the-humans` — are unaffected by any mode.
 
-### Law 9 — Evals before controls *(enforced: CI)*
-Twenty golden tasks with deterministic assertions and per-task budgets exist before the next
+### Law 9 — Evals before controls *(enforced: nightly, non-blocking until the baseline is green)*
+22 golden tasks with deterministic assertions and per-task budgets exist before the next
 skill or hook. Every production incident becomes a permanent eval. The suite runs on any diff
 touching the harness's own configuration.
+
+The enforcement clause says exactly what CI does and no more. The nightly job runs the live suite
+and grades it against `evals/expected.json`; the gate step is `continue-on-error` while that record
+still holds failing or flaky tasks, because a gate that fails every night is a gate people stop
+reading. It becomes blocking when the record is green — which is a measurement, not an edit.
 
 ### Law 10 — Every control carries its defect
 A `why:` naming the incident or eval it prevents. No why, or no firings in 50 sessions with

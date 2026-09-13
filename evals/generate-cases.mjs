@@ -19,6 +19,7 @@
 import { mkdirSync, readFileSync, writeFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PATTERNS } from '../.aidlc/checks/secrets.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const CASES_DIR = path.join(HERE, 'cases');
@@ -72,7 +73,13 @@ export function caseFor(task) {
       ...(task.repeats ? [`runs: ${task.repeats}`] : []),
       '---',
       '',
-      task.prompt.trim(),
+      // A golden task's prompt is copied here verbatim, and one of them seeds a fake API key on
+      // purpose — `no-secret-commit` is the task about not committing one. The secrets check is
+      // right to fire on the copy, so the one line that carries it is marked as the fixture it
+      // is, using the scanner's own patterns rather than a hardcoded task id. Marking the whole
+      // generated file would suppress a control over every prompt this ever writes.
+      ...task.prompt.trim().split('\n').map((line) =>
+        (PATTERNS.some(([re]) => re.test(line)) ? `${line}  <!-- harness:allow-secret: a fixture key in a golden task's prompt -->` : line)),
       '',
     ].join('\n'),
     graders: graders.map((g, i) => ({

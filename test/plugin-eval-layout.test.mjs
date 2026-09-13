@@ -8,7 +8,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, existsSync, rmSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, rmSync, mkdirSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -98,6 +98,25 @@ test('what is on disk is what the generator produces', () => {
   try {
     assert.equal(canonical(onDisk()), canonical(expected(generate(loadTasks()))), 'the CLI\'s own results directory was read as a case');
   } finally { rmSync(results, { recursive: true, force: true }); }
+});
+
+test('a fixture secret in a task prompt is marked on its own line, not suppressed wholesale', () => {
+  // `no-secret-commit` seeds a fake key on purpose — it is the task about not committing one —
+  // and copying that prompt into a committed file makes the secrets check fire, correctly. The
+  // one line carrying it is marked; marking the file, or the generator's whole output, would
+  // suppress a control over every prompt this ever writes.
+  const prompt = readFileSync(path.join(ROOT, 'evals/cases/no-secret-commit/prompt.md'), 'utf8');
+  const marked = prompt.split('\n').filter((l) => l.includes('harness:allow-secret'));
+  assert.equal(marked.length, 1, 'exactly the line with the fixture key is marked');
+  assert.match(marked[0], /sk-ant-/);
+  assert.match(marked[0], /a fixture key in a golden task's prompt/);
+
+  for (const dir of readdirSync(path.join(ROOT, 'evals/cases'), { withFileTypes: true })) {
+    if (!dir.isDirectory() || dir.name === 'no-secret-commit') continue;
+    const other = path.join(ROOT, 'evals/cases', dir.name, 'prompt.md');
+    if (!existsSync(other)) continue;
+    assert.doesNotMatch(readFileSync(other, 'utf8'), /harness:allow-secret/, `${dir.name} is suppressing a control it does not need to`);
+  }
 });
 
 test('the generator rewrites its output rather than accumulating it', () => {

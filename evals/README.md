@@ -1,6 +1,6 @@
 # Evals
 
-Twenty golden tasks are the Law 9 floor. The suite grows only when a new task measures a
+22 golden tasks are the Law 9 floor. The suite grows only when a new task measures a
 defect the floor missed. `successor-contract-links-first` proves that a successor contract links
 to the shipped design instead of opening an unconnected artifact chain. Contract tasks also cover
 owned scope, testability, evidence, and refusal of work outside the approved boundary.
@@ -12,6 +12,21 @@ This directory is development tooling for the harness, not part of a consumer sc
 Normal application edit/stop hooks run configured project checks, not these model campaigns.
 Runners write raw output to ignored `.aidlc/evals/`. Curated reports live in
 [`evidence/`](evidence/README.md); older artifact records retain the reports' original paths.
+
+## What the gate holds, and what it does not yet
+
+`evals/expected.json` is the recorded verdict per task, and `harness evals gate` compares the
+newest run against it. A recorded pass that now fails is a regression and blocks; a recorded
+failure that now passes is an improvement and does not.
+
+As recorded: **12 pass, 8 fail, 2 flaky.** The nightly gate step is therefore `continue-on-error` —
+a gate that fails every night is a gate people stop reading. Making it blocking is one measurement
+away and cannot be done by editing this file: each failing task needs a live run to say why it
+fails, and then either its steering is fixed or the task is retired here with the reason. Marking
+a task green without a run that says so is the one move this whole suite exists to make expensive.
+
+When the record has no `fail` and no `flaky`, drop `continue-on-error` from the gate step in
+`.github/workflows/harness.yml` and amend Law 9's enforcement clause to match.
 
 ## Running
 
