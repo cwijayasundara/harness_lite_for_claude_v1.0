@@ -160,6 +160,23 @@ jobs:
       - name: golden suite
         run: node evals/run.mjs --live --max-suite-usd 15
         env: { CLAUDE_CODE_OAUTH_TOKEN: '${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}' }
+      # G21. The same golden tasks in the layout `claude plugin eval` reads, scored by its own
+      # free graders. Two independent gradings of one behaviour disagreeing is a finding, which is
+      # the whole reason for running both. `--ablation with-without` is what produces the
+      # contribution delta: the same case with the plugin and without it.
+      - name: golden tasks in the plugin-eval layout
+        continue-on-error: true   # G23 flips this with the gate below
+        run: |
+          node evals/generate-cases.mjs --check
+          claude plugin eval . --trust-plugin --eval-dir evals/cases \
+            --json evals/evidence/plugin-eval.json --no-publish \
+            --ablation with-without --allow-tools Write Edit \
+            --threshold 0.8 --model "$EVAL_MODEL" --judge-model "$EVAL_MODEL" --max-cost-usd 10
+          node evals/contribution.mjs evals/evidence/plugin-eval.json
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: '${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}'
+          EVAL_MODEL: claude-haiku-4-5-20251001
+
       - name: grade against the recorded baseline
         continue-on-error: true   # G23 flips this once expected.json has no fail and no flaky
         run: node .aidlc/bin/harness evals gate
@@ -167,7 +184,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: nightly-eval-results
-          path: .aidlc/evals/results/
+          path: |
+            .aidlc/evals/results/
+            evals/evidence/
 
   # Explicit subscription usage only. Ordinary PRs never invoke a model.
   evals:
