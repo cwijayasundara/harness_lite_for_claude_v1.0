@@ -186,7 +186,9 @@ test('B7: the results JSON of a fake-invoker run lists the auto-approved artifac
 // campaign step by `task.steps`, which only a campaign task carries. A fake `claude` on PATH
 // dumps its own env so the real code path — not a fake invoker standing in for it — actually
 // runs; no model, no spend.
-test('invoker strips former bypass flags from campaigns and single-prompt tasks', () => {
+// Awaited throughout: the invoker spawns asynchronously now, so reading the stub's env log
+// without waiting reads a file the child has not written yet.
+test('invoker strips former bypass flags from campaigns and single-prompt tasks', async () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'stub-claude-'));
   const envLog = path.join(dir, 'env.txt');
   writeFileSync(path.join(dir, 'claude'), `#!/usr/bin/env bash\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"authMethod":"claude.ai","apiProvider":"firstParty"}'; exit 0; fi\nenv > ${JSON.stringify(envLog)}\necho '{"result":"done","total_cost_usd":0}'\n`);
@@ -197,11 +199,11 @@ test('invoker strips former bypass flags from campaigns and single-prompt tasks'
     const invoke = claudeInvoker({});
 
     // A single-prompt golden task: `task` carries no `steps`.
-    invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'golden-task', prompt: 'x' } });
+    await invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'golden-task', prompt: 'x' } });
     assert.doesNotMatch(readFileSync(envLog, 'utf8'), /^AIDLC_UNATTENDED=/m, 'a single-prompt task must run exactly as it does for a real, attended repository');
 
     // A campaign step: `task.steps` is present, as `evals/run.mjs` builds it.
-    invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'campaign', steps: [{ prompt: 'x' }] }, step: 0 });
+    await invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'campaign', steps: [{ prompt: 'x' }] }, step: 0 });
     assert.doesNotMatch(readFileSync(envLog, 'utf8'), /^AIDLC_(UNATTENDED|EVAL)=/m);
 
     // review `419c0a4` (Blocking 2): the runner must not merely not-add the variable — it must
@@ -210,7 +212,7 @@ test('invoker strips former bypass flags from campaigns and single-prompt tasks'
     const previousUnattended = process.env.AIDLC_UNATTENDED;
     process.env.AIDLC_UNATTENDED = '1';
     try {
-      invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'golden-task', prompt: 'x' } });
+      await invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'golden-task', prompt: 'x' } });
       assert.doesNotMatch(readFileSync(envLog, 'utf8'), /^AIDLC_UNATTENDED=/m, 'inherited from the parent shell, a single-prompt task must still run attended');
     } finally {
       if (previousUnattended === undefined) delete process.env.AIDLC_UNATTENDED;

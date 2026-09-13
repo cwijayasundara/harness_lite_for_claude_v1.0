@@ -1,6 +1,6 @@
 // The real invoker. It is injected rather than imported by the runner, so the runner and the
 // assertion engine are unit-testable with no model, no key and no spend.
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { requireSubscription, subscriptionArgs } from '../../.aidlc/lib/claude-auth.mjs';
 import { resolveBoundary, boundaryArgs } from './boundary.mjs';
 
@@ -58,6 +58,49 @@ export function invokerEnv({ pluginDir = null, base = {} }) {
   return env;
 }
 
+
+// G23. The model call, asynchronously, with `spawnSync`'s result shape so nothing downstream had
+// to change. It was synchronous, which meant the whole Node process blocked for the length of a
+// model call — so `runSuite`'s concurrency pool awaited one task at a time and four lanes ran
+// exactly as fast as one. MEASURED: a 22-task suite took the same ~7 minutes per task either way.
+//
+// `spawnSync` is kept for `requireSubscription`'s own `claude auth status` probe: that is a fast,
+// local call whose result the synchronous preamble needs before it decides anything.
+function runClaude(args, { cwd, env, timeoutMs, maxBuffer = 64 * 1024 * 1024 }) {
+  return new Promise((resolve) => {
+    let child;
+    try { child = spawn('claude', args, { cwd, env }); }
+    catch (error) { resolve({ error, status: null, signal: null, stdout: '', stderr: '' }); return; }
+
+    let stdout = '';
+    let stderr = '';
+    let timedOut = false;
+    let settled = false;
+    // The tail, not the head: the end of a run is where it says why it stopped, and that is what
+    // every reader of this output slices. Capping from the front would throw away the answer.
+    const append = (current, chunk) => {
+      const next = current + chunk;
+      return next.length > maxBuffer ? next.slice(next.length - maxBuffer) : next;
+    };
+    const timer = timeoutMs > 0 ? setTimeout(() => { timedOut = true; child.kill('SIGKILL'); }, timeoutMs) : null;
+    const finish = (extra) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve({ stdout, stderr, status: null, signal: null, ...extra });
+    };
+
+    child.stdout?.on('data', (d) => { stdout = append(stdout, String(d)); });
+    child.stderr?.on('data', (d) => { stderr = append(stderr, String(d)); });
+    child.on('error', (error) => finish({ error }));
+    child.on('close', (status, signal) => finish({
+      status, signal,
+      // The same shape `spawnSync` reports for a timeout, so the caller's one check still works.
+      ...(timedOut ? { error: Object.assign(new Error('spawnSync claude ETIMEDOUT'), { code: 'ETIMEDOUT' }) } : {}),
+    }));
+  });
+}
+
 export function claudeInvoker({ pluginDir, model = null, native = false, comparison = false, boundary = null }) {
   return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task, sandbox = null, phase = 'plan', sessionId = null }) {
     // G20. A `sandbox` argument is what a live product trial passes: a real coding agent with
@@ -89,8 +132,10 @@ export function claudeInvoker({ pluginDir, model = null, native = false, compari
       if (error.code === 'ENOENT') return { notInstalled: true, transcript: '', usage: {}, exitCode: -1, error: 'the `claude` CLI is not on PATH' };
       throw error;
     }
-    const r = spawnSync('claude', args, { cwd, env, encoding: 'utf8', timeout: timeoutMs,
-      killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024 });
+    // Returns a promise from here on. The refusals above stay synchronous on purpose: three tests
+    // assert a throw rather than a rejection, and a boundary refusal that arrived a tick later
+    // would be a refusal something could already have raced past.
+    return runClaude(args, { cwd, env, timeoutMs }).then((r) => {
     // A missing CLI is not a failed task — it is a broken harness, and twenty tasks failing
     // with empty transcripts is the least useful way to say so. Same lesson as exit 127 in the
     // check runner: never let an absent tool masquerade as a verdict.
@@ -132,5 +177,6 @@ export function claudeInvoker({ pluginDir, model = null, native = false, compari
     } catch { /* not JSON: grade the raw transcript, which is still honest */ }
     if (trial && !incomplete && (timedOut || r.status !== 0 || !session)) incomplete = { reason: timedOut ? 'timed_out' : 'cli_incomplete', detail: raw.slice(-2000) };
     return { latencyMs:Date.now()-started, requestedModel:model, transcript, usage, exitCode: r.status ?? -1, timedOut, incomplete, sessionId: session, modelUsage, turns, permissionDenials };
+    });
   };
 }

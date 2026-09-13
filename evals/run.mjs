@@ -324,6 +324,12 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
   // claims its own port — so the only shared thing is the suite budget, which the reservation
   // above makes safe. Results keep task order however the runs finish, because a results file
   // whose order depends on which task happened to be slow is a file nobody can diff.
+  //
+  // This was inert when first written: `claudeInvoker` used `spawnSync`, which blocks the whole
+  // Node process for the length of a model call, so four lanes awaited one at a time and a
+  // 22-task run took the same ~7 minutes per task it took sequentially. The invoker spawns
+  // asynchronously now, and `test/invoker.test.mjs` measures the overlap rather than assuming it —
+  // nothing measured it the first time, which is exactly why the mistake shipped.
   const results = new Array(tasks.length);
   const lanes = Math.max(1, Math.min(Number(concurrency) || 1, 8));
   let next = 0;
