@@ -15,7 +15,13 @@ const PLAN = read('docs/IMPROVEMENT-PLAN.md');
 const HARNESS = read('.aidlc/bin/harness');
 
 // The reviewed set, by name rather than by count, so a swap fails as loudly as an addition.
-const SHIPPED = ['diagnose', 'implement', 'intent', 'map', 'plan', 'spec'];
+//
+// G16 swapped `map` for `design`. `map` was a whole skill to say "ask the index before you grep",
+// which is standing advice rather than a procedure anyone invokes — it is five lines of
+// `.aidlc/instructions.md` now. `design` is the gap that left: resolving the branches of a change
+// before writing it, rather than rationalising them after. The count did not move and neither did
+// the ceiling.
+const SHIPPED = ['design', 'diagnose', 'implement', 'intent', 'plan', 'spec'];
 
 test('B1 the shipped skills are the reviewed six, and the ceiling has not moved', () => {
   const dirs = readdirSync(path.join(A, 'skills'), { withFileTypes: true })
@@ -64,7 +70,18 @@ test('B2 diagnose stays trimmed, and change-safely\'s four unduplicated rules li
   assert.match(implement, /Never write outside .## Files./);
   assert.match(skill('spec'), /supersedes: <slug>#<behaviour-id>/);
   assert.match(skill('spec'), /extends: <slug>/);
-  assert.match(skill('map'), /Revision-specific product context/);
+  // The graph guidance `map` carried is standing advice now, in the file every session loads.
+  const instructions = read('.aidlc/instructions.md');
+  assert.match(instructions, /## Finding your way around/);
+  assert.match(instructions, /graph query callers/);
+  assert.match(instructions, /A miss means grep, not "it does\s+not exist"/);
+  assert.match(instructions, /Revision-specific product context|graph query product\n?--revision|harness graph query product/);
+  // And the skill that replaced it resolves the design before the code exists, not after.
+  assert.match(skill('design'), /Entities/);
+  assert.match(skill('design'), /Approach/);
+  assert.match(skill('design'), /Structure/);
+  assert.match(skill('design'), /Safeguards/);
+  assert.match(skill('design'), /does not write behaviours/);
 });
 
 test('B3 every skill and agent the README presents as shipped exists', () => {

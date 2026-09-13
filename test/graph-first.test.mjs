@@ -41,7 +41,7 @@ test('B2 steering names graph/pack first and Grep as the miss path', () => {
   const surfaces = {
     instructions: read('.aidlc/instructions.md'),
     claude: renderClaudeInstructions(read('.aidlc/instructions.md')),
-    map: read('.aidlc/skills/map/SKILL.md'),
+
     implement: read('.aidlc/skills/implement/SKILL.md'),
   };
   for (const [name, text] of Object.entries(surfaces)) {
@@ -51,11 +51,12 @@ test('B2 steering names graph/pack first and Grep as the miss path', () => {
   assert.match(surfaces.instructions, /pack/);
   assert.match(surfaces.instructions, /miss path|miss,/i);
   assert.match(surfaces.claude, /graph query/);
-  assert.match(surfaces.map, /graph query/);
-  assert.match(surfaces.map, /pack/);
-  assert.match(surfaces.map, /miss/i);
-  assert.doesNotMatch(surfaces.map, /unavailable optional graph does not block/i);
-  assert.doesNotMatch(surfaces.map, /use the\s+graph when it helps/i);
+  // G16 folded the `map` skill into `## Finding your way around` in the instructions, which every
+  // session loads — standing advice belongs where it is always read, not behind an invocation.
+  assert.match(surfaces.instructions, /## Finding your way around/);
+  assert.match(surfaces.instructions, /cache, not an authority/);
+  assert.doesNotMatch(surfaces.instructions, /unavailable optional graph does not block/i);
+  assert.doesNotMatch(surfaces.instructions, /use the\s+graph when it helps/i);
   assert.match(surfaces.implement, /pack|graph query/);
 });
 

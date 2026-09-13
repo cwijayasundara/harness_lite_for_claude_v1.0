@@ -17,18 +17,39 @@ When verified work is delivered, close its intent with `status: closed`.
 
 ## Commands
 
+G16: each line says what healthy output looks like, because "run the checks" without that is an
+instruction whose result nobody can grade.
+
 ```
-.aidlc/bin/harness status                       # current change and approval state
-.aidlc/bin/harness new <slug>                   # create a change's artifacts
-.aidlc/bin/harness doctor                       # configured project commands
-.aidlc/bin/harness check --stage fast --changed  # configured fast checks
-.aidlc/bin/harness check --stage stop            # project tests before completion
-.aidlc/bin/harness check --stage commit          # tests, approved scope and other checks
+.aidlc/bin/harness status                        # the current change and its approvals
+    healthy: one row per open change; "next" names the step, no ERROR lines
+.aidlc/bin/harness doctor                        # the commands this project configured
+    healthy: every verb your toolchain provides reads "set"; "skipped" means no command
+.aidlc/bin/harness check --stage fast --changed  # seconds; run it as you work
+    healthy: PASS or SKIP on every line, exit 0
+.aidlc/bin/harness check --stage stop            # the full suite; run it before saying "done"
+    healthy: PASS test, exit 0. A SKIP on test means no test command is configured
+.aidlc/bin/harness check --stage commit          # + scope, budget, tamper and the ratchets
+    healthy: exit 0. FAIL scope-drift means a file no approved plan names was changed
+.aidlc/bin/harness new <slug>                    # create a change's artifacts
+.aidlc/bin/harness deliver <slug> --live         # implement, check, review, repair, PR
+    healthy: every phase recorded, and a pull request URL at the end
 ```
 
 Invoke these commands for the user. Approval is the human's gate through
 `.aidlc/bin/harness approve <slug> spec|plan --by <identity>`, followed by a commit.
-Never report a task complete without running and pasting the output of `--stage stop` yourself.
+
+## Verification
+
+Never report a task complete without running `--stage stop` yourself and pasting its output. Not
+"the tests should pass" and not "I ran the tests" — the output, in the message that claims the
+work is done. A claim with no output behind it is the one failure mode this whole harness exists
+to make expensive.
+
+If a check cannot run here, say which one and why. An unavailable tool is a fact to report, never
+a reason to describe the work as verified. If a check fails and you believe the check is wrong,
+say that too, and leave it failing: weakening a test or raising a threshold to get a green line is
+the one repair that is never yours to make.
 
 ## Project setup
 
