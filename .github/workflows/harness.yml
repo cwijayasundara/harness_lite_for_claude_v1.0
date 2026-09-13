@@ -88,7 +88,7 @@ jobs:
       # Dependencies belong to the Python example, not the zero-dependency harness.
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: python -m pip install pytest==8.4.2 pytest-json-report==1.5.0 ruff==0.12.12
+      - run: python -m pip install pytest==8.4.2 pytest-json-report==1.5.0 pytest-cov==7.0.0 ruff==0.12.12 mypy==1.19.1
       # Deliberate migration of this disposable CI example to the candidate runtime.
       # The historical example record remains intact in source control.
       - run: node .aidlc/bin/harness init --into examples/scratch-py
@@ -106,6 +106,31 @@ jobs:
       # from the commit in its install record.
       # in a directory that had no bin/ at all and died on `Cannot find module`.
       - run: .aidlc/bin/harness baseline check
+        working-directory: examples/scratch-py
+        env:
+          HARNESS_HOME: ${{ github.workspace }}/.aidlc
+
+      # G12. The TypeScript twin. The two examples exist to prove Law 6 — that a language is a
+      # table of commands and not a plugin — and a claim with only one language behind it is half
+      # a claim. Both run every verb `harness init` detected for them, from the same registry the
+      # detector wrote.
+      - run: npm ci
+        working-directory: examples/scratch-ts
+      - run: node .aidlc/bin/harness init --into examples/scratch-ts
+      - run: .aidlc/bin/harness doctor
+        working-directory: examples/scratch-ts
+        env:
+          HARNESS_HOME: ${{ github.workspace }}
+      - run: .aidlc/bin/harness check --stage stop --all
+        working-directory: examples/scratch-ts
+        env:
+          HARNESS_HOME: ${{ github.workspace }}/.aidlc
+      - run: .aidlc/bin/harness check --stage drift --all
+        working-directory: examples/scratch-ts
+        env:
+          HARNESS_HOME: ${{ github.workspace }}/.aidlc
+      # The Python example's own drift stage, now that coverage and deps are configured for it.
+      - run: .aidlc/bin/harness check --stage drift --all
         working-directory: examples/scratch-py
         env:
           HARNESS_HOME: ${{ github.workspace }}/.aidlc

@@ -139,6 +139,36 @@ with the selected tests); unset, it is `skipped` like any other capability a pro
 configured, and never a silent fall back to the full run. The full suite belongs to
 `harness deliver`, once per iteration, and `harness check --stage stop` stays one command away.
 
+## The registry fills itself where it can
+
+`harness init` reads the project's own manifests — `package.json`, `tsconfig.json`, an eslint
+config, `pyproject.toml`, `requirements.txt`, `go.mod` — and writes the capability verbs it can see
+the tooling for. It reads what the project *declares*, never what happens to be on the machine, so
+two installs of one repository produce the same registry and a laptop with `mypy` on PATH does not
+configure a check CI cannot run. `harness init --detect` prints what it sees and exits.
+
+What it cannot see stays empty, and an empty verb is `skipped` — never `failed`. Detection fills an
+empty verb and never overwrites a configured one: a hand-written command is a decision, and
+re-running `init` must not undo it. A verb emptied deliberately stays empty; `--redetect` fills it
+again, and `--no-detect` skips detection entirely.
+
+For TypeScript it writes `tsc --noEmit`, `eslint`, `prettier` when declared, the project's test
+runner (`vitest` if declared, otherwise `tsc` plus `node --test`), node's built-in coverage in lcov
+form, and `npm outdated`. For Python: `ruff format`/`ruff check`, `mypy`, `pytest`, `pytest --cov`,
+and `pip list --outdated`. A Go module is recognised and reported; the harness ships no Go verb set
+yet, and a stack it cannot fill is named rather than guessed at.
+
+The `lint` verb assumes the project's eslint config carries the three complexity rules the harness
+documents, at these thresholds: `complexity` 10, `max-lines-per-function` 60, `max-params` 4. They
+are errors, not warnings — `harness check` grades a verb by its exit code, and a rule that only
+warns is a rule the loop never has to answer for. The harness does not write them into anyone's
+eslint config; that file belongs to the project. `examples/scratch-ts/eslint.config.js` is the
+worked example.
+
+Two verbs the detector never fills: `arch`, which has no generic tool (a project adds a layering
+command — see the opt-in verbs), and `secrets`, which needs no command because the harness's own
+scanner runs when it is empty.
+
 ## The delivery engine: `harness deliver`
 
 `harness deliver <slug> --live` drives the seven phases between the plan approval and the merge

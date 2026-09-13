@@ -31,6 +31,7 @@ const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: r
 import * as artifacts from '../lib/artifacts.mjs';
 import * as intake from '../lib/intake.mjs';
 import { renderClaudeInstructions, renderModel } from '../lib/projection.mjs';
+import { detect, applyDetection, detectionReport } from '../lib/toolchain.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const PLUGIN_ROOT = path.dirname(HERE);
@@ -153,10 +154,32 @@ async function main() {
       const root = path.resolve(flag('into', process.cwd()));
       const L = layout(root);
       const self = path.resolve(L.aidlc) === path.resolve(HERE);
+      // Whether this project already had a registry before this invocation: a fresh one is filled
+      // from detection, an existing one is only ever reported on unless `--redetect` says so.
+      const reinstallConfig = existsSync(L.config);
       for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.artifacts, L.state]) mkdirSync(d, { recursive: true });
       for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/gitignore', path.join(L.aidlc, '.gitignore')]]) {
         if (!existsSync(dst)) cpSync(path.join(HERE, src), dst);
       }
+
+      // G12. An empty verb is `skipped`, which is honest and completely silent: a project
+      // installed the harness, ran `doctor`, saw nine dashes, and got a governance kernel with no
+      // sensors attached to it. Filling them by hand was the step nobody did.
+      //
+      // Detection reads the project's own manifests, never this machine, and it only ever fills a
+      // verb that is empty — a configured command is a decision, and re-running `init` must not
+      // quietly undo it. `--no-detect` opts out; `--redetect` fills verbs left empty since.
+      const detected = detect(root);
+      if (!has('no-detect')) {
+        const filled = applyDetection(readFileSync(L.config, 'utf8'), detected);
+        if (filled.filled.length && (!reinstallConfig || has('redetect'))) {
+          writeFileSync(L.config, filled.toml);
+          console.error(`detected toolchain: filled ${filled.filled.join(', ')} in ${path.relative(root, L.config)}`);
+        } else if (filled.filled.length) {
+          console.error(`toolchain detected verbs this registry leaves empty (${filled.filled.join(', ')}); re-run with --redetect to fill them`);
+        }
+      }
+      if (has('detect')) { console.log(detectionReport(detected, VERBS)); return 0; }
       // Whether this is an install or a re-run. On a first install the project's existing
       // CLAUDE.md is adopted as the canonical source and then re-rendered with the generated
       // header, so its content legitimately changes — that is installing, not invalidating.
@@ -608,6 +631,8 @@ async function main() {
       console.log(`harness — the lean SDLC harness
 
   harness init [--into DIR]        create .aidlc/ plus selected provider projections
+    [--detect]                     print what the toolchain detector sees, and exit
+    [--redetect] [--no-detect]     fill verbs left empty since install / skip detection
   harness doctor                   capability verbs and budget
   harness check --stage <s>        run a stage   (--changed  --all  --json)
     --base <ref> --candidate <ref>  check the full candidate diff (candidate must be HEAD)
