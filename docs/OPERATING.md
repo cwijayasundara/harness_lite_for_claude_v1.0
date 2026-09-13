@@ -237,6 +237,33 @@ Two verbs the detector never fills: `arch`, which has no generic tool (a project
 command — see the opt-in verbs), and `secrets`, which needs no command because the harness's own
 scanner runs when it is empty.
 
+## A consumer's CI: checks are the gate, the review is advice
+
+`harness init --ci` writes `.github/workflows/harness.yml` into the project. On every pull request
+it runs `harness check --stage fast` over the candidate diff — that is the gate; it fails the build
+and branch protection can require it — and then asks the evaluator model for an independent review
+and posts one comment.
+
+The comment is advice, and stays advice. The harness posts a comment and nothing else: no pull
+request review, no approval, no status check. A machine that could satisfy a review requirement
+would not be a review requirement. **Configure the merge gate in branch protection**: require the
+workflow's check, require a review from CODEOWNERS, and do not grant the workflow token permission
+to approve. The workflow asks for `contents: read` and `pull-requests: write` and needs nothing
+more.
+
+The review returns structured findings against `.aidlc/schemas/review-findings.schema.json`, so the
+CLI validates the shape before the harness sees it. Each finding carries a `detected_pattern` — a
+short slug naming the recurring class it belongs to — and findings are deduped against what the
+harness has already said on that pull request, by file, pattern and title rather than by line: a
+defect that moved down the file is the same defect, and re-posting it on every push is how a bot
+teaches people to stop reading it. Nothing is stored for this; the pull request already remembers
+what was said on it.
+
+A clean review posts one record that it ran and then stays quiet. An incomplete review (a timeout)
+posts nothing: a partial review rendered as a comment reads exactly like a complete one that found
+less. A missing `CLAUDE_CODE_OAUTH_TOKEN` skips the review and says so in the job log — the checks
+still gate the pull request, and an absent credential must never look like a clean review.
+
 ## The delivery engine: `harness deliver`
 
 `harness deliver <slug> --live` drives the seven phases between the plan approval and the merge

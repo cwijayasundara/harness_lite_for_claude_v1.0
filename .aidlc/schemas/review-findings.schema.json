@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "harness review findings",
+  "description": "G17. The shape a headless review returns so a machine can dedupe it, count it and post it. Prose is still allowed — it lives in `detail` — but the parts a pipeline has to reason about are fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "findings"],
+  "properties": {
+    "verdict": {
+      "description": "The reviewer's own last word. It advises the merge decision and never makes it.",
+      "enum": ["approve", "changes-requested"]
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["severity", "file", "title", "detail", "detected_pattern"],
+        "properties": {
+          "severity": { "enum": ["blocking", "important", "nit"] },
+          "file": { "type": "string", "description": "Repository-relative path this finding is about." },
+          "line": { "type": "integer", "minimum": 0, "description": "1-indexed line, or 0 when the finding is about the file as a whole." },
+          "title": { "type": "string", "maxLength": 120, "description": "One line, specific enough to recognise on a second pull request." },
+          "detail": { "type": "string", "description": "The evidence and the reasoning, in prose." },
+          "detected_pattern": {
+            "type": "string",
+            "maxLength": 60,
+            "description": "A short kebab-case slug naming the recurring class this finding is an instance of, such as unchecked-error-path or assertion-relaxed. The same defect on a later pull request must produce the same slug: this is what lets a repeat class be counted rather than rediscovered."
+          },
+          "fix": { "type": "string", "description": "One sentence written for the model: the judgment to make, not a restatement of the problem." }
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "What this review could not establish. No tests were run by it; say so, and say what else was out of reach."
+    }
+  }
+}

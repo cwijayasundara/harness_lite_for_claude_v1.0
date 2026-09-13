@@ -8,7 +8,7 @@ import { RUNTIME_PATHS, installationIdentity, runtimeIdentity, policyIdentity, s
 import { productContext, renderProduct, revisionPack, renderRevisionPack } from '../lib/product-context.mjs';
 import { coordination, coordinationLines } from '../lib/coordination.mjs';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, chmodSync, readdirSync, rmSync } from 'node:fs';
-import { execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfig, VERBS } from '../lib/config.mjs';
@@ -23,6 +23,7 @@ import * as codemap from '../lib/map.mjs';
 import { measure, shipped, RECORD } from '../checks/budget.mjs';
 import { dispatch } from '../hooks/dispatch.mjs';
 import { review, hostReview } from '../lib/review.mjs';
+import * as prReview from '../lib/pr-review.mjs';
 import { deliver, deliverInvoker, ghPullRequest, readState, PHASES } from '../lib/deliver.mjs';
 import { changedFiles as diffFiles, prChange } from '../lib/diff.mjs';
 import * as evalGate from '../lib/eval-gate.mjs';
@@ -180,6 +181,20 @@ async function main() {
         }
       }
       if (has('detect')) { console.log(detectionReport(detected, VERBS)); return 0; }
+
+      // G17. `--ci` writes the consumer's own workflow: deterministic checks as the gate, an
+      // independent review as one deduped comment, and branch protection as the merge gate. It is
+      // written once and never overwritten — a CI file is a project's own, and a generator that
+      // rewrote it would take that back on every install.
+      if (has('ci')) {
+        const workflow = path.join(root, '.github', 'workflows', 'harness.yml');
+        if (existsSync(workflow) && !has('force')) console.error(`kept ${path.relative(root, workflow)} — it is yours; delete it and re-run with --ci to regenerate`);
+        else {
+          mkdirSync(path.dirname(workflow), { recursive: true });
+          cpSync(path.join(HERE, 'templates', 'consumer-ci.yml'), workflow);
+          console.error(`wrote ${path.relative(root, workflow)} — set CLAUDE_CODE_OAUTH_TOKEN in repository secrets, and require this check plus a code-owner review in branch protection`);
+        }
+      }
       // Whether this is an install or a re-run. On a first install the project's existing
       // CLAUDE.md is adopted as the canonical source and then re-rendered with the generated
       // header, so its content legitimately changes — that is installing, not invalidating.
@@ -547,6 +562,38 @@ async function main() {
         console.log(JSON.stringify(result, null, 2));
         return result.verified ? 0 : 1;
       }
+      // G17. The headless path: structured findings, deduped against what the harness already said
+      // on this pull request, posted as one comment. It posts a comment and nothing else — no
+      // review, no approval, no status check. Branch protection and a code-owner review are the
+      // merge gate, and a machine that could satisfy that gate would not be a gate.
+      if (has('comment')) {
+        const repo = flag('repo');
+        const pr = flag('pr');
+        if (!repo || !pr) { console.error('usage: harness review --comment --repo <owner/name> --pr <number> --base <ref> --candidate <ref>'); return 2; }
+        const out = flag('out', '.aidlc/state/review-findings.json');
+        const result = review({ root: cfg.layout.root, base: flag('base'), candidate: flag('candidate'),
+          output: out, model: cfg.models?.evaluator, budgetUsd: Number(flag('budget-usd', 2)),
+          timeoutMs: has('timeout') ? Number(flag('timeout')) : null,
+          schema: prReview.reviewSchema(), fullTree: has('full-tree') });
+        if (result.status === 'incomplete') {
+          console.error(`review incomplete (${result.reason}); no comment posted — a partial review is not a review`);
+          return 1;
+        }
+        const report = readFileSync(path.resolve(cfg.layout.root, out), 'utf8');
+        const parsed = prReview.parseFindings(report.slice(report.indexOf('{')));
+        const comments = prReview.ghComments({ repo, pr, run: spawnSync });
+        const { fresh, repeated } = prReview.dedupeFindings(parsed.findings, comments);
+        if (!prReview.shouldComment({ fresh, repeated, comments })) {
+          console.log(JSON.stringify({ posted: false, fresh: 0, repeated: repeated.length, verdict: parsed.verdict }, null, 2));
+          return 0;
+        }
+        const body = prReview.renderReviewComment({ findings: fresh, repeated, verdict: parsed.verdict,
+          limitations: parsed.limitations, base: result.base, candidate: result.candidate, model: cfg.models?.evaluator });
+        const url = prReview.postComment({ repo, pr, body, run: spawnSync });
+        console.log(JSON.stringify({ posted: true, url, fresh: fresh.length, repeated: repeated.length, verdict: parsed.verdict }, null, 2));
+        return 0;
+      }
+
       // G02: the reviewer reads the change's neighbourhood. The plan's `## Files` is the scope, the
       // graph supplies the importers, and the change's own artifacts come along because compliance
       // is judged against them. `--full-tree` opts out; an unselected or unapproved change has no
@@ -633,6 +680,7 @@ async function main() {
   harness init [--into DIR]        create .aidlc/ plus selected provider projections
     [--detect]                     print what the toolchain detector sees, and exit
     [--redetect] [--no-detect]     fill verbs left empty since install / skip detection
+    [--ci]                         write .github/workflows/harness.yml for this project
   harness doctor                   capability verbs and budget
   harness check --stage <s>        run a stage   (--changed  --all  --json)
     --base <ref> --candidate <ref>  check the full candidate diff (candidate must be HEAD)
@@ -648,6 +696,8 @@ async function main() {
     [--full-tree]                export the whole candidate, not the plan's neighbourhood
   harness review --repo owner/name --pr <number> --candidate <commit> --out <file>
                                  read-only GitHub approval evidence (JSON)
+  harness review --comment --repo owner/name --pr <n> --base <ref> --candidate <ref>
+                                 headless review posted as one deduped PR comment
   harness deliver <slug> --live    implement, check, refactor, review, repair, check, PR
     [--dry]                        print the phases, models and bounds; spend nothing
     [--status]                     print the recorded phases of an interrupted run
