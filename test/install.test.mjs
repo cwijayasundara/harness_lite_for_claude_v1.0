@@ -35,7 +35,7 @@ test('a fresh scaffold contains only consumer files and empty project state', (t
   assert.deepEqual(files, [
     '.aidlc/.gitignore', '.aidlc/bin/harness', '.aidlc/harness-install.json',
     '.aidlc/harness.toml', '.aidlc/instructions.md', '.aidlc/policies/review.md',
-    '.claude/CLAUDE.md', '.claude/settings.json',
+    '.claude/CLAUDE.md', '.claude/settings.json', 'CLAUDE.md',
   ]);
   assert.deepEqual(readdirSync(path.join(root, '.aidlc/artifacts')), []);
   assert.deepEqual(readdirSync(path.join(root, '.aidlc/state')), []);
@@ -44,6 +44,9 @@ test('a fresh scaffold contains only consumer files and empty project state', (t
 test('fresh consumer instructions describe the executable workflow', (t) => {
   const root = installed(t);
   const instructions = readFileSync(path.join(root, '.claude/CLAUDE.md'), 'utf8');
+  const rootInstructions = readFileSync(path.join(root, 'CLAUDE.md'), 'utf8');
+  assert.equal(rootInstructions, instructions,
+    'the root CLAUDE.md must carry the complete generated Claude projection');
   assert.match(instructions, /intent -> spec.*-> plan.*-> implement -> review -> merge/);
   assert.doesNotMatch(instructions, /delivery contract|spec seal|plan seal|models resolve/);
   assert.match(instructions, /harness status/);
@@ -193,23 +196,21 @@ test('nothing init writes is specific to the machine that ran it', (t) => {
   }
 });
 
-// Spec behaviour 10. This repository is the harness *and* a project governed by it, and its
-// .claude/ is also the plugin root — so a maintainer who has the plugin installed would load
-// every guide twice and fire every binding twice. Observed live while measuring the install
-// mechanism during the intent. It keeps its own wiring, so an edit to a sensor takes effect on
-// the next turn rather than after a plugin reinstall, and disables the published plugin here.
-test('this repository consumes its own harness exactly once', () => {
+// The harness must not govern the process that builds the harness. In particular, wiring its
+// Stop hook here makes a turn-ending check run the suite that is changing that same check, which
+// can repeatedly prevent the session from stopping. Consumer installs remain covered above.
+test('this repository does not activate the harness it is building', () => {
   const settings = readJson(path.join(C, 'settings.json'));
   const name = readJson(PLUGIN).name;
+  const instructions = readFileSync(path.join(C, 'CLAUDE.md'), 'utf8');
 
   assert.equal(settings.enabledPlugins?.[`${name}@${name}`], false,
-    'the published plugin must be disabled here, or the harness loads twice in its own repository');
-  assert.ok(settings.hooks, 'this repository wires its own hooks: it is the harness');
-  const wiring = JSON.stringify(settings.hooks);
-  assert.equal(/\/(Users|home)\//.test(wiring), false,
-    'the hook commands name one machine, so they are inert in every other clone and in CI');
-  assert.match(wiring, /\$\{CLAUDE_PROJECT_DIR\}/,
-    'hook commands resolve through ${CLAUDE_PROJECT_DIR} so any clone runs them');
+    'the published plugin must be disabled in its own source repository');
+  assert.equal('hooks' in settings, false,
+    'project-local hooks activate the harness while the harness itself is being built');
+  assert.match(instructions, /Do not activate or invoke the harness workflow/);
+  assert.doesNotMatch(instructions, /## AIDLC workflow|harness new <slug>|resume the first incomplete stage/,
+    'CLAUDE.md must not steer Claude into running the product while building the product');
 });
 
 // Spec behaviour 13. The banner is the first instruction the harness gives itself every

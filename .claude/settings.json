@@ -2,54 +2,6 @@
   "enabledPlugins": {
     "lean-harness-cs-v1@lean-harness-cs-v1": false
   },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.aidlc/bin/harness\" hook session-start",
-            "timeout": 10
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.aidlc/bin/harness\" hook pre-tool",
-            "timeout": 10
-          }
-        ],
-        "matcher": "Write|Edit|MultiEdit|Bash|Grep|Glob"
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.aidlc/bin/harness\" hook post-write",
-            "timeout": 120
-          }
-        ],
-        "matcher": "Write|Edit|MultiEdit"
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/.aidlc/bin/harness\" hook stop",
-            "timeout": 180
-          }
-        ]
-      }
-    ]
-  },
   "permissions": {
     "allow": [
       "Edit(.aidlc/artifacts/**)",

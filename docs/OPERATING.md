@@ -325,9 +325,9 @@ diff shows the commit moving, so a harness upgrade is reviewed like any other ch
 
 ## Known limitation of running this on the harness repo
 
-The harness currently governs its own development, which is a real test — v6's `.claude` was
-invisible to its own graph *and* exempt from its own gates, and this is the inverse of both. But
-a ledger built only here describes harness development, not the product work a team does. The
+The harness source repository deliberately does not activate its own Claude hooks; consumer
+fixtures and product trials provide the real test. A ledger built only here would describe
+harness development, not the product work a team does. The
 controls that matter to a team building services — `arch`, `coverage`, `typecheck` — will read
 `skipped` here forever, because this repo has no toolchain to run them.
 

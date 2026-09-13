@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { BIN, ROOT } from './_paths.mjs';
 import { product } from './_coordination-product.mjs';
 import * as a from '../.aidlc/lib/artifacts.mjs';
+import { renderClaudeInstructions } from '../.aidlc/lib/projection.mjs';
 
 const read = rel => readFileSync(path.join(ROOT, rel), 'utf8');
 const cli = (cwd, ...args) => execFileSync(process.execPath, [BIN, ...args], { cwd, encoding: 'utf8' });
@@ -48,10 +49,13 @@ test('B3 product query still needs an exact revision; delivery keys and pack opt
   assert.doesNotMatch(harness, /case 'schedule'|case 'assign'/);
 });
 
+// `claude` is the consumer projection rendered from the canonical instructions, not this
+// repository's own .claude/CLAUDE.md — that file is a non-activating stub here, so reading it
+// would stop proving anything about the steering consumers actually receive.
 test('B4 steering prefers tracker links and git show/git grep over a local delivery platform', () => {
   const surfaces = {
     instructions: read('.aidlc/instructions.md'),
-    claude: read('.claude/CLAUDE.md'),
+    claude: renderClaudeInstructions(read('.aidlc/instructions.md')),
     intent: read('.aidlc/skills/intent/SKILL.md'),
     plan: read('.aidlc/skills/plan/SKILL.md'),
     map: read('.aidlc/skills/map/SKILL.md'),

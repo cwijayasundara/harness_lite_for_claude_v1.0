@@ -26,6 +26,7 @@ export function layout(root = findRepoRoot()) {
     instructions: path.join(aidlc, 'instructions.md'),
     reviewPolicy: path.join(aidlc, 'policies', 'review.md'),
     claudeMd: path.join(claude, 'CLAUDE.md'),
+    rootClaudeMd: path.join(root, 'CLAUDE.md'),
     // One directory per change: .aidlc/artifacts/<slug>/{intent,spec,plan,review}.md. The nine
     // fixed subdirectories this replaced were the contract layout, and `init` kept recreating
     // them empty in every project long after anything read them.

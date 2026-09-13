@@ -1,7 +1,8 @@
 # lean-harness
 
 A harness for Claude Code: guides, sensors, and the ledger that decides which survive.
-This repo governs its own development with the harness it ships. There is no self-exemption.
+This repository builds the harness and is self-exempt: its Claude plugin and project hooks stay
+disabled here to avoid recursively running the harness while changing it.
 
 ## AIDLC workflow
 

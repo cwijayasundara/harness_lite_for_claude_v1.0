@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { A, C, ROOT } from './_paths.mjs';
+import { renderClaudeInstructions } from '../.aidlc/lib/projection.mjs';
 
 const read = (rel) => readFileSync(path.join(ROOT, rel), 'utf8');
 const frontmatter = (text) => {
@@ -33,10 +34,13 @@ test('B1 explorer can run graph lookup and still cannot write', () => {
   assert.doesNotMatch(md, /\bWrite\b|\bEdit\b/);
 });
 
+// The Claude surface is the projection a *consumer* project gets, rendered from the canonical
+// instructions. This repository's own .claude/CLAUDE.md is deliberately a short non-activating
+// stub — reading it here would test the harness source repo's wiring, not the steering shipped.
 test('B2 steering names graph/pack first and Grep as the miss path', () => {
   const surfaces = {
     instructions: read('.aidlc/instructions.md'),
-    claude: read('.claude/CLAUDE.md'),
+    claude: renderClaudeInstructions(read('.aidlc/instructions.md')),
     map: read('.aidlc/skills/map/SKILL.md'),
     implement: read('.aidlc/skills/implement/SKILL.md'),
   };

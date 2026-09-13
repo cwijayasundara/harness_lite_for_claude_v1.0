@@ -54,6 +54,7 @@ This creates an agent-neutral control plane plus the Claude adapter declaration:
 .claude/
   CLAUDE.md             ← generated Claude projection; do not edit
   settings.json         ← generated; enables the Claude adapter plugin
+CLAUDE.md               ← generated root copy for Claude Code discovery
 ```
 
 Note what is **not** there: no copy of the harness. Your project declares which version it uses;
@@ -69,10 +70,11 @@ fetch the exact harness commit you installed.
 ### What goes into a new repository
 
 Scaffold with `harness init --into /path/to/project`; do not copy this repository wholesale.
-The scaffold contains eight files: the project config, canonical instructions, review policy,
-`.aidlc/.gitignore`, the CLI shim and install record, plus `.claude/CLAUDE.md` and
-`.claude/settings.json`. Its artifact and runtime-state directories start empty. Your existing
-project instructions and configuration are preserved when you re-run the installer.
+The scaffold contains nine files: the project config, canonical instructions, review policy,
+`.aidlc/.gitignore`, the CLI shim and install record, `.claude/CLAUDE.md`, `.claude/settings.json`,
+and a comprehensive root `CLAUDE.md` generated from the same projection. Its artifact and
+runtime-state directories start empty. Your existing project instructions and configuration are
+preserved when you re-run the installer.
 
 The executable checks, skills and hooks come from the shared Claude plugin installed below.
 The scaffold is not a standalone copy of that plugin. This repository's development history,
