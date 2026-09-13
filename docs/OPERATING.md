@@ -237,6 +237,30 @@ Two verbs the detector never fills: `arch`, which has no generic tool (a project
 command — see the opt-in verbs), and `secrets`, which needs no command because the harness's own
 scanner runs when it is empty.
 
+## One harness per machine
+
+An agent is selected by name. Two installed plugins that both define `evaluator` are two different
+sets of instructions answering to one name, and nothing in a run records which one answered — so a
+campaign can obtain its "independent review" from a reviewer belonging to a different harness
+entirely, and every number that run produces is about something nobody meant to measure.
+
+`harness doctor` reports it. On a clean machine it says so; on one with a clash it names the agent,
+the plugin, the marketplace and the version, and gives the uninstall command. It reports and
+refuses nothing: which plugins an operator keeps installed is their decision, and this repository
+does not legislate for the rest of their machine. What it must not do is let the clash stay
+invisible.
+
+MEASURED 2026-09-13 on the machine this was developed on: `harness-eng-v2@harness-eng-v2` v2.0.0
+defines a bare `evaluator` and collides. `harness@harness-local` v0.3.1 — the one the completion
+plan named as the problem — turned out to be namespaced already (`harness-evaluator`,
+`harness-generator`) and collides with nothing. That is the reason this is a check rather than a
+one-off uninstall: the plan's guess about which plugin was at fault was wrong, and a person
+repeating that guess would have removed the harmless one and kept the clash.
+
+The other half is the eval invoker's `--setting-sources project,local`: what the suite measures
+must not depend on whose laptop runs it, so a run sees the fixture's own `.claude/` and the harness
+plugin, and nothing from `~`.
+
 ## Live product trials, and what their boundary is worth
 
 A product trial turns a real coding agent loose on a seeded fixture with Write, Edit and Bash. It

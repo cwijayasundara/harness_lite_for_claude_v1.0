@@ -25,6 +25,7 @@ import { dispatch } from '../hooks/dispatch.mjs';
 import { review, hostReview } from '../lib/review.mjs';
 import * as prReview from '../lib/pr-review.mjs';
 import * as release from '../lib/release.mjs';
+import { collisions, collisionLines } from '../lib/agent-collisions.mjs';
 import { deliver, deliverInvoker, ghPullRequest, readState, PHASES } from '../lib/deliver.mjs';
 import { changedFiles as diffFiles, prChange } from '../lib/diff.mjs';
 import * as evalGate from '../lib/eval-gate.mjs';
@@ -315,12 +316,21 @@ async function main() {
       // `?`, never `0`: a surface the budget could not account for must not read as an empty one.
       console.log(`\nbudget    ${Object.entries(m).map(([k, v]) => `${k}=${v ?? '?'}/${cfg.limits[k] ?? '-'}`).join('  ')}`);
       const market = path.join(cfg.layout.root, '.claude-plugin/marketplace.json');
+      let selfPlugin = null;
       if (existsSync(market)) {
         try {
           const plugins = JSON.parse(readFileSync(market, 'utf8')).plugins ?? [];
+          selfPlugin = plugins[0]?.name ?? null;
           console.log(`plugins   ${plugins.map((p) => p.name).join(', ') || '(none)'}`);
         } catch { /* marketplace is advisory */ }
       }
+      // G05. An agent is selected by name, so a second installed plugin defining `evaluator` is a
+      // run that can obtain its independent review from a different harness and say nothing about
+      // it. Reported, never refused: which plugins an operator keeps is their decision, and this
+      // repository does not legislate for the rest of their machine.
+      try {
+        console.log(collisionLines(collisions({ rolesDir: path.join(HERE, 'roles'), self: selfPlugin })).join('\n'));
+      } catch { /* a diagnostic that cannot read the plugin cache reports nothing, not an error */ }
       return identityOK ? 0 : 1;
     }
 
