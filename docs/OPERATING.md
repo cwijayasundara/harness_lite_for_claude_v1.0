@@ -161,6 +161,32 @@ inputs: an uncommitted or edited `intent.md` invalidates the spec's binding, so 
 in a file nobody committed does not pass a gate. Use `--json` for CI or a weekly report. Flow
 targets are a parked candidate below, not a thing this harness measures today.
 
+## Provenance is optional, and binding once declared
+
+An intent may name where its requirements came from:
+
+```yaml
+source: requirements.md
+source_revision: <exact commit>
+```
+
+Both or neither. With them, the spec approval records `source_kind`, the resolved revision and a
+digest of the document, and `read()` reports a stale approval if the declaration later changes —
+the binding pins a revision, so later edits to the file itself do not invalidate it. Without
+them the approval records `source_kind: unbound` and `harness status` prints `binding: spec
+unbound`, which is a fact about the change rather than a defect in it.
+
+This used to be mandatory. It cost more than it bought: a control-band breach, a PRD paragraph
+and an incident report are all legitimate origins, and none is a committed blob at a revision
+anybody can name in advance — `examples/maintain/band-to-intent.mjs` writes `status: draft` and
+nothing else, so the maintain edge could not reach its own first gate. The `## Requirements`
+table follows the same rule: validated when present, not demanded when absent, because a table
+invented to satisfy a checker records nothing.
+
+Unchanged: `approve` still refuses an uncommitted artifact, a half-declaration (`source` without
+`source_revision`, or a path that does not resolve to a committed file) is still refused, and a
+present Requirements table must still cover every numbered behaviour exactly once.
+
 ## A gate is a policy, not a constant
 
 `[gates]` in `harness.toml` sets each gate's mode. The default, for a project that says nothing,

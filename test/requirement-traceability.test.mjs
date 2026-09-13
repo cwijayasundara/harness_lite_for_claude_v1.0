@@ -63,12 +63,35 @@ test('product: new approval binds intent, semantic metadata and dependent plan',
   } finally { s.cleanup(); }
 });
 
-test('legacy approval stays readable but new approval cannot omit trace inputs or bypass them', () => {
+// G07 changed the first clause of this test. An approval no longer *requires* trace inputs: an
+// intent that names no source is approvable and records `unbound`. What it still cannot do is
+// declare a source badly, or carry a Requirements table that does not hold together.
+test('legacy approval stays readable; a new approval records what the intent declares and refuses a broken declaration', () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
     const cfg = ({ ...loadConfig(s.work), gates: HUMAN });
-    assert.equal(a.read(cfg, slug, 'spec').binding, 'legacy/unbound');
+    assert.equal(a.read(cfg, slug, 'spec').binding, 'legacy/unbound',
+      'an approval from before this binding existed was never verified and still says so');
+
+    // The fixture's intent declares no source and its spec has no Requirements table. Before
+    // G07 this was two refusals; it is now an approval that records having nothing to bind to.
+    commit(s.work);
+    a.approve(cfg, slug, 'spec', { by: 'simulation', anyway: 'test' });
+    const unbound = a.read(cfg, slug, 'spec');
+    assert.equal(unbound.state, 'approved');
+    assert.equal(unbound.binding, 'unbound', 'verified, and bound to nothing because nothing was declared');
+    assert.equal(unbound.front.source_kind, 'unbound');
+    assert.equal(unbound.front.source, undefined);
+    assert.equal(unbound.bindingError, null);
+
+    // Half a declaration is still a mistake: a reference nobody can resolve.
+    edit(cfg, 'intent', text => {
+      const { front, body } = a.parse(text);
+      return a.render({ ...front, source: 'src/app/text.py' }, body);
+    });
+    commit(s.work);
     assert.throws(() => a.approve(cfg, slug, 'spec', { by: 'simulation', anyway: 'test' }), /source/);
+
     prepare(cfg);
     edit(cfg, 'spec', text => text.replace('| local:spaces | B2 |', '| local:spaces | B99 |'));
     commit(s.work);
