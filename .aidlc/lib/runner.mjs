@@ -32,6 +32,7 @@ export const LOCAL_CHECKS = {
   budget: () => import('../checks/budget.mjs'),
   tamper: () => import('../checks/tamper.mjs'),
   baseline: () => import('../checks/baseline.mjs'),
+  proof: () => import('../checks/proof.mjs'),
 };
 
 function interpolate(cmd, files, reportPath) {
@@ -121,7 +122,15 @@ export async function runOne(cfg, verb, files, results) {
     if (existsSync(reportPath)) rmSync(reportPath, { force: true });
     // `-c` inherits PATH. `-lc` replaces it with the login profile and then grades
     // whichever python3 that profile happens to put first, not the change.
-    const r = spawnSync('bash', ['-c', full], { cwd: cfg.layout.root, encoding: 'utf8', timeout: 180000, maxBuffer: 32 * 1024 * 1024 });
+    //
+    // G13: minus node's private test-runner context. `NODE_TEST_CONTEXT` tells a `node --test`
+    // process that it is a subtest of a parent runner, so it reports to that parent instead of
+    // through its own reporter — MEASURED: a coverage command run this way exited 0 and wrote no
+    // lcov file at all, so the verb "passed" having produced nothing. Any project whose test or
+    // coverage command is node's runner hits this whenever `harness check` is itself invoked
+    // from a test, which is how this repository exercises its own stages.
+    const { NODE_TEST_CONTEXT, ...env } = process.env;
+    const r = spawnSync('bash', ['-c', full], { cwd: cfg.layout.root, env, encoding: 'utf8', timeout: 180000, maxBuffer: 32 * 1024 * 1024 });
     if (r.error) return { ...base, verdict: 'errored', ms: Date.now() - started, command: full, error: r.error.message };
     if (r.signal) return { ...base, verdict: 'errored', ms: Date.now() - started, command: full, error: `terminated by ${r.signal}` };
     const fmt = cfg.formats[verb] ?? 'generic';

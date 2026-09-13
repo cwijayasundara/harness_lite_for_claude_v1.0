@@ -139,6 +139,29 @@ with the selected tests); unset, it is `skipped` like any other capability a pro
 configured, and never a silent fall back to the full run. The full suite belongs to
 `harness deliver`, once per iteration, and `harness check --stage stop` stays one command away.
 
+## Coverage ratchets, and every behaviour names its proof
+
+`test_quality` is gone. It counted `test(` occurrences in files whose names looked like tests —
+it could not tell a suite from a file of comments, and across roughly ninety recorded runs it
+never fired. Two smaller and truer controls replace it.
+
+**The coverage ratchet.** `harness baseline capture` runs the project's `coverage` verb and records
+`coverage_lines_pct` from whatever it wrote — `lcov` (node, vitest, most JavaScript toolchains) or
+`coverage.py` JSON (`pytest --cov`). `harness baseline check`, and the `baseline` control in the
+commit stage, fail when it drops by more than `coverage_drop_pct` (default 1.0) percentage points.
+It is graded in points rather than as a ratio because a 1.10 ratio would let nine points go
+unnoticed. A project with no coverage verb, or a coverage run that failed, records `null` and is
+reported unmeasured — the repair for "we cannot see it" is to configure it, never to fail a build
+that says nothing about the change.
+
+**The proof check.** `proof` reads every promise spec and every plan's `## Proof` table: a
+behaviour with no row, or a row naming a test file that no longer exists or no longer contains the
+identifier it claimed, is a violation. A row that names runtime evidence instead of a test is
+reported unverifiable, never a violation — the plan skill permits it, and a manual check is
+honest when the thing genuinely cannot be automated. A behaviour retired on purpose is retired by
+removing it from `spec.md`. This check used to live in the eval library, where it ran only inside
+a graded eval; it is a property of a repository at commit time, and that is where it runs now.
+
 ## The registry fills itself where it can
 
 `harness init` reads the project's own manifests — `package.json`, `tsconfig.json`, an eslint
@@ -225,8 +248,7 @@ replace executable product acceptance.
 Local `by`, `at` and `digest` fields are audit metadata, not authenticated human identity. New
 plan approvals bind the spec body digest; older unbound records remain historical/local guidance
 and cannot satisfy the external driver. Do not claim that committing a digest authenticates its
-author. Similarly, the repository's legacy `test_quality` capability checks only text presence,
-not assertion quality. Steering-file guards protect deliberate instruction/permission changes;
+author. Steering-file guards protect deliberate instruction/permission changes;
 editing root CLAUDE.md does not invalidate an already loaded prompt mid-session. Reload it.
 
 ## When something goes wrong in production

@@ -943,23 +943,9 @@ test('telemetry is not classified, and a control nothing reaches ages out as ret
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-// B2, test_quality: the sensor's why: is a test directory that executes nothing. Plant it.
-test('test-presence fails a directory with no test(...) text', async () => {
-  const fs = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
-  const { spawnSync } = await import('node:child_process');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-tq-'));
-  fs.mkdirSync(path.join(root, 'test'));
-  fs.writeFileSync(path.join(root, 'test/empty.test.mjs'), '// a file named like a test that asserts nothing\n');
-  const sensor = new URL('../.aidlc/sensors/test-quality.mjs', import.meta.url).pathname;
-  const planted = spawnSync(process.execPath, [sensor], { cwd: root, encoding: 'utf8' });
-  assert.notEqual(planted.status, 0, 'a test directory that executes nothing must be red');
-  assert.match(planted.stderr, /test-presence: no/);
-  fs.writeFileSync(path.join(root, 'test/real.test.mjs'), "import { test } from 'node:test';\ntest('x', () => {});\n");
-  assert.equal(spawnSync(process.execPath, [sensor], { cwd: root, encoding: 'utf8' }).status, 0);
-  fs.rmSync(root, { recursive: true, force: true });
-});
+// G13 deleted `test_quality` and the presence sensor behind it. What replaced it — the coverage
+// ratchet and the `proof` check — is planted and graded in test/coverage-and-proof.test.mjs,
+// which is what `[deterrents]` now names.
 
 // close-the-harness B5. Three golden tasks start an intent and expect files; the intent skill
 // interviews first, as it should when a person is there. The one task that says it has

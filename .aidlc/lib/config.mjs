@@ -49,12 +49,12 @@ export function stageModel(cfg, phase) {
 // rather than a flag because a project's narrow-test command is not derivable from its full one:
 // `node --test test/*.test.mjs` has nowhere to put a file list. Unset, it is `skipped` like any
 // other capability the project has not configured (Law 6).
-export const VERBS = ['fmt', 'lint', 'typecheck', 'test', 'test_changed', 'test_quality', 'coverage', 'arch', 'secrets', 'deps'];
+export const VERBS = ['fmt', 'lint', 'typecheck', 'test', 'test_changed', 'coverage', 'arch', 'secrets', 'deps'];
 export const DEFAULT_SENSOR_PROFILES = {
   behaviour: ['test', 'coverage'],
   architecture: ['arch'],
   hardening: ['secrets', 'deps'],
-  qa: ['test_quality', 'fmt', 'lint', 'typecheck'],
+  qa: ['fmt', 'lint', 'typecheck'],
 };
 
 // A misspelled mode is a gate nobody chose. It fails loudly here rather than silently reading as

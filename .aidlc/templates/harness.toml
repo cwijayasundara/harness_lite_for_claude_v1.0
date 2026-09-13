@@ -13,7 +13,6 @@ lint      = ""
 typecheck = ""
 test      = ""   # e.g. "python3 -m pytest -q --json-report --json-report-file={report}"
 test_changed = ""  # the same runner narrowed to {files}, e.g. "python3 -m pytest -q {files}"
-test_quality = "" # mutation, test-diff, or project policy that catches weakened tests
 coverage  = ""
 arch      = ""
 secrets   = ""          # empty = use the harness's built-in scanner
@@ -35,7 +34,7 @@ stop   = ["fast", "test"]
 # G11. What the Stop hook runs at the end of a turn. The full suite belongs to `harness deliver`,
 # once per iteration, not to every turn.
 stop_hook = ["fast", "test_changed"]
-commit = ["stop", "secrets", "scope-drift", "budget", "tamper", "arch", "test_quality"]
+commit = ["stop", "secrets", "scope-drift", "budget", "tamper", "arch", "proof"]
 drift  = ["coverage", "deps"]
 
 # Release-grade sensor ownership. Profiles select the project commands that are actually live;
@@ -44,7 +43,7 @@ drift  = ["coverage", "deps"]
 behaviour = ["test", "coverage"]
 architecture = ["arch"]
 hardening = ["secrets", "deps"]
-qa = ["test_quality", "fmt", "lint", "typecheck"]
+qa = ["fmt", "lint", "typecheck"]
 required_profiles = ["behaviour", "architecture", "hardening", "qa"]
 latency_budget_ms = 120000
 

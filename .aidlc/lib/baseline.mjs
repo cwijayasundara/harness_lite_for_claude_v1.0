@@ -13,7 +13,8 @@ import path from 'node:path';
 import { estimateTokens, pack } from './pack.mjs';
 import * as graph from './graph.mjs';
 import { query } from './graph.mjs';
-import { check, render } from './runner.mjs';
+import { check, render, runOne } from './runner.mjs';
+import { linesPct } from './coverage.mjs';
 import { sessionContext } from './session.mjs';
 
 // Metrics where LOWER is better; a rise beyond tolerance is a regression.
@@ -21,7 +22,23 @@ export const RATCHETED = [
   'claude_md_tokens', 'session_context_tokens', 'check_stop_tokens', 'pack_tokens_p50',
 ];
 
+// G13. The one metric where HIGHER is better, so it cannot share the tolerance above: a ratio
+// would allow a nine-point drop at 1.10 and call it flat. Coverage moves in percentage points and
+// is graded in them — a drop of more than a point is a regression, and a drop of a tenth is the
+// ordinary noise of a line moving between files.
+export const FLOORED = ['coverage_lines_pct'];
+export const DEFAULT_COVERAGE_DROP_PCT = 1.0;
+
 const fileTokens = (p) => (existsSync(p) ? estimateTokens(readFileSync(p, 'utf8')) : 0);
+
+// Running the coverage verb is the only way to record a figure that describes the tree as it is
+// now, and a baseline is captured rarely — once per change, not once per turn. A project with no
+// coverage command records `null`, which `compare` reads as unmeasured and never as zero.
+async function coverageNow(cfg) {
+  if (!cfg.capabilities?.coverage?.trim()) return { pct: null, ok: null };
+  const result = await runOne(cfg, 'coverage', [], []);
+  return { pct: linesPct(cfg), ok: result.verdict === 'pass' };
+}
 
 export async function capture(cfg, { stopReport } = {}) {
   const g = graph.ensure(cfg);
@@ -60,10 +77,12 @@ export async function capture(cfg, { stopReport } = {}) {
   const terms = sources.flatMap((m) => (g.modules[m]?.symbols ?? []).slice(0, 2).map((s) => s.name)).slice(0, 10);
   const packs = terms.map((t) => pack(cfg, g, t, { budget: 1200 }).tokens).sort((a, b) => a - b);
   const p50 = packs.length ? packs[Math.floor(packs.length / 2)] : 0;
+  const coverage = await coverageNow(cfg);
 
   return {
     captured_at: new Date().toISOString(),
     tolerance: 1.10,
+    coverage_drop_pct: DEFAULT_COVERAGE_DROP_PCT,
     claude_md_tokens: fileTokens(cfg.layout.claudeMd),
     session_context_tokens: estimateTokens(session),
     check_stop_tokens: estimateTokens(rendered),
@@ -71,6 +90,9 @@ export async function capture(cfg, { stopReport } = {}) {
     pack_samples: terms.length,
     graph_modules: Object.keys(g.modules).length,
     graph_symbols: Object.values(g.modules).reduce((n, m) => n + m.symbols.length, 0),
+    // G13. Null when the project has no coverage verb, or when the run that would have produced
+    // the report failed: a figure read from a failed run describes nothing.
+    coverage_lines_pct: coverage.ok === false ? null : coverage.pct,
     errored_controls: errored,
     // the-gate-grades-what-it-can-measure B1. Whether the stage this measured was green.
     //
@@ -117,10 +139,23 @@ export function compare(base, now) {
     const regressed = !skipped && was > 0 && is > was * tol;
     return { metric: k, was, is, delta: was ? (is - was) / was : 0, regressed, skipped };
   });
+  // G13. Coverage, graded downward and in percentage points. An unmeasured side — no coverage
+  // verb, or a coverage run that failed — is recorded and not graded: the repair for "we cannot
+  // see it" is to configure it, never to fail a build that says nothing about the change.
+  const drop = base.coverage_drop_pct ?? DEFAULT_COVERAGE_DROP_PCT;
+  for (const k of FLOORED) {
+    const was = base[k];
+    const is = now[k];
+    const unmeasured = !Number.isFinite(was) || !Number.isFinite(is);
+    rows.push({ metric: k, was: was ?? null, is: is ?? null, delta: unmeasured ? 0 : (is - was) / 100,
+      regressed: !unmeasured && was - is > drop, floor: true,
+      skipped: unmeasured ? `unmeasured (${!Number.isFinite(was) ? 'no recorded figure' : 'no figure now'}) — configure a coverage verb to grade it` : null });
+  }
+
   // B4. A recorded key that the current capture does not produce is a file that has drifted from
   // its schema. `wiki_index_tokens` sat in baseline.json for weeks after capture() stopped
   // producing it, and nothing said so, because compare() only ever looked at RATCHETED. Reported
   // here rather than graded: the repair is a re-capture, not a tolerance argument.
   const unknown = Object.keys(base).filter((k) => !(k in now));
-  return { tolerance: tol, envDiffers, rows, unknown, ok: rows.every((r) => !r.regressed) };
+  return { tolerance: tol, coverageDropPct: drop, envDiffers, rows, unknown, ok: rows.every((r) => !r.regressed) };
 }

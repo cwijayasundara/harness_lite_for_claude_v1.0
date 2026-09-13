@@ -9,7 +9,6 @@ lint      = ""      # zero-dependency by constitution: no linter to install
 typecheck = ""
 test      = "node --test --test-reporter=tap test/*.test.mjs"
 test_changed = "node --test --test-reporter=tap {files}"
-test_quality = "node .aidlc/sensors/test-quality.mjs" # legacy name: test presence only
 coverage  = ""
 arch      = "node .aidlc/sensors/architecture.mjs"
 secrets   = ""      # built-in scanner
@@ -27,15 +26,19 @@ fast   = ["secrets"]
 stop   = ["fast", "test"]
 # G11. What the Stop hook runs. The full suite is the delivery driver's, once per iteration.
 stop_hook = ["fast", "test_changed"]
-commit = ["stop", "scope-drift", "budget", "tamper", "arch", "test_quality", "baseline"]
-drift  = []
+commit = ["stop", "scope-drift", "budget", "tamper", "arch", "baseline"]
+# G13. `proof` reads every promise spec, and this repository has 14 historical rows naming test
+# files that later changes deleted. They are delivered work with stale evidence, which is exactly
+# what G03 closes; until it does, the control runs here rather than blocking every commit on
+# archaeology. The template ships it in `commit`, where a project starting today belongs.
+drift  = ["proof"]
 
 [sensors]
 behaviour = ["test"]
 architecture = ["arch"]
 hardening = ["secrets"]
-qa = ["test_quality"]
-required_profiles = ["behaviour", "architecture", "hardening", "qa"]
+qa = ["fmt", "lint", "typecheck"]
+required_profiles = ["behaviour", "architecture", "hardening"]
 latency_budget_ms = 120000
 
 [graph]
@@ -110,7 +113,7 @@ claude_md_lines = 120
 [deterrents]
 budget       = "test/budget.test.mjs"
 arch         = "test/arch.test.mjs"
-test_quality = "test/unit.test.mjs"
+proof        = "test/coverage-and-proof.test.mjs"
 
 [guard]
 protected_paths = ["evals/fixtures"]

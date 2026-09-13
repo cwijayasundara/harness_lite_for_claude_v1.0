@@ -90,7 +90,7 @@ Steps 1-5 are the repair; 6 completes the behaviours; 7-8 close it.
 
 | Behaviour | Test or evidence |
 |---|---|
-| B1 | new `test/unit.test.mjs::one commit-stage run invokes the test command exactly once` — a temporary repository whose `test` command increments a counter; asserted failing at step 1, reading two, before it is made to read one |
+| B1 | new `test/unit.test.mjs::check: a commit-stage run invokes the test command exactly once` — a temporary repository whose `test` command increments a counter; asserted failing at step 1, reading two, before it is made to read one |
 | B2 | new `test/unit.test.mjs::the reconstructed stop report matches a freshly computed one` — deep equality with `ms` normalised on every control, the only field permitted to differ |
 | B3 | new case: `capture()` with no precomputed report runs its own stop stage, asserted by the counter incrementing when the standalone verb is invoked |
 | B4 | new case: a repository whose suite fails; `--stage commit` fails and the report shows `baseline` as `skipped`, never `pass` |

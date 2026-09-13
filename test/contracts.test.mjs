@@ -6,6 +6,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { A, C, ROOT } from './_paths.mjs';
+import { HARNESS_OUTPUT } from '../.aidlc/lib/graph.mjs';
 
 
 function frontmatter(file) {
@@ -21,9 +22,18 @@ function frontmatter(file) {
 
 // Every harness.toml in the tree, discovered rather than listed. Two tests ask questions of this
 // set and neither may answer for a file someone forgot to add.
+// G13. Harness output is not a registry. `.aidlc/evals/` holds the recorded output of past runs —
+// a comparison from September carries whole staged product trees, registries and all — and
+// `.claude/worktrees/` holds working copies of other revisions. Grading either would mean a
+// control renamed today retroactively invalidates a measurement taken before it existed, and the
+// only way back to green would be editing the evidence. The exclusion list is the graph's own
+// `HARNESS_OUTPUT`, so there is one answer to "what did this harness produce" and not two.
+const archived = (rel) => HARNESS_OUTPUT.some((dir) => rel === dir || rel.startsWith(`${dir}/`));
+
 function discoverConfigs() {
   const configs = [];
   const walk = (dir) => {
+    if (archived(path.relative(ROOT, dir).split(path.sep).join('/'))) return;
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       if (e.name === '.git' || e.name === 'node_modules') continue;
       const p = path.join(dir, e.name);

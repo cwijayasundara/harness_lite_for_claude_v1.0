@@ -66,51 +66,10 @@ export function unseenRequirements(dir, needles) {
 // alongside `behavioursOf`/`proofRowsOf`, so B7's commit-time check and this file share one
 // definition of "names a resolvable path" instead of two copies drifting apart.
 
-// B6, amended: a spec that has quietly become fiction is checkable without a model only for the
-// mechanical part — a behaviour with no Proof row at all, or a row that names a test file that
-// no longer exists or no longer contains the identifier it explicitly claimed. The plan skill
-// permits a row to name runtime evidence instead of a test ("manual check is only honest when
-// the thing genuinely cannot be automated"), and this change's own plan does exactly that for
-// five behaviours — such a row is reported unverifiable, never a violation. A behaviour retired
-// on purpose is retired by removing it from spec.md, so it is simply absent from the loop below.
-//
-// `checked` counts every behaviour actually iterated below — violation, unverifiable or clean —
-// so a caller can tell "nothing to check" (an empty repository, or nobody approved a spec yet)
-// apart from "checked and clean" (`ok: true, checked: 0` vs `ok: true, checked: 3`). An empty
-// suite is not a pass, and neither is an empty artifact chain.
-export function behavioursHaveTests(dir) {
-  const violations = [];
-  const unverifiable = [];
-  let checked = 0;
-  const artifactsRoot = path.join(dir, '.aidlc', 'artifacts');
-  if (!existsSync(artifactsRoot)) return { ok: true, violations, unverifiable, checked };
-  // B2 (the-suite-measures-this-harness): reads `promiseSpecs()` — approved, or `migrated_from`
-  // present — rather than `status: approved` alone. Twenty-three specs carry `migrated_from` and
-  // no approval, because `lean-v2` deliberately invented none; they are promises the code must
-  // keep all the same, and this check's reach goes from three specs to all of them. Expect it to
-  // report far more than before — that is the point, not a regression to tune away.
-  const cfg = { layout: { root: dir, artifacts: artifactsRoot } };
-  for (const spec of promiseSpecs(cfg)) {
-    const planPath = path.join(artifactsRoot, spec.slug, 'plan.md');
-    if (!existsSync(planPath)) continue;
-    const behaviours = behavioursOf(spec.body);
-    if (!behaviours.length) continue;
-    const proof = proofRowsOf(readFileSync(planPath, 'utf8'));
-    for (const b of behaviours) {
-      checked++;
-      const evidence = proof.get(b);
-      if (evidence === undefined) { violations.push(`${spec.slug} ${b}: plan.md's Proof table names no row`); continue; }
-      const row = testRowIn(evidence);
-      if (!row) { unverifiable.push(`${spec.slug} ${b}`); continue; }
-      const testFile = path.join(dir, row.file);
-      if (!existsSync(testFile)) { violations.push(`${spec.slug} ${b}: proof file "${row.file}" does not exist`); continue; }
-      if (row.identifier && !readFileSync(testFile, 'utf8').includes(row.identifier)) {
-        violations.push(`${spec.slug} ${b}: "${row.file}" no longer contains "${row.identifier}"`);
-      }
-    }
-  }
-  return { ok: violations.length === 0, violations, unverifiable, checked };
-}
+// G13. `behavioursHaveTests` moved into `.aidlc/checks/proof.mjs`, where it runs as a commit-stage
+// control rather than only inside a graded eval — the one place its answer changed nothing. This
+// re-export keeps the campaign assertion and its tests pointed at that one implementation.
+export { proofRows as behavioursHaveTests } from '../../.aidlc/checks/proof.mjs';
 
 // a-diff-belongs-to-one-change B7. F26: sprint 3's plan was refused at the gate, and the sprint
 // wrote `isOverdue` anyway because sprint 2's approved plan owned `src/ledger.mjs`. The guard
