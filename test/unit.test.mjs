@@ -55,7 +55,10 @@ test('normalize: ruff json becomes the one finding schema', () => {
     { filename: 'a.py', location: { row: 3 }, code: 'F401', message: 'unused import', fix: { message: 'remove it' } },
   ]), '', 1);
   assert.equal(out.length, 1);
-  assert.deepEqual(out[0], { file: 'a.py', line: 3, rule: 'F401', message: 'unused import', fix: 'remove it' });
+  // G15: the tool's own advice, plus how to apply it. A finding that only says what is wrong
+  // makes the reader go and research what to do about it.
+  assert.deepEqual(out[0], { file: 'a.py', line: 3, rule: 'F401', message: 'unused import',
+    fix: 'remove it — rerun with --fix to apply it' });
 });
 
 test('normalize: eslint json flattens per-file messages', () => {

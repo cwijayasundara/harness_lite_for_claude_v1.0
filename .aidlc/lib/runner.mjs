@@ -175,6 +175,9 @@ export function buildReport(cfg, { stage, provenance, identityErrors, evidence, 
     changed_files: files,
     controls: results.map((r) => ({
       control: r.control, verdict: r.verdict, ms: r.ms,
+      // G15. Justified suppressions ride with the control that found them, so the driver can put
+      // them on the pull request without re-reading the diff.
+      ...(r.suppressions?.length ? { suppressions: r.suppressions } : {}),
       ...(r.command ? { command: r.command } : {}),
       ...(r.execution ? { execution: r.execution } : {}),
       findings: (r.findings ?? []).slice(0, cap),

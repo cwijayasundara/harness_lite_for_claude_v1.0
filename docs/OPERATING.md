@@ -139,6 +139,21 @@ with the selected tests); unset, it is `skipped` like any other capability a pro
 configured, and never a silent fall back to the full run. The full suite belongs to
 `harness deliver`, once per iteration, and `harness check --stage stop` stays one command away.
 
+## Every finding says what to do, and every suppression reaches the merge
+
+A finding carries `file`, `line`, `rule`, `message` and `fix`. The `fix` is one sentence written
+for the model rather than for a changelog: it names the judgment to make, and where the rule might
+be wrong it says so — "make a judgment call on this line; fix it, or suppress it with a `why:` on
+the same line if the rule does not apply here". A finding with no fix line is one the reader has to
+go and research before acting, which is how an accurate control still gets ignored. Every
+normaliser fills it; a tool that supplies its own advice (ruff's autofix message, mypy's hint) says
+that instead of the generic sentence.
+
+`tamper` refuses a suppression with no `why:` and permits one that has it. Permitting it silently
+would mean nobody ever reads the reason, so the reasoned ones are collected and `harness deliver`
+lists them under `## Suppressions` on the pull request, with the file, the line and the reason —
+in front of the person who can disagree with one before it merges rather than after.
+
 ## Opt-in verbs: mutation, SAST, layering
 
 Three verbs the harness knows how to read and will not run for you. Each is slower or noisier than

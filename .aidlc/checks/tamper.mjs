@@ -41,6 +41,11 @@ export async function run(cfg) {
   const claimed = (file) => [...owned].some((d) => file === d || file.startsWith(d.replace(/\/$/, '') + '/'));
 
   const findings = [];
+  // G15. A suppression with a `why:` is not a violation — it is a decision, and a decision nobody
+  // reads is the same as a suppression nobody questioned. They are collected here and the driver
+  // lists them under `## Suppressions` on the pull request, where the person deciding the merge
+  // is the one who can disagree with them.
+  const suppressions = [];
   // Path identity comes from NUL-delimited Git output, never quoted patch headers.
   for (const { file } of statuses) {
     const diff = readDiff(cfg, ['--unified=0'], [file]);
@@ -61,8 +66,11 @@ export async function run(cfg) {
         for (const [re, name] of SUPPRESSIONS) {
           if (!re.test(code)) continue;
           // A why on the same line is the whole exemption. It is what turns an override into a
-          // decision someone can disagree with later.
-          if (/\bwhy:/i.test(text)) continue;
+          // decision someone can disagree with later — so it is recorded, not merely permitted.
+          if (/\bwhy:/i.test(text)) {
+            suppressions.push({ file, line, rule: name, why: text.match(/\bwhy:\s*(.*)$/i)?.[1]?.trim() ?? '' });
+            continue;
+          }
           findings.push({
             file, line, rule: 'bare-suppression',
             message: `${name} added with no why:`,
@@ -100,5 +108,5 @@ export async function run(cfg) {
     }
   }
 
-  return { verdict: findings.length ? 'fail' : 'pass', findings };
+  return { verdict: findings.length ? 'fail' : 'pass', findings, suppressions };
 }

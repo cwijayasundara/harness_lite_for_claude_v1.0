@@ -98,7 +98,14 @@ export function reviewVerdict(report) {
   return { verdict: requested ? 'changes-requested' : 'approve', findings };
 }
 
-function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, scope }) {
+// G15. Every suppression the commit-stage checks saw, with its reason, on the pull request. A
+// `why:` is what turns an override into a decision someone can disagree with — and the person
+// deciding the merge is the one who can.
+export function suppressionsOf(report) {
+  return (report?.controls ?? []).flatMap((c) => c.suppressions ?? []);
+}
+
+function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, scope, suppressions = [] }) {
   const row = (kind, artifact) => {
     const front = artifact?.front ?? {};
     const who = front.approved_by === 'policy' ? `policy (${front.policy_digest ?? 'no digest'})` : front.by ?? '—';
@@ -119,6 +126,17 @@ function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, s
     `Verdict: **${review?.verdict ?? 'not run'}**${review?.status === 'incomplete' ? ' (review incomplete: ' + review.reason + ')' : ''}`,
     review?.output ? `Report: \`${review.output}\`` : '',
     '',
+    ...(suppressions.length ? [
+      '## Suppressions',
+      '',
+      'These were added with a reason. The reason is the point — disagree with one here rather than',
+      'after it merges.',
+      '',
+      '| file | line | suppression | why |',
+      '|---|---:|---|---|',
+      ...suppressions.map((s) => `| \`${s.file}\` | ${s.line} | \`${s.rule}\` | ${s.why || '(no reason given)'} |`),
+      '',
+    ] : []),
     '## Run',
     '',
     `Ledger invocation: \`${invocation}\``,
@@ -345,12 +363,14 @@ export async function deliver(cfg, slug, {
     if (phase === 'check-commit') {
       const report = await check('commit');
       if (!report.ok) return stop('check-commit', `commit-stage checks failing: ${failedControls(report).join(', ')}`);
+      state.suppressions = suppressionsOf(report);
+      save();
     }
 
     if (phase === 'pr') {
       const head = git(root, 'rev-parse', '--abbrev-ref', 'HEAD');
       const body = prBody({ slug, spec: artifacts.read(cfg, slug, 'spec') ?? spec, plan: artifacts.read(cfg, slug, 'plan'),
-        review: reviewResult, invocation, bounds: b, usd: state.usd, gates,
+        review: reviewResult, invocation, bounds: b, usd: state.usd, gates, suppressions: state.suppressions ?? [],
         scope: reviewResult?.export?.scope === 'plan' ? `scoped to ${reviewResult.export.files} files` : 'full candidate tree' });
       const pr = await openPr({ title: `${slug}`, body, head, base: state.base });
       state.pr = pr?.url ?? null;
