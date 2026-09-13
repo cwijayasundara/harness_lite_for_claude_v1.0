@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { C, BIN } from './_paths.mjs';
-import { writeBlocked, productionDenied, lockTests, clearLock, bashTouchesProtected, bashContractBlocked, writeTargets } from '../.aidlc/lib/guard.mjs';
+import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, writeTargets } from '../.aidlc/lib/guard.mjs';
 import { layout } from '../.aidlc/lib/paths.mjs';
 
 // A tree with no release record in it, which is what "unauthorised" looks like on disk.
@@ -126,8 +126,8 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
     const stdin = process.stdin;
     // dispatch reads the tool call from stdin as JSON.
     const { Readable } = await import('node:stream');
-    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_input: { command } })]), configurable: true });
-    try { await dispatch('pre-bash'); } finally {
+    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_name: 'Bash', tool_input: { command } })]), configurable: true });
+    try { await dispatch('pre-tool'); } finally {
       process.stdout.write = write;
       Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
     }
@@ -441,7 +441,7 @@ test('a token writeTargets extracted that cannot be a path is dropped, not refus
 
 // B5. A bash refusal names the rule that actually produced it, so `harness ledger audit` can
 // tell a caught mistake from a false block — a single `contract-scope` label across four
-// different rules could not answer that question. Drives the real `dispatch('pre-bash')` hook,
+// different rules could not answer that question. Drives the real `dispatch('pre-tool')` hook,
 // the same harness the two tests above at lines 106 and 443 use, and reads the appended row.
 test('a bash refusal names the rule that produced it, in the ledger', async () => {
   const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
@@ -458,8 +458,8 @@ test('a bash refusal names the rule that produced it, in the ledger', async () =
     process.stdout.write = () => true;
     const stdin = process.stdin;
     const { Readable } = await import('node:stream');
-    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_input: { command } })]), configurable: true });
-    try { await dispatch('pre-bash'); } finally {
+    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_name: 'Bash', tool_input: { command } })]), configurable: true });
+    try { await dispatch('pre-tool'); } finally {
       process.stdout.write = write;
       Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
     }
@@ -534,14 +534,18 @@ test('a redirection is a redirection, not every angle bracket', () => {
   assert.deepEqual(writeTargets('cmd 2>&1 | tail'), []);
 });
 
-test('lock tests writes a lock the write guard honors, and clear removes it', () => {
+// G03 deleted the test-lock mechanism. `lockTests`/`clearLock` were exported and called by
+// nothing but this test; the reader in `writeBlocked` guarded a file the CLI had no verb to write;
+// and its refusal named `harness lock clear`, a command that does not exist. Zero fires in 10,397
+// ledger rows. Law 10's subtractive half is what a control with no invocations and no way to be
+// invoked is for.
+test('a file nothing can lock is no longer refused for being locked', () => {
   const f = tmp('guard-lock-'); try {
     const cfg = { layout: f.layout, guard: {}, gates: HUMAN };
-    lockTests(cfg, { patterns: ['tests/test_calc.py'], why: 'bug fix in progress' });
-    assert.match(writeBlocked('tests/test_calc.py', cfg), /test-locked/);
-    assert.equal(writeBlocked('src/calc.py', cfg), null);
-    clearLock(cfg);
-    assert.equal(existsSync(path.join(f.layout.state, 'test-lock.json')), false);
+    mkdirSync(f.layout.state, { recursive: true });
+    // Even with the file the deleted writer used to produce, nothing reads it any more.
+    writeFileSync(path.join(f.layout.state, 'test-lock.json'),
+      JSON.stringify({ patterns: ['tests/test_calc.py'], why: 'a bug fix is in progress' }));
     assert.equal(writeBlocked('tests/test_calc.py', cfg), null);
   } finally { f.cleanup(); }
 });
@@ -629,8 +633,8 @@ test('an agent cannot run harness approve in an attended session; a mention is n
     process.stdout.write = (s) => { chunks.push(String(s)); return true; };
     const stdin = process.stdin;
     const { Readable } = await import('node:stream');
-    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_input: { command } })]), configurable: true });
-    try { await dispatch('pre-bash'); } finally {
+    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_name: 'Bash', tool_input: { command } })]), configurable: true });
+    try { await dispatch('pre-tool'); } finally {
       process.stdout.write = write;
       Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
     }

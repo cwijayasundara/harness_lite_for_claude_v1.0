@@ -109,15 +109,6 @@ export function writeRefusal(rel, cfg) {
       return refuse('protected-path', `${p} is listed in harness.toml [guard].protected_paths. Only a committed approved contract that names this exact path may change it. ${scope?.line ?? ""}`);
     }
   }
-  const lock = path.join(cfg.layout.state, 'test-lock.json');
-  if (existsSync(lock)) {
-    try {
-      const { patterns = [], why = 'a bug fix is in progress' } = JSON.parse(readFileSync(lock, 'utf8'));
-      for (const pat of patterns) {
-        if (pat && norm.includes(pat)) return refuse('test-lock', `${norm} is test-locked because ${why}. Fix the code, not the test. Run: .aidlc/bin/harness lock clear`);
-      }
-    } catch { /* a malformed lock must not block work */ }
-  }
   if (requireContract && !artifactOrState(norm)) {
     try {
       if (!scope) scope = contractScopeState(cfg);
@@ -330,18 +321,6 @@ export function bashContractBlocked(cmd, cfg) {
   return hit && !hit.advisory ? hit.message : null;
 }
 
-export function lockTests(cfg, { patterns = ['tests'], why = 'bug fix in progress' } = {}) {
-  mkdirSync(cfg.layout.state, { recursive: true });
-  const file = path.join(cfg.layout.state, 'test-lock.json');
-  writeFileSync(file, JSON.stringify({ patterns, why }, null, 2) + '\n');
-  return file;
-}
-
-export function clearLock(cfg) {
-  const file = path.join(cfg.layout.state, 'test-lock.json');
-  if (existsSync(file)) rmSync(file);
-  return file;
-}
 
 
 

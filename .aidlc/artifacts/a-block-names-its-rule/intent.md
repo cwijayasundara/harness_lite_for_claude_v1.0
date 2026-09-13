@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: 088a3a0911faba198a79a7431185a270b85d64dc
 parent: lean-review-ledger-evidence

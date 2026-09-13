@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 source: docs/LEAN-HARNESS-IMPLEMENTATION-BACKLOG.md
 source_revision: 9ee37dcb10f6f0e173d25f600ee81100f02fff76
 ---

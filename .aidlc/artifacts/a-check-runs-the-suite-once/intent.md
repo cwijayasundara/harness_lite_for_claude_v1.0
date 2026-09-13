@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 source: docs/DEFECT-REPAIR-PLAN.md
 source_revision: 62fea335060175a6327494e6abe04cb37d3c94e4
 ---

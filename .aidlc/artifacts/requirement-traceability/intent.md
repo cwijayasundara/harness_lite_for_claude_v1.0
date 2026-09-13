@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 source: docs/SPDD-TEAM-EVOLUTION-PLAN.md
 source_revision: fecbf1466e70a9cc286b5e4cb72fe3e0857e1111
 ---

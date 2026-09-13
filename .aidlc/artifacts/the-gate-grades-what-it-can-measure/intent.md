@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 source: .aidlc/artifacts/the-index-tracks-the-source/review.md
 source_revision: dd19f82e62beaafca951ecbb6bc309aa06ada08e
 parent: lean-review-context-baseline

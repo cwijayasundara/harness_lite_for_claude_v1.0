@@ -55,12 +55,6 @@ export function stageModel(cfg, phase) {
 // capability the runner does not recognise.
 export const VERBS = ['fmt', 'lint', 'typecheck', 'test', 'test_changed', 'coverage', 'arch',
   'secrets', 'deps', 'mutation', 'sast', 'layers'];
-export const DEFAULT_SENSOR_PROFILES = {
-  behaviour: ['test', 'coverage'],
-  architecture: ['arch'],
-  hardening: ['secrets', 'deps'],
-  qa: ['fmt', 'lint', 'typecheck'],
-};
 
 // A misspelled mode is a gate nobody chose. It fails loudly here rather than silently reading as
 // whichever branch the `=== 'human'` comparison happened to be written as — the failure mode the
@@ -98,15 +92,17 @@ export function loadConfig(root) {
     capabilities: raw.capabilities ?? {},
     formats: raw.formats ?? {},
     stages: { ...DEFAULT_STAGES, ...(raw.stages ?? {}) },
-    sensors: {
-      ...DEFAULT_SENSOR_PROFILES,
-      required_profiles: Object.keys(DEFAULT_SENSOR_PROFILES),
-      latency_budget_ms: 120000,
-      ...(raw.sensors ?? {}),
-    },
+    // G03. `[sensors]` is not parsed into cfg. Nothing at runtime ever read `cfg.sensors`: the
+    // live reader is `test/contracts.test.mjs`, which parses the TOML directly to ask whether
+    // every required profile's commands are reachable from a stage. Defaults merged here were a
+    // second copy of that table for nobody.
     check: { fail_fast: true, ...(raw.check ?? {}) },
     graph: { include: ['.', '.aidlc'], exclude: ['node_modules', '.venv', 'dist', 'target', '.git'], ...(raw.graph ?? {}) },
-    budget: { subagent_context_soft: 140000, subagent_context_hard: 200000, change_cost_ceiling: 4.0, max_findings: 20, review_diff_max_bytes: 200000, ...(raw.budget ?? {}) },
+    // G03. Only `max_findings` is read — by `buildReport`, to cap what a control shows the model.
+    // `subagent_context_soft`, `subagent_context_hard`, `change_cost_ceiling` and
+    // `review_diff_max_bytes` were defaults nothing ever looked at: numbers that read as policy
+    // and governed nothing, which is worse than their absence because a reader believes them.
+    budget: { max_findings: 20, ...(raw.budget ?? {}) },
     limits: { skills: 12, hooks: 5, agents: 3, hook_loc: 600, claude_md_lines: 120, ...(raw.limits ?? {}) },
     // require_contract defaults ON. It used to default off while the installed template set it
     // true, so the control ran for anyone who took the template and not for anyone who did not —

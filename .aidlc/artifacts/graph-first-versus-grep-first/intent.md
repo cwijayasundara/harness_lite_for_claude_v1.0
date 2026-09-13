@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: 29672945f7595d50b00bfc464e957a377a2fe553
 parent: lean-review-graph-retrieval

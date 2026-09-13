@@ -42,6 +42,9 @@ export const invocation = (cfg) =>
 // where that question is answered.
 export const STABLE_END = 'contract:';
 
+// Above this many supersessions the payload carries the count instead of the links.
+export const SUPERSEDED_NAMED = 3;
+
 export function sessionContext(cfg) {
   const m = measure(cfg);
   const stable = [
@@ -77,8 +80,23 @@ export function sessionContext(cfg) {
   // available on request does not reach an agent that begins working immediately (F6). A
   // superseded behaviour's spec is never edited, so nothing else at session start would
   // ever surface it.
+  // G03. A count and the way to read them, not twenty-eight links. Every approved supersession is
+  // a permanent fact, so this list only grows — it was twenty-eight of the payload's thirty-three
+  // lines, sent to every session, and a session acts on at most one of them. What a session needs
+  // is to know the fact exists before it reads a spec as current; `harness status` has the links.
   try {
-    for (const [link, by] of supersededBy(cfg)) volatile.push(`superseded: ${link} — superseded by ${by.join(', ')}`);
+    const superseded = [...supersededBy(cfg)];
+    // Named while there are few, counted once there are many. Every approved supersession is a
+    // permanent fact, so this list only grows: in this repository it reached twenty-eight of the
+    // payload's thirty-three lines, sent to every session, of which a session acts on at most one.
+    // A project with two wants to see which two; a project with twenty-eight wants to know the
+    // fact exists and where to read it.
+    if (superseded.length > SUPERSEDED_NAMED) {
+      volatile.push(`superseded: ${superseded.length} behaviour(s) reversed by a later approved spec`
+        + ' — harness status lists them; check before treating a spec as current');
+    } else {
+      for (const [link, by] of superseded) volatile.push(`superseded: ${link} — superseded by ${by.join(', ')}`);
+    }
   } catch { /* computed from artifacts already on disk; a read failure here is not fatal */ }
 
   return [...stable, ...volatile].join('\n');

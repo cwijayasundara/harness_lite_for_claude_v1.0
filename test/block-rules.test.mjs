@@ -54,12 +54,15 @@ test('B2 the write guard names which refusal fired, and the agent sees the same 
     assert.equal(protectedPath.rule, 'protected-path');
     assert.match(protectedPath.message, /protected_paths/);
 
+    // G03 deleted the `test-lock` rule. It read a file the CLI had no verb to write, its refusal
+    // named `harness lock clear` — a command that does not exist — and it fired zero times in
+    // 10,397 ledger rows. Law 10's subtractive half is exactly for a control that cannot be
+    // invoked. The rule naming this test is about is unchanged for the three that remain.
     mkdirSync(s.L.state, { recursive: true });
     writeFileSync(path.join(s.L.state, 'test-lock.json'),
       JSON.stringify({ patterns: ['test/locked'], why: 'a bug fix is in progress' }));
-    const locked = writeRefusal('test/locked.test.mjs', cfg);
-    assert.equal(locked.rule, 'test-lock');
-    assert.match(locked.message, /test-locked because/);
+    assert.equal(writeRefusal('test/locked.test.mjs', cfg)?.rule, 'write-scope',
+      'a lock file nothing writes must not resurrect a deleted rule');
     rmSync(path.join(s.L.state, 'test-lock.json'));
 
     const scope = writeRefusal('src/anything.mjs', cfg);
@@ -114,9 +117,13 @@ test('B4 nothing else about the row, the guards or the ledger surface moved', ()
 
     // The guards still refuse exactly what they refused; only the naming changed.
     const GUARD = read('.aidlc/lib/guard.mjs');
-    for (const branch of [/PREFIX_CACHE_PATHS/, /protected_paths/, /test-lock\.json/, /requireContract/]) {
+    for (const branch of [/PREFIX_CACHE_PATHS/, /protected_paths/, /requireContract/]) {
       assert.match(GUARD, branch, 'a refusal branch disappeared');
     }
+    // `test-lock` is deliberately absent: G03 deleted a control with no writer, no CLI verb and
+    // zero fires. Asserted as gone rather than dropped from the list, so it cannot creep back
+    // without a decision.
+    assert.doesNotMatch(GUARD, /test-lock/);
     assert.ok(existsSync(path.join(ROOT, 'test/ledger-evidence.test.mjs')),
       'the freeze this change must not need relaxed still exists');
   } finally { s.cleanup(); }

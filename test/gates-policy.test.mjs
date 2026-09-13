@@ -318,8 +318,8 @@ test('the agent still cannot approve through its own shell, in any mode', async 
       process.stdout.write = (text) => { chunks.push(String(text)); return true; };
       const stdin = process.stdin;
       const { Readable } = await import('node:stream');
-      Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_input: { command: 'node .aidlc/bin/harness approve x plan --by me --policy' } })]), configurable: true });
-      try { await dispatch('pre-bash'); } finally {
+      Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_name: 'Bash', tool_input: { command: 'node .aidlc/bin/harness approve x plan --by me --policy' } })]), configurable: true });
+      try { await dispatch('pre-tool'); } finally {
         process.stdout.write = write;
         Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
       }

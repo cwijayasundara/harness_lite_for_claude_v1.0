@@ -15,7 +15,7 @@ import { parseLcov, parseCoveragePy, linesPct, reportCandidates } from '../.aidl
 import * as baseline from '../.aidlc/lib/baseline.mjs';
 import { run as baselineCheck } from '../.aidlc/checks/baseline.mjs';
 import { proofRows, run as proofCheck } from '../.aidlc/checks/proof.mjs';
-import { loadConfig, VERBS, DEFAULT_SENSOR_PROFILES, resolveStage } from '../.aidlc/lib/config.mjs';
+import { loadConfig, VERBS, resolveStage } from '../.aidlc/lib/config.mjs';
 import { render } from '../.aidlc/lib/artifacts.mjs';
 import { layout } from '../.aidlc/lib/paths.mjs';
 import { BIN, ROOT, A } from './_paths.mjs';
@@ -194,7 +194,12 @@ test('a behaviour with no proof row, or a row naming something gone, fails proof
 
 test('test_quality is gone from the verb list, the profiles, the registries and the tree', () => {
   assert.ok(!VERBS.includes('test_quality'), 'a control nobody can act on is still a declared verb');
-  for (const profile of Object.values(DEFAULT_SENSOR_PROFILES)) assert.ok(!profile.includes('test_quality'));
+  // G03 removed the sensor-profile defaults from cfg entirely; the live table is the registry's
+  // own `[sensors]`, which `test/contracts.test.mjs` reads to check every required command is
+  // reachable from a stage.
+  const registry = readFileSync(path.join(A, 'harness.toml'), 'utf8');
+  const profiles = registry.slice(registry.indexOf('[sensors]'), registry.indexOf('[graph]'));
+  assert.doesNotMatch(profiles, /test_quality/, 'a required profile still names the deleted verb');
   assert.equal(existsSync(path.join(A, 'sensors/test-quality.mjs')), false, 'the sensor file is still shipped');
 
   const template = readFileSync(path.join(A, 'templates/harness.toml'), 'utf8');

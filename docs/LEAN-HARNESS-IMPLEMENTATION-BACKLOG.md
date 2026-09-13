@@ -1,5 +1,20 @@
 # Lean harness implementation backlog
 
+> **Superseded on 13 September 2026 by [the completion plan](COMPLETION-PLAN-2026-09-12.md).**
+> Kept as the record of what was planned on 10 September and what came of it, not as work to pick
+> up. The completion plan's appendix gives the disposition of every item below.
+>
+> Shipped from this backlog before the completion plan was written:
+>
+> | Item | Delivered as |
+> |---|---|
+> | F01 | The artifact chain and its gates — `intent.md` → `spec.md` → `plan.md` → `review.md`, with `harness approve` recording each gate against a committed digest. |
+> | F04 | One suite execution per commit check — `baseline.capture()` reuses the in-flight `stop` results instead of running the stage a second time (`.aidlc/checks/baseline.mjs`, `stopReportFrom`). |
+> | F18 | The eval suite measures this harness rather than a pre-migration one — `evals/expected.json` is gated against the artifact-model commit, and `test/suite-truth.test.mjs` is the permanent check. |
+>
+> Everything else here is either absorbed by a completion-plan item (see its appendix), redesigned
+> there, or dropped with a reason. Nothing in this file is outstanding.
+
 Prepared 10 September 2026 from [the research proposal](LEAN-HARNESS-RESEARCH-PROPOSAL.md). This is the implementation handoff for Claude Code or Codex. The scope is **Plan → Design → Build → Test → Deploy → Maintain → new intent**, for greenfield and brownfield projects.
 
 ## Read this before starting

@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: 07ef61499d6870b9b51ef46ec42712d92fde25ae
 parent: lean-review-host-identity

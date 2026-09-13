@@ -189,9 +189,6 @@ export async function dispatch(event) {
         return preWrite(input, cfg);
       }
 
-      case 'pre-write': return preWrite(input, cfg);
-
-      case 'pre-bash': return preBash(input, cfg);
 
       case 'post-write': {
         const file = input.tool_input?.file_path ?? input.tool_input?.path ?? '';

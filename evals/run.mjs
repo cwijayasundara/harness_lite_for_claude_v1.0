@@ -9,7 +9,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, rmSync } fr
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { evaluate, KNOWN, toRegExp, verifyLedger, verifyService, ledgerDescriptionExplainsPaidRule } from './lib/assertions.mjs';
+import { evaluate, KNOWN, toRegExp, verifyLedger, verifyService, verifyReporting, ledgerDescriptionExplainsPaidRule } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
 import { stage, stageProduct } from './lib/stage.mjs';
 import { runProductCampaign } from './lib/campaign.mjs';
@@ -264,7 +264,12 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
       try {
         const out = t.product ? await runProductCampaign({task:t,invoke:boundedInvoke,productTree:s,harnessBin,evaluatorModel,evidenceDir:trialDir,log,
           evaluateProduct:async (productTree,step)=> {
-            const checked=t.product==='ledger'?verifyLedger(productTree,step.level):verifyService(productTree,step.level);
+            // G03. `retrieval-app` declares `product: "reporting"` and there was no branch for it
+            // here, so it fell through to the SERVICE verifier — a trial graded by assertions
+            // about a different product. The comparison path already dispatched all three; this
+            // one dispatched two and silently mis-graded the third.
+            const checked=t.product==='reporting'?verifyReporting(productTree,step.level)
+              :t.product==='ledger'?verifyLedger(productTree,step.level):verifyService(productTree,step.level);
             if(t.product==='ledger' && step.level===4) {
               if(!existsSync(path.join(productTree.work,'src/store.mjs')))throw new Error('storage extraction is missing');
             }
