@@ -128,7 +128,16 @@ grading honest, not about containment, and they are not a security boundary.
 
 Run `harness review --base <commit> --candidate <commit> --out <review.md>`. The command uses the
 configured evaluator model, resolves explicit commits, exports a fresh candidate snapshot and
-diff, disables customizations/MCP/hooks, and exposes only Read/Grep/Glob. The parent saves the
+diff, disables customizations/MCP/hooks, and exposes only Read/Grep/Glob.
+
+The snapshot is scoped to the change: the current change's approved `## Files`, the modules the
+graph shows importing them, the tests naming them, and the change's own artifact directory. The
+diff is never scoped. `--full-tree` exports everything instead; a change with no approved plan
+selected falls back to the full tree on its own. The wall-clock allowance is derived from the
+diff — 300 s plus 2 s per KB, capped at 900 s — and `--timeout <ms>` overrides it. A review that
+outlives its allowance is not thrown away: the findings the CLI streamed are written with
+`Status: incomplete` and the reported spend, the command exits 1, and the caller decides whether
+to re-run with a longer allowance. Reported cost is a usage estimate, not an invoice. The parent saves the
 returned findings; CLI errors or missing output do not become a review. Run `harness check`
 separately in the candidate checkout and preserve its results alongside the review. The evaluator
 cannot run or modify tests through its tool set. It can still miss defects; its opinion does not

@@ -510,10 +510,19 @@ async function main() {
         console.log(JSON.stringify(result, null, 2));
         return result.verified ? 0 : 1;
       }
+      // G02: the reviewer reads the change's neighbourhood. The plan's `## Files` is the scope, the
+      // graph supplies the importers, and the change's own artifacts come along because compliance
+      // is judged against them. `--full-tree` opts out; an unselected or unapproved change has no
+      // scope to apply and falls back to the whole tree on its own.
+      const current = artifacts.currentChange(cfg);
+      const planFiles = has('full-tree') ? [] : current?.plan?.owns ?? [];
       const result = review({ root: cfg.layout.root, base: flag('base'), candidate: flag('candidate'),
-        output: flag('out'), model: cfg.models?.evaluator, budgetUsd: Number(flag('budget-usd', 2)) });
+        output: flag('out'), model: cfg.models?.evaluator, budgetUsd: Number(flag('budget-usd', 2)),
+        timeoutMs: has('timeout') ? Number(flag('timeout')) : null,
+        planFiles, contextPaths: planFiles.length ? [path.join(path.relative(cfg.layout.root, cfg.layout.artifacts), current.slug)] : [],
+        modules: planFiles.length ? graph.load(cfg)?.modules ?? null : null, fullTree: has('full-tree') });
       console.log(JSON.stringify(result, null, 2));
-      return 0;
+      return result.status === 'incomplete' ? 1 : 0;
     }
 
     case 'status': {
@@ -578,6 +587,8 @@ async function main() {
   harness approve <slug> spec|plan --by <identity> [--policy]
   harness review --base <commit> --candidate <commit> --out <file>
                                  independent read-only model review
+    [--timeout <ms>]             default: 300 s + 2 s per KB of diff, capped at 900 s
+    [--full-tree]                export the whole candidate, not the plan's neighbourhood
   harness review --repo owner/name --pr <number> --candidate <commit> --out <file>
                                  read-only GitHub approval evidence (JSON)
   harness status [slug] [--json]  backlog, selection and approvals
