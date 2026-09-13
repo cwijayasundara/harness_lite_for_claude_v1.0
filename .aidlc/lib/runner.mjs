@@ -110,7 +110,11 @@ export function buildReport(cfg, { stage, provenance, identityErrors, evidence, 
     trace,
     // why: an unavailable configured sensor previously returned exit 0 from `check`.
     // Unconfigured capabilities stay skipped; an attempted check must actually succeed.
-    ok: identityErrors.length === 0 && results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped'),
+    // G06: `warn` is a fourth verdict, and the only one that reports a real finding without
+    // failing the stage. It exists because an advisory gate has to be *visible* — a relaxed gate
+    // that recorded `pass` would be indistinguishable from a gate that was satisfied, and the
+    // whole claim of advisory mode is that the judgment still reaches the merge decision.
+    ok: identityErrors.length === 0 && results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped' || r.verdict === 'warn'),
     changed_files: files,
     controls: results.map((r) => ({
       control: r.control, verdict: r.verdict, ms: r.ms,
@@ -191,7 +195,7 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
       const rule = ruleOf(r.findings);
       ledger.append({ provenance,
         stage, control: r.control, verdict: r.verdict, ms: r.ms,
-        ...(r.verdict === 'fail' && rule ? { rule } : {}),
+        ...((r.verdict === 'fail' || r.verdict === 'warn') && rule ? { rule } : {}),
         findings: (r.findings ?? []).length, changed_files: files.length,
         ...(evidence ? { revision: evidence } : {}),
         ...(r.error ? { error: String(r.error).slice(0, 400) } : {}),
@@ -215,7 +219,7 @@ export function render(report, layoutPaths) {
   for (const error of report.identity_errors ?? []) lines.push('ERR   identity    ' + error);
   if (report.revision) lines.push(`candidate ${report.revision.candidate} from ${report.revision.base} — change ${report.revision.change ?? '(unselected)'}`);
   for (const c of report.controls) {
-    const mark = { pass: 'PASS', fail: 'FAIL', skipped: 'SKIP', errored: 'ERR ' }[c.verdict];
+    const mark = { pass: 'PASS', fail: 'FAIL', warn: 'WARN', skipped: 'SKIP', errored: 'ERR ' }[c.verdict];
     lines.push(`${mark}  ${c.control.padEnd(11)} ${c.ms}ms${c.note ? '  (' + c.note + ')' : ''}${c.error ? '  ' + c.error : ''}`);
     for (const f of c.findings ?? []) {
       lines.push(`      ${f.file}${f.line ? ':' + f.line : ''}  ${f.rule}  ${f.message}${f.fix ? '  -> ' + f.fix : ''}`);

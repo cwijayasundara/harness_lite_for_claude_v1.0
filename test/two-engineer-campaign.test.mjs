@@ -128,7 +128,10 @@ test('two engineers evolve a shared product through isolated work, reversal, int
     const initial = ['src/ledger.mjs', 'src/fees.mjs', 'tests/smoke.test.mjs'].map(file => [file, readFileSync(path.join(root, file), 'utf8')]);
     const fixtureHashes = initial.map(([file]) => [file, hash(readFileSync(path.join(FIXTURES, 'campaign-ledger', file)))]);
     git(root, 'branch', '-m', 'integration');
-    write(root, '.aidlc/harness.toml', '[project]\nname = "two-engineer-ledger"\n[capabilities]\ntest = "env -u NODE_TEST_CONTEXT node --test --test-reporter=tap tests/*.test.mjs"\n[formats]\ntest = "tap"\n[stages]\nstop = ["test"]\n');
+    // G06: this campaign is the `human` arm. It asserts refusals — a scope violation rejected at
+    // the guard and again at the check — so it declares the enforcing gate rather than inheriting
+    // the advisory default. The advisory arm is the test below.
+    write(root, '.aidlc/harness.toml', '[project]\nname = "two-engineer-ledger"\n[capabilities]\ntest = "env -u NODE_TEST_CONTEXT node --test --test-reporter=tap tests/*.test.mjs"\n[formats]\ntest = "tap"\n[stages]\nstop = ["test"]\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
     const requirements = '# Partial payments\n\n## Acceptance criteria\n\n| Criterion ID | Criterion |\n|---|---|\n| shared | Credit payment amount minus fee. |\n| portal | Show outstanding invoice balance using the shared credit rule. |\n| report | Report outstanding invoice balance using the shared credit rule. |\n| integration | Portal and report agree for payments with nonzero fees. |\n';
     write(root, 'requirements.md', requirements); const source = commit(root, 'Simulated product initiative');
     const sharedBase = prepare(root, { slug: 'shared-credit', criterion: 'shared', source, files: ['src/payment-contract.mjs', 'tests/shared.test.mjs'], behaviour: 'Given a payment with a fee, when credited, then subtract the fee from its invoice credit.' });

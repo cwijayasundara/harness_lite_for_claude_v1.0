@@ -66,6 +66,14 @@ generator = "claude-sonnet-5"
 evaluator = "claude-opus-5"
 evals     = "claude-haiku-4-5-20251001"
 
+# G06. A gate is a policy, not a constant: `human` refuses, `advisory` reports and lets the loop
+# continue, `auto` lets the driver record the approval with a digest of this setting. `merge`
+# takes one value — the harness never approves its own merge.
+[gates]
+spec  = "advisory"   # human | advisory | auto
+plan  = "advisory"
+merge = "human"      # the only permitted value
+
 [limits]
 skills          = 7
 agents          = 3

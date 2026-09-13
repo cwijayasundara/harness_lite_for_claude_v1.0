@@ -161,6 +161,46 @@ inputs: an uncommitted or edited `intent.md` invalidates the spec's binding, so 
 in a file nobody committed does not pass a gate. Use `--json` for CI or a weekly report. Flow
 targets are a parked candidate below, not a thing this harness measures today.
 
+## A gate is a policy, not a constant
+
+`[gates]` in `harness.toml` sets each gate's mode. The default, for a project that says nothing,
+is `advisory` for `spec` and `plan`:
+
+```toml
+[gates]
+spec  = "advisory"   # human | advisory | auto
+plan  = "advisory"
+merge = "human"      # the only permitted value
+```
+
+**`human`** is the enforcing gate. A product write outside the approved plan's `## Files`, or
+before the spec is approved, is refused at the Write and Bash hooks; `scope-drift` fails the
+commit stage; `harness status` prints `ERROR` and exits 1.
+
+**`advisory`** reports the identical judgment and lets the loop continue. The hook emits an
+`additionalContext` warning instead of a denial and records a `warn` row rather than a `fail`;
+`scope-drift` returns `warn`, so the findings are on the report with their file and rule while
+`ok` stays true and the PR check annotates rather than fails; `harness status` prints
+`ADVISORY` rows and exits 0. Nothing is hidden — the merge decision reads what the gate said.
+
+**`auto`** is for the driver. It records the approval itself, writing `approved_by: policy` and a
+`policy_digest` covering the gate's configured mode, so an approval justified only by "the
+configuration said so" says what the configuration was. `harness approve <slug> <kind> --policy`
+is refused in any other mode, and the `approve-is-the-humans` hook rule still refuses the agent's
+own shell in every mode — the driver reaches this through the library, never through Bash.
+
+Relaxing a gate relaxes exactly the gate. Destructive-command rules, `protected-path`,
+`prefix-cache`, `tamper`, `secrets` and `approve-is-the-humans` are unaffected by any mode, and
+`unkept-proof` — an approved plan naming a test that does not exist — still fails, because that
+is a broken promise inside a gate that was already given rather than a gate still waiting for an
+answer.
+
+Choose `human` when the repository's merge protection is the only other reader of these
+decisions. Choose `advisory` when a code-owner review on the PR is what actually gates the merge
+and the in-loop refusals are costing more than they catch. Measure it: `harness ledger audit`
+separates a caught mistake from a false block by rule, and a `warn` row is what a relaxed gate
+leaves behind.
+
 ## A gate reads content too
 
 Every precondition above is about an artifact's *state* — committed, ordered, digest unchanged.

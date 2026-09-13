@@ -8,12 +8,13 @@ import { loadConfig } from '../.aidlc/lib/config.mjs';
 import { check } from '../.aidlc/lib/runner.mjs';
 import { parse, render, bodyDigest, clearSelection, selectChange } from '../.aidlc/lib/artifacts.mjs';
 import { prChange } from '../.aidlc/lib/diff.mjs';
+import { HUMAN } from './_gates.mjs';
 
 const CLI = path.resolve('.aidlc/bin/harness');
 
 const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const commit = root => { git(root, 'add', '-A'); git(root, '-c', 'commit.gpgsign=false', 'commit', '-qm', 'candidate test'); return git(root, 'rev-parse', 'HEAD'); };
-const config = root => ({ ...loadConfig(root), stages: { candidate: ['scope-drift'] } });
+const config = root => ({ ...loadConfig(root), stages: { candidate: ['scope-drift'] }, gates: HUMAN });
 const findings = report => report.controls.flatMap(c => c.findings);
 const candidateCheck = (root, base, extra = {}) => check(config(root), {
   stage: 'candidate', base, candidate: git(root, 'rev-parse', 'HEAD'), write: false, ...extra,

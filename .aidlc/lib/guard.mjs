@@ -3,6 +3,7 @@ import path from 'node:path';
 import { homedir } from 'node:os';
 import { PREFIX_CACHE_PATHS } from './paths.mjs';
 import { governingPlans, currentLine, currentChange, draftsAwaitingGate, awaitingGateRemedy } from './artifacts.mjs';
+import { gateBlocks } from './config.mjs';
 
 // One reader of ownership, shared with `scope-drift`. Two readers is how the guard and the check
 // came to disagree about which file was owned by what. `current` is the change the diff belongs
@@ -16,16 +17,25 @@ function contractScopeState(cfg) {
 
 // The refusal must name the way forward and keep the guard on. evidence.md F2: the old message
 // ended "or set [guard].require_contract = false", and an agent did exactly that.
+//
+// G06: it also names *which* gate is pending, because that is the gate whose mode decides
+// whether this is a denial or a warning. A write held back because the spec is not approved is
+// gate 1's business; a write held back because the approved plan's `## Files` does not name the
+// path is gate 2's. Flattening the two into one mode would mean a project that wants its plan
+// scope advisory also loses the spec gate it never asked to relax.
 function contractRefusal(norm, scope) {
   const { current, declared, drafts = [] } = scope;
   // a-draft-is-a-declaration B1: a written spec is work declared and not yet gated.
   if (drafts.length) {
     const [first, ...rest] = drafts;
-    return `${norm}: no product file may change yet — ${awaitingGateRemedy(first)}${rest.length ? ` Also waiting: ${rest.map((d) => `${d.slug}/${d.kind}.md`).join(', ')}.` : ''}`;
+    return { gate: first.kind === 'plan' ? 'plan' : 'spec',
+      message: `${norm}: no product file may change yet — ${awaitingGateRemedy(first)}${rest.length ? ` Also waiting: ${rest.map((d) => `${d.slug}/${d.kind}.md`).join(', ')}.` : ''}` };
   }
-  if (current?.plan && !declared.length) return `${norm}: the selected change "${current.slug}" has an empty ## Files section. Name the paths and re-approve its plan before product writes.`;
-  if (!current || !declared.length || !current.plan) return `${norm}: no product file may change yet — ${scope.line}`;
-  return `${norm} is outside the current change "${current.slug}" — its approved plan's ## Files does not name this path. Add the path and re-approve the plan, or close "${current.slug}" if that work is done.`;
+  if (current?.plan && !declared.length) return { gate: 'plan', message: `${norm}: the selected change "${current.slug}" has an empty ## Files section. Name the paths and re-approve its plan before product writes.` };
+  // No current change, or no approved plan on it: nothing has reached gate 2 yet, so what is
+  // missing is the spec approval that precedes it.
+  if (!current || !declared.length || !current.plan) return { gate: current?.plan ? 'plan' : 'spec', message: `${norm}: no product file may change yet — ${scope.line}` };
+  return { gate: 'plan', message: `${norm} is outside the current change "${current.slug}" — its approved plan's ## Files does not name this path. Add the path and re-approve the plan, or close "${current.slug}" if that work is done.` };
 }
 
 function matchesDeclared(rel, declared) {
@@ -43,9 +53,21 @@ function artifactOrState(rel) {
 // already reads. Changing the shared return type instead was tried and reverted: it broke
 // assertions in four test files this change does not own, for no gain to anyone but the one
 // caller that wants the name.
-const refuse = (rule, message) => ({ rule, message });
+const refuse = (rule, message) => ({ rule, message, advisory: false });
 
-export const writeBlocked = (rel, cfg) => writeRefusal(rel, cfg)?.message ?? null;
+// G06. The same judgment, reported rather than enforced. `advisory: true` is the whole
+// difference: the hook writes `additionalContext` instead of `deny`, and `writeBlocked` — the
+// question "may this write proceed" that four test files and two callers ask — answers yes.
+const advise = (rule, message) => ({ rule, message, advisory: true });
+
+// `writeBlocked` stays "is this write refused", so an advisory finding is not one. A caller that
+// wants the judgment regardless of mode reads `writeRefusal` and looks at `.advisory` — the hook
+// does exactly that, which is how a relaxed gate still reaches the model as a warning instead of
+// disappearing.
+export const writeBlocked = (rel, cfg) => {
+  const hit = writeRefusal(rel, cfg);
+  return hit && !hit.advisory ? hit.message : null;
+};
 
 export function writeRefusal(rel, cfg) {
   const norm = String(rel ?? '').replace(/^\.\//, '');
@@ -99,8 +121,9 @@ export function writeRefusal(rel, cfg) {
     try {
       if (!scope) scope = contractScopeState(cfg);
       const { declared, parseError } = scope;
-      if (parseError && !declared.length) return refuse('write-scope', contractRefusal(norm, scope));
-      if (!declared.length || !matchesDeclared(norm, declared)) return refuse('write-scope', contractRefusal(norm, scope));
+      const out = (hit) => (gateBlocks(cfg, hit.gate) ? refuse('write-scope', hit.message) : advise('write-scope', hit.message));
+      if (parseError && !declared.length) return out(contractRefusal(norm, scope));
+      if (!declared.length || !matchesDeclared(norm, declared)) return out(contractRefusal(norm, scope));
     } catch { return null; }
   }
   return null;
@@ -266,11 +289,19 @@ export function bashContractRefusal(cmd, cfg) {
     .filter((t) => t && !t.startsWith('..'))
     .filter((t) => !artifactOrState(t));
 
+  // G06: a blocking hit wins over an advisory one. One command can write to two places — an
+  // out-of-scope source file and `.claude/settings.json` — and under an advisory plan gate the
+  // first is a warning while the second is still a refusal. Returning whichever came first in
+  // the token order would have made the denial depend on the order the shell happened to write
+  // its redirections in.
+  let advisory = null;
   for (const t of targets) {
     const hit = writeRefusal(t, cfg);
-    if (hit) return hit;
+    if (!hit) continue;
+    if (!hit.advisory) return hit;
+    advisory ??= hit;
   }
-  return null;
+  return advisory;
 }
 
 // `bashContractBlocked` stays the string-returning form: `test/guard.test.mjs` and
@@ -278,7 +309,8 @@ export function bashContractRefusal(cmd, cfg) {
 // `test/worktree-selection.test.mjs` is not a file this change owns. Same split `writeRefusal`
 // and `writeBlocked` already use, for the same reason.
 export function bashContractBlocked(cmd, cfg) {
-  return bashContractRefusal(cmd, cfg)?.message ?? null;
+  const hit = bashContractRefusal(cmd, cfg);
+  return hit && !hit.advisory ? hit.message : null;
 }
 
 export function lockTests(cfg, { patterns = ['tests'], why = 'bug fix in progress' } = {}) {

@@ -8,7 +8,7 @@ import { traceFixture } from './_trace-fixture.mjs';
 // so several tests here prove the working copy has no say over it at all.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync, appendFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -30,6 +30,10 @@ function repo() {
   spawnSync('git', ['config', 'user.email', 'harness@example.invalid'], { cwd: root });
   spawnSync('git', ['config', 'user.name', 'Harness Test'], { cwd: root });
   assert.equal(run(root, process.env, 'init', '--into', root).status, 0);
+  // G06: `harness init` now ships `[gates]` at "advisory", where a missing or stale approval is
+  // a row and `status` exits 0. Every test below asserts the enforcing gate, so this project
+  // declares it rather than inheriting whichever default the template happens to carry.
+  appendFileSync(path.join(root, '.aidlc/harness.toml'), '\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
   return root;
 }
 

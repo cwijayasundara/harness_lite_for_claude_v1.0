@@ -53,6 +53,14 @@ fail_fast = true
 include = [".", ".aidlc"]       # dotdirs ARE indexed. The harness must be visible to itself.
 exclude = ["node_modules", ".venv", "dist", "build", "target", ".git", "__pycache__"]
 
+# G06. A gate is a policy, not a constant: `human` refuses, `advisory` reports and lets the loop
+# continue, `auto` lets the driver record the approval with a digest of this setting. `merge`
+# takes one value — the harness never approves its own merge.
+[gates]
+spec  = "advisory"   # human | advisory | auto
+plan  = "advisory"
+merge = "human"      # the only permitted value
+
 [budget]
 subagent_context_soft = 140000
 subagent_context_hard = 200000

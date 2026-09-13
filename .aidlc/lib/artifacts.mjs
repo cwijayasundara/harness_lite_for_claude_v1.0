@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gateBlocks, gateMode } from './config.mjs';
 
 export const KINDS = ['intent', 'spec', 'plan', 'review'];
 export const GATED = ['spec', 'plan'];
@@ -200,8 +201,20 @@ export function create(cfg, slug, templates) {
 // The one approval verb. It replaces `contract accept`, `contract seal --scope spec`,
 // `contract seal --scope plan` and `contract evidence` — four commands and, because each seal
 // demanded a commit before the next, four commits for one decision.
-export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), anyway = null } = {}) {
+// G06, `auto`. The digest of the policy that let a gate through without a human. It covers the
+// gate's configured mode and nothing else, so two policy approvals under different `[gates]`
+// settings are distinguishable in the record and in the PR body — an approval whose only
+// justification is "the configuration said so" has to say what the configuration was.
+export const policyDigest = (cfg, kind) => hash(JSON.stringify({ version: 1, gate: kind, mode: gateMode(cfg, kind) }));
+
+export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), anyway = null, policy = false } = {}) {
   if (!GATED.includes(kind)) throw new Error(`only ${GATED.join(' and ')} are approved; ${kind} is not a gate`);
+  // A policy approval is the `auto` mode's whole mechanism, and it is refused in every other
+  // mode. Under `human` the point of the gate is that a person answered it; under `advisory` the
+  // gate was never blocking, so an approval recorded in its name would be a fabricated decision.
+  if (policy && gateMode(cfg, kind) !== 'auto') {
+    throw new Error(`[gates].${kind} = "${gateMode(cfg, kind)}" — only "auto" records a policy approval. Ask a human to approve this gate, or set [gates].${kind} = "auto" in harness.toml.`);
+  }
   // B4: a flag with no reason is refused — the reason is the point, not the flag.
   if (anyway !== null && anyway !== undefined && (typeof anyway !== 'string' || !anyway.trim())) {
     throw new Error('--anyway needs a reason: --anyway "<why this is fine here>"');
@@ -235,7 +248,11 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), an
   strictParse(text);
   coordinationDeclarations(kind, text);
   const inputs = bindingInputs(cfg, slug, kind, body); // never waived by --anyway
-  const next = { ...front, ...inputs, status: 'approved', by, at, digest: bodyDigest(text), approval_version: '2', ...(anyway ? { approved_anyway: anyway } : {}) };
+  const next = { ...front, ...inputs, status: 'approved', by, at, digest: bodyDigest(text), approval_version: '2', ...(anyway ? { approved_anyway: anyway } : {}),
+    // G06 `auto`: who let this through, and under what. `approved_by: policy` is deliberately a
+    // separate field from `by` — `by` stays the audit label a reader can chase, and a record
+    // that quietly put "policy" there would look exactly like a person named policy.
+    ...(policy ? { approved_by: 'policy', policy_digest: policyDigest(cfg, kind) } : {}) };
   next.approval_digest = approvalDigest(render(next, body));
   replaceAtomic(target, render(next, body));
   return { file: target, digest: next.approval_digest };
@@ -667,12 +684,25 @@ export function currentLine(cfg) {
 // What `status` prints, and what a session resumes from.
 export function state(cfg, slug) {
   const artifacts = Object.fromEntries(KINDS.map((kind) => [kind, read(cfg, slug, kind)]));
+  // G06. The same observations, split by whose decision they are. Under `human` a missing or
+  // stale approval is an error and `harness status` exits 1; under `advisory` it is a row the
+  // merge decision reads and the command exits 0. `ok` is computed from the blocking half only,
+  // because every caller of `ok` is asking "should this stop the loop".
   const issues = [];
+  const advisories = [];
+  const note = (gate, text) => (gateBlocks(cfg, gate) ? issues : advisories).push(text);
   for (const kind of GATED) {
-    if (artifacts[kind]?.state === 'stale-approval') issues.push(`${kind}.md changed after it was approved — re-approve it or restore the approved text`);
+    const state = artifacts[kind]?.state;
+    if (state === 'stale-approval') note(kind, `${kind}.md changed after it was approved — re-approve it or restore the approved text`);
+    // An approval that was never given at all. Under `human` this is already carried by `next`
+    // and by the guard's refusal, so it stays out of `issues` exactly as it always has; under
+    // advisory it is the row the gate asks for, because nothing else will stop to mention it.
+    else if (state !== 'approved' && artifacts.intent && !gateBlocks(cfg, kind)) {
+      advisories.push(`approval: ${artifacts[kind] ? 'missing' : 'absent'} (${kind}.md ${state ?? 'not written'}) — advisory ${kind} gate`);
+    }
   }
   const plan = artifacts.plan;
-  if (plan?.state === 'approved' && !ownedFiles(plan.body).length) issues.push('plan.md declares no files under "## Files"');
+  if (plan?.state === 'approved' && !ownedFiles(plan.body).length) note('plan', 'plan.md declares no files under "## Files"');
 
   // `closed` is what a delivered change looks like afterwards. Without it the twenty-three
   // changes this repository has already shipped sat on the board forever waiting for a spec
@@ -686,7 +716,7 @@ export function state(cfg, slug) {
           : artifacts.review?.front.status === 'approved' ? 'merge'
             : 'implement';
 
-  return { slug, next, closed, issues: closed ? [] : issues, ok: closed || issues.length === 0, artifacts };
+  return { slug, next, closed, issues: closed ? [] : issues, advisories: closed ? [] : advisories, ok: closed || issues.length === 0, artifacts };
 }
 
 // Optional item-4 declarations use the same scalar language and semantic digest as gates.

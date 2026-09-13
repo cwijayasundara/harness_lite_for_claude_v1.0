@@ -7,6 +7,7 @@ import path from 'node:path';
 import { writeBlocked } from '../.aidlc/lib/guard.mjs';
 import { stage, FIXTURES } from '../evals/lib/stage.mjs';
 import { loadConfig } from '../.aidlc/lib/config.mjs';
+import { HUMAN } from './_gates.mjs';
 import * as a from '../.aidlc/lib/artifacts.mjs';
 
 const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -41,7 +42,7 @@ function approve(cfg) {
 test('product: new approval binds intent, semantic metadata and dependent plan', () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
-    const cfg = loadConfig(s.work);
+    const cfg = ({ ...loadConfig(s.work), gates: HUMAN });
     prepare(cfg); approve(cfg);
     assert.equal(a.read(cfg, slug, 'spec').front.approval_version, '2');
     const intent = a.read(cfg, slug, 'intent').text;
@@ -65,7 +66,7 @@ test('product: new approval binds intent, semantic metadata and dependent plan',
 test('legacy approval stays readable but new approval cannot omit trace inputs or bypass them', () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
-    const cfg = loadConfig(s.work);
+    const cfg = ({ ...loadConfig(s.work), gates: HUMAN });
     assert.equal(a.read(cfg, slug, 'spec').binding, 'legacy/unbound');
     assert.throws(() => a.approve(cfg, slug, 'spec', { by: 'simulation', anyway: 'test' }), /source/);
     prepare(cfg);
@@ -78,7 +79,7 @@ test('legacy approval stays readable but new approval cannot omit trace inputs o
 test('new bindings reject malformed metadata, unknown versions, unsafe sources and ambiguous requirements', () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
-    const cfg = loadConfig(s.work); prepare(cfg);
+    const cfg = ({ ...loadConfig(s.work), gates: HUMAN }); prepare(cfg);
     const intent = a.read(cfg, slug, 'intent').text, spec = a.read(cfg, slug, 'spec').text;
     for (const source of ['../outside.md', '/tmp/outside.md', 'src/../app/text.py', 'missing.md']) {
       edit(cfg, 'intent', () => intent.replace(/^source:.*$/m, `source: ${source}`));
@@ -115,7 +116,7 @@ test('new bindings reject malformed metadata, unknown versions, unsafe sources a
 test('exact source/intent snapshots survive a harmless rebase and lifecycle closure preserves history', () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
-    const cfg = loadConfig(s.work), original = git(s.work, 'rev-parse', 'HEAD');
+    const cfg = ({ ...loadConfig(s.work), gates: HUMAN }), original = git(s.work, 'rev-parse', 'HEAD');
     git(s.work, 'checkout', '-b', 'trace-change');
     a.selectChange(cfg, slug); prepare(cfg); approve(cfg);
     const approved = a.read(cfg, slug, 'spec');
@@ -138,7 +139,7 @@ test('exact source/intent snapshots survive a harmless rebase and lifecycle clos
 test('uncommitted intent and symlink sources cannot authorize a new approval', () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
-    const cfg = loadConfig(s.work); prepare(cfg);
+    const cfg = ({ ...loadConfig(s.work), gates: HUMAN }); prepare(cfg);
     const intent = a.read(cfg, slug, 'intent').text;
     edit(cfg, 'intent', text => text + '\nUncommitted correction\n');
     assert.throws(() => a.approve(cfg, slug, 'spec', { by: 'simulation', anyway: 'test' }), /commit intent/);
@@ -153,7 +154,7 @@ test('uncommitted intent and symlink sources cannot authorize a new approval', (
 test('shallow legacy history cannot hide a previously recorded binding', () => {
   const s = stage(FIXTURES, 'contract-planned'), shallow = mkdtempSync(path.join(tmpdir(), 'trace-shallow-'));
   try {
-    const cfg = loadConfig(s.work); prepare(cfg); approve(cfg);
+    const cfg = ({ ...loadConfig(s.work), gates: HUMAN }); prepare(cfg); approve(cfg);
     edit(cfg, 'spec', text => text.replace(/^approval_version:.*\n/m, '').replace(/^approval_digest:.*\n/m, ''));
     commit(s.work);
     git(s.work, 'clone', '--depth', '1', `file://${s.work}`, shallow);

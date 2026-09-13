@@ -30,6 +30,18 @@ const deny = (reason) => {
   return 0;
 };
 
+// G06. An advisory gate reports the same judgment and lets the call through. The wording says
+// which gate is relaxed, because a warning that reads like a denial teaches the model to stop
+// anyway — the point of advisory mode is that the loop continues and the merge decision, not the
+// hook, weighs what it says.
+const warn = (reason) => {
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext:
+      `harness (advisory gate): ${reason}\nThis is recorded, not refused — the write proceeds and the merge decision reads it.` },
+  }));
+  return 0;
+};
+
 const DESTRUCTIVE = [
   [/\brm\s+(-[a-zA-Z]*\s+)*-[a-zA-Z]*[rR][a-zA-Z]*\s+\/(?!\w)/, 'rm -rf on an absolute root path', 'rm-root'],
   [/\bgit\s+push\b.*(--force(?!-with-lease)|-f\b)/, 'git push --force (use --force-with-lease)', 'git-force-push'],
@@ -57,7 +69,10 @@ function preWrite(input, cfg) {
         if (!file) return 0;
         const rel = path.relative(cfg.layout.root, path.resolve(cfg.layout.root, file));
         const hit = writeRefusal(rel, cfg);
-        if (hit) { ledger.append({ stage: 'pre-write', control: 'write-guard', rule: hit.rule, verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(hit.message); }
+        // G06: an advisory fire is a `warn` row, not a `fail` one. `harness ledger audit` counts
+        // fires to tell a deterrent from a corpse, and a warning that recorded itself as a
+        // denial would inflate exactly the number that decides whether a control stays.
+        if (hit) { ledger.append({ stage: 'pre-write', control: 'write-guard', rule: hit.rule, verdict: hit.advisory ? 'warn' : 'fail', ms: 0, findings: 1 }, cfg.layout); return hit.advisory ? warn(hit.message) : deny(hit.message); }
         ledger.append({ stage: 'pre-write', control: 'write-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
   return 0;
 }
@@ -92,6 +107,10 @@ function preBash(input, cfg) {
         // label every one of those used to be flattened into, which left `harness ledger audit`
         // unable to tell a caught mistake from a false block.
         const hit = bashContractRefusal(cmd, cfg);
+        if (hit && hit.advisory) {
+          ledger.append({ stage: 'pre-bash', control: 'bash-guard', rule: hit.rule, verdict: 'warn', ms: 0, findings: 1 }, cfg.layout);
+          return warn(hit.message);
+        }
         if (hit) return fired(hit.rule, hit.message);
         const p = bashTouchesProtected(cmd, PREFIX_CACHE_PATHS);
         if (p) return fired('prompt-prefix', `this command writes to ${p} through the shell, which bypasses the write guard. Instruction and permission changes require the approved scope.`);

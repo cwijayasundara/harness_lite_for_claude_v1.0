@@ -3,6 +3,23 @@ import { parseToml } from './toml.mjs';
 import { layout } from './paths.mjs';
 
 export const DEFAULT_STAGES = { fast: ['fmt', 'lint', 'typecheck'], stop: ['fast', 'test'], commit: ['stop', 'secrets'], drift: ['coverage', 'deps'] };
+
+// G06. A gate is a policy, not a constant. Three modes, and the difference between them is
+// *where* the gate is answered, never whether it is recorded:
+//
+//   human     — today's behaviour. An unapproved or out-of-scope product write is refused.
+//   advisory  — the same judgment is reported and the write proceeds. The refusal becomes an
+//               `additionalContext` warning at the hook, a `warn` verdict at the check, and a
+//               row rather than an error exit at `harness status`. The merge decision reads it.
+//   auto      — the driver records the approval itself (`approved_by: policy`) with a digest of
+//               the policy that let it, and the PR body lists it.
+//
+// `merge` takes one value. A machine that can approve its own merge has no gate at all, and
+// `approve-is-the-humans` exists precisely because every other gate in this harness is one tool
+// call away. Law 8 is amended in this change to say the rest of it: gates are recorded at the
+// edges; in advisory mode they inform the merge decision rather than block the build loop.
+export const GATE_MODES = ['human', 'advisory', 'auto'];
+export const DEFAULT_GATES = { spec: 'advisory', plan: 'advisory', merge: 'human' };
 export const VERBS = ['fmt', 'lint', 'typecheck', 'test', 'test_quality', 'coverage', 'arch', 'secrets', 'deps'];
 export const DEFAULT_SENSOR_PROFILES = {
   behaviour: ['test', 'coverage'],
@@ -10,6 +27,29 @@ export const DEFAULT_SENSOR_PROFILES = {
   hardening: ['secrets', 'deps'],
   qa: ['test_quality', 'fmt', 'lint', 'typecheck'],
 };
+
+// A misspelled mode is a gate nobody chose. It fails loudly here rather than silently reading as
+// whichever branch the `=== 'human'` comparison happened to be written as — the failure mode the
+// `require_contract` default already cost this repository once.
+function gates(raw = {}) {
+  const merged = { ...DEFAULT_GATES, ...raw };
+  for (const [gate, mode] of Object.entries(merged)) {
+    if (!DEFAULT_GATES[gate]) throw new Error(`unknown gate "${gate}" in [gates] — known: ${Object.keys(DEFAULT_GATES).join(', ')}`);
+    if (!GATE_MODES.includes(mode)) throw new Error(`[gates].${gate} = "${mode}" is not a mode — use ${GATE_MODES.join(', ')}`);
+  }
+  if (merged.merge !== 'human') throw new Error('[gates].merge must be "human": the harness never approves its own merge');
+  return merged;
+}
+
+// The one reader of a gate's mode. Callers that hold a cfg built by hand rather than by
+// `loadConfig` (every guard unit test, the hook's fail-open path) get the same default an
+// unconfigured project gets, so a cfg cannot mean two different things depending on where it
+// came from.
+export const gateMode = (cfg, gate) => cfg?.gates?.[gate] ?? DEFAULT_GATES[gate];
+
+// `human` blocks; `advisory` and `auto` report. `auto` does not block because the driver records
+// the approval as it goes — there is nothing left to wait for.
+export const gateBlocks = (cfg, gate) => gateMode(cfg, gate) === 'human';
 
 export function loadConfig(root) {
   const L = layout(root);
@@ -63,6 +103,7 @@ export function loadConfig(root) {
     // every-control-fires-or-goes B1: control name -> the test that plants the defect its why:
     // names. The audit reads it to tell a deterrent from a corpse; nothing else does.
     deterrents: raw.deterrents ?? {},
+    gates: gates(raw.gates),
     layout: L,
   };
   return cfg;

@@ -14,9 +14,28 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import * as artifacts from '../lib/artifacts.mjs';
+import { gateBlocks } from '../lib/config.mjs';
 import { changedFiles, git, unbornRepository } from '../lib/diff.mjs';
 
 const under = (file, owned) => file === owned || file.startsWith(owned.replace(/\/$/, '') + '/');
+
+// G06. Each finding says which gate it belongs to, and the gate's mode decides whether this
+// control fails the stage or annotates it. One verdict per control, so a blocking finding wins:
+// `unkept-proof` carries no gate at all — an approved plan naming a test that does not exist is
+// a broken promise in a gate that was already given, not a gate still waiting for an answer, and
+// no mode relaxes it.
+function verdictFor(cfg, findings) {
+  if (!findings.length) return 'pass';
+  const blocking = findings.some((f) => !f.gate || gateBlocks(cfg, f.gate));
+  return blocking ? 'fail' : 'warn';
+}
+
+// The gate tag is internal routing, not part of the finding schema the report renders and the
+// normalisers fill. Stripped once the verdict is computed so `render` and the ledger see exactly
+// the shape they saw before this change.
+const shed = (findings) => findings.map(({ gate, ...f }) => f);
+
+const graded = (cfg, findings) => ({ verdict: verdictFor(cfg, findings), findings: shed(findings) });
 
 // B7: for every plan this repository's approval currently governs, each Proof row naming a test
 // file must name one that exists. Presence-only rows (B2's bar) and prose evidence are not this
@@ -58,7 +77,7 @@ export async function run(cfg) {
   const ignore = (f) => f.startsWith('.aidlc/artifacts/') || f.startsWith('.aidlc/state/') || f === 'CODEBASE-MAP.md';
   const product = changed.filter((f) => !ignore(f));
   if (!product.length && !cfg.diff) {
-    return proofFindings.length ? { verdict: 'fail', findings: proofFindings } : { verdict: 'pass', findings: [] };
+    return graded(cfg, proofFindings);
   }
 
   // Approved, committed, and unchanged since approval. An uncommitted approval is not an
@@ -73,42 +92,46 @@ export async function run(cfg) {
     // a-draft-is-a-declaration B3: a written, unapproved spec is work declared and not gated.
     const finding = drafts.length
       ? {
+          gate: drafts[0].kind === 'plan' ? 'plan' : 'spec',
           rule: 'draft-awaits-gate',
           message: `changed while ${artifacts.awaitingGateLine(drafts[0]).replace(/^awaiting/, 'awaiting')}${drafts.length > 1 ? ` (also: ${drafts.slice(1).map((d) => `${d.slug}/${d.kind}.md`).join(', ')})` : ''} — ${drafts[0].slug}/${drafts[0].kind}.md`,
           fix: artifacts.awaitingGateRemedy(drafts[0]),
         }
       : current
       ? {
+          gate: 'plan',
           rule: 'no-approved-plan',
           message: `changed under the current change "${current.slug}" — ${artifacts.currentLine(cfg)}`,
           fix: artifacts.currentLine(cfg),
         }
       : {
+          // Nothing is selected, so nothing has reached gate 2 yet: gate 1 is what is missing.
+          gate: 'spec',
           rule: 'no-current-change',
           message: `changed with no executable selection — ${artifacts.currentLine(cfg)}`,
           fix: 'harness status --change <slug>; approve its spec and plan and commit each',
         };
-    return { verdict: 'fail', findings: [...(product.length ? product : ['.aidlc/artifacts/']).map((f) => ({ file: f, line: 0, ...finding })), ...proofFindings] };
+    return graded(cfg, [...(product.length ? product : ['.aidlc/artifacts/']).map((f) => ({ file: f, line: 0, ...finding })), ...proofFindings]);
   }
 
   // A plan that claims nothing governs nothing, and would silently authorise the whole tree.
   const empty = plans.filter((p) => !p.owns.length).map((p) => ({
-    file: `.aidlc/artifacts/${p.slug}/plan.md`, line: 0, rule: 'plan-scope-missing',
+    file: `.aidlc/artifacts/${p.slug}/plan.md`, line: 0, gate: 'plan', rule: 'plan-scope-missing',
     message: 'an approved plan declares no owned files',
     fix: 'list every path this change may touch, in backticks, under "## Files"',
   }));
-  if (empty.length) return { verdict: 'fail', findings: [...empty, ...proofFindings] };
+  if (empty.length) return graded(cfg, [...empty, ...proofFindings]);
 
   const findings = [
     ...product
       .filter((f) => !owned.some((d) => under(f, d)))
       .map((f) => ({
-        file: f, line: 0, rule: 'scope-drift',
+        file: f, line: 0, gate: 'plan', rule: 'scope-drift',
         message: `changed but not named by the current change "${plans[0].slug}" — its plan's ## Files does not claim it`,
         fix: `add the path to "## Files" of ${plans[0].slug}/plan.md and re-approve it, or revert the change`,
       })),
     ...proofFindings,
   ];
 
-  return { verdict: findings.length ? 'fail' : 'pass', findings };
+  return graded(cfg, findings);
 }

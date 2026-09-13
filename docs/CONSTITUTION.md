@@ -45,6 +45,13 @@ into delivery; the remaining three are delivery gates. Everything else is adviso
 pauses inside the build loop destroy the parallelism that makes agents worth running; gates
 belong at the edges, not in the middle.
 
+Gates are recorded at the edges; in advisory mode they inform the merge decision rather than
+block the build loop. `[gates]` in `harness.toml` sets the mode per gate — `human` refuses,
+`advisory` reports the same judgment and lets the loop continue, `auto` lets the driver record
+the approval with a digest of the policy that gave it. `merge` takes one value: the harness never
+approves its own merge, and the rules that are not gates — destructive commands, protected paths,
+the prompt prefix, `tamper`, `secrets`, `approve-is-the-humans` — are unaffected by any mode.
+
 ### Law 9 — Evals before controls *(enforced: CI)*
 Twenty golden tasks with deterministic assertions and per-task budgets exist before the next
 skill or hook. Every production incident becomes a permanent eval. The suite runs on any diff

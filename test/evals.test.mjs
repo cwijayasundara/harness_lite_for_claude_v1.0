@@ -1,6 +1,7 @@
 // The grading half of the eval suite, exercised with a fake invoker: no model, no key, no
 // spend. If this file is green, a green eval run means what it says.
 import { test } from 'node:test';
+import { HUMAN } from './_gates.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -198,7 +199,7 @@ test('a fixture governed like an install refuses an unowned product write', () =
   try {
     const cfg = {
       layout: { root: s.work, claude: path.join(s.work, '.claude'), state: path.join(s.work, '.aidlc/state'), artifacts: path.join(s.work, '.aidlc/artifacts') },
-      guard: { require_contract: true, protected_paths: [] },
+      guard: { require_contract: true, protected_paths: [] }, gates: HUMAN,
     };
     // hyphen-titlecase owns src/app/text.py and tests/test_app.py, and nothing else.
     assert.equal(writeBlocked('src/app/text.py', cfg), null, 'an owned path stays writable');
