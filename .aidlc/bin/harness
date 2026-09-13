@@ -28,6 +28,7 @@ import * as evalGate from '../lib/eval-gate.mjs';
 
 const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
 import * as artifacts from '../lib/artifacts.mjs';
+import * as intake from '../lib/intake.mjs';
 import { renderClaudeInstructions, renderModel } from '../lib/projection.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -432,7 +433,7 @@ async function main() {
 
     case 'new': {
       const slug = argv[1];
-      if (!slug) { console.error('usage: harness new <slug>   |   harness new eval <slug>'); return 2; }
+      if (!slug && !has('from')) { console.error('usage: harness new <slug>   |   harness new [<slug>] --from <path.md | https-url> [--split]   |   harness new eval <slug>'); return 2; }
       const cfg = loadConfig(findRepoRoot());
 
       // An eval is not a change; it is a regression the suite keeps. Kept on this verb because
@@ -445,6 +446,32 @@ async function main() {
         if (existsSync(dst)) { console.log(dst); return 0; }
         writeFileSync(dst, JSON.stringify({ id, fixture: 'clean-app', prompt: `Regression for ${id}. Reproduce, then keep the suite green without editing the failing test.`, assert: [{ fixture_tests_pass: true }, { files_unchanged: ['README.md'] }] }, null, 2) + '\n');
         console.log(dst); return 0;
+      }
+
+      // G08: intake from a document. The kernel reads a path or takes a URL string; a tracker
+      // read is the agent's job, written to a file and passed here as a path. No tracker client,
+      // no credential and no network call enters the kernel.
+      if (has('from')) {
+        const from = flag('from');
+        if (typeof from !== 'string' || !from) { console.error('usage: harness new [<slug>] --from <path.md | https-url> [--split] [--revision <id>]'); return 2; }
+        const named = slug && !slug.startsWith('--') ? slug : null;
+        if (named && !validSlug(named)) { console.error('slug must be 1-63 lowercase letters, digits, or hyphens; it cannot contain paths'); return 2; }
+        try {
+          const decision = intake.plan(cfg, { from, slug: named, split: has('split'), revision: has('revision') ? flag('revision') : null });
+          for (const written of intake.write(cfg, decision, path.join(HERE, 'templates'))) {
+            console.log(`${written}  ${path.relative(cfg.layout.root, artifacts.dir(cfg, written))}`);
+          }
+          if (decision.split) {
+            console.log(`\ninitiative "${decision.parent}" decomposed into ${decision.changes.length} change(s)`);
+            for (const c of decision.changes) if (c.dependsOn.length) console.log(`  ${c.slug} depends_on ${c.dependsOn.join(', ')}`);
+            console.log('  harness status   # the decomposition, its parent grouping and its dependency edges');
+          }
+          if (decision.note) console.log(`\nnote: ${decision.note}`);
+          // A stated order the tool could not resolve is reported, never dropped: an order
+          // silently ignored is worse than no order at all.
+          for (const finding of decision.findings) console.log(`  UNRESOLVED ${finding}`);
+          return 0;
+        } catch (error) { console.error(error.message); return 1; }
       }
 
       if (!validSlug(slug)) { console.error('slug must be 1-63 lowercase letters, digits, or hyphens; it cannot contain paths'); return 2; }
@@ -545,6 +572,9 @@ async function main() {
     --base <ref> --candidate <ref>  check the full candidate diff (candidate must be HEAD)
     --change <slug> | --pr-event <file>  candidate-only selection; leaves local binding intact
   harness new <slug>               intent.md, spec.md, plan.md, review.md for one change
+  harness new [<slug>] --from <path.md | https-url> [--split] [--revision <id>]
+                                   intake a PRD or tracker story; --split writes one child
+                                   change per "## Story" or acceptance-criteria group
   harness approve <slug> spec|plan --by <identity> [--policy]
   harness review --base <commit> --candidate <commit> --out <file>
                                  independent read-only model review

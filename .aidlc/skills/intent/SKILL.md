@@ -9,8 +9,15 @@ Read the request and relevant code, tests and documentation first. Establish who
 what fails today, the desired outcome and real constraints. Keep the intent concise; design
 belongs in the spec and implementation scope belongs in the plan.
 
-Use `harness new <slug>` to create the artifact chain. Record the source and any decisions
-already made. Capturing backlog work does not select it for execution. Use
+Use `harness new <slug>` to create the artifact chain. When the request arrives as a document —
+a PRD, a tracker story, a brief — use `harness new --from <path.md | https-url>` instead: it
+records the origin as `source`/`source_revision` when it can resolve one, and in prose when it
+cannot. Add `--split` when the document declares several `## Story` sections or a grouped
+`## Acceptance criteria` table, and it writes one change per story, each carrying the same
+`parent` initiative and the same source revision, with `depends_on` for any order the document
+states. Read a tracker through the project's MCP server yourself, write what you read to a file
+in the repository, and pass that path: the harness has no tracker client and must not be given
+one. Record any decisions already made. Capturing backlog work does not select it for execution. Use
 `harness status --change <slug>` when this is the change the worktree will execute; selection
 is not intake acceptance or approval. Ask only unresolved questions whose answers could materially change behaviour,
 design, safeguards or scope. Group closely related questions when that makes them easier to

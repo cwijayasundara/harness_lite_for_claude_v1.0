@@ -161,6 +161,32 @@ inputs: an uncommitted or edited `intent.md` invalidates the spec's binding, so 
 in a file nobody committed does not pass a gate. Use `--json` for CI or a weekly report. Flow
 targets are a parked candidate below, not a thing this harness measures today.
 
+## Story intake: one document is the single source
+
+`harness new --from <path.md | https-url> [--split] [--revision <id>]` turns a PRD or a tracker
+story into a change, or into a decomposed set of them.
+
+The kernel reads a path or takes a URL string. It has no tracker client, no credential and no
+network call, and it must not acquire one. To intake from a tracker, the agent reads the issue
+through the project's own MCP server, writes what it read to a file in the repository, commits
+it, and passes that path — so the document a change was decomposed from is a committed artifact a
+reviewer can read, at a revision the approval binds to. At PR open the driver (G09) writes one
+comment back to the tracker through that same MCP server, carrying the PR URL and the candidate
+SHA.
+
+**The single-source rule.** The document is the inventory; the changes are the work. Keep the
+complete acceptance criteria in the source document and nowhere else — not copied into a parent
+change, not maintained as a second registry. Each child change names the same `parent` initiative
+and the same `source`/`source_revision`, and that triple is what groups them: `coordination()`
+reads the source at that exact commit to report which criteria no child has mapped. Two copies of
+an inventory disagree the first time one is edited, and then nothing can say which is current.
+
+`--split` decomposes on `## Story` sections, or failing that on an `## Acceptance criteria` table
+whose Criterion IDs carry a `<group>:` prefix. A document with neither is one change; asking for
+`--split` anyway is refused rather than guessed at. A story may state its order with a
+`Depends on: <other story>` line, which becomes `depends_on` on that change's plan; a name that
+matches no sibling is reported as `UNRESOLVED` rather than dropped.
+
 ## Provenance is optional, and binding once declared
 
 An intent may name where its requirements came from:

@@ -332,3 +332,89 @@ test('the agent still cannot approve through its own shell, in any mode', async 
     rmSync(home, { recursive: true, force: true });
   }
 });
+
+// Phase 1's exit criterion, measured rather than asserted: the number of `harness approve`
+// commands a change needs between a written intent and a diff that is ready to be reviewed.
+// Under `human` it is two, which is the point of the gates; under `advisory` it is zero, which
+// is the point of the mode. The PR itself is the driver's job (G09); what is measured here is
+// everything up to the diff being written and the commit stage being clean.
+test('a change reaches a reviewable diff with two approvals under human and none under advisory', () => {
+  const spec = `# Spec: count the approvals
+
+## Outcome
+
+The number of human gate commands a change needs is a property of the configuration.
+
+## Observable behaviours
+
+### B1
+
+Given a change under an advisory gate
+When its product file is written
+Then no approval command was needed and the write was not refused.
+`;
+  const plan = `# Plan: count the approvals
+
+## Approach
+
+Write the one file and the one test.
+
+## Files
+
+- \`src/counted.mjs\`
+
+## Order
+
+1. Write \`src/counted.mjs\`.
+
+## Proof
+
+| Behaviour | Test or evidence |
+|---|---|
+| B1 | \`tests/counted.test.mjs\` |
+`;
+
+  const measure = (mode) => {
+    const root = mkdtempSync(path.join(tmpdir(), `exit-${mode}-`));
+    try {
+      spawnSync('git', ['init', '-q'], { cwd: root });
+      spawnSync('git', ['config', 'user.email', 'harness@example.invalid'], { cwd: root });
+      spawnSync('git', ['config', 'user.name', 'Harness Test'], { cwd: root });
+      assert.equal(cli(root, 'init', '--into', root).status, 0);
+      appendFileSync(path.join(root, '.aidlc/harness.toml'), `\n[gates]\nspec = "${mode}"\nplan = "${mode}"\nmerge = "human"\n`);
+
+      assert.equal(cli(root, 'new', 'counted').status, 0);
+      const dir = path.join(root, '.aidlc/artifacts/counted');
+      writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent: counted\n\nSomething should change.\n');
+      writeFileSync(path.join(dir, 'spec.md'), `---\nstatus: draft\n---\n${spec}`);
+      writeFileSync(path.join(dir, 'plan.md'), `---\nstatus: draft\n---\n${plan}`);
+      const commitAll = (m) => { git(root, 'add', '-A'); git(root, '-c', 'commit.gpgsign=false', 'commit', '-qm', m); };
+      commitAll('draft counted');
+      assert.equal(cli(root, 'status', '--change', 'counted').status, 0);
+
+      // Approve only what this mode actually requires, and count the commands.
+      let approvals = 0;
+      for (const kind of ['spec', 'plan']) {
+        if (mode !== 'human') continue;
+        assert.equal(cli(root, 'approve', 'counted', kind, '--by', 'tester').status, 0);
+        approvals += 1;
+        commitAll(`${kind} approved`);
+      }
+
+      // The product write the change exists to make.
+      const cfg = loadConfig(root);
+      const refusal = writeBlocked('src/counted.mjs', cfg);
+      return { approvals, refusal, advisories: a.state(cfg, 'counted').advisories.length };
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  };
+
+  const strict = measure('human');
+  assert.equal(strict.approvals, 2, 'the human gate costs exactly two approval commands');
+  assert.equal(strict.refusal, null, 'and having paid them, the owned path is writable');
+
+  const relaxed = measure('advisory');
+  assert.equal(relaxed.approvals, 0, 'the advisory gate costs none');
+  assert.equal(relaxed.refusal, null, 'and the write is not refused');
+  // Zero refusals is not zero information: the unapproved gates are still on the board.
+  assert.ok(relaxed.advisories > 0, 'an advisory gate that said nothing would be a gate that was removed');
+});
