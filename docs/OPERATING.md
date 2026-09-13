@@ -124,6 +124,21 @@ product processes over API and HTTP transports; they are never imported beside u
 modules. Each runtime starts from a fresh source snapshot. Those properties are about keeping
 grading honest, not about containment, and they are not a security boundary.
 
+## What a session is told, and what a turn ends with
+
+The SessionStart payload is two halves. Everything down to the `contract:` line is identical from
+one session to the next in a repository nobody has touched — the project, the check command, the
+budget, the map's hubs, the scope rule — and everything after it moves: a stale graph, a noisy
+control, which change is selected, what has been superseded. A prompt prefix is cached only while
+it stays byte-identical, so a volatile line above the boundary re-sends every line below it. Add a
+line to the stable half deliberately; add one to the volatile half freely.
+
+The Stop hook runs `stop_hook` — `fast`, plus the tests that name what the turn touched — and not
+the whole suite. `[capabilities].test_changed` is the narrowed command (`{files}` is substituted
+with the selected tests); unset, it is `skipped` like any other capability a project has not
+configured, and never a silent fall back to the full run. The full suite belongs to
+`harness deliver`, once per iteration, and `harness check --stage stop` stays one command away.
+
 ## The delivery engine: `harness deliver`
 
 `harness deliver <slug> --live` drives the seven phases between the plan approval and the merge

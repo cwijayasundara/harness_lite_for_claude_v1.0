@@ -7,13 +7,14 @@
 
 import { executionIdentity, runtimeIdentity, policyIdentity } from './runtime-identity.mjs';
 import { spawnSync } from 'node:child_process';
-import { writeFileSync, mkdirSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { resolveStage } from './config.mjs';
 import { normalize, testExecution } from './normalize.mjs';
 import { traceEvidence } from './trace.mjs';
 import * as ledger from './ledger.mjs';
 import * as artifacts from './artifacts.mjs';
+import * as graph from './graph.mjs';
 import { candidateBoundary, validateCheckout, changedFiles } from './diff.mjs';
 
 // a-block-names-its-rule B1. The checks already tag their findings and the report already prints
@@ -44,9 +45,48 @@ function interpolate(cmd, files, reportPath) {
   return cmd.replace(/\{files\}|\{report\}/g, placeholder => placeholder === '{files}' ? list : quote(reportPath));
 }
 
+// G11. Which tests a turn's changes could have broken. Two sources, both already in the tree: a
+// changed file that is itself a test, and a test whose path carries the changed file's stem or
+// which the graph shows importing it. It is deliberately generous — a test run that misses the
+// one test that mattered is worse than a test run that is a second slower — and deliberately not
+// the whole suite, which is the driver's job once per iteration rather than the hook's every turn.
+const TEST_PATH = /(^|\/)tests?\//;
+const TEST_FILE = /(\.|_|^)(test|spec)\.[^/]+$|(^|\/)test_[^/]+$/;
+export function changedTests(cfg, files) {
+  const isTest = (f) => TEST_FILE.test(f) || TEST_PATH.test(f);
+  const selected = new Set(files.filter(isTest));
+  const others = files.filter((f) => !isTest(f));
+  if (!others.length) return [...selected].sort();
+  const stems = others.map((f) => path.basename(f).replace(/\.[^.]+$/, '')).filter(Boolean);
+  let modules = {};
+  try { modules = graph.load(cfg)?.modules ?? {}; } catch { /* no index: stems alone still answer */ }
+  const candidates = new Set([...Object.keys(modules), ...listTests(cfg.layout.root)]);
+  for (const candidate of candidates) {
+    if (!isTest(candidate) || !existsSync(path.join(cfg.layout.root, candidate))) continue;
+    if (stems.some((stem) => path.basename(candidate).includes(stem))) { selected.add(candidate); continue; }
+    if ((modules[candidate]?.imports ?? []).some((i) => others.includes(i))) selected.add(candidate);
+  }
+  return [...selected].sort();
+}
+
+// The tree's own test files, for a repository with no graph built yet. One level of directories,
+// because a test suite that hides deeper than that is not one this shortcut can find cheaply.
+function listTests(root) {
+  const out = [];
+  for (const dir of ['test', 'tests', '__tests__']) {
+    const full = path.join(root, dir);
+    if (!existsSync(full)) continue;
+    for (const entry of readdirSync(full, { withFileTypes: true })) {
+      if (entry.isFile()) out.push(`${dir}/${entry.name}`);
+    }
+  }
+  return out;
+}
+
 export async function runOne(cfg, verb, files, results) {
   const started = Date.now();
   const base = { control: verb, verdict: 'skipped', ms: 0, findings: [], command: '' };
+
 
   // `secrets` has a zero-config built-in fallback, but an explicitly configured scanner wins.
   // Meta-checks such as scope-drift and budget are always local.
@@ -64,6 +104,14 @@ export async function runOne(cfg, verb, files, results) {
   if (!cmd || cmd.trim() === '') {
     // A missing verb is `skipped`, never `failed`. Coverage grows with the project.
     return { ...base, ms: Date.now() - started, note: `no "${verb}" command in harness.toml` };
+  }
+
+  // G11. The narrowed test run, after the capability check so an unconfigured project is told
+  // that rather than told its changes name no test. Nothing to narrow to is `skipped` as well:
+  // not a pass, not a failure, and never a silent fall back to the full suite.
+  if (verb === 'test_changed') {
+    files = changedTests(cfg, files);
+    if (!files.length) return { ...base, ms: Date.now() - started, note: 'no test names anything this turn changed' };
   }
 
   const reportPath = path.join(cfg.layout.state, `${verb}-report.json`);

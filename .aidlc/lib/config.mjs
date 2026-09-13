@@ -2,7 +2,11 @@ import { readFileSync, existsSync } from 'node:fs';
 import { parseToml } from './toml.mjs';
 import { layout } from './paths.mjs';
 
-export const DEFAULT_STAGES = { fast: ['fmt', 'lint', 'typecheck'], stop: ['fast', 'test'], commit: ['stop', 'secrets'], drift: ['coverage', 'deps'] };
+// G11. `stop_hook` is the stage the Stop hook runs, and it is deliberately not `stop`. The full
+// suite belongs to the delivery driver, which runs it once per iteration; running it again at the
+// end of every turn paid for the same seconds repeatedly and was the dominant per-turn cost.
+export const DEFAULT_STAGES = { fast: ['fmt', 'lint', 'typecheck'], stop: ['fast', 'test'],
+  stop_hook: ['fast', 'test_changed'], commit: ['stop', 'secrets'], drift: ['coverage', 'deps'] };
 
 // G06. A gate is a policy, not a constant. Three modes, and the difference between them is
 // *where* the gate is answered, never whether it is recorded:
@@ -41,7 +45,11 @@ export function stageModel(cfg, phase) {
     default: return { model: null, effort: null };
   }
 }
-export const VERBS = ['fmt', 'lint', 'typecheck', 'test', 'test_quality', 'coverage', 'arch', 'secrets', 'deps'];
+// `test_changed` is the `test` capability narrowed to what the turn touched. It is its own verb
+// rather than a flag because a project's narrow-test command is not derivable from its full one:
+// `node --test test/*.test.mjs` has nowhere to put a file list. Unset, it is `skipped` like any
+// other capability the project has not configured (Law 6).
+export const VERBS = ['fmt', 'lint', 'typecheck', 'test', 'test_changed', 'test_quality', 'coverage', 'arch', 'secrets', 'deps'];
 export const DEFAULT_SENSOR_PROFILES = {
   behaviour: ['test', 'coverage'],
   architecture: ['arch'],

@@ -11,6 +11,7 @@ import { findRepoRoot, PREFIX_CACHE_PATHS } from '../lib/paths.mjs';
 import { check, render } from '../lib/runner.mjs';
 import * as ledger from '../lib/ledger.mjs';
 import { refresh } from '../lib/refresh.mjs';
+import { changedFiles } from '../lib/diff.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
 import { writeRefusal, productionDenied, bashTouchesProtected, bashContractRefusal, commandText } from '../lib/guard.mjs';
@@ -196,9 +197,14 @@ export async function dispatch(event) {
         // The external test driver supplies the next decision; a Stop hook cannot approve it.
 
         const r = refresh(cfg);
-        const report = await check(cfg, { stage: 'stop', files: [] });
+        // G11. The hook runs `stop_hook` — fast, plus the tests that name what this turn touched.
+        // It used to run `stop`, the whole suite, at the end of every turn: seconds paid over and
+        // over for an answer that had not changed. The full suite is `harness deliver`'s, once per
+        // iteration, and `harness check --stage stop` stays one command away for a human.
+        const stage = cfg.stages?.stop_hook ? 'stop_hook' : 'stop';
+        const report = await check(cfg, { stage, files: changedFiles(cfg) });
         const notes = [];
-        if (!report.ok) notes.push('stage "stop" has findings — run: .aidlc/bin/harness check --stage stop');
+        if (!report.ok) notes.push(`stage "${stage}" has findings — run: .aidlc/bin/harness check --stage stop`);
         if (r.error) notes.push(`graph refresh failed (${r.error}) — treat the index as stale`);
 
         // B11. The map is a guide, and a guide that has quietly stopped describing the tree is

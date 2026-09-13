@@ -318,14 +318,13 @@ test('baseline: the hook emits sessionContext and holds no second assembly of it
 
   const emitted = JSON.parse(execFileSync('node', [path.join(ROOT, '.aidlc/bin/harness'), 'hook', 'session-start'],
     { cwd: ROOT, input: '{}', encoding: 'utf8' })).hookSpecificOutput.additionalContext;
-  // The hook rotates the run id before assembling, so the `ledger:` counters it reports are one
-  // run behind the ones an in-process call reports afterwards. That counter is the only part of
-  // the payload the act of measuring changes, so it is normalised on both sides rather than
-  // raced against; every other line must match exactly, which is what B2 is about.
-  const norm = (s) => s.replace(/^ledger: .*$/m, 'ledger: <counts>');
-  assert.equal(norm(emitted), norm(sessionContext(loadConfig(ROOT))),
+  // G11 removed the `ledger:` row count, which was the one part of the payload the act of
+  // measuring changed — the hook rotates the run id before assembling, so its counters were
+  // always one run behind an in-process call's. With it gone there is nothing left to normalise
+  // and the two sides must match byte for byte, which is a stronger statement of the same B2.
+  assert.equal(emitted, sessionContext(loadConfig(ROOT)),
     'the hook must write exactly what sessionContext assembles');
-  assert.match(emitted, /^ledger: \d+ rows over \d+ runs \(30d\)$/m, 'the ledger line is still emitted');
+  assert.doesNotMatch(emitted, /^ledger: /m, 'the row count moved on every check and nothing acted on it');
 
   const hook = fs.readFileSync(path.join(ROOT, '.aidlc/hooks/dispatch.mjs'), 'utf8');
   assert.ok(!hook.includes('`harness · ${'), 'dispatch.mjs assembles the payload a second time');

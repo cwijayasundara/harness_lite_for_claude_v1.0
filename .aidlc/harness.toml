@@ -8,6 +8,7 @@ fmt       = ""
 lint      = ""      # zero-dependency by constitution: no linter to install
 typecheck = ""
 test      = "node --test --test-reporter=tap test/*.test.mjs"
+test_changed = "node --test --test-reporter=tap {files}"
 test_quality = "node .aidlc/sensors/test-quality.mjs" # legacy name: test presence only
 coverage  = ""
 arch      = "node .aidlc/sensors/architecture.mjs"
@@ -16,6 +17,7 @@ deps      = ""      # no dependencies to go stale
 
 [formats]
 test = "tap"
+test_changed = "tap"
 
 [check]
 fail_fast = true
@@ -23,6 +25,8 @@ fail_fast = true
 [stages]
 fast   = ["secrets"]
 stop   = ["fast", "test"]
+# G11. What the Stop hook runs. The full suite is the delivery driver's, once per iteration.
+stop_hook = ["fast", "test_changed"]
 commit = ["stop", "scope-drift", "budget", "tamper", "arch", "test_quality", "baseline"]
 drift  = []
 

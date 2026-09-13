@@ -238,9 +238,11 @@ test('pruning changes only automatic session inventory in the isolated lean arm'
       assert.equal(session,config.prune?pruneSessionInventory(baseline):baseline);
       assert.equal(readFileSync(path.join(s.plugin,'.aidlc/lib/graph.mjs'),'utf8'),readFileSync('.aidlc/lib/graph.mjs','utf8'));
       assert.ok(session.includes('ledger.report('));assert.ok(session.includes('currentLine(cfg)'));
+      // G11 removed the `ledger:` row count from the payload; `ledger.report(` is still called,
+      // for the noisy-control warnings, which is what this experiment must not prune.
       const banner=JSON.parse(execFileSync(process.execPath,[path.join(s.plugin,'.aidlc/bin/harness'),'hook','session-start'],{cwd:s.work,encoding:'utf8',input:JSON.stringify({cwd:s.work})})).hookSpecificOutput.additionalContext;
       assert.equal(/^budget:/m.test(banner),!config.prune);
-      assert.match(banner,/contract:/);assert.match(banner,/^check:/m);assert.match(banner,/^ledger:/m);
+      assert.match(banner,/contract:/);assert.match(banner,/^check:/m);assert.match(banner,/^current:/m);
 
     }finally{s.cleanup();}
   }

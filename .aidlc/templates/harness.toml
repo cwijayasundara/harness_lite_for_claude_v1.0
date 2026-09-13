@@ -12,6 +12,7 @@ fmt       = ""
 lint      = ""
 typecheck = ""
 test      = ""   # e.g. "python3 -m pytest -q --json-report --json-report-file={report}"
+test_changed = ""  # the same runner narrowed to {files}, e.g. "python3 -m pytest -q {files}"
 test_quality = "" # mutation, test-diff, or project policy that catches weakened tests
 coverage  = ""
 arch      = ""
@@ -31,6 +32,9 @@ test      = "generic"
 [stages]
 fast   = ["fmt", "lint", "typecheck"]
 stop   = ["fast", "test"]
+# G11. What the Stop hook runs at the end of a turn. The full suite belongs to `harness deliver`,
+# once per iteration, not to every turn.
+stop_hook = ["fast", "test_changed"]
 commit = ["stop", "secrets", "scope-drift", "budget", "tamper", "arch", "test_quality"]
 drift  = ["coverage", "deps"]
 
