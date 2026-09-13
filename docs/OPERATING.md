@@ -124,6 +124,40 @@ product processes over API and HTTP transports; they are never imported beside u
 modules. Each runtime starts from a fresh source snapshot. Those properties are about keeping
 grading honest, not about containment, and they are not a security boundary.
 
+## The delivery engine: `harness deliver`
+
+`harness deliver <slug> --live` drives the seven phases between the plan approval and the merge
+decision, so a human stops relaying one command's output into the next:
+
+1. `implement` — the `implement` skill on the generator, scoped to the plan's `## Files`.
+2. `check-stop` — `harness check --stage stop`. One repair turn on failure, then stop.
+3. `refactor` — one generator turn under green checks, no behaviour change.
+4. `review` — `harness review` with the scoped export.
+5. `repair` — at most `max_repairs` turns on Blocking and Important findings, each confirmed by a
+   fresh review. The second attempt escalates to the judgment model.
+6. `check-commit` — `harness check --stage commit`.
+7. `pr` — `gh pr create` with the `Harness-Change:` line, the approval rows, the review verdict,
+   the export scope and the ledger invocation id.
+
+Each phase is recorded in `.aidlc/state/deliver/<slug>/phases.json` before it starts and after it
+ends, so an interrupted run resumes from the phase that had not completed rather than paying for
+the ones that had. `harness deliver <slug> --status` prints that record. If the approved plan's
+digest moved while the run was stopped, the driver refuses to resume: the authority it was
+executing under is gone, and a fresh run against the new plan is the way forward.
+
+`[deliver]` in `harness.toml` bounds it — `max_minutes`, `max_usd`, `max_repairs`. The driver
+stops and names the bound rather than exceeding it; a bound is not a verdict on the change, and
+the state it leaves is resumable. An unreported model cost reserves its full remaining allowance
+rather than counting as free. `--dry` prints the phases, the models and the bounds and spends
+nothing; without `--live` the driver refuses to start.
+
+What the driver cannot do is as important as what it does. It grants no gate: under
+`[gates] = "human"` it refuses to start without the approval, under `advisory` it carries the gap
+onto the pull request, and only under `auto` does it record the approval that setting already
+gave — as `approved_by: policy` with a digest, never as a person. It does not write
+`status: approved` into a review artifact, so a delivered change's next step is still `implement`
+and not `merge`. And it does not merge: the third gate is the human's, against branch protection.
+
 ## Independent review
 
 Run `harness review --base <commit> --candidate <commit> --out <review.md>`. The command uses the

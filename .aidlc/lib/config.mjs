@@ -20,6 +20,8 @@ export const DEFAULT_STAGES = { fast: ['fmt', 'lint', 'typecheck'], stop: ['fast
 // edges; in advisory mode they inform the merge decision rather than block the build loop.
 export const GATE_MODES = ['human', 'advisory', 'auto'];
 export const DEFAULT_GATES = { spec: 'advisory', plan: 'advisory', merge: 'human' };
+// G09. The driver's bounds. A run stops and names the bound it hit; it never exceeds one.
+export const DEFAULT_DELIVER = { max_minutes: 60, max_usd: 10, max_repairs: 2 };
 export const VERBS = ['fmt', 'lint', 'typecheck', 'test', 'test_quality', 'coverage', 'arch', 'secrets', 'deps'];
 export const DEFAULT_SENSOR_PROFILES = {
   behaviour: ['test', 'coverage'],
@@ -104,6 +106,7 @@ export function loadConfig(root) {
     // names. The audit reads it to tell a deterrent from a corpse; nothing else does.
     deterrents: raw.deterrents ?? {},
     gates: gates(raw.gates),
+    deliver: { ...DEFAULT_DELIVER, ...(raw.deliver ?? {}) },
     layout: L,
   };
   return cfg;

@@ -23,6 +23,7 @@ import * as codemap from '../lib/map.mjs';
 import { measure, shipped, RECORD } from '../checks/budget.mjs';
 import { dispatch } from '../hooks/dispatch.mjs';
 import { review, hostReview } from '../lib/review.mjs';
+import { deliver, deliverInvoker, ghPullRequest, readState, PHASES } from '../lib/deliver.mjs';
 import { changedFiles as diffFiles, prChange } from '../lib/diff.mjs';
 import * as evalGate from '../lib/eval-gate.mjs';
 
@@ -525,6 +526,24 @@ async function main() {
       return result.status === 'incomplete' ? 1 : 0;
     }
 
+    // G09. The seven phases between the plan approval and the merge decision. Law 2 keeps the
+    // sequencing in the library this case calls, never in a skill.
+    case 'deliver': {
+      const cfg = loadConfig(findRepoRoot());
+      const slug = argv[1] && !argv[1].startsWith('--') ? argv[1] : artifacts.currentChange(cfg)?.slug;
+      if (!slug) { console.error('usage: harness deliver <slug> --live [--dry] [--actor <label>]\n  no slug given and no change is selected (harness status --change <slug>)'); return 2; }
+      if (has('status')) { const state = readState(cfg, slug); console.log(JSON.stringify(state ?? { slug, state: 'no run recorded' }, null, 2)); return state ? 0 : 1; }
+      const result = await deliver(cfg, slug, {
+        invoke: deliverInvoker({ root: cfg.layout.root }),
+        openPr: ghPullRequest({ root: cfg.layout.root }),
+        live: has('live'), dry: has('dry'),
+        ...(has('actor') ? { actor: flag('actor') } : {}),
+        log: (line) => console.error(line),
+      });
+      console.log(JSON.stringify(result, null, 2));
+      return result.ok || result.dry ? 0 : 1;
+    }
+
     case 'status': {
       const cfg = loadConfig(findRepoRoot());
       if (has('change') && has('clear-change')) throw new Error('use --change <slug> or --clear-change, not both');
@@ -591,6 +610,9 @@ async function main() {
     [--full-tree]                export the whole candidate, not the plan's neighbourhood
   harness review --repo owner/name --pr <number> --candidate <commit> --out <file>
                                  read-only GitHub approval evidence (JSON)
+  harness deliver <slug> --live    implement, check, refactor, review, repair, check, PR
+    [--dry]                        print the phases, models and bounds; spend nothing
+    [--status]                     print the recorded phases of an interrupted run
   harness status [slug] [--json]  backlog, selection and approvals
     --change <slug> | --clear-change  select execution in this worktree (never approves)
   harness ledger [audit] [--days 30]

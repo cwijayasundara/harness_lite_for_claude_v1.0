@@ -51,7 +51,10 @@ test('B2 the harness records the host decision and derives no merge authority of
   assert.doesNotMatch(REVIEW, /\bmutation\b/, 'host evidence is read-only');
 
   const verbs = [...HARNESS.matchAll(/^ {4}case '([a-z-]+)':/gm)].map(m => m[1]);
-  assert.deepEqual(verbs.sort(), ['approve', 'baseline', 'check', 'doctor', 'evals', 'graph', 'hook',
+  // G09 added `deliver`, which drives the build loop and stops at a pull request. It belongs in
+  // this list precisely because it is the verb with the most reach: it opens a PR and it still
+  // signs nothing, certifies nothing and merges nothing.
+  assert.deepEqual(verbs.sort(), ['approve', 'baseline', 'check', 'deliver', 'doctor', 'evals', 'graph', 'hook',
     'init', 'ledger', 'map', 'new', 'pack', 'review', 'status'],
     'no verb signs, attests, certifies, merges or pushes');
   const help = execFileSync(process.execPath, [BIN], { encoding: 'utf8' });

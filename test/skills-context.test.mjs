@@ -95,7 +95,9 @@ test('B4 the guidance states the entry condition, and there is no way to ship a 
   // The whole verb surface. A `harness skills`, `bundle` or `overlay` verb fails here first.
   const verbs = [...HARNESS.matchAll(/^ {4}case '([a-z-]+)':/gm)].map(m => m[1]).sort();
   assert.deepEqual(verbs, [
-    'approve', 'baseline', 'check', 'doctor', 'evals', 'graph', 'hook', 'init',
+    // `deliver` is G09's driver: control flow for the seven phases, which Law 2 puts in a verb
+    // and forbids a SKILL.md from containing. The skill count did not move for it.
+    'approve', 'baseline', 'check', 'deliver', 'doctor', 'evals', 'graph', 'hook', 'init',
     'ledger', 'map', 'new', 'pack', 'review', 'status',
   ], 'a new top-level verb needs its own approved contract');
 });
