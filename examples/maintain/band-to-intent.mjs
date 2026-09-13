@@ -16,7 +16,25 @@
 //
 // Detection stays model-free: this decides, and only then does an agent read the intent it wrote.
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
+
+// G19. The intent this writes has to be approvable, or the loop only appears to close. Gate 1
+// binds a source: the bands document is the evidence, and the revision it was observed against is
+// what makes the binding mean something later. A bands file that is not committed has no revision,
+// so the binding is recorded as unbound in prose rather than written as a half-declaration that
+// would fail at the gate — G07's rule, applied at the edge that produces the intent.
+function binding(file) {
+  if (!file) return { source: null, revision: null, why: 'the bands document arrived on stdin, so there is nothing to bind to' };
+  const rel = path.relative(process.cwd(), path.resolve(file));
+  const git = (...args) => execFileSync('git', args, { cwd: process.cwd(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+  try {
+    if (git('status', '--porcelain', '--', rel)) return { source: rel, revision: null, why: `${rel} has uncommitted changes` };
+    const revision = git('log', '-1', '--format=%H', '--', rel);
+    if (!revision) return { source: rel, revision: null, why: `${rel} is not committed` };
+    return { source: rel, revision, why: null };
+  } catch { return { source: rel, revision: null, why: 'this directory is not a git repository' }; }
+}
 
 const sigma = ({ observed, mean, stdev, max }) =>
   Number.isFinite(max) ? (observed > max ? 3 : 0)
@@ -40,13 +58,14 @@ const file = path.join(dir, 'intent.md');
 if (existsSync(file)) { console.log(`OPEN  ${file} already exists`); process.exit(0); }
 
 mkdirSync(dir, { recursive: true });
+const bound = binding(process.argv[2]);
 writeFileSync(file, `---
 status: draft
----
+${bound.source && bound.revision ? `source: ${bound.source}\nsource_revision: ${bound.revision}\n` : ''}---
 # Intent: ${slug}
 
 - **Date:** ${new Date().toISOString().slice(0, 10)}
-- **Source:** control band breach, ${breach.tier}σ
+- **Source:** control band breach, ${breach.tier}σ${bound.source && bound.revision ? `, from \`${bound.source}\` at \`${bound.revision.slice(0, 12)}\`` : `, unbound (${bound.why})`}
 
 ## Problem
 
@@ -61,4 +80,22 @@ The metric is back inside its band, and the cause is named in a test.
 
 - Is the band still the right band? A breach can mean the threshold is wrong.
 `);
-console.log(`BREACH  ${breach.metric} at ${breach.tier}σ\n${file}`);
+// The incident becomes a permanent eval in the same step that proposes the work, because the
+// step after an incident is the one nobody comes back to. `harness new eval` writes the seed under
+// `.aidlc/evals/pending/`; promoting it into the suite stays a human's decision.
+// The project's own shim, which is an executable and not a node script — running it with `node`
+// is how the first attempt at this failed. `HARNESS_BIN` is the seam a test uses to point at the
+// harness under test instead of the installed one.
+const harnessBin = process.env.HARNESS_BIN ?? (existsSync('.aidlc/bin/harness') ? '.aidlc/bin/harness' : null);
+let seed = null;
+if (harnessBin) {
+  const made = harnessBin.endsWith('.mjs') || process.env.HARNESS_BIN
+    ? spawnSync(process.execPath, [harnessBin, 'new', 'eval', slug], { encoding: 'utf8' })
+    : spawnSync(harnessBin, ['new', 'eval', slug], { encoding: 'utf8' });
+  if (made.status === 0) seed = made.stdout.trim();
+  else console.error(`could not seed the regression eval: ${(made.stderr || made.stdout || '').trim() || made.status}`);
+}
+
+console.log(`BREACH  ${breach.metric} at ${breach.tier}σ\n${file}`
+  + (bound.revision ? `\n  bound to ${bound.source} at ${bound.revision.slice(0, 12)}` : `\n  UNBOUND: ${bound.why} — commit the bands document and re-run to bind the intent`)
+  + (seed ? `\n  regression eval seeded: ${seed}` : ''));
