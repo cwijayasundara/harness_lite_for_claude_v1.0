@@ -51,6 +51,17 @@ a reason to describe the work as verified. If a check fails and you believe the 
 say that too, and leave it failing: weakening a test or raising a threshold to get a green line is
 the one repair that is never yours to make.
 
+## Releasing and rolling back
+
+A deploy to a live environment needs a current release record: `harness release approve --by
+<identity>` authorises **this commit** for a while (60 minutes by default), and the bash guard
+refuses a release without one. `harness release revoke` ends it early, and `harness release status`
+says what is authorised and until when. The agent cannot run the approve command — it is the
+human's, like every other gate.
+
+Rollback: <replace this line with the one command that puts the previous release back, so nobody
+has to reconstruct it at three in the morning>
+
 ## Project setup
 
 Configure this project's commands in `.aidlc/harness.toml`. Empty capabilities are skipped,

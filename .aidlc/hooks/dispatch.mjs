@@ -14,7 +14,7 @@ import { refresh } from '../lib/refresh.mjs';
 import { changedFiles } from '../lib/diff.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
-import { writeRefusal, productionDenied, bashTouchesProtected, bashContractRefusal, commandText } from '../lib/guard.mjs';
+import { writeRefusal, releaseDecision, bashTouchesProtected, bashContractRefusal, commandText } from '../lib/guard.mjs';
 import { invocation, sessionContext } from '../lib/session.mjs';
 
 const readStdin = () => new Promise((res) => {
@@ -59,7 +59,10 @@ const DESTRUCTIVE = [
 // edit — every gate this harness has is a tool call away unless the one command that opens them
 // is the human's. Same mechanism as `init-force`: this hook sees only the agent's commands, a
 // human's shell runs no hook. This regex is a workflow reminder, not authentication.
-const APPROVE_IS_THE_HUMANS = [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+approve\b/, 'approval is the human\'s gate, not the agent\'s', 'approve-is-the-humans'];
+// G18 widened it to `harness release approve`, which is the same kind of decision one stage
+// further on: an authorisation to put a named commit in front of real users. If the agent could
+// type it, the record would be worth exactly what the environment variable was worth.
+const APPROVE_IS_THE_HUMANS = [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+(release\s+)?approve\b/, 'approval is the human\'s gate, not the agent\'s', 'approve-is-the-humans'];
 
 
 // The pre-tool guards, as functions rather than case bodies: one hook binding now covers every
@@ -101,8 +104,24 @@ function preBash(input, cfg) {
         for (const [re, why, rule] of rules) {
           if (re.test(scannable)) return fired(rule ?? 'destructive', `${why}. If this is genuinely required, ask the human to run it.`);
         }
-        const prod = productionDenied(cmd, process.env);
-        if (prod) return fired('release-authorization', prod);
+        // G18. A release decision is recorded whichever way it goes. An allow that leaves no
+        // trace is indistinguishable from a control that never ran, and "who deployed what, under
+        // whose authorisation, and when did it expire" is the question an incident asks first.
+        const decision = releaseDecision(cmd, cfg);
+        if (decision) {
+          ledger.append({ stage: 'pre-bash', control: 'release-authorization',
+            verdict: decision.allowed ? 'pass' : 'fail', ms: 0, findings: decision.allowed ? 0 : 1,
+            rule: decision.allowed ? null : 'release-authorization',
+            candidate: decision.candidate, reason: decision.reason,
+            ...(decision.route ? { route: decision.route } : {}),
+            ...(decision.record?.approved_by ? { approved_by: decision.record.approved_by } : {}),
+          }, cfg.layout);
+          // `deny`, not `fired`: the row above is the record, with the candidate, the reason and
+          // the route on it. `fired` would append a second, thinner row for the same event.
+          if (!decision.allowed) {
+            return deny(`A release to a live environment needs a current release record: ${decision.reason}. ${decision.route}`);
+          }
+        }
         // D1 (a-shell-redirect-is-a-write) B5: the rule id is `hit.rule` — `write-scope`,
         // `protected-path`, `prefix-cache` or `test-lock` — not the single `contract-scope`
         // label every one of those used to be flattened into, which left `harness ledger audit`

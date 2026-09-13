@@ -531,7 +531,15 @@ spec or plan of an open change that has been edited since: its `stale-approval` 
 gate and no product file changes until it is re-approved or restored
 (`an-edited-approval-awaits-its-gate`, from the sprint that appended behaviours to the previous
 sprint's approved spec and was then governed by the sprint before that). This is the default.
-Shell releases to a live environment without `HARNESS_RELEASE_APPROVAL` are denied by the bash hook.
+Shell releases to a live environment are denied by the bash hook unless a current release record
+authorises HEAD. `harness release approve --by <identity> [--minutes 60]` writes it,
+`harness release revoke` ends it, `harness release status` reads it. The record names a candidate
+commit, an approver and an expiry, so an authorisation for one revision cannot be spent on another
+— which the environment variable it replaced could not even describe. Every decision, allow or
+deny, is a ledger row carrying the candidate, the reason and the route to an authorisation: an
+allow that leaves no trace is indistinguishable from a control that never ran. `approved_by` is an
+audit label a human typed, not authentication, and the agent's own shell cannot run the approve
+command.
 
 Auto-accept of edits is allowed only after a plan is approved, the blast radius is owned, and
 tests exist. It is not a harness mode.

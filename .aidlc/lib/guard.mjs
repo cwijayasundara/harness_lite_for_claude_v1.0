@@ -4,6 +4,7 @@ import { homedir } from 'node:os';
 import { PREFIX_CACHE_PATHS } from './paths.mjs';
 import { governingPlans, currentLine, currentChange, draftsAwaitingGate, awaitingGateRemedy } from './artifacts.mjs';
 import { gateBlocks } from './config.mjs';
+import * as release from './release.mjs';
 
 // One reader of ownership, shared with `scope-drift`. Two readers is how the guard and the check
 // came to disagree about which file was owned by what. `current` is the change the diff belongs
@@ -154,11 +155,27 @@ const TARGET_ENV = /\b(production|prod)\b/i;
 // lean-v2 cut 2; what remains are the three tools that really do reach an environment.
 const RELEASE = /(^|[|;&]\s*)(\S*\bdeploy\b|terraform\s+apply|kubectl\s+apply|helm\s+upgrade)/i;
 
-export function productionDenied(cmd, env = process.env) {
+// G18. The authorisation is a record, not an environment variable.
+//
+// `HARNESS_RELEASE_APPROVAL` was any non-empty value of a variable: it said nothing about who
+// approved, what they approved, or when it stopped being true, and one line in a shell profile
+// disabled the control permanently and silently. A record names a candidate commit, a person and
+// an expiry — so an authorisation for one revision cannot be spent on another, which is the
+// failure the variable could not even describe.
+//
+// Returns null when the command is not a release, and otherwise the full decision: whether it is
+// allowed, why, and the route to an authorisation. Both outcomes are recorded by the caller — an
+// allow that leaves no trace is indistinguishable from a control that never ran.
+export function releaseDecision(cmd, cfg, options = {}) {
   const text = commandText(cmd);
   if (!RELEASE.test(text) || !TARGET_ENV.test(text)) return null;
-  if (env?.HARNESS_RELEASE_APPROVAL) return null;
-  return 'A release to a live environment needs an authorization. Set HARNESS_RELEASE_APPROVAL, or ask the human to run it.';
+  return release.state(cfg, options);
+}
+
+export function productionDenied(cmd, cfg, options = {}) {
+  const decision = releaseDecision(cmd, cfg, options);
+  if (!decision || decision.allowed) return null;
+  return `A release to a live environment needs a current release record: ${decision.reason}. ${decision.route}`;
 }
 
 // Write *destinations*, not the presence of a `>` somewhere in the string.

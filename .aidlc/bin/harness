@@ -24,6 +24,7 @@ import { measure, shipped, RECORD } from '../checks/budget.mjs';
 import { dispatch } from '../hooks/dispatch.mjs';
 import { review, hostReview } from '../lib/review.mjs';
 import * as prReview from '../lib/pr-review.mjs';
+import * as release from '../lib/release.mjs';
 import { deliver, deliverInvoker, ghPullRequest, readState, PHASES } from '../lib/deliver.mjs';
 import { changedFiles as diffFiles, prChange } from '../lib/diff.mjs';
 import * as evalGate from '../lib/eval-gate.mjs';
@@ -554,6 +555,37 @@ async function main() {
       } catch (error) { console.error(error.message); return 1; }
     }
 
+    // G18. The release record: which commit a human authorised for a live environment, by whom,
+    // and until when. `approve-is-the-humans` refuses this command to the agent's own shell, the
+    // same way it refuses a gate approval — a record the agent can write is worth what the
+    // environment variable it replaced was worth.
+    case 'release': {
+      const cfg = loadConfig(findRepoRoot());
+      const sub = argv[1];
+      if (sub === 'approve') {
+        try {
+          const record = release.approve(cfg, { by: flag('by'), minutes: Number(flag('minutes', release.DEFAULT_MINUTES)) });
+          console.log(`release approved  ${record.candidate.slice(0, 12)}\n  by ${record.approved_by}, expires ${record.expires}\n  ${path.relative(cfg.layout.root, release.file(cfg))}`);
+          ledger.append({ stage: 'release', control: 'release-record', verdict: 'pass', ms: 0, findings: 0,
+            candidate: record.candidate, approved_by: record.approved_by, reason: `approved until ${record.expires}` }, cfg.layout);
+          return 0;
+        } catch (error) { console.error(error.message); return 1; }
+      }
+      if (sub === 'revoke') {
+        const { revoked } = release.revoke(cfg);
+        console.log(revoked ? 'release record revoked' : 'no release record to revoke');
+        if (revoked) ledger.append({ stage: 'release', control: 'release-record', verdict: 'pass', ms: 0, findings: 0, reason: 'revoked' }, cfg.layout);
+        return 0;
+      }
+      if (sub === 'status' || sub === undefined) {
+        const current = release.state(cfg);
+        console.log(JSON.stringify(current, null, 2));
+        return current.allowed ? 0 : 1;
+      }
+      console.error('usage: harness release approve --by <identity> [--minutes 60] | revoke | status');
+      return 2;
+    }
+
     case 'review': {
       const cfg = loadConfig(findRepoRoot());
       if (has('pr') || has('repo')) {
@@ -690,6 +722,8 @@ async function main() {
                                    intake a PRD or tracker story; --split writes one child
                                    change per "## Story" or acceptance-criteria group
   harness approve <slug> spec|plan --by <identity> [--policy]
+  harness release approve --by <identity> [--minutes 60] | revoke | status
+                                   authorise HEAD for a live environment, for a while
   harness review --base <commit> --candidate <commit> --out <file>
                                  independent read-only model review
     [--timeout <ms>]             default: 300 s + 2 s per KB of diff, capped at 900 s

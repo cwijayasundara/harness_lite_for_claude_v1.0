@@ -6,6 +6,10 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { C, BIN } from './_paths.mjs';
 import { writeBlocked, productionDenied, lockTests, clearLock, bashTouchesProtected, bashContractBlocked, writeTargets } from '../.aidlc/lib/guard.mjs';
+import { layout } from '../.aidlc/lib/paths.mjs';
+
+// A tree with no release record in it, which is what "unauthorised" looks like on disk.
+const releaseCfg = () => ({ layout: layout(mkdtempSync(path.join(tmpdir(), 'release-guard-'))) });
 import { render, bodyDigest, selectChange } from '../.aidlc/lib/artifacts.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 import { HUMAN } from './_gates.mjs';
@@ -484,12 +488,16 @@ test('a malformed contract fails closed for product writes', () => {
   } finally { f.cleanup(); }
 });
 
-test('a release to a live environment without an approval identifier is denied', () => {
-  assert.match(productionDenied('deploy --env production', {}), /needs an authorization/);
-  assert.equal(productionDenied('deploy --env production', { HARNESS_RELEASE_APPROVAL: 'CAB-1' }), null);
-  assert.equal(productionDenied('make test', {}), null);
-  assert.match(productionDenied('kubectl apply -f prod/app.yaml', {}), /needs an authorization/);
-  assert.match(productionDenied('cd infra && helm upgrade prod ./chart', {}), /needs an authorization/);
+// G18: the authorisation is a record naming a candidate, a person and an expiry, not an
+// environment variable that says only "yes". The full behaviour is in test/release-record.test.mjs;
+// this is the guard's half — which commands are releases at all.
+test('a release to a live environment without a current record is denied', () => {
+  const cfg = releaseCfg();
+  assert.match(productionDenied('deploy --env production', cfg), /needs a current release record/);
+  assert.match(productionDenied('deploy --env production', cfg), /harness release approve --by/);
+  assert.equal(productionDenied('make test', cfg), null);
+  assert.match(productionDenied('kubectl apply -f prod/app.yaml', cfg), /needs a current release record/);
+  assert.match(productionDenied('cd infra && helm upgrade prod ./chart', cfg), /needs a current release record/);
 });
 
 // lean-v2 B9. The rule fired four times in one session against commands that only named it: a
@@ -499,12 +507,13 @@ test('a release to a live environment without an approval identifier is denied',
 // ledger carried a rule id nothing could tell these apart from a real catch.
 test('naming a rule is not invoking it', () => {
   const heredoc = "cat > note.md <<'EOF'\nwe removed the deploy port and its production rollback\nEOF";
-  assert.equal(productionDenied(heredoc, {}), null, 'refused a heredoc body that only described a release');
-  assert.equal(productionDenied('git commit -m "delete the deploy port and production receipts"', {}), null);
+  const cfg = releaseCfg();
+  assert.equal(productionDenied(heredoc, cfg), null, 'refused a heredoc body that only described a release');
+  assert.equal(productionDenied('git commit -m "delete the deploy port and production receipts"', cfg), null);
 
   // And an invocation in either shape is still refused.
-  assert.ok(productionDenied('terraform apply -var env=production', {}));
-  assert.ok(productionDenied('echo start; deploy --target production', {}));
+  assert.ok(productionDenied('terraform apply -var env=production', cfg));
+  assert.ok(productionDenied('echo start; deploy --target production', cfg));
 
   // Heredoc bodies are not write destinations either: the file after `>` is, and nothing inside.
   assert.deepEqual(writeTargets("cat > real.txt <<'EOF'\nnot > a-target.txt\nEOF"), ['real.txt']);

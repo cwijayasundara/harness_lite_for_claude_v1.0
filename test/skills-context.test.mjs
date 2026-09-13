@@ -115,6 +115,8 @@ test('B4 the guidance states the entry condition, and there is no way to ship a 
     // `deliver` is G09's driver: control flow for the seven phases, which Law 2 puts in a verb
     // and forbids a SKILL.md from containing. The skill count did not move for it.
     'approve', 'baseline', 'check', 'deliver', 'doctor', 'evals', 'graph', 'hook', 'init',
-    'ledger', 'map', 'new', 'pack', 'review', 'status',
+    // G18: `release` is the human's authorisation for a live environment, recorded rather than
+    // exported into a shell profile.
+    'ledger', 'map', 'new', 'pack', 'release', 'review', 'status',
   ], 'a new top-level verb needs its own approved contract');
 });
