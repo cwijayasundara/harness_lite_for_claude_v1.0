@@ -237,6 +237,36 @@ Two verbs the detector never fills: `arch`, which has no generic tool (a project
 command — see the opt-in verbs), and `secrets`, which needs no command because the harness's own
 scanner runs when it is empty.
 
+## Live product trials, and what their boundary is worth
+
+A product trial turns a real coding agent loose on a seeded fixture with Write, Edit and Bash. It
+needs a boundary, and the harness knows two:
+
+- **`ci-runner`** — an ephemeral virtual machine, destroyed when the job ends. This is OS-level and
+  it is the only one here that is. It is established from the environment (`GITHUB_ACTIONS` with a
+  run id), never assumed: `CI=true` on a laptop is a variable somebody exported.
+- **`local`** — the CLI permission system. `--permission-mode manual` with
+  `--permission-prompts none` means anything not on the explicit tool allowlist is denied outright;
+  file tools reach the staged tree and nothing above it; every MCP server is off; the operator's
+  own settings are not loaded. Pass `--boundary local` (`--sandbox local` is accepted as the same
+  thing) to choose it.
+
+**The local boundary is policy, not isolation.** It constrains a cooperating agent through the CLI
+it is running under. It does not contain a program that has already escaped, and an allowed command
+can still do whatever that command can do — `node` opens sockets, `git` reaches the network. Use it
+on fixtures whose code you wrote. It is not a place to run something you do not trust. Every run
+prints which boundary it has and, for the local one, that sentence.
+
+A run that asks for no boundary gets none: the trial refuses rather than falling through to running
+an agent on the operator's machine, and an unknown boundary name is refused rather than
+approximated. Comparison arms behave the same way, except that "no boundary" is recorded as the
+explicit unmeasured result rather than thrown — not being able to measure something is a result.
+
+The nightly job (`schedule:` in `.github/workflows/harness.yml`) runs the live suite on the runner
+under `--max-suite-usd`, grades it against `evals/expected.json`, and uploads the results. The gate
+step is `continue-on-error` until the recorded baseline has no failing and no flaky task: a gate
+that fails every night is a gate people stop reading.
+
 ## A consumer's CI: checks are the gate, the review is advice
 
 `harness init --ci` writes `.github/workflows/harness.yml` into the project. On every pull request

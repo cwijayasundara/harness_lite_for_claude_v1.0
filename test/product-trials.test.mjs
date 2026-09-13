@@ -5,6 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { stage, stageProduct, assertProductTree } from '../evals/lib/stage.mjs';
 import { invokerArgs, claudeInvoker } from '../evals/lib/invoker.mjs';
+import { resolveBoundary } from '../evals/lib/boundary.mjs';
 import {tmpdir} from 'node:os';
 import {verifyLedger} from '../evals/lib/assertions.mjs';
 import {runProductCampaign,runProductCheck} from '../evals/lib/campaign.mjs';
@@ -205,16 +206,31 @@ test('a run that times out leaves no live descendant process', async () => {
     'the grandchild must be gone too: killing only the direct child leaves the product test running, which is the defect the process group exists to prevent');
 });
 
-// B4 (the-harness-needs-no-container): there is no container path left to harden, so what is
-// asserted is the refusal itself — a live product trial must not fall through to running a
-// coding agent with Bash on the host. test/no-container.test.mjs owns the primary assertion;
-// this one keeps it in the product-trial suite where the behaviour lives.
-test('a live product trial refuses rather than running an agent on the host', () => {
+// G20: the refusal is now conditional on a boundary rather than unconditional. A trial with none
+// must still not fall through to running a coding agent with Bash on the operator's machine.
+// test/live-boundary.test.mjs owns the full behaviour; this keeps the refusal in the product-trial
+// suite, where it is the thing that would break first.
+test('a live product trial refuses without a boundary, and accepts one when it has it', () => {
   const s = stageProduct(stage(fixtures, 'campaign-ledger'), ROOT);
   try {
-    const invoke = claudeInvoker({ pluginDir: '/plugin-dir' });
-    assert.throws(() => invoke({ prompt: 'p', cwd: s.work, timeoutMs: 1000, budgetUsd: 1, task: {}, sandbox: s }),
+    assert.throws(() => claudeInvoker({ pluginDir: '/plugin-dir' })({ prompt: 'p', cwd: s.work, timeoutMs: 1000, budgetUsd: 1, task: {}, sandbox: s }),
       /no boundary to run in/);
+    assert.throws(() => claudeInvoker({ pluginDir: '/plugin-dir', boundary: resolveBoundary({ requested: null, env: {} }) })
+      ({ prompt: 'p', cwd: s.work, timeoutMs: 1000, budgetUsd: 1, task: {}, sandbox: s }), /no boundary to run in/);
+
+    // With a boundary the refusal is gone, proven without spawning anything: a conflicting API key
+    // makes `requireSubscription` throw, and reaching that throw means execution got past the
+    // boundary check into the ordinary path.
+    const previous = { ...process.env };
+    try {
+      delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
+      process.env.ANTHROPIC_API_KEY = 'sk-fixture-never-spend';
+      assert.throws(() => claudeInvoker({ pluginDir: '/plugin-dir', boundary: resolveBoundary({ requested: 'local', env: {} }) })
+        ({ prompt: 'p', cwd: s.work, timeoutMs: 1000, budgetUsd: 1, task: {}, sandbox: s }), /API billing is disabled/);
+    } finally {
+      for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key];
+      for (const [key, value] of Object.entries(previous)) process.env[key] = value;
+    }
   } finally { s.cleanup(); }
 });
 

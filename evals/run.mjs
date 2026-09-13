@@ -373,21 +373,29 @@ async function main() {
   const authentication = requireSubscription({ product: products, cwd: PLUGIN_ROOT });
   console.log(`authentication: ${authentication}; API billing disabled; repository .env not loaded`);
 
+  // G20. The boundary a live product trial will run in, resolved once and printed before anything
+  // is spent. `--boundary local` is the operator accepting the CLI permission boundary on a
+  // fixture whose code they wrote; `--sandbox` is accepted as the spelling the plan used. A run
+  // that asks for nothing gets nothing: a trial that silently picked a weaker boundary than the
+  // operator believed is the failure this exists to prevent.
+  const {resolveBoundary, boundaryBanner}=await import('./lib/boundary.mjs');
+  const boundary=resolveBoundary({requested: flag('boundary') ?? flag('sandbox')});
+  if (products || comparisons) console.log(boundaryBanner(boundary));
+
   if (comparisons) {
     const {runComparisons}=await import('./lib/comparison.mjs');
     const {claudeInvoker}=await import('./lib/invoker.mjs');
     const models=loadConfig(PLUGIN_ROOT).models;
-    // A comparison arm runs a real coding agent against a seeded product — a live product trial,
-    // which `evals/lib/invoker.mjs` now refuses because there is no boundary to run it in. This
-    // records that as the explicit unmeasured result `credentials_or_isolation_unavailable`, the
-    // same one an unreachable daemon used to produce, rather than attempting the run and throwing.
-    // Being authenticated is no longer sufficient, so it is not asked.
-    const available=false;
+    // G20. A comparison arm runs a real coding agent against a seeded product — a live product
+    // trial, which needs a boundary. With one, the arms run; without one, every attempt is the
+    // explicit unmeasured result rather than a throw, because "we could not measure this" is a
+    // result and a stack trace is not.
+    const available=boundary.ok;
     const stamp=new Date().toISOString().replace(/[:.]/g,'-');
     const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',prune?`prune-${stamp}`:stamp);
     const out=await runComparisons({tasks,models,prune,pruneArm:flag('prune-arm'),pair:flag('comparison'),root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),
       maxUsd:Number(flag('max-suite-usd',prune?9:40)),maxMinutes:Number(flag('max-suite-minutes',prune?40:30)),repetitions:Number(flag('repeats',prune?1:3)),
-      invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true})(args),
+      invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true,boundary})(args),
       log:console.log});
     console.log(JSON.stringify({evidenceRoot,summary:out.summary,calibrations:out.calibrations},null,2));
     return out.attempts.every(a=>a.status==='pass')?0:1;
@@ -409,7 +417,7 @@ async function main() {
   const out = await runSuite({
     tasks, fixturesDir, baseline, maxSuiteUsd: Number(flag('max-suite-usd', products?20:Infinity)), evaluatorModel:models.evaluator,
     harnessBin: path.join(PLUGIN_ROOT, '.aidlc', 'bin', 'harness'),
-    invoke: args => claudeInvoker({ pluginDir: PLUGIN_ROOT, model: products && args.phase==='review' ? models.evaluator : evalModel })(args),
+    invoke: args => claudeInvoker({ pluginDir: PLUGIN_ROOT, model: products && args.phase==='review' ? models.evaluator : evalModel, boundary })(args),
     log: (m) => console.log(m),
   });
 

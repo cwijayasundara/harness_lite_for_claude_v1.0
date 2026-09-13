@@ -2,18 +2,24 @@
 // assertion engine are unit-testable with no model, no key and no spend.
 import { spawnSync } from 'node:child_process';
 import { requireSubscription, subscriptionArgs } from '../../.aidlc/lib/claude-auth.mjs';
+import { resolveBoundary, boundaryArgs } from './boundary.mjs';
 
 // Comparison models are explicit; unavailable models are never substituted.
-export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null, product = false, sessionId = null, review = false, native = false, comparison = false }) {
+export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null, product = false, sessionId = null, review = false, native = false, comparison = false, boundary = null }) {
   if (product && review) return ['-p', prompt, '--model', model, '--tools', 'Read,Grep,Glob',
     '--safe-mode', '--permission-mode', 'dontAsk', '--setting-sources', '', '--strict-mcp-config',
     '--mcp-config', '{"mcpServers":{}}', '--settings', '{"disableAllHooks":true}',
     '--no-session-persistence', '--output-format', 'json', '--max-budget-usd', String(budgetUsd)];
+  // G20. Permission, settings and MCP flags belong to the boundary when there is one: two places
+  // setting `--permission-mode` is two answers to "what may this run do", and the CLI would take
+  // whichever came last rather than whichever was meant.
   if (product) return [
     '-p', prompt, '--model', model, '--tools', comparison ? 'Read,Grep,Glob,Write,Edit,Bash' : 'Read,Grep,Glob,Write,Edit',
-    ...(comparison ? ['--allowedTools','Bash'] : []),
-    '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
-    '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
+    ...(boundary ? [] : [
+      ...(comparison ? ['--allowedTools', 'Bash'] : []),
+      '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
+      '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
+    ]),
     '--output-format', 'json', ...(native ? [] : ['--plugin-dir','/plugin']),
     '--max-budget-usd', String(budgetUsd), ...(sessionId ? ['--resume', sessionId] : []),
   ];
@@ -48,29 +54,33 @@ export function invokerEnv({ pluginDir = null, base = {} }) {
   return env;
 }
 
-export function claudeInvoker({ pluginDir, model = null, native = false, comparison = false }) {
+export function claudeInvoker({ pluginDir, model = null, native = false, comparison = false, boundary = null }) {
   return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task, sandbox = null, phase = 'plan', sessionId = null }) {
-    // B4. A `sandbox` argument is what a live product trial passes: a real coding agent with
-    // Write, Edit and Bash, turned loose on a seeded product. It used to run inside a container
-    // — --read-only, --cap-drop=ALL, --network none, --security-opt=no-new-privileges, an
-    // unprivileged uid. That container is gone, and nothing replaced it.
+    // G20. A `sandbox` argument is what a live product trial passes: a real coding agent with
+    // Write, Edit and Bash, turned loose on a seeded product. It used to run in a container;
+    // `the-harness-needs-no-container` removed that and replaced it with nothing, so this refused
+    // every trial and the live half of the suite went dark.
     //
-    // So this refuses. Falling through to the `claude` arm below would be a one-word change and
-    // would run that agent directly on the operator's machine, with their files, their
-    // credentials in the environment and their network — converting "we removed a dependency"
-    // into "we removed the boundary and said nothing". Restoring live trials means restoring a
-    // boundary first, not deleting these four lines.
-    if (sandbox) {
-      throw new Error('a live product trial has no boundary to run in: container isolation was removed by the-harness-needs-no-container, and this harness will not execute a coding agent with Bash directly on the host. Restore an OS-level boundary before running live product trials.');
+    // It refuses without a boundary, not on principle. `evals/lib/boundary.mjs` names the two
+    // that exist and is exact about what each is worth: an ephemeral CI runner is OS-level, and
+    // the local one is the CLI's permission system — an explicit allowlist with everything else
+    // denied, which constrains a cooperating agent and is not isolation. Falling through with
+    // neither would run that agent directly on the operator's machine, with their files, their
+    // credentials and their network.
+    //
+    // Synchronous on purpose: the refusal lands before any invocation setup, so there is no await
+    // to race and nothing to clean up if a caller ignores the result.
+    const trial = Boolean(sandbox);
+    if (trial && !boundary?.ok) {
+      throw new Error(`a live product trial has no boundary to run in: ${boundary?.why ?? resolveBoundary().why}`);
     }
-    // Past the refusal above, `sandbox` is always null: this is the harness's own invocation —
-    // the evaluator and the golden suite — which has always run `claude` directly and is not what
-    // this change is about. `product` is therefore false, and the container naming, credential
-    // forwarding and container cleanup that only a sandboxed run needed are gone with it.
-    const args = subscriptionArgs(invokerArgs({ prompt, model, pluginDir, budgetUsd, product: false, sessionId, review: phase === 'review', native, comparison }));
+    const args = subscriptionArgs([
+      ...invokerArgs({ prompt, model, pluginDir, budgetUsd, product: trial, sessionId, review: phase === 'review', native, comparison, boundary: trial ? boundary : null }),
+      ...(trial ? boundaryArgs(boundary, { workdir: sandbox.work ?? cwd }) : []),
+    ]);
     const started = Date.now();
     const env = invokerEnv({ task, pluginDir, base: process.env });
-    try { requireSubscription({ env, cwd, product: false }); }
+    try { requireSubscription({ env, cwd, product: trial }); }
     catch (error) {
       if (error.code === 'ENOENT') return { notInstalled: true, transcript: '', usage: {}, exitCode: -1, error: 'the `claude` CLI is not on PATH' };
       throw error;
@@ -116,7 +126,7 @@ export function claudeInvoker({ pluginDir, model = null, native = false, compari
         transcript = '';
       }
     } catch { /* not JSON: grade the raw transcript, which is still honest */ }
-    if (sandbox && !incomplete && (timedOut || r.status !== 0 || !session)) incomplete = { reason: timedOut ? 'timed_out' : 'cli_incomplete', detail: raw.slice(-2000) };
+    if (trial && !incomplete && (timedOut || r.status !== 0 || !session)) incomplete = { reason: timedOut ? 'timed_out' : 'cli_incomplete', detail: raw.slice(-2000) };
     return { latencyMs:Date.now()-started, requestedModel:model, transcript, usage, exitCode: r.status ?? -1, timedOut, incomplete, sessionId: session, modelUsage, turns, permissionDenials };
   };
 }
