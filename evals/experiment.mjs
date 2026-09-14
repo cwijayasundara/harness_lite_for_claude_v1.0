@@ -32,6 +32,11 @@ export const PROGRAM = path.join(HERE, 'experiments', 'program.md');
 export const LOG = path.join(HERE, 'experiments.tsv');
 export const COLUMNS = ['at', 'experiment', 'file', 'score', 'previous', 'verdict', 'commit', 'usd'];
 
+// What one night may spend on the suite. MEASURED 2026-09-13: twenty of the twenty-two golden
+// tasks cost $3.95 in one pass, so this is roughly one run with headroom and not a target. An
+// uncapped nightly is a standing invitation to discover the bill in the morning.
+export const MAX_NIGHT_USD = 8;
+
 // The only files an experiment may touch. Guidance, and nothing that could change what a run
 // measures: not the runner, not the assertions, not the tasks, not a fixture.
 export const STEERING = [
@@ -256,10 +261,11 @@ export function makeEdit({ root = ROOT, model = null } = {}) {
 
 // Run the golden suite live and score it. A run that graded nothing returns a null score, which
 // `verdictFor` reads as unmeasured and resets — never as a zero that a later bad night could beat.
-export function makeMeasure({ root = ROOT, concurrency = 4 } = {}) {
+export function makeMeasure({ root = ROOT, concurrency = 4, maxUsd = MAX_NIGHT_USD } = {}) {
   return async () => {
     await new Promise((resolve) => {
-      const child = spawn(process.execPath, [path.join(root, 'evals', 'run.mjs'), '--live', '--concurrency', String(concurrency)],
+      const child = spawn(process.execPath, [path.join(root, 'evals', 'run.mjs'), '--live',
+        '--concurrency', String(concurrency), '--max-suite-usd', String(maxUsd)],
         { cwd: root, stdio: 'inherit' });
       child.on('exit', resolve);
     });

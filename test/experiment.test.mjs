@@ -13,7 +13,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import {
   parseProgram, nextExperiment, isSteering, verdictFor, previousScore,
-  appendRow, readLog, runExperiment, STEERING, COLUMNS,
+  appendRow, readLog, runExperiment, STEERING, COLUMNS, MAX_NIGHT_USD,
 } from '../evals/experiment.mjs';
 import { ROOT } from './_paths.mjs';
 
@@ -205,6 +205,13 @@ test('the tsv has one row per run, with a stable header', () => {
     assert.equal(text.length, 3);
     assert.deepEqual(readLog(r.log).map((x) => x.experiment), ['one', 'two']);
   } finally { r.cleanup(); }
+});
+
+test('a night has a spend ceiling, because nobody is watching it', () => {
+  // Not a target — roughly one pass of the golden suite with headroom. An uncapped nightly is a
+  // standing invitation to discover the bill in the morning.
+  assert.ok(MAX_NIGHT_USD > 0 && MAX_NIGHT_USD <= 20, 'the nightly ceiling should be one suite, not ten');
+  assert.match(readFileSync(path.join(ROOT, 'evals/experiment.mjs'), 'utf8'), /'--max-suite-usd', String\(maxUsd\)/);
 });
 
 test('the shipped program names only steering files, and every entry says which', () => {
