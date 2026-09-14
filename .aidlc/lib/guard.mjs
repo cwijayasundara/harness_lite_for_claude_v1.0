@@ -89,16 +89,24 @@ export function writeRefusal(rel, cfg) {
     return matchesDeclared(norm, scope.declared);
   };
 
-  // Deliberate steering changes belong in the approved scope. This is a heuristic workflow
-  // guard, not a sandbox, authentication mechanism, or claim about cache invalidation.
+  // Deliberate steering changes belong in the approved scope. This is a heuristic workflow guard
+  // and not a sandbox or an authentication mechanism.
+  //
+  // MEASURED 2026-09-14: the reason went last and the model dropped it. `prefix-cache-guard` asks
+  // for a note in CLAUDE.md; the model refused correctly and then explained the refusal as "a
+  // configuration file that affects session instructions" — the opening clause of this message and
+  // nothing after it. A model relaying a long refusal keeps the head, so the operative fact goes
+  // first and the remedy goes last. A refusal that arrives without its reason teaches the shape of
+  // a rule and none of its content, and the next reader has to guess which rule they are obeying.
   for (const p of PREFIX_CACHE_PATHS) {
     if (norm === p) {
       if (owned()) break;
-      return refuse('prefix-cache', `${p} configures agent instructions or permissions, and it is `
-        + `already loaded: a session's prompt is fixed when it starts, so editing this file now changes `
-        + `nothing between sessions until the session is reloaded — while silently invalidating the `
-        + `prompt cache for everyone who reads it next. Name it in the approved plan before changing `
-        + `it, and reload the session to apply instruction changes. ${scope?.line ?? ""}`);
+      return refuse('prefix-cache', `${p} is already loaded. A session's prompt is fixed when it `
+        + `starts, so editing this file now changes nothing for the session doing the editing, and `
+        + `it invalidates the prompt cache for whoever reads it next. That is the cost, and it is `
+        + `paid whether or not the edit was wanted. It configures agent instructions or permissions: `
+        + `name it in the approved plan before changing it, and reload the session to apply `
+        + `instruction changes. ${scope?.line ?? ""}`);
     }
   }
 
