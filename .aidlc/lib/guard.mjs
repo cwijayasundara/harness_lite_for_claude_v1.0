@@ -101,12 +101,10 @@ export function writeRefusal(rel, cfg) {
   for (const p of PREFIX_CACHE_PATHS) {
     if (norm === p) {
       if (owned()) break;
-      return refuse('prefix-cache', `${p} is already loaded. A session's prompt is fixed when it `
-        + `starts, so editing this file now changes nothing for the session doing the editing, and `
-        + `it invalidates the prompt cache for whoever reads it next. That is the cost, and it is `
-        + `paid whether or not the edit was wanted. It configures agent instructions or permissions: `
-        + `name it in the approved plan before changing it, and reload the session to apply `
-        + `instruction changes. ${scope?.line ?? ""}`);
+      return refuse('prefix-cache', `${p} is already in this session's prompt. Editing it changes `
+        + `nothing until the session reloads, and it invalidates the prompt cache for whoever reads `
+        + `it next. It configures agent instructions or permissions: name it in the approved plan `
+        + `first. ${scope?.line ?? ""}`);
     }
   }
 
