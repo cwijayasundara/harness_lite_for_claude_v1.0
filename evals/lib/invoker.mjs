@@ -66,7 +66,7 @@ export function invokerEnv({ pluginDir = null, base = {} }) {
 //
 // `spawnSync` is kept for `requireSubscription`'s own `claude auth status` probe: that is a fast,
 // local call whose result the synchronous preamble needs before it decides anything.
-function runClaude(args, { cwd, env, timeoutMs, maxBuffer = 64 * 1024 * 1024 }) {
+export function runClaude(args, { cwd, env, timeoutMs, maxBuffer = 64 * 1024 * 1024 }) {
   return new Promise((resolve) => {
     let child;
     try { child = spawn('claude', args, { cwd, env }); }
