@@ -395,6 +395,15 @@ async function main() {
   }
   // Calibration and triage: override repeats without editing tasks.json.
   if (flag('repeats')) tasks = tasks.map((t) => ({ ...t, repeats: Number(flag('repeats')) }));
+  // The timeout is an instrument, not a control: a task it kills produces no verdict at all. When
+  // a run comes back full of `timed_out`, the question is how long the work actually takes, and
+  // that cannot be answered by the setting that truncated it. Raise it to measure, then set the
+  // default in tasks.json from what was measured.
+  if (flag('timeout-ms')) {
+    const ms = Number(flag('timeout-ms'));
+    if (!(ms > 0)) { console.error('--timeout-ms must be positive'); return 2; }
+    tasks = tasks.map((t) => ({ ...t, timeoutMs: ms }));
+  }
   if (!tasks.length) { console.error('no tasks matched'); return 2; }
 
   if (!(Number(flag('max-suite-usd', Infinity)) > 0)) { console.error('--max-suite-usd must be positive'); return 2; }
