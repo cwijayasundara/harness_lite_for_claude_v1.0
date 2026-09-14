@@ -178,9 +178,12 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
     // A run that never produced model output cannot be graded. Grading it anyway is how budget
     // exhaustion got reported as model failure twice on 2026-09-02.
     const stalled = out.incomplete ?? ungradable(out);
-    if (stalled) return { assertions: [], usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: '', incomplete: stalled };
+    // `latencyMs` travels with the stalled case too, and that is the case it exists for: a task
+    // the timeout killed reports no cost and no tokens, so the only fact a run leaves behind is
+    // how long it was allowed to take. Without it, "raise the timeout" is a guess.
+    if (stalled) return { assertions: [], usage: out.usage ?? {}, timedOut: !!out.timedOut, latencyMs: out.latencyMs ?? null, transcript: '', incomplete: stalled };
     const ctx = { work: s.work, pristine: s.pristine, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
-    return { assertions: evaluate(ctx, t.assert), usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: out.transcript ?? '', incomplete: null };
+    return { assertions: evaluate(ctx, t.assert), usage: out.usage ?? {}, timedOut: !!out.timedOut, latencyMs: out.latencyMs ?? null, transcript: out.transcript ?? '', incomplete: null };
   }
 
   const approvals = approvalDriver(loadConfig(s.work));
@@ -189,6 +192,9 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
   let timedOut = false;
   let transcript = '';
   let incomplete = null;
+  // A stepped task's latency is the sum of its steps: one number to compare against one timeout,
+  // which is what the timeout actually bounds.
+  let latencyMs = 0;
   // The working copy as it stood before each step, so a step's assertions can read the diff the
   // step itself made rather than everything since the fixture (`diff_owned_by_current_change`).
   const previous = path.join(s.root, 'previous');
@@ -209,6 +215,7 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
         output_tokens: (usage.output_tokens ?? 0) + (out.usage?.output_tokens ?? 0),
       };
       timedOut = timedOut || !!out.timedOut;
+      latencyMs += out.latencyMs ?? 0;
       // A step that ran out of budget stops the task, and the task is ungraded rather than failed.
       const stalled = out.incomplete ?? ungradable(out);
       if (stalled) { incomplete = { ...stalled, step: idx }; break; }
@@ -232,7 +239,7 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
       work: s.work, pristine: s.pristine, transcript, harness: harnessBin, usage, baseline: baseline[t.id],
     }, t.assert));
   }
-  return { assertions, usage, timedOut, transcript, incomplete, approvals: approvals.events() };
+  return { assertions, usage, timedOut, transcript, incomplete, latencyMs, approvals: approvals.events() };
 }
 
 export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {}, maxSuiteUsd = Infinity, evidenceRoot = path.join(PLUGIN_ROOT, '.aidlc/evals/products'), evaluatorModel = null, concurrency = 1 }) {
@@ -287,7 +294,7 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
         runs.push({
           ...(t.product ? {evidence:trialDir,completedSteps:out.completedSteps,totalSteps:out.totalSteps,calibration:!!t.calibration,billingComplete:out.billingComplete,candidateRevision:out.candidateRevision,phases:out.phases} : {}),
           attempt: i + 1, pass, incomplete: out.incomplete ?? null, assertions: out.assertions,
-          usage: out.usage ?? {}, timedOut: !!out.timedOut, approvals: out.approvals ?? [],
+          usage: out.usage ?? {}, timedOut: !!out.timedOut, latencyMs: out.latencyMs ?? null, approvals: out.approvals ?? [],
           // Without the transcript, a failure can only be triaged by paying for the task again.
           // Kept for failures only, and capped, so the results file stays readable.
           // The tail, not the head: the end of a run is where it says why it stopped (F29).
