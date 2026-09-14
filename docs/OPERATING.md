@@ -23,14 +23,27 @@ firing where the work happens.
 
 ```
 .aidlc/bin/harness ledger              # what fired, how often, how slow
+.aidlc/bin/harness metrics             # first-pass checks, rework, lead time, escaped defects
 .aidlc/bin/harness baseline check      # did the token surface grow
 .aidlc/bin/harness status              # artifact progress, gates, current change
 ```
 
+`metrics` is the playbook's own numbers, each from evidence the harness already writes —
+the ledger, the artifact chain, the driver's phase records, the eval evidence. Nothing is
+instrumented specially for it, because a metric that needs its own collection measures whether the
+collection is running.
+
+Read the `unmeasured` lines first. A metric says so, and says why, when the evidence behind it is
+too thin to carry it: a rate over three events is an anecdote with a decimal point, and a number
+closes the question a gap would have invited. Early on most of them will read that way, and that is
+the report working.
+
+The two worth acting on weekly are **repeat classes** — the same rule firing over and over is
+either a control doing its job or a guidance gap nobody closed — and **escaped versus caught**,
+which is the one number that says whether the controls are where the defects actually are.
+
 `status` reports where each open change sits in the chain, whether its approvals still bind,
-and which change currently owns product writes. It measures no elapsed time: the playbook's
-leading indicators were part of lean-v2's unreachable-kernel cut and are parked as a candidate
-below. Close a change that will not enter Design by setting `status: closed` in its `intent.md`
+and which change currently owns product writes. Close a change that will not enter Design by setting `status: closed` in its `intent.md`
 and committing it.
 
 Two questions:

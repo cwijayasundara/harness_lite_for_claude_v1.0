@@ -25,6 +25,7 @@ import { dispatch } from '../hooks/dispatch.mjs';
 import { review, hostReview } from '../lib/review.mjs';
 import * as prReview from '../lib/pr-review.mjs';
 import * as release from '../lib/release.mjs';
+import { metrics, render as renderMetrics } from '../lib/metrics.mjs';
 import { collisions, collisionLines } from '../lib/agent-collisions.mjs';
 import { deliver, deliverInvoker, ghPullRequest, readState, PHASES } from '../lib/deliver.mjs';
 import { changedFiles as diffFiles, prChange } from '../lib/diff.mjs';
@@ -669,6 +670,18 @@ async function main() {
       return result.ok || result.dry ? 0 : 1;
     }
 
+    // G25. The playbook's own numbers, from evidence this harness already writes: the ledger, the
+    // artifact chain, the driver's phase records, the eval evidence. Its own verb rather than a
+    // `ledger` subcommand — `ledger-evidence-not-reporting` froze that surface against a reporting
+    // service and was right to, and most of what this reads is not the ledger anyway. It reads and
+    // prints; it writes nothing and publishes nothing.
+    case 'metrics': {
+      const cfg = loadConfig(findRepoRoot());
+      const m = metrics(cfg, { days: Number(flag('days', 30)) });
+      console.log(has('json') ? JSON.stringify(m, null, 2) : renderMetrics(m));
+      return 0;
+    }
+
     case 'status': {
       const cfg = loadConfig(findRepoRoot());
       if (has('change') && has('clear-change')) throw new Error('use --change <slug> or --clear-change, not both');
@@ -748,6 +761,8 @@ async function main() {
   harness status [slug] [--json]  backlog, selection and approvals
     --change <slug> | --clear-change  select execution in this worktree (never approves)
   harness ledger [audit] [--days 30]
+  harness metrics [--days 30] [--json]
+                                   first-pass checks, rework, lead time, escaped defects
   harness evals gate [--update]    grade the newest run against evals/expected.json
   harness baseline capture|check
   harness map [--check]            write CODEBASE-MAP.md, or fail if it is stale

@@ -117,6 +117,7 @@ test('B4 the guidance states the entry condition, and there is no way to ship a 
     'approve', 'baseline', 'check', 'deliver', 'doctor', 'evals', 'graph', 'hook', 'init',
     // G18: `release` is the human's authorisation for a live environment, recorded rather than
     // exported into a shell profile.
-    'ledger', 'map', 'new', 'pack', 'release', 'review', 'status',
+    // G25: `metrics` reads evidence and prints rates; it is not a skill and adds no context.
+    'ledger', 'map', 'metrics', 'new', 'pack', 'release', 'review', 'status',
   ], 'a new top-level verb needs its own approved contract');
 });
