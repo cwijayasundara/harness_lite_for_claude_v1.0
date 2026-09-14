@@ -94,7 +94,11 @@ export function writeRefusal(rel, cfg) {
   for (const p of PREFIX_CACHE_PATHS) {
     if (norm === p) {
       if (owned()) break;
-      return refuse('prefix-cache', `${p} configures agent instructions or permissions. Name it in the approved plan before changing it; reload the session to apply instruction changes. ${scope?.line ?? ""}`);
+      return refuse('prefix-cache', `${p} configures agent instructions or permissions, and it is `
+        + `already loaded: a session's prompt is fixed when it starts, so editing this file now changes `
+        + `nothing between sessions until the session is reloaded — while silently invalidating the `
+        + `prompt cache for everyone who reads it next. Name it in the approved plan before changing `
+        + `it, and reload the session to apply instruction changes. ${scope?.line ?? ""}`);
     }
   }
 

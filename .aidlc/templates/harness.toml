@@ -41,12 +41,16 @@ test      = "generic"
 
 # Which verbs run when. A stage may reference another stage; one level of indirection.
 [stages]
-fast   = ["fmt", "lint", "typecheck"]
+# `secrets` runs in `fast`, not only at commit: the built-in scanner reads the changed files and
+# costs milliseconds, and a credential is cheapest to remove in the turn that wrote it. Waiting for
+# the commit stage means the post-write hook — the one thing that reports back inside the turn —
+# never looks.
+fast   = ["fmt", "lint", "typecheck", "secrets"]
 stop   = ["fast", "test"]
 # G11. What the Stop hook runs at the end of a turn. The full suite belongs to `harness deliver`,
 # once per iteration, not to every turn.
 stop_hook = ["fast", "test_changed"]
-commit = ["stop", "secrets", "scope-drift", "budget", "tamper", "arch", "proof"]
+commit = ["stop", "scope-drift", "budget", "tamper", "arch", "proof"]
 drift  = ["coverage", "deps"]
 
 # Release-grade sensor ownership. Profiles select the project commands that are actually live;

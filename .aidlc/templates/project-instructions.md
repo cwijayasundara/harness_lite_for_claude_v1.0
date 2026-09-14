@@ -13,6 +13,12 @@ records findings and verification. Use the matching skills supplied by the share
 The human approves the spec and plan and authorizes merge. Approval records must be committed
 before implementation; never approve your own work. Ask when a consequential requirement or
 scope decision is unresolved. Make routine choices inside the approved scope without another gate.
+
+The line between the two is whether you can state the success condition. "Make the export better",
+"clean this up", "improve the API" name no observable outcome — a choice made there is the
+requirement, not an implementation detail, and guessing it produces work nobody asked for. Ask one
+short question and wait. Inside an approved scope, where the outcome is already written down, the
+remaining choices are yours and asking about them wastes a turn.
 When verified work is delivered, close its intent with `status: closed`.
 
 ## Commands
