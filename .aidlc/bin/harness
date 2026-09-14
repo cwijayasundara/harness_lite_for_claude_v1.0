@@ -362,9 +362,13 @@ async function main() {
       if (argv[1] !== 'gate') { console.error('usage: harness evals gate [--update]'); return 2; }
       const root = findRepoRoot(); const L = layout(root);
       const recordFile = path.join(root, 'evals', 'expected.json');
-      const results = evalGate.loadResults(path.join(L.aidlc, 'evals', 'results'));
       let record;
       try { record = evalGate.readRecord(recordFile); } catch (e) { console.error(String(e.message)); return 2; }
+      // The record first, so "a full run" means "graded everything the record expects" rather than
+      // "has more ids than anything else on disk". Without the ids, one historical run that also
+      // carried two product tasks outranked every golden run after it forever, and the gate went on
+      // grading 2026-09-04 while today's complete run sat in the same directory.
+      const results = evalGate.loadResults(path.join(L.aidlc, 'evals', 'results'), new Set(Object.keys(record.tasks ?? {})));
 
       if (has('update')) {
         if (!results) { console.error('no eval results to record — run `node evals/run.mjs` first'); return 1; }
