@@ -32,7 +32,10 @@ import { assertProductTree, productTestArgs, productTestCommand, execNode } from
 import { prepareProductChange, walk } from './campaign.mjs';
 import { invokerEnv } from './invoker.mjs';
 
-export const DRIVER_BOUNDS = { max_minutes: 20, max_repairs: 2 };
+// One sprint's allowance. The products file's 1.5 USD per prompt is sized for a single generator
+// turn; a driver run is two generator turns plus an evaluator review and possibly a repair, and
+// an allowance the review cannot fit in would stop every run on max_usd and measure nothing.
+export const DRIVER_BOUNDS = { max_usd: 3, max_minutes: 20, max_repairs: 2 };
 
 // The real thing: the staged plugin's own CLI, in the staged product, with the shim pointed at
 // that plugin. Its JSON result is the whole interface.
@@ -62,7 +65,7 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
   const event = (name, extra = {}) => { result.phases.push({ ...extra, name }); save(); log(`${config.id}/${t.id}: ${name}`); };
   const sourceDigest = () => walk(s.work).filter((f) => !f.startsWith('.aidlc/') && f !== 'CODEBASE-MAP.md').map((f) => [f, createHash('sha256').update(readFileSync(path.join(s.work, f))).digest('hex')]);
   const publicCheck = () => { const out = execNode(s.work, productTestArgs, { timeout: 60000 }); assert.equal(out.status, 0, `public tests failed: ${out.stdout}${out.stderr}`); return out.stdout; };
-  const allowance = Number(t.budgetUsd ?? 3);
+  const allowance = Number(t.deliverUsd ?? Math.max(Number(t.budgetUsd ?? 0), DRIVER_BOUNDS.max_usd));
   const minutes = Number(t.deliverMinutes ?? DRIVER_BOUNDS.max_minutes);
 
   // The same external repair the native arm gets when the grader refuses what it delivered.
