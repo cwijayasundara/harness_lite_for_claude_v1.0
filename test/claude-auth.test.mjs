@@ -51,7 +51,9 @@ test('only confirmed subscription status or a dedicated OAuth token is accepted'
   assert.throws(() => requireSubscription({ env: {}, run: () => ({ status: 1, stdout: JSON.stringify(CONFIRMED) }) }),
     /not confirmed/, 'a non-zero CLI exit must refuse even when the payload looks confirmed');
 
-  assert.throws(() => requireSubscription({ env: {}, product: true }), /Container runs require/);
+  assert.equal(requireSubscription({ env: {}, product: true, run: () => ({ status: 0, stdout: JSON.stringify(CONFIRMED) }) }), 'subscription-login',
+    'no container any more: a product trial accepts the host login');
+  assert.throws(() => requireSubscription({ env: {}, product: true, run: () => ({ status: 1, stdout: '{"loggedIn":false}' }) }), /not confirmed/);
   assert.equal(requireSubscription({ env: { CLAUDE_CODE_OAUTH_TOKEN: 'fixture' }, product: true }), 'subscription-token');
 });
 

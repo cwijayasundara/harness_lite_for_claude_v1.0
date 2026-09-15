@@ -33,7 +33,7 @@ test('authentication follows Claude CLI status, including keychain-backed logins
   assert.equal(claudeAuthenticated({}, loggedIn), true);
   assert.equal(claudeAuthenticated({}, loggedOut), false);
   assert.equal(claudeAuthenticated({ ANTHROPIC_API_KEY: 'ci-token' }, loggedOut), false);
-  assert.equal(claudeAuthenticated({}, loggedIn,{product:true}),false,'isolated products cannot use the host keychain');
+  assert.equal(claudeAuthenticated({}, loggedIn,{product:true}),true,'no container: a product trial uses the same login every live call does');
   assert.equal(claudeAuthenticated({CLAUDE_CODE_OAUTH_TOKEN:'ci-token'},loggedOut,{product:true}),true);
 });
 
