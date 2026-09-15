@@ -112,7 +112,11 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
       event('invocation-started', { phase: 'deliver', slug: step.slug, args });
       const runStarted = Date.now();
       const out = runDeliver({ work: s.work, harnessBin: s.harnessBin, slug: step.slug, args, timeoutMs: minutes * 60000 + 60000 });
-      let parsed = null; try { parsed = JSON.parse(String(out.stdout ?? '').trim().split('\n').filter((l) => l.startsWith('{')).pop() ?? ''); } catch { /* the driver did not finish its envelope */ }
+      // The driver prints its result pretty-printed after its progress lines: the envelope starts
+      // at the last line that is exactly `{`. MEASURED 2026-09-15: reading the last line that
+      // *started* with `{` read a nested object and reported a finished run as not delivered.
+      const stdout = String(out.stdout ?? ''); const envelope = stdout.slice(Math.max(0, stdout.lastIndexOf('\n{\n'))).trim();
+      let parsed = null; try { parsed = JSON.parse(envelope.startsWith('{') ? envelope : stdout.trim()); } catch { /* the driver did not finish its envelope */ }
       const stateFile = path.join(s.work, '.aidlc/state/deliver', step.slug, 'phases.json');
       const state = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, 'utf8')) : null;
       const usd = Number.isFinite(parsed?.usd) ? parsed.usd : Number.isFinite(state?.usd) ? state.usd : null;

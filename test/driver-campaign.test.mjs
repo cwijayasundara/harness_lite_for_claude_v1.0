@@ -43,7 +43,8 @@ function fakeDriver({ edits = ['src/ledger.mjs'], repaired = 1, usd = 0.8, ok = 
     writeFileSync(path.join(work, '.aidlc/artifacts', slug, 'review.md'), '# Independent review\n\n## Important\n\nfake finding\n\napprove\n');
     const result = ok ? { slug, ok: true, usd, usd_per_accepted_change: usd, cache_read_share: 0.9, turns: 6, wall_ms: 90000, repairs: repaired, completed: ['implement', 'check-stop', 'refactor', 'review', 'repair', 'check-commit', 'pr'], pr: null, pr_unopened: 'no git remotes found' }
       : { slug, ok: false, usd, stopped, completed: ['implement'] };
-    return { status: ok ? 0 : 1, stdout: JSON.stringify(result), stderr: '' };
+    // Pretty-printed after progress lines, the way the CLI actually prints it.
+    return { status: ok ? 0 : 1, stdout: `${slug}: pr end\n${JSON.stringify(result, null, 2)}\n`, stderr: '' };
   } };
 }
 
