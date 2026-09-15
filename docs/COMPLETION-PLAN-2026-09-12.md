@@ -250,6 +250,13 @@ drops below 20 s.
 **Phase 2 exit:** one sprint delivered end to end with one human action; cost per accepted change,
 cache-read share, and wall-clock recorded in the ledger and in the sprint's `review.md`.
 
+> **Shipped 2026-09-15 — met.** First real `harness deliver --live`: campaign-ledger sprint 1, seven
+> phases, review approve after one repair, USD 1.14 per accepted change, cache-read share 90%,
+> wall-clock 287 s, in the `deliver-run` ledger row and `## Delivery run` of review.md. The one
+> human action is the PR, which the fixture cannot host (`pr_unopened`, body in `pr.md`). Evidence
+> and eight numbered findings: `evals/evidence/deliver-first-run-2026-09-15/README.md`. Getting
+> there took three live attempts and five machinery fixes (9d3a859, 4298956, 9905abf, ba24099).
+
 ## Phase 3: product-facing sensors and guides
 
 ### G12 — Toolchain detection fills the capability verbs (absorbs F12)
@@ -432,6 +439,15 @@ shipped. If any fails, the graph decision (freeze or delete) and the gate defaul
 before phase 6.
 
 **Phase 5 exit:** G24's three criteria hold.
+
+> **Pilot 2026-09-15 — not met, and not yet measured at three repetitions.** `--comparison driver`
+> exists (`evals/lib/driver-campaign.mjs`); `--repeats 0` ran each arm once on sprint 1 inside
+> the operator's 30-minute bound. Verdict: `evals/evidence/g24-driver-comparison.json`.
+> Acceptance 1 = 1, yes. Cost 1.14 vs ceiling 0.18, no — 6.3× over, two evaluator reviews are 66%
+> of it. Evaluator-caught defect per campaign: 1, but native shipped none the grader caught in
+> sprint 1, so no. The plan's mandated response is to cut; the pilot is one sprint and one
+> repetition, so the cut list is recommended, not applied. The full three-repetition run is
+> USD 28–32 and 3–4 hours by the pilot's numbers; the operator declined that spend on 2026-09-15.
 
 ## Phase 6: bounded improvement loop
 

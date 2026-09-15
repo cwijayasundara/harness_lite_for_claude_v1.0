@@ -1,0 +1,88 @@
+{
+  "kind": "g24-pilot-first-sprint-once-per-arm",
+  "recorded_at": "2026-09-15T20:44:20.113Z",
+  "harnessRevision": "ba240997c1154a21ffa0a79c09043bd8161207b7",
+  "evidenceRoot": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/evals/comparisons/2026-09-15T20-38-26-807Z",
+  "repetitions": 0,
+  "maxUsd": 8,
+  "maxMinutes": 25,
+  "summary": {
+    "driver/native/smoke": {
+      "attempts": 1,
+      "passed": 1,
+      "incomplete": 0,
+      "unmeasured": 0,
+      "acceptedChanges": 1,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 0.163312,
+      "billingComplete": true,
+      "latencyMs": 64594,
+      "unnecessaryQuestions": null,
+      "evaluatorCaughtDefects": 0,
+      "shippedDefects": 0,
+      "driverStops": 0,
+      "usd": 0.163312,
+      "costPerAcceptedChange": 0.163312
+    },
+    "driver/harness-driver/smoke": {
+      "attempts": 1,
+      "passed": 1,
+      "incomplete": 0,
+      "unmeasured": 0,
+      "acceptedChanges": 1,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 1.1400793999999999,
+      "billingComplete": true,
+      "latencyMs": 288135,
+      "unnecessaryQuestions": null,
+      "evaluatorCaughtDefects": 1,
+      "shippedDefects": 0,
+      "driverStops": 0,
+      "usd": 1.1400793999999999,
+      "costPerAcceptedChange": 1.1400793999999999
+    }
+  },
+  "calibrations": [
+    {
+      "pair": "driver",
+      "successful": true,
+      "smokeCost": 1.3033913999999998,
+      "projectedUsd": 0,
+      "remainingUsd": 6.696608599999999,
+      "reason": null
+    }
+  ],
+  "verdict": {
+    "kind": "smoke",
+    "repetitions": 0,
+    "pilot": true,
+    "acceptance": {
+      "native": 1,
+      "harness": 1,
+      "pass": true
+    },
+    "cost": {
+      "native": 0.163312,
+      "harness": 1.1400793999999999,
+      "billingComplete": true,
+      "ceiling": 0.17964320000000003,
+      "pass": false
+    },
+    "defects": {
+      "evaluatorCaught": 1,
+      "nativeShipped": 0,
+      "harnessShipped": 0,
+      "campaigns": 1,
+      "required": 1,
+      "pass": false
+    },
+    "pass": false,
+    "note": "defects.pass requires an evaluator catch per campaign and at least one grader-caught defect the native arm shipped; whether they are the same defect is read from the evidence, not computed"
+  }
+}
