@@ -37,11 +37,15 @@ import { invokerEnv } from './invoker.mjs';
 // an allowance the review cannot fit in would stop every run on max_usd and measure nothing.
 export const DRIVER_BOUNDS = { max_usd: 3, max_minutes: 20, max_repairs: 2 };
 
-// The real thing: the staged plugin's own CLI, in the staged product, with the shim pointed at
-// that plugin. Its JSON result is the whole interface.
-export function spawnDeliver({ work, plugin, slug, args, timeoutMs, env = process.env }) {
-  return spawnSync(process.execPath, [path.join(plugin, '.aidlc/bin/harness'), 'deliver', slug, ...args],
-    { cwd: work, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, env: invokerEnv({ pluginDir: plugin, base: env }) });
+// The real thing: the harness CLI `harness init` recorded in the staged product, run in that
+// product with the shim pointed at the same runtime — exactly what runProductCheck does.
+// MEASURED 2026-09-15: running the staged plugin *copy* instead put a runtime the install record
+// had never seen under every check, and each one refused on identity before running a control.
+// The copy is what the graph and pruning arms patch; this arm runs the harness as shipped.
+export function spawnDeliver({ work, harnessBin, slug, args, timeoutMs, env = process.env }) {
+  const home = path.dirname(path.dirname(harnessBin));
+  return spawnSync(process.execPath, [harnessBin, 'deliver', slug, ...args],
+    { cwd: work, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, env: invokerEnv({ pluginDir: home, base: env }) });
 }
 
 function pinBounds(work, { maxUsd, maxMinutes, maxRepairs }) {
@@ -107,7 +111,7 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
       const args = ['--live', '--actor', `comparison:${config.id}`];
       event('invocation-started', { phase: 'deliver', slug: step.slug, args });
       const runStarted = Date.now();
-      const out = runDeliver({ work: s.work, plugin: s.plugin, slug: step.slug, args, timeoutMs: minutes * 60000 + 60000 });
+      const out = runDeliver({ work: s.work, harnessBin: s.harnessBin, slug: step.slug, args, timeoutMs: minutes * 60000 + 60000 });
       let parsed = null; try { parsed = JSON.parse(String(out.stdout ?? '').trim().split('\n').filter((l) => l.startsWith('{')).pop() ?? ''); } catch { /* the driver did not finish its envelope */ }
       const stateFile = path.join(s.work, '.aidlc/state/deliver', step.slug, 'phases.json');
       const state = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, 'utf8')) : null;

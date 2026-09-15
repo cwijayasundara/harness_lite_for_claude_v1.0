@@ -320,3 +320,15 @@ test('a completed run records cost, cache-read share, turns and wall-clock in th
     assert.notEqual(a.read(d.cfg, SLUG, 'review')?.front.status, 'approved');
   } finally { d.s.cleanup(); }
 });
+
+test('an identity error from the checks stops the run by name and buys no repair turn', async () => {
+  const d = delivery();
+  try {
+    const result = await deliver(d.cfg, SLUG, { ...d.fakes,
+      async check(stageName) { d.calls.checks.push(stageName); return { stage: stageName, ok: false, controls: [], identity_errors: ['runtime mismatch: Use the recorded clean runtime commit'] }; } });
+    assert.equal(result.ok, false);
+    assert.equal(result.stopped.bound, 'check-stop');
+    assert.match(result.stopped.detail, /runtime mismatch/);
+    assert.deepEqual(d.calls.turns.map((t) => t.phase), ['implement'], 'no repair turn was paid for');
+  } finally { d.s.cleanup(); }
+});

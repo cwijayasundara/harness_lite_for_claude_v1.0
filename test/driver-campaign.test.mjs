@@ -32,8 +32,8 @@ function staged() {
 // reports the numbers the real one reports.
 function fakeDriver({ edits = ['src/ledger.mjs'], repaired = 1, usd = 0.8, ok = true, stopped = null } = {}) {
   const calls = [];
-  return { calls, run: ({ work, slug, args }) => {
-    calls.push({ work, slug, args });
+  return { calls, run: ({ work, harnessBin, slug, args }) => {
+    calls.push({ work, harnessBin, slug, args });
     for (const rel of edits) { const f = path.join(work, rel); mkdirSync(path.dirname(f), { recursive: true }); writeFileSync(f, `${existsSync(f) ? readFileSync(f, 'utf8') : ''}// delivered by fake driver\n`); }
     const dir = path.join(work, '.aidlc/state/deliver', slug); mkdirSync(dir, { recursive: true });
     const events = [{ phase: 'implement', event: 'model-turn-done', usd: 0.2, usage: { input_tokens: 10, cache_read_input_tokens: 90, cache_creation_input_tokens: 0, output_tokens: 5 } },
@@ -57,6 +57,7 @@ test('the driver arm approves before the driver runs, runs it once per sprint in
     assert.equal(driver.calls[0].slug, 'ledger-characterize');
     assert.ok(driver.calls[0].args.includes('--live'));
     assert.equal(driver.calls[0].work, t.s.work);
+    assert.equal(driver.calls[0].harnessBin, t.s.harnessBin, 'the runtime the install record names, not the patched plugin copy');
     // The approvals were on disk and committed before the driver started: the driver never grants one.
     const log = execFileSync('git', ['log', '--format=%s'], { cwd: t.s.work, encoding: 'utf8' });
     assert.match(log, /Simulated approval: ledger-characterize\/plan/);

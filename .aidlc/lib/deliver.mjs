@@ -336,6 +336,11 @@ export async function deliver(cfg, slug, {
 
     if (phase === 'check-stop') {
       let report = await check('stop');
+      // MEASURED 2026-09-15, first live run: the runtime identity did not match the install
+      // record, every check refused before running a control, and the driver paid for a repair
+      // turn against "Failing controls:" followed by nothing. An identity error is not the
+      // change's fault and no edit inside the plan's files can clear it: stop, and say which.
+      if (report.identity_errors?.length) return stop('check-stop', `the checks refused to run: ${report.identity_errors.join('; ')}`);
       if (!report.ok) {
         // One repair turn, then stop. A loop that cannot make its own checks pass in one attempt
         // is looping rather than fixing, and the human gets the failure rather than the spend.
@@ -347,7 +352,7 @@ export async function deliver(cfg, slug, {
         commitIfDirty(root, `${slug}: repair check --stage stop`);
         report = await check('stop');
       }
-      if (!report.ok) return stop('check-stop', `stop-stage checks still failing: ${failedControls(report).join(', ')}`);
+      if (!report.ok) return stop('check-stop', `stop-stage checks still failing: ${failedControls(report).join(', ') || report.identity_errors?.join('; ') || 'no control named — see the ledger'}`);
     }
 
     if (phase === 'refactor') {
