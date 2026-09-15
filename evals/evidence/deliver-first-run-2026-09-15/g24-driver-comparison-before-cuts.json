@@ -1,8 +1,8 @@
 {
   "kind": "g24-pilot-first-sprint-once-per-arm",
-  "recorded_at": "2026-09-15T20:54:10.573Z",
-  "harnessRevision": "65a94eca909bc652a1c4b4045afcf873d3236607",
-  "evidenceRoot": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/evals/comparisons/2026-09-15T20-51-07-231Z",
+  "recorded_at": "2026-09-15T20:44:20.113Z",
+  "harnessRevision": "ba240997c1154a21ffa0a79c09043bd8161207b7",
+  "evidenceRoot": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/evals/comparisons/2026-09-15T20-38-26-807Z",
   "repetitions": 0,
   "maxUsd": 8,
   "maxMinutes": 25,
@@ -17,15 +17,15 @@
       "verificationFailures": 0,
       "approvalViolations": 0,
       "retries": 0,
-      "reportedUsd": 0.17811480000000002,
+      "reportedUsd": 0.163312,
       "billingComplete": true,
-      "latencyMs": 59840,
+      "latencyMs": 64594,
       "unnecessaryQuestions": null,
       "evaluatorCaughtDefects": 0,
       "shippedDefects": 0,
       "driverStops": 0,
-      "usd": 0.17811480000000002,
-      "costPerAcceptedChange": 0.17811480000000002
+      "usd": 0.163312,
+      "costPerAcceptedChange": 0.163312
     },
     "driver/harness-driver/smoke": {
       "attempts": 1,
@@ -37,24 +37,24 @@
       "verificationFailures": 0,
       "approvalViolations": 0,
       "retries": 0,
-      "reportedUsd": 0.547951,
+      "reportedUsd": 1.1400793999999999,
       "billingComplete": true,
-      "latencyMs": 122936,
+      "latencyMs": 288135,
       "unnecessaryQuestions": null,
       "evaluatorCaughtDefects": 1,
       "shippedDefects": 0,
       "driverStops": 0,
-      "usd": 0.547951,
-      "costPerAcceptedChange": 0.547951
+      "usd": 1.1400793999999999,
+      "costPerAcceptedChange": 1.1400793999999999
     }
   },
   "calibrations": [
     {
       "pair": "driver",
       "successful": true,
-      "smokeCost": 0.7260658,
+      "smokeCost": 1.3033913999999998,
       "projectedUsd": 0,
-      "remainingUsd": 7.273934199999999,
+      "remainingUsd": 6.696608599999999,
       "reason": null
     }
   ],
@@ -68,10 +68,10 @@
       "pass": true
     },
     "cost": {
-      "native": 0.17811480000000002,
-      "harness": 0.547951,
+      "native": 0.163312,
+      "harness": 1.1400793999999999,
       "billingComplete": true,
-      "ceiling": 0.19592628000000004,
+      "ceiling": 0.17964320000000003,
       "pass": false
     },
     "defects": {

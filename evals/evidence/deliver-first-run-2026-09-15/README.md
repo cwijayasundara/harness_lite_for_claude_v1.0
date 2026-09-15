@@ -77,3 +77,31 @@ by the three live attempts. All are fixes to existing machinery (Law 11: no new 
   second round, and that the repair turn had written a "Response to review" section under it.
   A review artifact inside the diff it is reviewing is a design smell the reviewer had to
   reason around; it did not change the verdict.
+
+## After the cut list — same command, 21:51, commit 65a94ec
+
+Three cuts, each with its number above: no refactor turn, one review with one unreviewed repair
+turn, no shell for the generator. Evidence: `after-cuts/`; raw
+`.aidlc/evals/comparisons/2026-09-15T20-51-07-231Z/`. Load 6.6 at launch (the offline suite had
+just finished), 1.9 at the end. The pre-cut verdict file is kept as
+`g24-driver-comparison-before-cuts.json`.
+
+| | native | driver, before cuts | driver, after cuts |
+|---|---|---|---|
+| accepted changes | 1 | 1 | 1 |
+| USD per accepted change | 0.178 | 1.140 | 0.548 |
+| wall-clock | 1.0 min | 4.8 min | 2.0 min |
+| cache-read share | — | 90% | 83% |
+| model turns | — | 25 | 13 |
+| driver cost by phase | — | 0.148 / 0.055 / 0.286 / 0.185 / 0.465 | implement 0.115 / review 0.335 / repair 0.097 |
+| review verdict on the PR | — | approve (2nd round) | changes-requested, repaired, not re-reviewed |
+| denied commands | — | 7 | 0 |
+| product tests after delivery | 13 | 12 | 13 |
+
+G24's criteria, pilot-sized, after cuts: acceptance **yes** (1 = 1); cost **no** — 0.548 against a
+ceiling of 0.196, 2.8× over (was 6.3×); defects **no** for the same reason as before — the
+evaluator caught one (`after-cuts/driver/review.md`), native shipped nothing the grader caught.
+The remaining gap is the one evaluator review: 0.335 of 0.548, 61% of the run. Without it the
+driver would cost 0.213, which is 1.09× the ceiling — still over, by the implement turn's own
+size (0.115 vs native's whole sprint at 0.178, because the driver's implement turn reads the
+spec, plan and hook findings the native arm never has).

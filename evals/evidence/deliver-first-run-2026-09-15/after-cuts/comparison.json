@@ -1,0 +1,575 @@
+{
+  "kind": "native-comparisons",
+  "started": "2026-09-15T20:51:07.236Z",
+  "harnessRevision": "65a94eca909bc652a1c4b4045afcf873d3236607",
+  "tools": {
+    "node": "v24.1.0",
+    "git": "git version 2.51.2"
+  },
+  "scenarioDigest": "aba15232980d22243f97af62882ab10adb8d82f2da65daf911157b816ead4395",
+  "models": {
+    "generator": "claude-sonnet-5",
+    "evaluator": "claude-opus-5",
+    "evals": "claude-haiku-4-5-20251001",
+    "judgment": "claude-opus-5"
+  },
+  "maxUsd": 8,
+  "maxMinutes": 25,
+  "repetitions": 0,
+  "attempts": [
+    {
+      "id": "driver-native-smoke-0-campaign-ledger",
+      "fixtureDigest": "eeefe376a12db305afe3505914e97b722935169e3bce51f23c4559c0b9532431",
+      "pair": "driver",
+      "config": {
+        "id": "native",
+        "native": true,
+        "model": "claude-sonnet-5"
+      },
+      "task": "campaign-ledger",
+      "kind": "smoke",
+      "repeat": 0,
+      "status": "pass",
+      "reason": null,
+      "evidence": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/evals/comparisons/2026-09-15T20-51-07-231Z/driver-native-smoke-0-campaign-ledger",
+      "pluginDigest": null,
+      "result": {
+        "assertions": [
+          {
+            "name": "ledger-api-level-1",
+            "pass": true,
+            "cases": 14
+          }
+        ],
+        "phases": [
+          {
+            "phase": "plan",
+            "prompt": "Current proposal: Characterize the existing ledger, then add balance and overdue queries. Keep unrelated late-fee code unchanged.\nPreserve addCustomer, addInvoice and listInvoices including the unknown-customer error. Add characterization tests before changes.\noutstandingBalance(customerId) returns the sum of that customer's invoice amounts; other customers do not affect it. A customer with no invoices, including an unknown customer ID, has balance zero.\nisOverdue(invoiceId, today = current UTC YYYY-MM-DD) returns whether dueDate is lexically before today, regardless of payment. Use an exported function declaration. An unknown invoice ID throws an unknown invoice error.\nApproved implementation scope when permission arrives: src/ledger.mjs, tests/ledger.test.mjs. Preserve other files and existing public behaviour. No dependencies or deployment.\nInspect relevant source and propose your approach. If reproducing a failure, use node --test --test-timeout=10000 --test-force-exit so leaked test resources cannot stall the turn. Request approval and stop before implementation. The external driver supplies simulated decisions. ",
+            "name": "invocation-started"
+          },
+          {
+            "latencyMs": 21503,
+            "requestedModel": "claude-sonnet-5",
+            "transcript": "## Findings\n\n`src/ledger.mjs` currently has `addCustomer`, `addInvoice` (throws `Error('unknown customer')` for unknown customer ids), and `listInvoices`. State is two in-memory `Map`s (`customers`, `invoices`) with auto-incrementing numeric ids. `dueDate` is stored as-given (presumably `YYYY-MM-DD` strings, which sort lexically = chronologically). `tests/smoke.test.mjs` only checks the modules load — no real coverage yet. `src/fees.mjs` is unrelated and untouched. `NOTES.md` describes current behavior and should stay accurate.\n\n## Proposed approach\n\n1. **`tests/ledger.test.mjs`** (new file): characterization tests for existing behavior first —\n   - `addCustomer` returns a usable id\n   - `addInvoice` records against a known customer and returns an id\n   - `addInvoice` throws for an unknown customer id\n   - `listInvoices` returns only that customer's invoices, unaffected by others\n2. **`src/ledger.mjs`**: add two exported function declarations\n   - `outstandingBalance(customerId)`: sums `amountCents` over that customer's invoices; unknown/no-invoice customers get `0` (no throw, per your spec).\n   - `isOverdue(invoiceId, today = <UTC YYYY-MM-DD>())`: looks up the invoice, throws `Error('unknown invoice')` if missing, else returns `dueDate < today` (lexical string compare, consistent with `YYYY-MM-DD` storage). Default `today` computed via a small internal (non-exported) helper so it's evaluated per-call, not baked in at import time.\n3. **Tests** for both: balance sums correctly, ignores other customers, zero for no-invoices/unknown id; overdue true/false/boundary (`dueDate === today` is not overdue), unknown invoice id throws, explicit `today` override.\n\nNo changes to `fees.mjs`, no dependencies, nothing exported beyond the two new functions. I'll leave `NOTES.md` as-is unless you want it updated to mention the new functions — let me know.\n\nRequesting approval to proceed with this implementation (`src/ledger.mjs`, `tests/ledger.test.mjs`) and I'll stop here until I hear back.\n{\"duration_api_ms\":18061,\"stop_reason\":\"end_turn\",\"session_id\":\"e5b5909b-fd7e-4ebb-84d7-ab86317df26a\",\"total_cost_usd\":0.0695028,\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":9723,\"cache_read_input_tokens\":48324,\"output_tokens\":1971,\"output_tokens_details\":{\"thinking_tokens\":458},\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":9723,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"not_available\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":1226,\"cache_read_input_tokens\":19121,\"cache_creation_input_tokens\":1846,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":1846},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-haiku-4-5-20251001\":{\"inputTokens\":1144,\"outputTokens\":16,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.001224,\"contextWindow\":200000,\"maxOutputTokens\":32000,\"thinkingTokens\":0,\"canonicalModel\":\"claude-haiku-4-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"},\"claude-sonnet-5\":{\"inputTokens\":6,\"outputTokens\":1971,\"cacheReadInputTokens\":48324,\"cacheCreationInputTokens\":9723,\"webSearchRequests\":0,\"costUSD\":0.0682788,\"contextWindow\":1000000,\"maxOutputTokens\":64000,\"thinkingTokens\":458,\"canonicalModel\":\"claude-sonnet-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"fast_mode_disabled_reason\":\"sdk_opt_in_required\",\"subagent_stats\":{\"spawned\":0,\"requested\":{\"background\":0,\"foreground\":0,\"unset\":0},\"started_in_background\":0,\"max_depth\":0,\"spawned_by_subagents\":0,\"completed\":0,\"failed\":0,\"killed\":{\"parent\":0,\"user\":0,\"system\":0},\"refused\":{\"depth_limit\":0,\"concurrency_limit\":0,\"budget\":0},\"by_type\":{}},\"is_error\":false,\"num_turns\":6,\"subtype\":\"success\",\"api_error_status\":null,\"result\":\"## Findings\\n\\n`src/ledger.mjs` currently has `addCustomer`, `addInvoice` (throws `Error('unknown customer')` for unknown customer ids), and `listInvoices`. State is two in-memory `Map`s (`customers`, `invoices`) with auto-incrementing numeric ids. `dueDate` is stored as-given (presumably `YYYY-MM-DD` strings, which sort lexically = chronologically). `tests/smoke.test.mjs` only checks the modules load — no real coverage yet. `src/fees.mjs` is unrelated and untouched. `NOTES.md` describes current behavior and should stay accurate.\\n\\n## Proposed approach\\n\\n1. **`tests/ledger.test.mjs`** (new file): characterization tests for existing behavior first —\\n   - `addCustomer` returns a usable id\\n   - `addInvoice` records against a known customer and returns an id\\n   - `addInvoice` throws for an unknown customer id\\n   - `listInvoices` returns only that customer's invoices, unaffected by others\\n2. **`src/ledger.mjs`**: add two exported function declarations\\n   - `outstandingBalance(customerId)`: sums `amountCents` over that customer's invoices; unknown/no-invoice customers get `0` (no throw, per your spec).\\n   - `isOverdue(invoiceId, today = <UTC YYYY-MM-DD>())`: looks up the invoice, throws `Error('unknown invoice')` if missing, else returns `dueDate < today` (lexical string compare, consistent with `YYYY-MM-DD` storage). Default `today` computed via a small internal (non-exported) helper so it's evaluated per-call, not baked in at import time.\\n3. **Tests** for both: balance sums correctly, ignores other customers, zero for no-invoices/unknown id; overdue true/false/boundary (`dueDate === today` is not overdue), unknown invoice id throws, explicit `today` override.\\n\\nNo changes to `fees.mjs`, no dependencies, nothing exported beyond the two new functions. I'll leave `NOTES.md` as-is unless you want it updated to mention the new functions — let me know.\\n\\nRequesting approval to proceed with this implementation (`src/ledger.mjs`, `tests/ledger.test.mjs`) and I'll stop here until I hear back.\",\"ttft_ms\":777,\"type\":\"result\",\"duration_ms\":17811,\"uuid\":\"e6f4f41e-6179-49a7-881f-b6d1a253034e\",\"ttft_stream_ms\":722,\"time_to_request_ms\":51,\"first_content_frame_ms\":723,\"queued_turn_count\":0,\"result_index\":0}",
+            "usage": {
+              "usd": 0.0695028,
+              "input_tokens": 6,
+              "cache_creation_input_tokens": 9723,
+              "cache_read_input_tokens": 48324,
+              "output_tokens": 1971,
+              "output_tokens_details": {
+                "thinking_tokens": 458
+              },
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 9723,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 1226,
+                  "cache_read_input_tokens": 19121,
+                  "cache_creation_input_tokens": 1846,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 1846
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "exitCode": 0,
+            "timedOut": false,
+            "incomplete": null,
+            "sessionId": "e5b5909b-fd7e-4ebb-84d7-ab86317df26a",
+            "modelUsage": {
+              "claude-haiku-4-5-20251001": {
+                "inputTokens": 1144,
+                "outputTokens": 16,
+                "cacheReadInputTokens": 0,
+                "cacheCreationInputTokens": 0,
+                "webSearchRequests": 0,
+                "costUSD": 0.001224,
+                "contextWindow": 200000,
+                "maxOutputTokens": 32000,
+                "thinkingTokens": 0,
+                "canonicalModel": "claude-haiku-4-5",
+                "provider": "firstParty",
+                "costBasis": "list"
+              },
+              "claude-sonnet-5": {
+                "inputTokens": 6,
+                "outputTokens": 1971,
+                "cacheReadInputTokens": 48324,
+                "cacheCreationInputTokens": 9723,
+                "webSearchRequests": 0,
+                "costUSD": 0.0682788,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000,
+                "thinkingTokens": 458,
+                "canonicalModel": "claude-sonnet-5",
+                "provider": "firstParty",
+                "costBasis": "list"
+              }
+            },
+            "turns": 6,
+            "permissionDenials": [],
+            "name": "model-plan"
+          },
+          {
+            "slug": "ledger-characterize",
+            "sessionId": "e5b5909b-fd7e-4ebb-84d7-ab86317df26a",
+            "name": "planning-paused"
+          },
+          {
+            "phase": "characterize",
+            "prompt": "Simulated approval: write only tests/ledger.test.mjs to characterize addCustomer, addInvoice and listInvoices including unknown-customer errors. Keep source unchanged. Run node --test --test-timeout=10000 --test-force-exit.",
+            "name": "invocation-started"
+          },
+          {
+            "latencyMs": 13524,
+            "requestedModel": "claude-sonnet-5",
+            "transcript": "All 7 tests pass, `src/ledger.mjs` untouched. `tests/ledger.test.mjs` now characterizes `addCustomer`, `addInvoice` (including the unknown-customer error), and `listInvoices` (including empty results for no-invoice and unknown customers).\n{\"duration_api_ms\":9271,\"stop_reason\":\"end_turn\",\"session_id\":\"e5b5909b-fd7e-4ebb-84d7-ab86317df26a\",\"total_cost_usd\":0.036771,\"usage\":{\"input_tokens\":6,\"cache_creation_input_tokens\":2979,\"cache_read_input_tokens\":66765,\"output_tokens\":1149,\"output_tokens_details\":{\"thinking_tokens\":0},\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":2979,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"not_available\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":97,\"cache_read_input_tokens\":23441,\"cache_creation_input_tokens\":505,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":505},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":6,\"outputTokens\":1149,\"cacheReadInputTokens\":66765,\"cacheCreationInputTokens\":2979,\"webSearchRequests\":0,\"costUSD\":0.036771,\"contextWindow\":1000000,\"maxOutputTokens\":64000,\"thinkingTokens\":0,\"canonicalModel\":\"claude-sonnet-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"fast_mode_disabled_reason\":\"sdk_opt_in_required\",\"subagent_stats\":{\"spawned\":0,\"requested\":{\"background\":0,\"foreground\":0,\"unset\":0},\"started_in_background\":0,\"max_depth\":0,\"spawned_by_subagents\":0,\"completed\":0,\"failed\":0,\"killed\":{\"parent\":0,\"user\":0,\"system\":0},\"refused\":{\"depth_limit\":0,\"concurrency_limit\":0,\"budget\":0},\"by_type\":{}},\"is_error\":false,\"num_turns\":3,\"subtype\":\"success\",\"api_error_status\":null,\"result\":\"All 7 tests pass, `src/ledger.mjs` untouched. `tests/ledger.test.mjs` now characterizes `addCustomer`, `addInvoice` (including the unknown-customer error), and `listInvoices` (including empty results for no-invoice and unknown customers).\",\"ttft_ms\":1088,\"type\":\"result\",\"duration_ms\":9557,\"uuid\":\"084be70e-cd5e-44b3-8361-0817d92ed4f5\",\"ttft_stream_ms\":725,\"time_to_request_ms\":23,\"first_content_frame_ms\":726,\"queued_turn_count\":0,\"result_index\":0}",
+            "usage": {
+              "usd": 0.036771,
+              "input_tokens": 6,
+              "cache_creation_input_tokens": 2979,
+              "cache_read_input_tokens": 66765,
+              "output_tokens": 1149,
+              "output_tokens_details": {
+                "thinking_tokens": 0
+              },
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 2979,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 97,
+                  "cache_read_input_tokens": 23441,
+                  "cache_creation_input_tokens": 505,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 505
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "exitCode": 0,
+            "timedOut": false,
+            "incomplete": null,
+            "sessionId": "e5b5909b-fd7e-4ebb-84d7-ab86317df26a",
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 6,
+                "outputTokens": 1149,
+                "cacheReadInputTokens": 66765,
+                "cacheCreationInputTokens": 2979,
+                "webSearchRequests": 0,
+                "costUSD": 0.036771,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000,
+                "thinkingTokens": 0,
+                "canonicalModel": "claude-sonnet-5",
+                "provider": "firstParty",
+                "costBasis": "list"
+              }
+            },
+            "turns": 3,
+            "permissionDenials": [],
+            "name": "model-characterize"
+          },
+          {
+            "name": "characterization-passed"
+          },
+          {
+            "phase": "implement",
+            "prompt": "Simulated approval: implement Characterize the existing ledger, then add balance and overdue queries. Keep unrelated late-fee code unchanged.\nPreserve addCustomer, addInvoice and listInvoices including the unknown-customer error. Add characterization tests before changes.\noutstandingBalance(customerId) returns the sum of that customer's invoice amounts; other customers do not affect it. A customer with no invoices, including an unknown customer ID, has balance zero.\nisOverdue(invoiceId, today = current UTC YYYY-MM-DD) returns whether dueDate is lexically before today, regardless of payment. Use an exported function declaration. An unknown invoice ID throws an unknown invoice error.\nApproved implementation scope when permission arrives: src/ledger.mjs, tests/ledger.test.mjs. Preserve other files and existing public behaviour. No dependencies or deployment.\nAdd meaningful tests and run node --test --test-timeout=10000 --test-force-exit. Use rg and bounded reads as needed. Do not modify approval artifacts. \n",
+            "name": "invocation-started"
+          },
+          {
+            "latencyMs": 24466,
+            "requestedModel": "claude-sonnet-5",
+            "transcript": "Only `src/ledger.mjs` and `tests/ledger.test.mjs` changed, matching the approved scope; `fees.mjs`, `NOTES.md`, and other files are untouched.\n\n## Summary\n- `src/ledger.mjs`: added `outstandingBalance(customerId)` (sums that customer's invoice amounts, `0` for none/unknown) and `isOverdue(invoiceId, today = <UTC date>)` (lexical `dueDate < today` comparison, throws `'unknown invoice'` for unknown ids). `addCustomer`, `addInvoice`, `listInvoices` unchanged.\n- `tests/ledger.test.mjs`: characterization tests for existing behavior plus new tests covering balance summation/isolation/zero cases and overdue true/false/boundary/default-today/unknown-id cases.\n- `node --test --test-timeout=10000 --test-force-exit`: 16/16 passing.\n{\"duration_api_ms\":20434,\"stop_reason\":\"end_turn\",\"session_id\":\"e5b5909b-fd7e-4ebb-84d7-ab86317df26a\",\"total_cost_usd\":0.071841,\"usage\":{\"input_tokens\":12,\"cache_creation_input_tokens\":4035,\"cache_read_input_tokens\":153685,\"output_tokens\":2494,\"output_tokens_details\":{\"thinking_tokens\":0},\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":4035,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"not_available\",\"iterations\":[{\"input_tokens\":2,\"output_tokens\":317,\"cache_read_input_tokens\":27670,\"cache_creation_input_tokens\":311,\"cache_creation\":{\"ephemeral_5m_input_tokens\":0,\"ephemeral_1h_input_tokens\":311},\"type\":\"message\"}],\"speed\":\"standard\"},\"modelUsage\":{\"claude-sonnet-5\":{\"inputTokens\":12,\"outputTokens\":2494,\"cacheReadInputTokens\":153685,\"cacheCreationInputTokens\":4035,\"webSearchRequests\":0,\"costUSD\":0.071841,\"contextWindow\":1000000,\"maxOutputTokens\":64000,\"thinkingTokens\":0,\"canonicalModel\":\"claude-sonnet-5\",\"provider\":\"firstParty\",\"costBasis\":\"list\"}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"fast_mode_disabled_reason\":\"sdk_opt_in_required\",\"subagent_stats\":{\"spawned\":0,\"requested\":{\"background\":0,\"foreground\":0,\"unset\":0},\"started_in_background\":0,\"max_depth\":0,\"spawned_by_subagents\":0,\"completed\":0,\"failed\":0,\"killed\":{\"parent\":0,\"user\":0,\"system\":0},\"refused\":{\"depth_limit\":0,\"concurrency_limit\":0,\"budget\":0},\"by_type\":{}},\"is_error\":false,\"num_turns\":6,\"subtype\":\"success\",\"api_error_status\":null,\"result\":\"Only `src/ledger.mjs` and `tests/ledger.test.mjs` changed, matching the approved scope; `fees.mjs`, `NOTES.md`, and other files are untouched.\\n\\n## Summary\\n- `src/ledger.mjs`: added `outstandingBalance(customerId)` (sums that customer's invoice amounts, `0` for none/unknown) and `isOverdue(invoiceId, today = <UTC date>)` (lexical `dueDate < today` comparison, throws `'unknown invoice'` for unknown ids). `addCustomer`, `addInvoice`, `listInvoices` unchanged.\\n- `tests/ledger.test.mjs`: characterization tests for existing behavior plus new tests covering balance summation/isolation/zero cases and overdue true/false/boundary/default-today/unknown-id cases.\\n- `node --test --test-timeout=10000 --test-force-exit`: 16/16 passing.\",\"ttft_ms\":981,\"type\":\"result\",\"duration_ms\":20811,\"uuid\":\"f5b1af91-891e-490a-96b2-b0eecf4b105b\",\"ttft_stream_ms\":646,\"time_to_request_ms\":27,\"first_content_frame_ms\":646,\"queued_turn_count\":0,\"result_index\":0}",
+            "usage": {
+              "usd": 0.071841,
+              "input_tokens": 12,
+              "cache_creation_input_tokens": 4035,
+              "cache_read_input_tokens": 153685,
+              "output_tokens": 2494,
+              "output_tokens_details": {
+                "thinking_tokens": 0
+              },
+              "server_tool_use": {
+                "web_search_requests": 0,
+                "web_fetch_requests": 0
+              },
+              "service_tier": "standard",
+              "cache_creation": {
+                "ephemeral_1h_input_tokens": 4035,
+                "ephemeral_5m_input_tokens": 0
+              },
+              "inference_geo": "not_available",
+              "iterations": [
+                {
+                  "input_tokens": 2,
+                  "output_tokens": 317,
+                  "cache_read_input_tokens": 27670,
+                  "cache_creation_input_tokens": 311,
+                  "cache_creation": {
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 311
+                  },
+                  "type": "message"
+                }
+              ],
+              "speed": "standard"
+            },
+            "exitCode": 0,
+            "timedOut": false,
+            "incomplete": null,
+            "sessionId": "e5b5909b-fd7e-4ebb-84d7-ab86317df26a",
+            "modelUsage": {
+              "claude-sonnet-5": {
+                "inputTokens": 12,
+                "outputTokens": 2494,
+                "cacheReadInputTokens": 153685,
+                "cacheCreationInputTokens": 4035,
+                "webSearchRequests": 0,
+                "costUSD": 0.071841,
+                "contextWindow": 1000000,
+                "maxOutputTokens": 64000,
+                "thinkingTokens": 0,
+                "canonicalModel": "claude-sonnet-5",
+                "provider": "firstParty",
+                "costBasis": "list"
+              }
+            },
+            "turns": 6,
+            "permissionDenials": [],
+            "name": "model-implement"
+          },
+          {
+            "slug": "ledger-characterize",
+            "publicOutput": "✔ addCustomer returns a usable id (0.406875ms)\n✔ addInvoice records against a known customer and returns an id (0.310958ms)\n✔ addInvoice throws for an unknown customer id (0.15625ms)\n✔ listInvoices returns only that customer's invoices (0.077917ms)\n✔ listInvoices returns an empty array for a customer with no invoices (0.069833ms)\n✔ listInvoices returns an empty array for an unknown customer id (0.04275ms)\n✔ outstandingBalance sums a customer's invoice amounts (0.056458ms)\n✔ outstandingBalance is unaffected by other customers (0.043333ms)\n✔ outstandingBalance is zero for a customer with no invoices (0.052459ms)\n✔ outstandingBalance is zero for an unknown customer id (0.082916ms)\n✔ isOverdue is true when dueDate is before today (0.06075ms)\n✔ isOverdue is false when dueDate is today (0.047541ms)\n✔ isOverdue is false when dueDate is after today (0.033083ms)\n✔ isOverdue defaults today to the current UTC date (0.955667ms)\n✔ isOverdue throws for an unknown invoice id (0.058791ms)\n✔ the modules load (1.814ms)\nℹ tests 16\nℹ suites 0\nℹ pass 16\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 41.435541\n",
+            "name": "product-proof",
+            "pass": true,
+            "cases": 14,
+            "check": "ledger-api-level-1"
+          },
+          {
+            "slug": "ledger-characterize",
+            "candidateRevision": "70a626079f22865e81095b9cb1ce4ee7b2c16033",
+            "name": "accepted-change"
+          }
+        ],
+        "decisions": [
+          {
+            "slug": "ledger-characterize",
+            "decision": "approve",
+            "simulated": true,
+            "revision": "2a63ada63a1d5dc84a400fc427fa31ef39a79622",
+            "requirementsDigest": "2f1e135c05008ce7bbf989607840ef4ef3eacac36a220e459d26088c4bebfce9"
+          }
+        ],
+        "completedSteps": 1,
+        "totalSteps": 1,
+        "usage": {
+          "usd": 0.17811480000000002,
+          "reportedUsd": 0.17811480000000002
+        },
+        "billingComplete": true,
+        "approvalViolations": 0,
+        "retries": 0,
+        "regressions": 0,
+        "verificationFailures": 0,
+        "unnecessaryQuestions": null,
+        "fixtureRevision": "2a63ada63a1d5dc84a400fc427fa31ef39a79622",
+        "fixtureTree": "ec8c34ca90f65fd4f0adcd08fb0bc302ac4301eb",
+        "node": "v24.1.0",
+        "candidateRevision": "70a626079f22865e81095b9cb1ce4ee7b2c16033",
+        "latencyMs": 59840,
+        "approvals": [],
+        "pass": true
+      }
+    },
+    {
+      "id": "driver-harness-driver-smoke-0-campaign-ledger",
+      "fixtureDigest": "eeefe376a12db305afe3505914e97b722935169e3bce51f23c4559c0b9532431",
+      "pair": "driver",
+      "config": {
+        "id": "harness-driver",
+        "model": "claude-sonnet-5",
+        "driver": true
+      },
+      "task": "campaign-ledger",
+      "kind": "smoke",
+      "repeat": 0,
+      "status": "pass",
+      "reason": null,
+      "evidence": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/evals/comparisons/2026-09-15T20-51-07-231Z/driver-harness-driver-smoke-0-campaign-ledger",
+      "pluginDigest": "30b98365bc4482bcbc2b76a3eb54422d8e87b37ec13f029736dbc2b66b597f53",
+      "result": {
+        "assertions": [
+          {
+            "name": "ledger-api-level-1",
+            "pass": true,
+            "cases": 14
+          }
+        ],
+        "phases": [
+          {
+            "phase": "deliver",
+            "slug": "ledger-characterize",
+            "args": [
+              "--live",
+              "--actor",
+              "comparison:harness-driver"
+            ],
+            "name": "invocation-started"
+          },
+          {
+            "slug": "ledger-characterize",
+            "usage": {
+              "usd": 0.547951
+            },
+            "result": {
+              "slug": "ledger-characterize",
+              "ok": true,
+              "stopped": null,
+              "completed": [
+                "implement",
+                "check-stop",
+                "review",
+                "repair",
+                "check-commit",
+                "pr"
+              ],
+              "invocation": "1aeed1b9",
+              "usd": 0.547951,
+              "usd_per_accepted_change": 0.547951,
+              "cache_read_share": 0.8308,
+              "turns": 13,
+              "wall_ms": 121678,
+              "repairs": 1,
+              "usage": {
+                "input_tokens": 32,
+                "cache_creation_input_tokens": 46830,
+                "cache_read_input_tokens": 230098,
+                "output_tokens": 11155
+              },
+              "pr": null,
+              "pr_unopened": "gh pr create failed: no git remotes found",
+              "review": {
+                "verdict": "changes-requested",
+                "status": "complete",
+                "repaired": true
+              }
+            },
+            "stdout": "{\n  \"slug\": \"ledger-characterize\",\n  \"ok\": true,\n  \"stopped\": null,\n  \"completed\": [\n    \"implement\",\n    \"check-stop\",\n    \"review\",\n    \"repair\",\n    \"check-commit\",\n    \"pr\"\n  ],\n  \"invocation\": \"1aeed1b9\",\n  \"usd\": 0.547951,\n  \"usd_per_accepted_change\": 0.547951,\n  \"cache_read_share\": 0.8308,\n  \"turns\": 13,\n  \"wall_ms\": 121678,\n  \"repairs\": 1,\n  \"usage\": {\n    \"input_tokens\": 32,\n    \"cache_creation_input_tokens\": 46830,\n    \"cache_read_input_tokens\": 230098,\n    \"output_tokens\": 11155\n  },\n  \"pr\": null,\n  \"pr_unopened\": \"gh pr create failed: no git remotes found\",\n  \"review\": {\n    \"verdict\": \"changes-requested\",\n    \"status\": \"complete\",\n    \"repaired\": true\n  }\n}\n",
+            "stderr": "ledger-characterize: implement start\nledger-characterize: implement model-turn\nledger-characterize: implement model-turn-done\nledger-characterize: implement end\nledger-characterize: check-stop start\nledger-characterize: check-stop end\nledger-characterize: review start\nledger-characterize: review model-turn\nledger-characterize: review model-turn-done\nledger-characterize: review end\nledger-characterize: repair start\nledger-characterize: repair model-turn\nledger-characterize: repair model-turn-done\nledger-characterize: repair repaired\nledger-characterize: repair end\nledger-characterize: check-commit start\nledger-characterize: check-commit end\nledger-characterize: pr start\nledger-characterize: pr unopened\nledger-characterize: pr end\n",
+            "durationMs": 121900,
+            "name": "model-deliver"
+          },
+          {
+            "slug": "ledger-characterize",
+            "publicOutput": "✔ addCustomer returns an incrementing id (0.674375ms)\n✔ addInvoice throws for an unknown customer (0.178084ms)\n✔ listInvoices returns only that customer's invoices (0.06875ms)\n✔ listInvoices returns an empty list for a customer with none (0.242042ms)\n✔ outstandingBalance sums a customer's invoice amounts (0.084542ms)\n✔ outstandingBalance is unaffected by other customers' invoices (0.051416ms)\n✔ outstandingBalance is zero for a customer with no invoices (0.043667ms)\n✔ outstandingBalance is zero for an unknown customer id (0.037833ms)\n✔ isOverdue is true when dueDate is before today (0.0685ms)\n✔ isOverdue is false when dueDate is today or after (0.083292ms)\n✔ isOverdue throws for an unknown invoice id (0.065875ms)\n✔ isOverdue defaults today to the current UTC date (0.58575ms)\n✔ the modules load (1.86125ms)\nℹ tests 13\nℹ suites 0\nℹ pass 13\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 35.242958\n",
+            "name": "product-proof",
+            "pass": true,
+            "cases": 14
+          },
+          {
+            "slug": "ledger-characterize",
+            "candidateRevision": "bf4b1fc076adafaeb3b387c32aa188116fdbd993",
+            "evaluatorCaughtDefects": 1,
+            "name": "accepted-change"
+          }
+        ],
+        "decisions": [
+          {
+            "slug": "ledger-characterize",
+            "decision": "approve",
+            "simulated": true,
+            "revision": "d334ead962f682baf7d2af7abda1e50a86140476",
+            "requirementsDigest": "2f1e135c05008ce7bbf989607840ef4ef3eacac36a220e459d26088c4bebfce9"
+          }
+        ],
+        "completedSteps": 1,
+        "totalSteps": 1,
+        "usage": {
+          "usd": 0.547951,
+          "reportedUsd": 0.547951
+        },
+        "billingComplete": true,
+        "approvalViolations": 0,
+        "retries": 0,
+        "regressions": 0,
+        "verificationFailures": 0,
+        "evaluatorCaughtDefects": 1,
+        "shippedDefects": 0,
+        "driverStops": 0,
+        "driverRuns": [
+          {
+            "slug": "ledger-characterize",
+            "ok": true,
+            "exitCode": 0,
+            "error": null,
+            "stopped": null,
+            "usd": 0.547951,
+            "usd_per_accepted_change": 0.547951,
+            "cache_read_share": 0.8308,
+            "turns": 13,
+            "wall_ms": 121678,
+            "repairs": 1,
+            "review": {
+              "verdict": "changes-requested",
+              "status": "complete",
+              "repaired": true
+            },
+            "pr_unopened": "gh pr create failed: no git remotes found",
+            "denied": 0
+          }
+        ],
+        "unnecessaryQuestions": null,
+        "boundary": "the driver's own flags: --permission-mode acceptEdits, --setting-sources project, tools Read,Grep,Glob,Write,Edit,Bash, no MCP",
+        "fixtureRevision": "451b43a0eb1d15855a0c2544f5e47039eaa5ba61",
+        "candidateRevision": "bf4b1fc076adafaeb3b387c32aa188116fdbd993",
+        "latencyMs": 122936,
+        "approvals": [
+          {
+            "slug": "ledger-characterize",
+            "kind": "spec",
+            "decision": "approve",
+            "reason": "",
+            "authority": "simulated-test-driver"
+          },
+          {
+            "slug": "ledger-characterize",
+            "kind": "plan",
+            "decision": "approve",
+            "reason": "",
+            "authority": "simulated-test-driver"
+          }
+        ],
+        "pass": true
+      }
+    }
+  ],
+  "calibrations": [
+    {
+      "pair": "driver",
+      "successful": true,
+      "smokeCost": 0.7260658,
+      "projectedUsd": 0,
+      "remainingUsd": 7.273934199999999,
+      "reason": null
+    }
+  ],
+  "remainingUsd": 7.273934199999999,
+  "scheduledAttempts": [
+    "driver-native-smoke-0-campaign-ledger",
+    "driver-harness-driver-smoke-0-campaign-ledger"
+  ],
+  "summary": {
+    "driver/native/smoke": {
+      "attempts": 1,
+      "passed": 1,
+      "incomplete": 0,
+      "unmeasured": 0,
+      "acceptedChanges": 1,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 0.17811480000000002,
+      "billingComplete": true,
+      "latencyMs": 59840,
+      "unnecessaryQuestions": null,
+      "evaluatorCaughtDefects": 0,
+      "shippedDefects": 0,
+      "driverStops": 0,
+      "usd": 0.17811480000000002,
+      "costPerAcceptedChange": 0.17811480000000002
+    },
+    "driver/harness-driver/smoke": {
+      "attempts": 1,
+      "passed": 1,
+      "incomplete": 0,
+      "unmeasured": 0,
+      "acceptedChanges": 1,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 0.547951,
+      "billingComplete": true,
+      "latencyMs": 122936,
+      "unnecessaryQuestions": null,
+      "evaluatorCaughtDefects": 1,
+      "shippedDefects": 0,
+      "driverStops": 0,
+      "usd": 0.547951,
+      "costPerAcceptedChange": 0.547951
+    }
+  },
+  "pendingAttempts": 0,
+  "economics": {
+    "driver/native/all": {
+      "attempts": 1,
+      "passed": 1,
+      "incomplete": 0,
+      "unmeasured": 0,
+      "acceptedChanges": 1,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 0.17811480000000002,
+      "billingComplete": true,
+      "latencyMs": 59840,
+      "unnecessaryQuestions": null,
+      "evaluatorCaughtDefects": 0,
+      "shippedDefects": 0,
+      "driverStops": 0,
+      "usd": 0.17811480000000002,
+      "costPerAcceptedChange": 0.17811480000000002
+    },
+    "driver/harness-driver/all": {
+      "attempts": 1,
+      "passed": 1,
+      "incomplete": 0,
+      "unmeasured": 0,
+      "acceptedChanges": 1,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 0.547951,
+      "billingComplete": true,
+      "latencyMs": 122936,
+      "unnecessaryQuestions": null,
+      "evaluatorCaughtDefects": 1,
+      "shippedDefects": 0,
+      "driverStops": 0,
+      "usd": 0.547951,
+      "costPerAcceptedChange": 0.547951
+    }
+  },
+  "finished": "2026-09-15T20:54:10.570Z"
+}

@@ -448,6 +448,11 @@ before phase 6.
 > sprint 1, so no. The plan's mandated response is to cut; the pilot is one sprint and one
 > repetition, so the cut list is recommended, not applied. The full three-repetition run is
 > USD 28–32 and 3–4 hours by the pilot's numbers; the operator declined that spend on 2026-09-15.
+>
+> **Cut list applied 2026-09-15 (65a94ec), pilot rerun:** no refactor turn, one review with one
+> unreviewed repair, no shell for the generator. Driver 0.548 per accepted change (was 1.140),
+> 2.0 min (was 4.8), 0 denied commands (was 7); cost criterion still no at 2.8× the ceiling
+> (was 6.3×) — the one evaluator review is 61% of what is left. Six phases now.
 
 ## Phase 6: bounded improvement loop
 
