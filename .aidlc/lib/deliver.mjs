@@ -152,28 +152,54 @@ function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, s
 // The real model turn. Hooks stay armed (`--setting-sources project`) so the project's own
 // post-write fast check keeps returning findings to the model inside the turn: the inner
 // code/test/refactor loop is that hook, not a driver phase.
-export function deliverInvoker({ root }) {
+//
+// MEASURED 2026-09-15, the first live run: the turns loaded no plugin. `--setting-sources project`
+// reads the consumer's settings.json, whose `enabledPlugins` names a marketplace install the
+// laptop did not have, so `implement` was a skill that did not exist and the hooks never ran.
+// The CLI already knows which harness it is — `pluginDir` is the root `bin/harness` runs from —
+// and passes it the way the README's own dev path does (`claude --plugin-dir`), with HARNESS_HOME
+// set so the consumer's shim resolves the same runtime inside the turn's hooks.
+export function deliverInvoker({ root, pluginDir = null, run = runSubscriptionClaude }) {
   return function invoke({ prompt, model, effort = null, sessionId = null, budgetUsd, timeoutMs }) {
     const args = ['-p', prompt, '--model', model, ...(effort ? ['--effort', effort] : []),
       '--tools', 'Read,Grep,Glob,Write,Edit,Bash',
       '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
       '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--output-format', 'json',
+      ...(pluginDir ? ['--plugin-dir', pluginDir] : []),
       '--max-budget-usd', String(budgetUsd), ...(sessionId ? ['--resume', sessionId] : [])];
     // Nothing in the kernel reads AIDLC_UNATTENDED today — it exists so a steering file can tell
     // a turn that no human is waiting to answer a question. The prompt says so as well, because
     // an environment variable no code reads steers nothing on its own.
-    const out = runSubscriptionClaude(args, { cwd: root, env: { ...process.env, AIDLC_UNATTENDED: '1' },
+    const started = Date.now();
+    const out = run(args, { cwd: root, env: { ...process.env, AIDLC_UNATTENDED: '1', ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}) },
       encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
     if (out.error?.code === 'ENOENT') return { ok: false, transcript: '', error: 'the `claude` CLI is not on PATH' };
     let parsed = null;
     try { parsed = JSON.parse(out.stdout); } catch { /* not JSON: the raw transcript is still honest */ }
+    const denied = (parsed?.permission_denials ?? []).map((d) => d.tool_input?.command ?? d.tool_name);
     return {
       ok: !out.error && !out.signal && out.status === 0 && !parsed?.is_error,
       transcript: parsed?.result ?? String(out.stdout ?? ''),
       usd: parsed?.total_cost_usd, sessionId: parsed?.session_id ?? sessionId,
+      // The numbers a run is graded on. The CLI reports them per envelope; the driver sums them.
+      usage: parsed?.usage ?? null, durationMs: parsed?.duration_ms ?? Date.now() - started,
+      turns: parsed?.num_turns ?? null, denied,
       error: out.error?.message ?? (out.signal ? `killed by ${out.signal}` : null),
     };
   };
+}
+
+const USAGE_KEYS = ['input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens', 'output_tokens'];
+const emptyUsage = () => Object.fromEntries(USAGE_KEYS.map((k) => [k, 0]));
+function addUsage(total, usage) {
+  for (const k of USAGE_KEYS) total[k] = (total[k] ?? 0) + (Number.isFinite(usage?.[k]) ? usage[k] : 0);
+  return total;
+}
+// What fraction of the prompt tokens the model read from cache. The prefix-cache guard exists
+// because this number is what a subscription's cost actually tracks.
+export function cacheReadShare(usage) {
+  const prompt = (usage?.input_tokens ?? 0) + (usage?.cache_creation_input_tokens ?? 0) + (usage?.cache_read_input_tokens ?? 0);
+  return prompt ? Math.round((usage.cache_read_input_tokens ?? 0) / prompt * 10000) / 10000 : null;
 }
 
 // The seventh phase's one side effect on the outside world. `gh pr create` and nothing else: no
@@ -242,8 +268,10 @@ export async function deliver(cfg, slug, {
     version: STATE_VERSION, slug, invocation, plan_digest: digest, actor,
     started: new Date(now()).toISOString(), deadline: now() + b.max_minutes * 60000,
     base: base ?? git(root, 'rev-parse', 'HEAD'), completed: [], repairs: 0, usd: 0,
+    usage: emptyUsage(), turns: 0,
     session: null, events: [], stopped: null, pr: null,
   });
+  state.usage ??= emptyUsage(); state.turns ??= 0; // a run recorded before these were counted
   state.deadline = now() + b.max_minutes * 60000; // a resumed run gets its own wall-clock
   state.stopped = null;
   const save = () => writeState(cfg, slug, state);
@@ -280,7 +308,10 @@ export async function deliver(cfg, slug, {
     // An unreported cost reserves its full allowance rather than counting as free.
     state.usd += Number.isFinite(out?.usd) ? out.usd : Math.max(0.01, b.max_usd - state.usd);
     if (out?.sessionId) state.session = out.sessionId;
+    addUsage(state.usage, out?.usage); state.turns += Number.isFinite(out?.turns) ? out.turns : 0;
     save();
+    event(stage.replace(/-escalated$/, ''), 'model-turn-done', { stage, usd: Number.isFinite(out?.usd) ? out.usd : null,
+      durationMs: out?.durationMs ?? null, turns: out?.turns ?? null, usage: out?.usage ?? null, denied: out?.denied?.length ?? 0 });
     return out;
   };
 
@@ -372,8 +403,17 @@ export async function deliver(cfg, slug, {
       const body = prBody({ slug, spec: artifacts.read(cfg, slug, 'spec') ?? spec, plan: artifacts.read(cfg, slug, 'plan'),
         review: reviewResult, invocation, bounds: b, usd: state.usd, gates, suppressions: state.suppressions ?? [],
         scope: reviewResult?.export?.scope === 'plan' ? `scoped to ${reviewResult.export.files} files` : 'full candidate tree' });
-      const pr = await openPr({ title: `${slug}`, body, head, base: state.base });
-      state.pr = pr?.url ?? null;
+      // MEASURED 2026-09-15: a fixture with no GitHub remote threw here, after every dollar of the
+      // run was spent, and the result went with it. The body is what the human merges from, so
+      // it is written first; a pull request the host cannot open is a recorded fact, not a lost run.
+      writeFileSync(path.join(cfg.layout.artifacts, slug, 'pr.md'), body);
+      try {
+        const pr = await openPr({ title: `${slug}`, body, head, base: state.base });
+        state.pr = pr?.url ?? null;
+      } catch (error) {
+        state.pr = null; state.pr_unopened = error.message;
+        event(phase, 'unopened', { reason: error.message });
+      }
       save();
     }
 
@@ -381,8 +421,24 @@ export async function deliver(cfg, slug, {
     event(phase, 'end');
   }
 
-  return { slug, ok: true, stopped: null, usd: state.usd, completed: state.completed, invocation,
-    pr: state.pr, review: reviewResult ? { verdict: reviewResult.verdict, status: reviewResult.status } : null };
+  // The three numbers Phase 2's exit criterion asks for — cost per accepted change, cache-read
+  // share, wall-clock — in the ledger, in the change's review.md, and in the result. "Accepted"
+  // here means the driver delivered it; the merge is still the human's, so the denominator is one.
+  const wallMs = now() - Date.parse(state.started);
+  const share = cacheReadShare(state.usage);
+  const economics = { usd: state.usd, usd_per_accepted_change: state.usd, cache_read_share: share, turns: state.turns,
+    wall_ms: wallMs, repairs: state.repairs, usage: { ...state.usage } };
+  ledger.append({ kind: 'deliver-run', change: slug, actor, pr: state.pr, ...economics }, cfg.layout);
+  const reviewFile = path.join(cfg.layout.artifacts, slug, 'review.md');
+  if (existsSync(reviewFile)) {
+    writeFileSync(reviewFile, readFileSync(reviewFile, 'utf8').trimEnd() + '\n\n## Delivery run\n\n' +
+      `Invocation: \`${invocation}\` · wall-clock ${Math.round(wallMs / 1000)}s · USD ${state.usd.toFixed(4)} (usage estimate, not an invoice) · ` +
+      `cost per accepted change USD ${state.usd.toFixed(4)} · turns ${state.turns} · ` +
+      `cache-read share ${share == null ? 'unmeasured' : Math.round(share * 100) + '%'} · repairs ${state.repairs}\n`);
+  }
+  return { slug, ok: true, stopped: null, completed: state.completed, invocation, ...economics,
+    pr: state.pr, ...(state.pr_unopened ? { pr_unopened: state.pr_unopened } : {}),
+    review: reviewResult ? { verdict: reviewResult.verdict, status: reviewResult.status } : null };
 
   async function runReviewPhase() {
     const bound = exceeded();
@@ -397,7 +453,10 @@ export async function deliver(cfg, slug, {
       planFiles: owns, contextPaths: [path.join(path.relative(root, cfg.layout.artifacts), slug)],
       modules: graph.load(cfg)?.modules ?? null,
     });
-    if (Number.isFinite(result?.usd)) { state.usd += result.usd; save(); }
+    if (Number.isFinite(result?.usd)) state.usd += result.usd;
+    addUsage(state.usage, result?.usage); save();
+    event('review', 'model-turn-done', { stage: 'review', usd: Number.isFinite(result?.usd) ? result.usd : null,
+      durationMs: result?.durationMs ?? null, usage: result?.usage ?? null, status: result?.status ?? null });
     const report = existsSync(path.resolve(root, output)) ? readFileSync(path.resolve(root, output), 'utf8') : '';
     return { ...result, output, ...reviewVerdict(report) };
   }

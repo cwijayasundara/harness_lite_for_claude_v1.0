@@ -15,7 +15,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { loadConfig, DEFAULT_DELIVER } from '../.aidlc/lib/config.mjs';
 import * as a from '../.aidlc/lib/artifacts.mjs';
-import { deliver, readState, statePath, bounds, reviewVerdict, PHASES } from '../.aidlc/lib/deliver.mjs';
+import { deliver, deliverInvoker, readState, statePath, bounds, reviewVerdict, PHASES } from '../.aidlc/lib/deliver.mjs';
 import { read as readLedger } from '../.aidlc/lib/ledger.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 import { A } from './_paths.mjs';
@@ -238,4 +238,85 @@ test('a review verdict is read conservatively: an ambiguous report is not an app
   assert.equal(reviewVerdict('Nothing to report, but changes-requested on the proof row.').verdict, 'changes-requested');
   const findings = reviewVerdict('### Blocking — a\n### Important — b\n### Nit — c\nchanges-requested').findings;
   assert.equal(findings.length, 2, 'a nit is not worth a model turn');
+});
+
+// M1 step 1, 2026-09-15. The first attempt to run the driver for real found three things a fake
+// invoker could not: the model turns loaded no plugin, so `implement` was a skill that did not
+// exist; a fixture with no GitHub remote threw in the seventh phase and lost the run's result after
+// every dollar was spent; and the run recorded a USD total and nothing else, so cost per accepted
+// change, cache-read share and wall-clock — the three numbers the exit criterion asks for — had
+// nowhere to come from.
+
+test('the real invoker loads the plugin the CLI is running from, and hands the shim the same root', () => {
+  const seen = [];
+  const invoke = deliverInvoker({ root: '/tmp/product', pluginDir: '/opt/lean-harness',
+    run: (args, options) => { seen.push({ args, options }); return { status: 0, stdout: JSON.stringify({ result: 'ok', total_cost_usd: 0.1, session_id: 's1', usage: { input_tokens: 5, cache_read_input_tokens: 95, cache_creation_input_tokens: 0, output_tokens: 7 }, duration_ms: 1234, num_turns: 3 }) }; } });
+  const out = invoke({ prompt: 'p', model: 'm', budgetUsd: 1, timeoutMs: 1000 });
+  const { args, options } = seen[0];
+  assert.equal(args[args.indexOf('--plugin-dir') + 1], '/opt/lean-harness', 'the skills and hooks come from the plugin, not from whatever ~ has installed');
+  assert.equal(options.env.HARNESS_HOME, '/opt/lean-harness', 'the consumer shim resolves the same runtime the driver is');
+  assert.equal(options.env.AIDLC_UNATTENDED, '1');
+  assert.equal(out.ok, true);
+  assert.equal(out.usd, 0.1);
+  assert.deepEqual(out.usage, { input_tokens: 5, cache_read_input_tokens: 95, cache_creation_input_tokens: 0, output_tokens: 7 });
+  assert.equal(out.durationMs, 1234);
+  assert.equal(out.turns, 3);
+});
+
+test('a pull request that cannot be opened is recorded, not thrown, and the body survives in the change\'s artifacts', async () => {
+  const d = delivery();
+  try {
+    const result = await deliver(d.cfg, SLUG, { ...d.fakes, openPr: async () => { throw new Error('no git remotes found'); } });
+    assert.equal(result.ok, true, 'the seven phases ran; opening the PR is the one side effect the fixture cannot host');
+    assert.equal(result.pr, null);
+    assert.match(result.pr_unopened, /no git remotes found/);
+    assert.deepEqual(result.completed, PHASES);
+    const body = readFileSync(path.join(d.s.work, '.aidlc/artifacts', SLUG, 'pr.md'), 'utf8');
+    assert.match(body, new RegExp(`Harness-Change: ${SLUG}`));
+    const state = readState(d.cfg, SLUG);
+    assert.ok(state.events.some((e) => e.phase === 'pr' && e.event === 'unopened'));
+  } finally { d.s.cleanup(); }
+});
+
+test('a completed run records cost, cache-read share, turns and wall-clock in the ledger and in review.md', async () => {
+  const d = delivery();
+  try {
+    let tick = 0;
+    const fakes = { ...d.fakes,
+      now: () => 1_700_000_000_000 + (tick += 30_000),
+      async invoke(args) {
+        const out = await d.fakes.invoke(args);
+        return { ...out, usd: 0.25, usage: { input_tokens: 100, cache_creation_input_tokens: 100, cache_read_input_tokens: 800, output_tokens: 50 }, durationMs: 20_000, turns: 4 };
+      },
+      async review(options) {
+        const out = await d.fakes.review(options);
+        return { ...out, usd: 1, usage: { input_tokens: 500, cache_creation_input_tokens: 0, cache_read_input_tokens: 500, output_tokens: 100 }, durationMs: 60_000 };
+      } };
+    const result = await deliver(d.cfg, SLUG, fakes);
+    assert.equal(result.ok, true, JSON.stringify(result.stopped));
+    // two generator turns at 0.25 and one review at 1.
+    assert.equal(result.usd, 1.5);
+    assert.equal(result.usd_per_accepted_change, 1.5, 'one change delivered, so the run is the cost per change');
+    const usage = result.usage;
+    assert.equal(usage.cache_read_input_tokens, 2100);
+    // cache read / (input + cache creation + cache read): 2100 / (700 + 200 + 2100) = 0.7
+    assert.equal(result.cache_read_share, 0.7);
+    assert.equal(result.turns, 8);
+    assert.ok(result.wall_ms > 0);
+
+    const row = readLedger(d.cfg.layout).find((r) => r.kind === 'deliver-run' && r.change === SLUG);
+    assert.ok(row, 'the run wrote its summary row');
+    assert.equal(row.usd, 1.5);
+    assert.equal(row.cache_read_share, 0.7);
+    assert.equal(row.usd_per_accepted_change, 1.5);
+    assert.ok(readLedger(d.cfg.layout).some((r) => r.kind === 'deliver-phase' && r.event === 'model-turn-done' && r.usd === 0.25 && r.usage?.cache_read_input_tokens === 800));
+
+    const review = readFileSync(path.join(d.s.work, '.aidlc/artifacts', SLUG, 'review.md'), 'utf8');
+    assert.match(review, /## Delivery run/);
+    assert.match(review, /USD 1\.5000/);
+    assert.match(review, /cache-read share 70%/);
+    assert.match(review, /repairs 0/);
+    // Never the key that advances a change to merge.
+    assert.notEqual(a.read(d.cfg, SLUG, 'review')?.front.status, 'approved');
+  } finally { d.s.cleanup(); }
 });

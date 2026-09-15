@@ -5,12 +5,19 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {stage,stageProduct} from './stage.mjs';
 import {runComparisonCampaign,walk} from './campaign.mjs';
+import {runDriverCampaign} from './driver-campaign.mjs';
 import {verifyLedger,verifyService,verifyReporting,ledgerDescriptionExplainsPaidRule} from './assertions.mjs';
 
 export function comparisonPairs(models, {prune=false,pruneArm=null,pair=null}={}) {
   for(const key of (prune?['generator','evaluator']:['generator','evaluator','evals']))if(!models?.[key])throw new Error(`comparison requires explicit ${key} model; no substitution`);
   if(pruneArm && (!prune || !['baseline','lean'].includes(pruneArm)))throw new Error('prune-arm must be baseline or lean, with --prune');
-  if(pair && (prune || !['native','graph','generation','retrieval'].includes(pair)))throw new Error('comparison pair must be native, graph, generation or retrieval, without --prune');
+  if(pair && (prune || !['native','graph','generation','retrieval','driver'].includes(pair)))throw new Error('comparison pair must be native, graph, generation, retrieval or driver, without --prune');
+  // G24. The native pair with the G09 driver in the harness arm — what the completion plan's
+  // comparison actually names. By name only, like retrieval, so the default set is unchanged.
+  if(pair==='driver')return [{id:'driver',arms:[
+    {id:'native',native:true,model:models.generator},
+    {id:'harness-driver',model:models.generator,driver:true},
+  ]}];
   if(prune)return [{id:'session-inventory',arms:[{id:'baseline',model:models.generator,prune:false},{id:'lean',model:models.generator,prune:true}].filter(arm=>!pruneArm||arm.id===pruneArm)}];
   // graph-first-versus-grep-first B1. The `graph` pair pastes a rendered pack into the prompt, so
   // it measures advisory packing, not retrieval. These arms differ in how the agent is told to
@@ -31,7 +38,8 @@ export function summarizeComparisons(attempts) {
   const groups={};
   for(const a of attempts){
     const key=`${a.pair}/${a.config.id}/${a.kind}`;
-    const g=groups[key]??={attempts:0,passed:0,incomplete:0,unmeasured:0,acceptedChanges:0,regressions:0,verificationFailures:0,approvalViolations:0,retries:0,reportedUsd:0,billingComplete:true,latencyMs:0,unnecessaryQuestions:null};
+    const g=groups[key]??={attempts:0,passed:0,incomplete:0,unmeasured:0,acceptedChanges:0,regressions:0,verificationFailures:0,approvalViolations:0,retries:0,reportedUsd:0,billingComplete:true,latencyMs:0,unnecessaryQuestions:null,evaluatorCaughtDefects:0,shippedDefects:0,driverStops:0};
+    g.evaluatorCaughtDefects+=a.result?.evaluatorCaughtDefects??0;g.shippedDefects+=a.result?.shippedDefects??a.result?.verificationFailures??0;g.driverStops+=a.result?.driverStops??0;
     g.attempts++;g.passed+=Number(!!a.result?.pass);g.incomplete+=Number(!!a.result?.incomplete||['started','incomplete','abandoned'].includes(a.status));g.unmeasured+=Number(a.status==='unmeasured');
     g.acceptedChanges+=a.result?.completedSteps??0;g.regressions=g.regressions===null||a.result?.regressions===null?null:g.regressions+(a.result?.regressions??0);g.verificationFailures+=a.result?.verificationFailures??0;g.approvalViolations+=a.result?.approvalViolations??0;g.retries+=a.result?.retries??0;
     g.reportedUsd+=a.result?.usage?.reportedUsd??a.result?.usage?.usd??0;
@@ -39,6 +47,22 @@ export function summarizeComparisons(attempts) {
   }
   for(const g of Object.values(groups)){g.usd=g.billingComplete?g.reportedUsd:null;g.costPerAcceptedChange=g.billingComplete&&g.acceptedChanges?g.reportedUsd/g.acceptedChanges:null;}
   return groups;
+}
+
+// G24's three criteria, verbatim from the completion plan, answered yes or no from the paired
+// groups of the driver pair. Each answer carries the numbers it was computed from, because a
+// verdict without them is the kind of claim the plan says not to make.
+export function g24Verdict(summary,{repetitions=3,pair='driver',native='native',harness='harness-driver'}={}) {
+  const n=summary[`${pair}/${native}/paired`]??{}, h=summary[`${pair}/${harness}/paired`]??{};
+  const acceptance={native:n.acceptedChanges??0,harness:h.acceptedChanges??0};
+  acceptance.pass=acceptance.harness>=acceptance.native&&acceptance.harness>0;
+  const cost={native:n.costPerAcceptedChange??null,harness:h.costPerAcceptedChange??null,billingComplete:!!(n.billingComplete&&h.billingComplete)};
+  cost.ceiling=cost.native!=null?cost.native*1.1:null;
+  cost.pass=cost.billingComplete&&cost.native!=null&&cost.harness!=null&&cost.harness<=cost.ceiling;
+  const defects={evaluatorCaught:h.evaluatorCaughtDefects??0,nativeShipped:n.shippedDefects??0,harnessShipped:h.shippedDefects??0,campaigns:h.attempts??0,required:repetitions};
+  defects.pass=defects.campaigns>=repetitions&&defects.evaluatorCaught>=repetitions&&defects.nativeShipped>=1;
+  return {acceptance,cost,defects,pass:acceptance.pass&&cost.pass&&defects.pass,
+    note:'defects.pass requires an evaluator catch per campaign and at least one grader-caught defect the native arm shipped; whether they are the same defect is read from the evidence, not computed'};
 }
 
 // Exactly one experimental mechanism: automatic budget inventory at session start.
@@ -142,7 +166,11 @@ export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot
       s=stageTrial(fixturesDir,task.fixture,{product:true,native:!!config.native});isolate(s,root);configureComparison(s,config);
       row.pluginDigest=s.native?null:createHash('sha256').update(JSON.stringify(walk(s.plugin).map(f=>[f,createHash('sha256').update(readFileSync(path.join(s.plugin,f))).digest('hex')]))).digest('hex');
       const invoke=bounded(invokeFactory(config));
-      row.result=await runCampaign({task,config,invoke,productTree:s,evidenceDir:row.evidence,evaluateProduct:(productTree,step)=>gradeComparisonProduct(productTree,step,task.product),log});
+      // A driver arm spends outside `bounded`: it charges the same budget afterwards, and an
+      // unpriced run reserves its allowance the way an unpriced invocation does.
+      const charge=(usd,allowance)=>{remaining=Math.max(0,remaining-(Number.isFinite(usd)&&usd>=0?usd:allowance));out.remainingUsd=remaining;save();};
+      const campaign=config.driver?runDriverCampaign:runCampaign;
+      row.result=await campaign({task,config,invoke,productTree:s,evidenceDir:row.evidence,evaluateProduct:(productTree,step)=>gradeComparisonProduct(productTree,step,task.product),log,charge});
       row.status=row.result.incomplete?'incomplete':row.result.pass?'pass':'fail';
     }catch(error){row.status='incomplete';row.result={pass:false,billingComplete:false,incomplete:{reason:'driver_error',detail:error.message}};}
     finally{s?.cleanup();save();}return row;

@@ -197,6 +197,7 @@ export function review({ root, base, candidate, model, output, budgetUsd = 2, ti
         '`detected_pattern` is a short kebab-case slug naming the recurring class the finding belongs to — ' +
         'the same defect on a later pull request must produce the same slug, because that is what lets a ' +
         'repeat class be counted rather than rediscovered.' : '');
+    const started = Date.now();
     const out = invoke(reviewArgs({ model, prompt, budgetUsd, schema }), {
       cwd: temp, env: process.env, encoding: 'utf8', timeout: allowance, maxBuffer: 16 * 1024 * 1024,
     });
@@ -218,13 +219,14 @@ export function review({ root, base, candidate, model, output, budgetUsd = 2, ti
       const reason = `timeout after ${allowance} ms`;
       writeFileSync(path.resolve(root, output), `${header(`incomplete — ${reason}`, envelope?.total_cost_usd)}${findings}\n`);
       return { ...revisions, model, output, export: exported, status: 'incomplete', reason,
-        usage: envelope?.usage, usd: envelope?.total_cost_usd };
+        usage: envelope?.usage, usd: envelope?.total_cost_usd, durationMs: Date.now() - started };
     }
     if (out.error || out.signal || out.status !== 0) throw new Error(`review incomplete: ${out.error?.message ?? out.signal ?? out.stderr ?? out.status}`);
     let result;
     try { result = JSON.parse(out.stdout); } catch { throw new Error('review incomplete: invalid CLI JSON'); }
     if (result.is_error || !result.result?.trim()) throw new Error(`review incomplete: ${result.subtype ?? 'no findings returned'}`);
     writeFileSync(path.resolve(root, output), `${header('complete', result.total_cost_usd)}${result.result}\n`);
-    return { ...revisions, model, output, export: exported, status: 'complete', usage: result.usage, usd: result.total_cost_usd };
+    return { ...revisions, model, output, export: exported, status: 'complete', usage: result.usage, usd: result.total_cost_usd,
+      durationMs: result.duration_ms ?? Date.now() - started };
   } finally { rmSync(temp, { recursive: true, force: true }); }
 }

@@ -246,3 +246,10 @@ test('staging keeps the private grading file outside the tree handed to the chil
     assert.equal(existsSync(path.join(s.work, path.relative(s.root, secret))), false);
   } finally { s.cleanup(); }
 });
+
+test('a product trial loads the staged plugin it was given, not the container mount that no longer exists', () => {
+  const args = invokerArgs({ product: true, model: 'm', prompt: 'p', budgetUsd: 1, pluginDir: '/tmp/eval-x/plugin' });
+  assert.equal(args[args.indexOf('--plugin-dir') + 1], '/tmp/eval-x/plugin');
+  const native = invokerArgs({ product: true, model: 'm', prompt: 'p', budgetUsd: 1, pluginDir: '/tmp/eval-x/plugin', native: true });
+  assert.ok(!native.includes('--plugin-dir'), 'the native arm has no harness');
+});

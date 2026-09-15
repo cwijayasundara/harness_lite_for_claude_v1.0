@@ -20,7 +20,9 @@ export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd 
       '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
       '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
     ]),
-    '--output-format', 'json', ...(native ? [] : ['--plugin-dir','/plugin']),
+    // `/plugin` was the container mount. With no container the staged plugin lives wherever
+    // stageProduct put it, and a product trial that still asked for /plugin loaded nothing.
+    '--output-format', 'json', ...(native ? [] : ['--plugin-dir', pluginDir ?? '/plugin']),
     '--max-budget-usd', String(budgetUsd), ...(sessionId ? ['--resume', sessionId] : []),
   ];
   return [
@@ -122,7 +124,7 @@ export function claudeInvoker({ pluginDir, model = null, native = false, compari
       throw new Error(`a live product trial has no boundary to run in: ${boundary?.why ?? resolveBoundary().why}`);
     }
     const args = subscriptionArgs([
-      ...invokerArgs({ prompt, model, pluginDir, budgetUsd, product: trial, sessionId, review: phase === 'review', native, comparison, boundary: trial ? boundary : null, maxTurns: task?.maxTurns ?? null }),
+      ...invokerArgs({ prompt, model, pluginDir: trial ? sandbox.plugin ?? pluginDir : pluginDir, budgetUsd, product: trial, sessionId, review: phase === 'review', native, comparison, boundary: trial ? boundary : null, maxTurns: task?.maxTurns ?? null }),
       ...(trial ? boundaryArgs(boundary, { workdir: sandbox.work ?? cwd }) : []),
     ]);
     const started = Date.now();

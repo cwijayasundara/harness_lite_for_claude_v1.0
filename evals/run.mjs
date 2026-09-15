@@ -385,7 +385,7 @@ async function main() {
   const comparisons=argv.includes('--compare')||prune;
   if(argv.includes('--comparison')){
     if(!argv.includes('--compare'))throw new Error('--comparison requires --compare');
-    if(!['native','graph','generation','retrieval'].includes(flag('comparison')))throw new Error('--comparison requires native, graph, generation or retrieval');
+    if(!['native','graph','generation','retrieval','driver'].includes(flag('comparison')))throw new Error('--comparison requires native, graph, generation, retrieval or driver');
   }
   if(flag('prune-arm') && !prune)throw new Error('--prune-arm requires --prune');
   const products=argv.includes('--products')||comparisons;
@@ -445,7 +445,7 @@ async function main() {
   if (products || comparisons) console.log(boundaryBanner(boundary));
 
   if (comparisons) {
-    const {runComparisons}=await import('./lib/comparison.mjs');
+    const {runComparisons,g24Verdict}=await import('./lib/comparison.mjs');
     const {claudeInvoker}=await import('./lib/invoker.mjs');
     const models=loadConfig(PLUGIN_ROOT).models;
     // G20. A comparison arm runs a real coding agent against a seeded product — a live product
@@ -459,6 +459,14 @@ async function main() {
       maxUsd:Number(flag('max-suite-usd',prune?9:40)),maxMinutes:Number(flag('max-suite-minutes',prune?40:30)),repetitions:Number(flag('repeats',prune?1:3)),
       invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true,boundary})(args),
       log:console.log});
+    // G24. The verdict lives in its own file, never over the earlier comparison-summary.json —
+    // that record holds the cancelled item-4 matrix and is evidence of its own.
+    if(flag('comparison')==='driver'){
+      const verdict=g24Verdict(out.summary,{repetitions:Number(flag('repeats',3))});
+      const file=path.join(PLUGIN_ROOT,'evals/evidence/g24-driver-comparison.json');
+      writeFileSync(file,JSON.stringify({kind:'g24-native-comparison-with-driver',recorded_at:new Date().toISOString(),harnessRevision:out.harnessRevision,evidenceRoot,repetitions:out.repetitions,maxUsd:out.maxUsd,maxMinutes:out.maxMinutes,summary:out.summary,calibrations:out.calibrations,verdict},null,2)+'\n');
+      console.log(JSON.stringify({evidenceRoot,verdictFile:file,verdict},null,2));
+    }
     console.log(JSON.stringify({evidenceRoot,summary:out.summary,calibrations:out.calibrations},null,2));
     return out.attempts.every(a=>a.status==='pass')?0:1;
   }

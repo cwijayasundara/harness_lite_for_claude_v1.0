@@ -664,7 +664,7 @@ async function main() {
       if (!slug) { console.error('usage: harness deliver <slug> --live [--dry] [--actor <label>]\n  no slug given and no change is selected (harness status --change <slug>)'); return 2; }
       if (has('status')) { const state = readState(cfg, slug); console.log(JSON.stringify(state ?? { slug, state: 'no run recorded' }, null, 2)); return state ? 0 : 1; }
       const result = await deliver(cfg, slug, {
-        invoke: deliverInvoker({ root: cfg.layout.root }),
+        invoke: deliverInvoker({ root: cfg.layout.root, pluginDir: PLUGIN_ROOT }),
         openPr: ghPullRequest({ root: cfg.layout.root }),
         live: has('live'), dry: has('dry'),
         ...(has('actor') ? { actor: flag('actor') } : {}),
