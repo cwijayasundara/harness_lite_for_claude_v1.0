@@ -146,3 +146,19 @@ test('the driver pair is reachable only by name, and its summary carries the thr
   const unknown = summarizeComparisons([rows[0], { ...rows[1], result: { ...rows[1].result, billingComplete: false } }]);
   assert.equal(g24Verdict(unknown, { repetitions: 1 }).cost.pass, false);
 });
+
+test('repeats 0 is the pilot: calibration only, and the verdict reads the smoke groups and says it is a pilot', async () => {
+  const { runComparisons } = await import('../evals/lib/comparison.mjs');
+  const evidenceRoot = mkdtempSync(path.join(tmpdir(), 'comparison-pilot-'));
+  try {
+    const out = await runComparisons({ tasks: [{ id: 'ledger', fixture: 'campaign-ledger', steps: [{}, {}] }], models, root, fixturesDir: FIXTURES, evidenceRoot, pair: 'driver', repetitions: 0, maxUsd: 1,
+      invokeFactory: () => async () => ({ usage: { usd: 0.001 } }),
+      runCampaign: async ({ task, invoke }) => { await invoke({ budgetUsd: 0.1 }); return { pass: true, completedSteps: task.steps.length, billingComplete: true, usage: { usd: 0.001, reportedUsd: 0.001 }, phases: [{ name: 'model-plan' }], shippedDefects: 1 }; } });
+    assert.equal(out.attempts.length, 2, 'one smoke attempt per arm and nothing paired');
+    assert.ok(out.attempts.every((a) => a.kind === 'smoke' && a.status === 'pass'));
+    assert.ok(out.attempts.every((a) => a.result.completedSteps === 1), 'a smoke attempt is the first sprint only');
+    const verdict = g24Verdict(out.summary, { repetitions: 0 });
+    assert.equal(verdict.pilot, true); assert.equal(verdict.kind, 'smoke');
+    assert.equal(verdict.acceptance.native, 1);
+  } finally { rmSync(evidenceRoot, { recursive: true, force: true }); }
+});

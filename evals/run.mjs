@@ -419,7 +419,7 @@ async function main() {
   if (argv.includes('--dry') && comparisons) {
     const {comparisonPairs}=await import('./lib/comparison.mjs');
     const pairs=comparisonPairs(loadConfig(PLUGIN_ROOT).models,{prune,pruneArm:flag('prune-arm'),pair:flag('comparison')}), repeats=Number(flag('repeats',prune?1:3)), budget=Number(flag('max-suite-usd',prune?9:40)),minutes=Number(flag('max-suite-minutes',prune?40:30));
-    if(!Number.isInteger(repeats)||repeats<1||!Number.isFinite(budget)||budget<=0||!Number.isFinite(minutes)||minutes<=0)throw new Error('comparison repeats must be a positive integer and budget/time limits finite and positive');
+    if(!Number.isInteger(repeats)||repeats<0||!Number.isFinite(budget)||budget<=0||!Number.isFinite(minutes)||minutes<=0)throw new Error('comparison repeats must be a non-negative integer (0 = calibration only) and budget/time limits finite and positive');
     console.log(JSON.stringify({pairs,products:tasks.map(t=>t.id),smokes:pairs.reduce((n,p)=>n+p.arms.length,0)*tasks.length,pairedAttempts:pairs.reduce((n,p)=>n+p.arms.length,0)*tasks.length*repeats,maxUsd:budget,maxMinutes:minutes},null,2));return 0;
   }
   if (argv.includes('--dry')) {
@@ -462,9 +462,9 @@ async function main() {
     // G24. The verdict lives in its own file, never over the earlier comparison-summary.json —
     // that record holds the cancelled item-4 matrix and is evidence of its own.
     if(flag('comparison')==='driver'){
-      const verdict=g24Verdict(out.summary,{repetitions:Number(flag('repeats',3))});
+      const verdict=g24Verdict(out.summary,{repetitions:out.repetitions});
       const file=path.join(PLUGIN_ROOT,'evals/evidence/g24-driver-comparison.json');
-      writeFileSync(file,JSON.stringify({kind:'g24-native-comparison-with-driver',recorded_at:new Date().toISOString(),harnessRevision:out.harnessRevision,evidenceRoot,repetitions:out.repetitions,maxUsd:out.maxUsd,maxMinutes:out.maxMinutes,summary:out.summary,calibrations:out.calibrations,verdict},null,2)+'\n');
+      writeFileSync(file,JSON.stringify({kind:out.repetitions?'g24-native-comparison-with-driver':'g24-pilot-first-sprint-once-per-arm',recorded_at:new Date().toISOString(),harnessRevision:out.harnessRevision,evidenceRoot,repetitions:out.repetitions,maxUsd:out.maxUsd,maxMinutes:out.maxMinutes,summary:out.summary,calibrations:out.calibrations,verdict},null,2)+'\n');
       console.log(JSON.stringify({evidenceRoot,verdictFile:file,verdict},null,2));
     }
     console.log(JSON.stringify({evidenceRoot,summary:out.summary,calibrations:out.calibrations},null,2));

@@ -52,16 +52,17 @@ export function summarizeComparisons(attempts) {
 // G24's three criteria, verbatim from the completion plan, answered yes or no from the paired
 // groups of the driver pair. Each answer carries the numbers it was computed from, because a
 // verdict without them is the kind of claim the plan says not to make.
-export function g24Verdict(summary,{repetitions=3,pair='driver',native='native',harness='harness-driver'}={}) {
-  const n=summary[`${pair}/${native}/paired`]??{}, h=summary[`${pair}/${harness}/paired`]??{};
+export function g24Verdict(summary,{repetitions=3,pair='driver',native='native',harness='harness-driver',kind=repetitions?'paired':'smoke'}={}) {
+  const n=summary[`${pair}/${native}/${kind}`]??{}, h=summary[`${pair}/${harness}/${kind}`]??{};
+  const required=Math.max(1,repetitions);
   const acceptance={native:n.acceptedChanges??0,harness:h.acceptedChanges??0};
   acceptance.pass=acceptance.harness>=acceptance.native&&acceptance.harness>0;
   const cost={native:n.costPerAcceptedChange??null,harness:h.costPerAcceptedChange??null,billingComplete:!!(n.billingComplete&&h.billingComplete)};
   cost.ceiling=cost.native!=null?cost.native*1.1:null;
   cost.pass=cost.billingComplete&&cost.native!=null&&cost.harness!=null&&cost.harness<=cost.ceiling;
-  const defects={evaluatorCaught:h.evaluatorCaughtDefects??0,nativeShipped:n.shippedDefects??0,harnessShipped:h.shippedDefects??0,campaigns:h.attempts??0,required:repetitions};
-  defects.pass=defects.campaigns>=repetitions&&defects.evaluatorCaught>=repetitions&&defects.nativeShipped>=1;
-  return {acceptance,cost,defects,pass:acceptance.pass&&cost.pass&&defects.pass,
+  const defects={evaluatorCaught:h.evaluatorCaughtDefects??0,nativeShipped:n.shippedDefects??0,harnessShipped:h.shippedDefects??0,campaigns:h.attempts??0,required};
+  defects.pass=defects.campaigns>=required&&defects.evaluatorCaught>=required&&defects.nativeShipped>=1;
+  return {kind,repetitions,pilot:repetitions===0,acceptance,cost,defects,pass:acceptance.pass&&cost.pass&&defects.pass,
     note:'defects.pass requires an evaluator catch per campaign and at least one grader-caught defect the native arm shipped; whether they are the same defect is read from the evidence, not computed'};
 }
 
@@ -130,11 +131,14 @@ export async function gradeComparisonProduct(s,step,product) {
   return proof;
 }
 
-export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,maxMinutes=30,prune=false,pruneArm=null,pair=null,now=Date.now,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=runComparisonCampaign,stageTrial=stage,isolate=stageProduct}) {
+export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,maxMinutes=30,prune=false,pruneArm=null,pair=null,now=Date.now,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=null,stageTrial=stage,isolate=stageProduct}) {
   if(!Number.isFinite(maxUsd)||maxUsd<=0)throw new Error('comparison budget must be finite and positive');
   if(!Number.isFinite(maxMinutes)||maxMinutes<=0)throw new Error('comparison time limit must be finite and positive');
   const deadline=now()+maxMinutes*60000;
-  if(!Number.isInteger(repetitions)||repetitions<1)throw new Error('repetitions must be a positive integer');
+  // 0 is the pilot: calibration only — each arm runs the first sprint once, paired attempts are
+  // never scheduled. MEASURED 2026-09-15: the full three-repetition matrix is a 3-4 hour, 30 USD
+  // run, and the operator's bound for an integration test of the harness is 30 minutes.
+  if(!Number.isInteger(repetitions)||repetitions<0)throw new Error('repetitions must be a non-negative integer');
   mkdirSync(evidenceRoot,{recursive:true});
   let pairs;
   try{pairs=comparisonPairs(models,{prune,pruneArm,pair});}catch(error){writeFileSync(path.join(evidenceRoot,'comparison.json'),JSON.stringify({kind:prune?'pruning-comparison':'native-comparisons',status:'unmeasured',reason:error.message.startsWith('prune-arm')?'invalid_prune_arm':error.message.startsWith('comparison pair')?'invalid_comparison_pair':'models_unconfigured',detail:error.message,models,attempts:[]},null,2)+'\n');throw error;}
@@ -169,7 +173,8 @@ export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot
       // A driver arm spends outside `bounded`: it charges the same budget afterwards, and an
       // unpriced run reserves its allowance the way an unpriced invocation does.
       const charge=(usd,allowance)=>{remaining=Math.max(0,remaining-(Number.isFinite(usd)&&usd>=0?usd:allowance));out.remainingUsd=remaining;save();};
-      const campaign=config.driver?runDriverCampaign:runCampaign;
+      // An injected campaign (the tests' fakes) runs every arm; the real default picks the arm's.
+      const campaign=runCampaign??(config.driver?runDriverCampaign:runComparisonCampaign);
       row.result=await campaign({task,config,invoke,productTree:s,evidenceDir:row.evidence,evaluateProduct:(productTree,step)=>gradeComparisonProduct(productTree,step,task.product),log,charge});
       row.status=row.result.incomplete?'incomplete':row.result.pass?'pass':'fail';
     }catch(error){row.status='incomplete';row.result={pass:false,billingComplete:false,incomplete:{reason:'driver_error',detail:error.message}};}
