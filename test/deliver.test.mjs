@@ -50,7 +50,7 @@ function delivery(overrides = {}) {
     approvals: () => a.GATED.map((kind) => a.read(cfg, SLUG, kind)?.front.approval_digest ?? null) };
 }
 
-test('the driver runs the seven phases, records each before and after, and opens a PR it neither approves nor merges', async () => {
+test('the driver runs the six phases, records each before and after, and opens a PR it neither approves nor merges', async () => {
   const d = delivery();
   try {
     const before = d.approvals();
@@ -60,10 +60,11 @@ test('the driver runs the seven phases, records each before and after, and opens
     assert.deepEqual(result.completed, PHASES, 'every phase ran, in order');
     assert.equal(result.pr, 'https://github.com/team/product/pull/7');
 
-    // implement, refactor. No repair turn: the checks were green and the review approved.
-    assert.deepEqual(d.calls.turns.map((t) => t.phase), ['implement', 'refactor']);
-    // stop after implement, stop after refactor, commit at the end.
-    assert.deepEqual(d.calls.checks, ['stop', 'stop', 'commit']);
+    // implement only. No repair turn: the checks were green and the review approved. No refactor
+    // turn: cut 2026-09-15 after the first live run (see PHASES).
+    assert.deepEqual(d.calls.turns.map((t) => t.phase), ['implement']);
+    // stop after implement, commit at the end.
+    assert.deepEqual(d.calls.checks, ['stop', 'commit']);
     assert.equal(d.calls.reviews.length, 1);
     assert.deepEqual(d.calls.reviews[0].planFiles, ['src/app/text.py', 'tests/test_app.py'],
       'the review is scoped to the plan the driver is executing');
@@ -106,16 +107,16 @@ test('an interrupted run resumes from the phase that had not completed and pays 
     await assert.rejects(() => deliver(d.cfg, SLUG, { ...d.fakes, review: async () => { throw new Error('simulated kill'); } }),
       /simulated kill/);
     const killed = readState(d.cfg, SLUG);
-    assert.deepEqual(killed.completed, ['implement', 'check-stop', 'refactor']);
-    assert.equal(d.calls.turns.length, 2);
+    assert.deepEqual(killed.completed, ['implement', 'check-stop']);
+    assert.equal(d.calls.turns.length, 1);
 
     const result = await deliver(d.cfg, SLUG, d.fakes);
     assert.equal(result.ok, true, JSON.stringify(result.stopped));
     assert.deepEqual(result.completed, PHASES);
     // The generator was not paid a second time for work already on disk.
-    assert.deepEqual(d.calls.turns.map((t) => t.phase), ['implement', 'refactor'],
+    assert.deepEqual(d.calls.turns.map((t) => t.phase), ['implement'],
       'a completed phase was executed again on resume');
-    assert.deepEqual(d.calls.checks, ['stop', 'stop', 'commit'], 'a completed check ran again on resume');
+    assert.deepEqual(d.calls.checks, ['stop', 'commit'], 'a completed check ran again on resume');
   } finally { d.s.cleanup(); }
 });
 
@@ -164,8 +165,11 @@ test('each bound stops the run, names itself, and leaves resumable state behind'
   }
 });
 
-test('a review that keeps requesting changes stops at max_repairs, and the second attempt escalates', async () => {
-  const d = delivery({ deliver: { max_repairs: 2 } });
+// Cut 2026-09-15 after the first live run: two evaluator reviews were 66% of the run's cost, and
+// the plan's own criterion (native plus 10%) was missed 6.3x. One review, one repair turn on its
+// Blocking/Important findings, no confirming review — the second look is the pull request's.
+test('a changes-requested review buys one repair turn and no second review, and the PR says so', async () => {
+  const d = delivery();
   try {
     const review = async (options) => {
       d.calls.reviews.push(options);
@@ -175,33 +179,36 @@ test('a review that keeps requesting changes stops at max_repairs, and the secon
     };
     const result = await deliver(d.cfg, SLUG, { ...d.fakes, review });
 
-    assert.equal(result.stopped.bound, 'max_repairs');
-    assert.equal(readState(d.cfg, SLUG).repairs, 2);
+    assert.equal(result.ok, true, JSON.stringify(result.stopped));
+    assert.equal(result.repairs, 1);
     const repairs = d.calls.turns.filter((t) => t.phase.startsWith('repair'));
-    assert.deepEqual(repairs.map((t) => t.phase), ['repair', 'repair-escalated']);
+    assert.deepEqual(repairs.map((t) => t.phase), ['repair']);
     assert.equal(repairs[0].model, d.cfg.models.generator);
     assert.equal(repairs[0].effort, d.cfg.effort.repair);
-    assert.equal(repairs[1].model, d.cfg.models.judgment, 'the second repair escalates past the model that failed once');
-    assert.notEqual(repairs[1].model, d.cfg.models.generator);
+    assert.match(repairs[0].prompt, /Blocking/, 'the repair turn is given the findings to address');
     // G10: the ledger row for a phase names what it ran on.
     const rows = readLedger(d.cfg.layout).filter((r) => r.kind === 'deliver-phase' && r.event === 'model-turn');
-    assert.ok(rows.some((r) => r.stage === 'repair-escalated' && r.model === d.cfg.models.judgment && r.effort === d.cfg.effort.repair));
+    assert.ok(rows.some((r) => r.stage === 'repair' && r.model === d.cfg.models.generator && r.effort === d.cfg.effort.repair));
     assert.ok(rows.some((r) => r.stage === 'implement' && r.model === d.cfg.models.generator && r.effort === d.cfg.effort.implement));
     assert.ok(rows.some((r) => r.stage === 'review' && r.model === d.cfg.models.evaluator && r.effort === d.cfg.effort.review));
-    assert.match(repairs[0].prompt, /Blocking/, 'the repair turn is given the findings to address');
-    // Three reviews: the first, and one confirming each repair.
-    assert.equal(d.calls.reviews.length, 3);
-    // The run stopped; it did not open a pull request on a change the reviewer rejected.
-    assert.equal(d.calls.prs.length, 0);
-    assert.deepEqual(d.approvals(), d.approvals(), 'no approval moved');
+    // One review. The repair is checked deterministically, not re-reviewed.
+    assert.equal(d.calls.reviews.length, 1);
+    assert.deepEqual(d.calls.checks, ['stop', 'stop', 'commit']);
+    assert.equal(result.review.verdict, 'changes-requested');
+    assert.equal(result.review.repaired, true);
+    // The PR carries the verdict and the fact that nobody but its reader has looked since.
+    assert.equal(d.calls.prs.length, 1);
+    assert.match(d.calls.prs[0].body, /Verdict: \*\*changes-requested\*\*/);
+    assert.match(d.calls.prs[0].body, /one repair turn/);
+    assert.match(d.calls.prs[0].body, /not re-reviewed/);
     assert.notEqual(a.read(d.cfg, SLUG, 'review')?.front.status, 'approved');
   } finally { d.s.cleanup(); }
 });
 
 test('the driver refuses to spend without --live, previews with --dry, and reads its bounds from [deliver]', async () => {
-  const d = delivery({ deliver: { max_minutes: 5, max_usd: 3, max_repairs: 1 } });
+  const d = delivery({ deliver: { max_minutes: 5, max_usd: 3 } });
   try {
-    assert.deepEqual(bounds(d.cfg), { max_minutes: 5, max_usd: 3, max_repairs: 1 });
+    assert.deepEqual(bounds(d.cfg), { max_minutes: 5, max_usd: 3 });
     assert.deepEqual(bounds({ deliver: {} }), DEFAULT_DELIVER);
     assert.throws(() => bounds({ deliver: { max_usd: 0 } }), /positive/);
     assert.throws(() => bounds({ deliver: { max_minutes: 'soon' } }), /positive/);
@@ -212,9 +219,11 @@ test('the driver refuses to spend without --live, previews with --dry, and reads
     const preview = await deliver(d.cfg, SLUG, { ...d.fakes, live: false, dry: true });
     assert.deepEqual(preview.phases, PHASES);
     assert.deepEqual(preview.stages.implement, { model: d.cfg.models.generator, effort: 'low' });
-    assert.deepEqual(preview.stages['repair-escalated'], { model: d.cfg.models.judgment, effort: 'medium' });
+    assert.deepEqual(preview.stages.repair, { model: d.cfg.models.generator, effort: 'medium' });
+    assert.equal(preview.stages['repair-escalated'], undefined, 'cut 2026-09-15');
+    assert.equal(preview.stages.refactor, undefined, 'cut 2026-09-15');
     assert.deepEqual(preview.stages.review, { model: d.cfg.models.evaluator, effort: 'high' });
-    assert.deepEqual(preview.bounds, { max_minutes: 5, max_usd: 3, max_repairs: 1 });
+    assert.deepEqual(preview.bounds, { max_minutes: 5, max_usd: 3 });
     assert.deepEqual(preview.owns, ['src/app/text.py', 'tests/test_app.py']);
     assert.equal(d.calls.turns.length, 0);
     assert.equal(existsSync(statePath(d.cfg, SLUG)), false, 'a preview starts no run');
@@ -254,6 +263,7 @@ test('the real invoker loads the plugin the CLI is running from, and hands the s
   const out = invoke({ prompt: 'p', model: 'm', budgetUsd: 1, timeoutMs: 1000 });
   const { args, options } = seen[0];
   assert.equal(args[args.indexOf('--plugin-dir') + 1], '/opt/lean-harness', 'the skills and hooks come from the plugin, not from whatever ~ has installed');
+  assert.equal(args[args.indexOf('--tools') + 1], 'Read,Grep,Glob,Write,Edit', 'no shell: the post-write hook runs the checks (cut 2026-09-15)');
   assert.equal(options.env.HARNESS_HOME, '/opt/lean-harness', 'the consumer shim resolves the same runtime the driver is');
   assert.equal(options.env.AIDLC_UNATTENDED, '1');
   assert.equal(out.ok, true);
@@ -294,27 +304,27 @@ test('a completed run records cost, cache-read share, turns and wall-clock in th
       } };
     const result = await deliver(d.cfg, SLUG, fakes);
     assert.equal(result.ok, true, JSON.stringify(result.stopped));
-    // two generator turns at 0.25 and one review at 1.
-    assert.equal(result.usd, 1.5);
-    assert.equal(result.usd_per_accepted_change, 1.5, 'one change delivered, so the run is the cost per change');
+    // one generator turn at 0.25 and one review at 1.
+    assert.equal(result.usd, 1.25);
+    assert.equal(result.usd_per_accepted_change, 1.25, 'one change delivered, so the run is the cost per change');
     const usage = result.usage;
-    assert.equal(usage.cache_read_input_tokens, 2100);
-    // cache read / (input + cache creation + cache read): 2100 / (700 + 200 + 2100) = 0.7
-    assert.equal(result.cache_read_share, 0.7);
-    assert.equal(result.turns, 8);
+    assert.equal(usage.cache_read_input_tokens, 1300);
+    // cache read / (input + cache creation + cache read): 1300 / (600 + 100 + 1300) = 0.65
+    assert.equal(result.cache_read_share, 0.65);
+    assert.equal(result.turns, 4);
     assert.ok(result.wall_ms > 0);
 
     const row = readLedger(d.cfg.layout).find((r) => r.kind === 'deliver-run' && r.change === SLUG);
     assert.ok(row, 'the run wrote its summary row');
-    assert.equal(row.usd, 1.5);
-    assert.equal(row.cache_read_share, 0.7);
-    assert.equal(row.usd_per_accepted_change, 1.5);
+    assert.equal(row.usd, 1.25);
+    assert.equal(row.cache_read_share, 0.65);
+    assert.equal(row.usd_per_accepted_change, 1.25);
     assert.ok(readLedger(d.cfg.layout).some((r) => r.kind === 'deliver-phase' && r.event === 'model-turn-done' && r.usd === 0.25 && r.usage?.cache_read_input_tokens === 800));
 
     const review = readFileSync(path.join(d.s.work, '.aidlc/artifacts', SLUG, 'review.md'), 'utf8');
     assert.match(review, /## Delivery run/);
-    assert.match(review, /USD 1\.5000/);
-    assert.match(review, /cache-read share 70%/);
+    assert.match(review, /USD 1\.2500/);
+    assert.match(review, /cache-read share 65%/);
     assert.match(review, /repairs 0/);
     // Never the key that advances a change to merge.
     assert.notEqual(a.read(d.cfg, SLUG, 'review')?.front.status, 'approved');

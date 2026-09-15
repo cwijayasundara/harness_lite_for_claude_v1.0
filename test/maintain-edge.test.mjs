@@ -141,7 +141,7 @@ test('breach to intent to approved spec to the driver, in one path and with no m
 
     assert.equal(result.ok, true, JSON.stringify(result.stopped));
     assert.deepEqual(result.completed, PHASES, 'the driver refused a change the maintain edge produced');
-    assert.deepEqual(turns, ['implement', 'refactor']);
+    assert.deepEqual(turns, ['implement']);
     // The loop is closed and still has its gates: the driver approved nothing on the way through.
     assert.notEqual(a.read(cfg, SLUG, 'review')?.front.status, 'approved');
     assert.equal(a.read(cfg, SLUG, 'spec').front.by, 'the on-call engineer');

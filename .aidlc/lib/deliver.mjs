@@ -1,4 +1,10 @@
-// G09. The delivery engine: the seven phases between the plan approval and the merge decision.
+// G09. The delivery engine: the six phases between the plan approval and the merge decision.
+//
+// Cut 2026-09-15, after the first live run (evals/evidence/deliver-first-run-2026-09-15): the
+// refactor turn, the confirming reviews after a repair, and the generator's shell. Two evaluator
+// reviews were 66% of a run that missed the plan's cost criterion 6.3x; the refactor turn was
+// reworked by the review anyway; and every shell command the generator tried was denied while the
+// post-write hook ran the same checks for free.
 //
 // The harness had every stage of the playbook and nothing that drove them. A human typed
 // `implement`, read the result, typed `harness check`, read the findings, typed `implement`
@@ -34,7 +40,7 @@ import { runSubscriptionClaude } from './claude-auth.mjs';
 // Recorded before each phase starts and after it ends, so a killed run is resumable and not
 // merely diagnosable. `evals/lib/campaign.mjs` already wrote incremental state that nothing ever
 // read back; this is the same shape with the read.
-export const PHASES = ['implement', 'check-stop', 'refactor', 'review', 'repair', 'check-commit', 'pr'];
+export const PHASES = ['implement', 'check-stop', 'review', 'repair', 'check-commit', 'pr'];
 export const STATE_VERSION = 1;
 
 
@@ -123,7 +129,8 @@ function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, s
     '',
     '## Review',
     '',
-    `Verdict: **${review?.verdict ?? 'not run'}**${review?.status === 'incomplete' ? ' (review incomplete: ' + review.reason + ')' : ''}`,
+    `Verdict: **${review?.verdict ?? 'not run'}**${review?.status === 'incomplete' ? ' (review incomplete: ' + review.reason + ')' : ''}` +
+      (review?.repaired ? ' — one repair turn addressed its Blocking/Important findings and the checks passed again; not re-reviewed: the second look is this pull request\'s' : ''),
     review?.output ? `Report: \`${review.output}\`` : '',
     '',
     ...(suppressions.length ? [
@@ -162,7 +169,10 @@ function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, s
 export function deliverInvoker({ root, pluginDir = null, run = runSubscriptionClaude }) {
   return function invoke({ prompt, model, effort = null, sessionId = null, budgetUsd, timeoutMs }) {
     const args = ['-p', prompt, '--model', model, ...(effort ? ['--effort', effort] : []),
-      '--tools', 'Read,Grep,Glob,Write,Edit,Bash',
+      // No shell. MEASURED 2026-09-15: every `node --test` and `harness check` the generator ran was
+      // "requires approval" under the consumer's settings, and the post-write hook ran the same
+      // checks after each edit anyway. A paid turn that produces a denial is the cut.
+      '--tools', 'Read,Grep,Glob,Write,Edit',
       '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
       '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--output-format', 'json',
       ...(pluginDir ? ['--plugin-dir', pluginDir] : []),
@@ -216,7 +226,8 @@ export function ghPullRequest({ root }) {
 
 const UNATTENDED = 'No human is available to answer a question in this turn: make the routine ' +
   'choices the approved plan already implies, and record anything genuinely undecidable in the ' +
-  'change\'s artifacts instead of ending the turn on a question.';
+  'change\'s artifacts instead of ending the turn on a question. You have no shell: the post-write ' +
+  'hook runs the project\'s checks after every edit and returns their findings to you; read them.';
 
 export async function deliver(cfg, slug, {
   invoke,
@@ -242,7 +253,7 @@ export async function deliver(cfg, slug, {
   if (dry) {
     return { slug, dry: true, phases: PHASES, gates, owns, bounds: b, spend: 0,
       // A preview that does not say what it would run on is not a preview.
-      stages: Object.fromEntries(['implement', 'refactor', 'repair', 'repair-escalated', 'review']
+      stages: Object.fromEntries(['implement', 'repair', 'review']
         .map((stage) => [stage, stageModel(cfg, stage)])) };
   }
   if (!live) throw new Error(`harness deliver invokes models; run it with --live (or --dry to preview the phases, models and bounds)`);
@@ -328,7 +339,7 @@ export async function deliver(cfg, slug, {
 
     if (phase === 'implement') {
       const out = await turn('implement', `Use the \`implement\` skill to deliver this approved change.\n\n${contract}\n` +
-        'Work only inside the files the plan owns. Run the focused proof for each behaviour as you go.');
+        'Work only inside the files the plan owns. The post-write hook proves each edit; read its findings.');
       if (out.stopped) return stop(out.stopped, 'before the implement turn');
       if (!out.ok) return stop('implement', out.error ?? 'the implement turn did not complete');
       commitIfDirty(root, `${slug}: implement`);
@@ -355,16 +366,6 @@ export async function deliver(cfg, slug, {
       if (!report.ok) return stop('check-stop', `stop-stage checks still failing: ${failedControls(report).join(', ') || report.identity_errors?.join('; ') || 'no control named — see the ledger'}`);
     }
 
-    if (phase === 'refactor') {
-      const out = await turn('refactor', `The checks are green. Make one refactoring pass over the change: no behaviour change, ` +
-        `no new capability, no test edits that weaken a proof.\n\n${contract}`);
-      if (out.stopped) return stop(out.stopped, 'before the refactor turn');
-      commitIfDirty(root, `${slug}: refactor`);
-      const report = await check('stop');
-      // A refactor that breaks green is not a refactor. The human gets the branch as it stands.
-      if (!report.ok) return stop('refactor', `the refactor turn left the stop stage failing: ${failedControls(report).join(', ')}`);
-    }
-
     if (phase === 'review') {
       reviewResult = await runReviewPhase();
       if (reviewResult.stopped) return stop(reviewResult.stopped, 'before the review');
@@ -372,28 +373,23 @@ export async function deliver(cfg, slug, {
       save();
     }
 
-    if (phase === 'repair') {
-      while (reviewResult?.verdict === 'changes-requested') {
-        if (state.repairs >= b.max_repairs) {
-          return stop('max_repairs', `${state.repairs} repair turns did not clear the review; the findings are the human's to judge`);
-        }
-        // The second attempt escalates: the same model that could not fix it once is unlikely to
-        // fix it twice, and the judgment model is what the review itself runs on.
-        const stage = state.repairs === 0 ? 'repair' : 'repair-escalated';
-        const out = await turn(stage, `The independent review requested changes.\n\n${contract}\n` +
-          `Review report: \`${reviewResult.output}\`\n\n${reviewResult.findings.join('\n') || '(see the report)'}\n\n` +
-          'Address every Blocking and Important finding inside the plan\'s files. A finding you disagree with is ' +
-          'answered in the change\'s artifacts with a reason, not silently left.');
-        if (out.stopped) return stop(out.stopped, `before repair turn ${state.repairs + 1}`);
-        state.repairs += 1;
-        save();
-        commitIfDirty(root, `${slug}: repair review findings (${state.repairs})`);
-        event(phase, 'repaired', { attempt: state.repairs, ...stageModel(cfg, stage) });
-        reviewResult = await runReviewPhase();
-        if (reviewResult.stopped) return stop(reviewResult.stopped, 'before the confirming review');
-        state.review = reviewResult;
-        save();
-      }
+    if (phase === 'repair' && reviewResult?.verdict === 'changes-requested' && !reviewResult.repaired) {
+      // One repair turn on the review's Blocking/Important findings, then the deterministic checks
+      // again. No confirming review: the verdict and the repair both go on the pull request, and
+      // the reader of that pull request is the second look.
+      const out = await turn('repair', `The independent review requested changes.\n\n${contract}\n` +
+        `Review report: \`${reviewResult.output}\`\n\n${reviewResult.findings.join('\n') || '(see the report)'}\n\n` +
+        'Address every Blocking and Important finding inside the plan\'s files. A finding you disagree with is ' +
+        'answered in the change\'s artifacts with a reason, not silently left.');
+      if (out.stopped) return stop(out.stopped, 'before the repair turn');
+      state.repairs = 1;
+      commitIfDirty(root, `${slug}: repair review findings`);
+      event(phase, 'repaired', { attempt: 1, ...stageModel(cfg, 'repair') });
+      const report = await check('stop');
+      if (!report.ok) return stop('repair', `the repair turn left the stop stage failing: ${failedControls(report).join(', ') || 'no control named — see the ledger'}`);
+      reviewResult = { ...reviewResult, repaired: true };
+      state.review = reviewResult;
+      save();
     }
 
     if (phase === 'check-commit') {
@@ -443,7 +439,7 @@ export async function deliver(cfg, slug, {
   }
   return { slug, ok: true, stopped: null, completed: state.completed, invocation, ...economics,
     pr: state.pr, ...(state.pr_unopened ? { pr_unopened: state.pr_unopened } : {}),
-    review: reviewResult ? { verdict: reviewResult.verdict, status: reviewResult.status } : null };
+    review: reviewResult ? { verdict: reviewResult.verdict, status: reviewResult.status, repaired: !!reviewResult.repaired } : null };
 
   async function runReviewPhase() {
     const bound = exceeded();

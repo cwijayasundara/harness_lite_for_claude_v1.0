@@ -25,7 +25,7 @@ export const DEFAULT_STAGES = { fast: ['fmt', 'lint', 'typecheck'], stop: ['fast
 export const GATE_MODES = ['human', 'advisory', 'auto'];
 export const DEFAULT_GATES = { spec: 'advisory', plan: 'advisory', merge: 'human' };
 // G09. The driver's bounds. A run stops and names the bound it hit; it never exceeds one.
-export const DEFAULT_DELIVER = { max_minutes: 60, max_usd: 10, max_repairs: 2 };
+export const DEFAULT_DELIVER = { max_minutes: 60, max_usd: 10 };
 // G10. One effort band per kind of work, not per model id.
 export const EFFORT_LEVELS = ['low', 'medium', 'high'];
 export const DEFAULT_EFFORT = { implement: 'low', repair: 'medium', review: 'high' };
@@ -36,11 +36,8 @@ export function stageModel(cfg, phase) {
   const models = cfg?.models ?? {};
   const effort = { ...DEFAULT_EFFORT, ...(cfg?.effort ?? {}) };
   switch (phase) {
-    case 'implement': case 'refactor': return { model: models.generator, effort: effort.implement };
+    case 'implement': return { model: models.generator, effort: effort.implement };
     case 'repair': return { model: models.generator, effort: effort.repair };
-    // The second repair attempt escalates: the model that could not fix it once is unlikely to
-    // fix it twice, and `judgment` is what the review that rejected it runs on.
-    case 'repair-escalated': return { model: models.judgment ?? models.evaluator, effort: effort.repair };
     case 'review': return { model: models.evaluator, effort: effort.review };
     default: return { model: null, effort: null };
   }

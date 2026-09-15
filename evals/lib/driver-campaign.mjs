@@ -35,7 +35,7 @@ import { invokerEnv } from './invoker.mjs';
 // One sprint's allowance. The products file's 1.5 USD per prompt is sized for a single generator
 // turn; a driver run is two generator turns plus an evaluator review and possibly a repair, and
 // an allowance the review cannot fit in would stop every run on max_usd and measure nothing.
-export const DRIVER_BOUNDS = { max_usd: 3, max_minutes: 20, max_repairs: 2 };
+export const DRIVER_BOUNDS = { max_usd: 3, max_minutes: 20 };
 
 // The real thing: the harness CLI `harness init` recorded in the staged product, run in that
 // product with the shim pointed at the same runtime — exactly what runProductCheck does.
@@ -48,10 +48,10 @@ export function spawnDeliver({ work, harnessBin, slug, args, timeoutMs, env = pr
     { cwd: work, encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024, env: invokerEnv({ pluginDir: home, base: env }) });
 }
 
-function pinBounds(work, { maxUsd, maxMinutes, maxRepairs }) {
+function pinBounds(work, { maxUsd, maxMinutes }) {
   const file = path.join(work, '.aidlc/harness.toml');
   const text = readFileSync(file, 'utf8').replace(/\n\[deliver\][\s\S]*?(?=\n\[|$)/, '');
-  writeFileSync(file, `${text.trimEnd()}\n\n# Pinned by the comparison arm: one sprint's allowance.\n[deliver]\nmax_usd = ${maxUsd}\nmax_minutes = ${maxMinutes}\nmax_repairs = ${maxRepairs}\n`);
+  writeFileSync(file, `${text.trimEnd()}\n\n# Pinned by the comparison arm: one sprint's allowance.\n[deliver]\nmax_usd = ${maxUsd}\nmax_minutes = ${maxMinutes}\n`);
 }
 
 export async function runDriverCampaign({ task: t, config, invoke, evaluateProduct, productTree: s, evidenceDir, log = () => {},
@@ -86,7 +86,7 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
 
   try {
     result.fixtureRevision = git('rev-parse', 'HEAD');
-    pinBounds(s.work, { maxUsd: allowance, maxMinutes: minutes, maxRepairs: DRIVER_BOUNDS.max_repairs });
+    pinBounds(s.work, { maxUsd: allowance, maxMinutes: minutes });
     commit('Comparison arm: driver bounds');
     for (const step of t.steps) {
       if (step.restart) event('session-restart');

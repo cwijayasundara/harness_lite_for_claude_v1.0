@@ -38,10 +38,10 @@ function fakeDriver({ edits = ['src/ledger.mjs'], repaired = 1, usd = 0.8, ok = 
     const dir = path.join(work, '.aidlc/state/deliver', slug); mkdirSync(dir, { recursive: true });
     const events = [{ phase: 'implement', event: 'model-turn-done', usd: 0.2, usage: { input_tokens: 10, cache_read_input_tokens: 90, cache_creation_input_tokens: 0, output_tokens: 5 } },
       { phase: 'review', event: 'model-turn-done', usd: 0.5 }, ...Array.from({ length: repaired }, (_, i) => ({ phase: 'repair', event: 'repaired', attempt: i + 1 }))];
-    writeFileSync(path.join(dir, 'phases.json'), JSON.stringify({ slug, completed: ok ? ['implement', 'check-stop', 'refactor', 'review', 'repair', 'check-commit', 'pr'] : ['implement'], repairs: repaired, usd, events, review: { verdict: 'approve' } }));
+    writeFileSync(path.join(dir, 'phases.json'), JSON.stringify({ slug, completed: ok ? ['implement', 'check-stop', 'review', 'repair', 'check-commit', 'pr'] : ['implement'], repairs: repaired, usd, events, review: { verdict: 'approve' } }));
     mkdirSync(path.join(work, '.aidlc/artifacts', slug), { recursive: true });
     writeFileSync(path.join(work, '.aidlc/artifacts', slug, 'review.md'), '# Independent review\n\n## Important\n\nfake finding\n\napprove\n');
-    const result = ok ? { slug, ok: true, usd, usd_per_accepted_change: usd, cache_read_share: 0.9, turns: 6, wall_ms: 90000, repairs: repaired, completed: ['implement', 'check-stop', 'refactor', 'review', 'repair', 'check-commit', 'pr'], pr: null, pr_unopened: 'no git remotes found' }
+    const result = ok ? { slug, ok: true, usd, usd_per_accepted_change: usd, cache_read_share: 0.9, turns: 6, wall_ms: 90000, repairs: repaired, completed: ['implement', 'check-stop', 'review', 'repair', 'check-commit', 'pr'], pr: null, pr_unopened: 'no git remotes found' }
       : { slug, ok: false, usd, stopped, completed: ['implement'] };
     // Pretty-printed after progress lines, the way the CLI actually prints it.
     return { status: ok ? 0 : 1, stdout: `${slug}: pr end\n${JSON.stringify(result, null, 2)}\n`, stderr: '' };
@@ -92,11 +92,11 @@ test('a driver that edits outside the plan is a scope failure the arm records, a
   try {
     const out = await runDriverCampaign({ task, config: { id: 'harness-driver', driver: true }, productTree: u.s, evidenceDir: u.evidence,
       evaluateProduct: () => ({ name: 'x', pass: true }), invoke: async () => { throw new Error('no repair for a stopped run'); },
-      runDeliver: fakeDriver({ ok: false, stopped: { bound: 'max_repairs', detail: '2 repair turns did not clear the review' }, usd: 2.5 }).run, charge: () => {} });
+      runDeliver: fakeDriver({ ok: false, stopped: { bound: 'repair', detail: 'the repair turn left the stop stage failing: test' }, usd: 2.5 }).run, charge: () => {} });
     assert.equal(out.completedSteps, 0);
     assert.equal(out.driverStops, 1);
     assert.equal(out.usage.usd, 2.5, 'a stopped run still cost what it cost');
-    assert.ok(out.assertions.some((a) => !a.pass && /max_repairs/.test(a.detail)));
+    assert.ok(out.assertions.some((a) => !a.pass && /repair turn left/.test(a.detail)));
   } finally { u.cleanup(); }
 });
 

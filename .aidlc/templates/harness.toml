@@ -80,13 +80,12 @@ spec  = "advisory"   # human | advisory | auto
 plan  = "advisory"
 merge = "human"      # the only permitted value
 
-# G09. `harness deliver <slug> --live` drives the seven phases between the plan approval and the
+# G09. `harness deliver <slug> --live` drives the six phases between the plan approval and the
 # merge decision. The bounds are the whole safety story of an unattended loop: it stops and names
 # the one it hit rather than exceeding it, and what it leaves behind is resumable.
 [deliver]
 max_minutes = 60   # wall-clock for one run; a resumed run gets its own
 max_usd     = 10   # usage estimate, clamped before every model call
-max_repairs = 2    # review-driven repair turns; the second escalates to the judgment model
 
 [budget]
 subagent_context_soft = 140000
