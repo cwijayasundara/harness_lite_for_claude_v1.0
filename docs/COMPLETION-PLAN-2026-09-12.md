@@ -453,6 +453,12 @@ before phase 6.
 > unreviewed repair, no shell for the generator. Driver 0.548 per accepted change (was 1.140),
 > 2.0 min (was 4.8), 0 denied commands (was 7); cost criterion still no at 2.8× the ceiling
 > (was 6.3×) — the one evaluator review is 61% of what is left. Six phases now.
+>
+> **Baseline (G23) 2026-09-15:** not re-recorded. No nightly run has ever fired (no schedule on
+> main, no secret, branch unpushed). The last full local run (2026-09-14, 17/1/4) cannot be
+> recorded because `prefix-cache-guard` regressed against the 2026-09-06 record and the ratchet
+> refuses to lower it; rerun alone at HEAD it still fails — the guard is right, the eval model
+> relays the remedy and drops the reason. Gate stays non-blocking. F9 in the evidence README.
 
 ## Phase 6: bounded improvement loop
 

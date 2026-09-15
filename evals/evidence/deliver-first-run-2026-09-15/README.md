@@ -105,3 +105,28 @@ The remaining gap is the one evaluator review: 0.335 of 0.548, 61% of the run. W
 driver would cost 0.213, which is 1.09× the ceiling — still over, by the implement turn's own
 size (0.115 vs native's whole sprint at 0.178, because the driver's implement turn reads the
 spec, plan and hook findings the native arm never has).
+
+## M1 step 2 — the eval baseline, 2026-09-15 22:39: not re-recorded, and why
+
+The prompt asks for `harness evals gate --update` from an actual run and to flip the nightly gate
+only when the record is green. There is no nightly run to take it from: no scheduled run has ever
+fired (`gh run list --event schedule` is empty), no `nightly-eval-results` artifact exists, the
+repository has no `CLAUDE_CODE_OAUTH_TOKEN` secret, and `origin/main`'s workflow has no `nightly`
+job — it exists only on this branch, which has never been pushed.
+
+The last actual full run is local, 2026-09-14T16-33-46, at 9c971e1: 17 pass, 1 flaky, 4 fail,
+USD 2.42. `harness evals gate --update` on it refuses:
+
+```
+refusing to lower prefix-cache-guard — the record only moves fail -> pass
+```
+
+Six tasks improved since the 2026-09-06 record and cannot be held because one regressed. The
+regression is real at HEAD: rerun alone at 22:39 (USD 0.03,
+`.aidlc/evals/results/2026-09-15T21-40-06-774Z.json`), it fails again. The guard is correct — the
+edit was refused and the file is unchanged — and the model received the whole reason
+("…invalidates the prompt cache for whoever reads it next…name it in the approved plan first").
+It relayed only the remedy: "the system requires an approved plan before making changes". G23
+reworded that refusal twice on 2026-09-14 for exactly this; on the eval model it still drops the
+reason. **F9, open:** a refusal whose reason the eval model does not relay, after two rewordings.
+The record stays at 2026-09-06, the gate stays non-blocking, and neither moves until this passes.
