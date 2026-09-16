@@ -18,11 +18,11 @@ import { parse } from '../.aidlc/lib/artifacts.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const models = { generator: 'gen', evaluator: 'eval', evals: 'cheap' };
-const step = { slug: 'ledger-characterize', request: 'add balance', behaviours: ['B1 text'], files: ['src/ledger.mjs', 'tests/ledger.test.mjs'], level: 1 };
-const task = { id: 'campaign-ledger', fixture: 'campaign-ledger', product: 'ledger', steps: [step], timeoutMs: 60000, budgetUsd: 3 };
+const step = { slug: 'calc-core', request: 'add arithmetic', behaviours: ['B1 text'], files: ['src/calc.ts', 'src/calc.test.ts'], level: 1 };
+const task = { id: 'calculator', fixture: 'calculator', product: 'calculator', steps: [step], timeoutMs: 60000, budgetUsd: 3 };
 
 function staged() {
-  const s = stage(FIXTURES, 'campaign-ledger', { product: true });
+  const s = stage(FIXTURES, 'calculator', { product: true });
   stageProduct(s, root);
   const evidence = mkdtempSync(path.join(tmpdir(), 'driver-campaign-'));
   return { s, evidence, cleanup: () => { s.cleanup(); rmSync(evidence, { recursive: true, force: true }); } };
@@ -30,7 +30,7 @@ function staged() {
 
 // A driver that behaves: edits only the plan's files, writes the state the real one writes, and
 // reports the numbers the real one reports.
-function fakeDriver({ edits = ['src/ledger.mjs'], repaired = 1, usd = 0.8, ok = true, stopped = null } = {}) {
+function fakeDriver({ edits = ['src/calc.ts'], repaired = 1, usd = 0.8, ok = true, stopped = null } = {}) {
   const calls = [];
   return { calls, run: ({ work, harnessBin, slug, args }) => {
     calls.push({ work, harnessBin, slug, args });
@@ -52,17 +52,17 @@ test('the driver arm approves before the driver runs, runs it once per sprint in
   const t = staged(); const driver = fakeDriver(); const charged = [];
   try {
     const out = await runDriverCampaign({ task, config: { id: 'harness-driver', driver: true, model: 'gen' }, productTree: t.s, evidenceDir: t.evidence,
-      evaluateProduct: () => ({ name: 'ledger-level-1', pass: true }), invoke: async () => { throw new Error('the driver arm does not call the plain invoker for delivery'); },
+      evaluateProduct: () => ({ name: 'calculator-level-1', pass: true }), invoke: async () => { throw new Error('the driver arm does not call the plain invoker for delivery'); },
       runDeliver: driver.run, charge: (usd, allowance) => charged.push([usd, allowance]) });
     assert.equal(driver.calls.length, 1);
-    assert.equal(driver.calls[0].slug, 'ledger-characterize');
+    assert.equal(driver.calls[0].slug, 'calc-core');
     assert.ok(driver.calls[0].args.includes('--live'));
     assert.equal(driver.calls[0].work, t.s.work);
     assert.equal(driver.calls[0].harnessBin, t.s.harnessBin, 'the runtime the install record names, not the patched plugin copy');
     // The approvals were on disk and committed before the driver started: the driver never grants one.
     const log = execFileSync('git', ['log', '--format=%s'], { cwd: t.s.work, encoding: 'utf8' });
-    assert.match(log, /Simulated approval: ledger-characterize\/plan/);
-    for (const kind of ['spec', 'plan']) assert.equal(parse(readFileSync(path.join(t.s.work, '.aidlc/artifacts/ledger-characterize', `${kind}.md`), 'utf8')).front.status, 'approved');
+    assert.match(log, /Simulated approval: calc-core\/plan/);
+    for (const kind of ['spec', 'plan']) assert.equal(parse(readFileSync(path.join(t.s.work, '.aidlc/artifacts/calc-core', `${kind}.md`), 'utf8')).front.status, 'approved');
     assert.equal(out.completedSteps, 1);
     assert.equal(out.pass, true, JSON.stringify(out.assertions));
     assert.equal(out.usage.usd, 0.8);
@@ -72,8 +72,8 @@ test('the driver arm approves before the driver runs, runs it once per sprint in
     assert.equal(out.driverStops, 0);
     assert.ok(out.phases.some((p) => p.name === 'model-deliver' && p.usage.usd === 0.8), 'the driver run is a model phase, so calibration can count it');
     // The evidence keeps the driver's own record beside the product.
-    assert.ok(existsSync(path.join(t.evidence, 'deliver', 'ledger-characterize', 'phases.json')));
-    assert.ok(existsSync(path.join(t.evidence, 'deliver', 'ledger-characterize', 'review.md')));
+    assert.ok(existsSync(path.join(t.evidence, 'deliver', 'calc-core', 'phases.json')));
+    assert.ok(existsSync(path.join(t.evidence, 'deliver', 'calc-core', 'review.md')));
     // [deliver] bounds were pinned in the staged product before the run.
     assert.match(readFileSync(path.join(t.s.work, '.aidlc/harness.toml'), 'utf8'), /\[deliver\]\nmax_usd\s*=\s*3/);
   } finally { t.cleanup(); }
@@ -84,7 +84,7 @@ test('a driver that edits outside the plan is a scope failure the arm records, a
   try {
     const out = await runDriverCampaign({ task, config: { id: 'harness-driver', driver: true }, productTree: t.s, evidenceDir: t.evidence,
       evaluateProduct: () => ({ name: 'x', pass: true }), invoke: async () => ({ usage: { usd: 0.01 }, sessionId: 's', exitCode: 0, transcript: 'repaired' }),
-      runDeliver: fakeDriver({ edits: ['src/ledger.mjs', 'src/fees.mjs'] }).run, charge: () => {} });
+      runDeliver: fakeDriver({ edits: ['src/calc.ts', 'src/App.tsx'] }).run, charge: () => {} });
     assert.equal(out.completedSteps, 0);
     assert.ok(out.assertions.some((a) => !a.pass && /out-of-scope/.test(a.detail)), JSON.stringify(out.assertions));
   } finally { t.cleanup(); }
@@ -153,7 +153,7 @@ test('repeats 0 is the pilot: calibration only, and the verdict reads the smoke 
   const { runComparisons } = await import('../evals/lib/comparison.mjs');
   const evidenceRoot = mkdtempSync(path.join(tmpdir(), 'comparison-pilot-'));
   try {
-    const out = await runComparisons({ tasks: [{ id: 'ledger', fixture: 'campaign-ledger', steps: [{}, {}] }], models, root, fixturesDir: FIXTURES, evidenceRoot, pair: 'driver', repetitions: 0, maxUsd: 1,
+    const out = await runComparisons({ tasks: [{ id: 'calculator', fixture: 'calculator', steps: [{}, {}] }], models, root, fixturesDir: FIXTURES, evidenceRoot, pair: 'driver', repetitions: 0, maxUsd: 1,
       invokeFactory: () => async () => ({ usage: { usd: 0.001 } }),
       runCampaign: async ({ task, invoke }) => { await invoke({ budgetUsd: 0.1 }); return { pass: true, completedSteps: task.steps.length, billingComplete: true, usage: { usd: 0.001, reportedUsd: 0.001 }, phases: [{ name: 'model-plan' }], shippedDefects: 1 }; } });
     assert.equal(out.attempts.length, 2, 'one smoke attempt per arm and nothing paired');
