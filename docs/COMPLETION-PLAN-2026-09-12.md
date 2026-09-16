@@ -462,6 +462,15 @@ before phase 6.
 > 2.0 min (was 4.8), 0 denied commands (was 7); cost criterion still no at 2.8× the ceiling
 > (was 6.3×) — the one evaluator review is 61% of what is left. Six phases now.
 >
+> **Measured on `calculator`, 2026-09-16 — all three criteria NO.** Three pilots, USD 1.77 total,
+> each inside the operator's 30-minute bound. Run 3 is the only one where both arms completed:
+> native 1 accepted change for USD 0.138 in 55 s; the harness arm 0 accepted changes for USD 0.546.
+> Acceptance 0 vs 1, no. Cost undefined against a ceiling of 0.152, no. Evaluator-caught defects
+> that native shipped, zero, no. Evidence and the cut list:
+> `evals/evidence/g24-calculator-pilots-2026-09-16/README.md`. The mandated response is to cut, and
+> the cut list is there — led by "do not repair on a review with no blocking findings", which is
+> what turned run 3's green change into no delivery. Phase 5 does not exit.
+>
 > **The fixture replaced, 2026-09-16.** The pilot numbers above were measured on
 > `campaign-ledger` sprint 1 and are kept as history; they do not transfer. What carried over is
 > the cut list (no refactor turn, one review, no shell) and the shape of the answer: acceptance
