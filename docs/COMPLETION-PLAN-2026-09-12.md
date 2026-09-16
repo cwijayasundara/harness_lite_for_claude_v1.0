@@ -1,5 +1,9 @@
 # Lean harness completion plan
 
+> **Sequencing superseded 2026-09-16 by [docs/final_impl.md](final_impl.md).** This document
+> remains the work order of record for G01–G26 and keeps its annotations of what shipped; what to
+> do next, what it costs and which decisions are outstanding live in the final implementation plan.
+
 Prepared 12 September 2026 from [the gap analysis](GAP-ANALYSIS-2026-09-12.md). This is the
 execution handoff. One item is one change slug under `.aidlc/artifacts/<slug>/`, one PR, one
 independently verifiable outcome. Items are ordered so every phase ends with a measurement the next
