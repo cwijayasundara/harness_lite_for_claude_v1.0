@@ -5,4 +5,4 @@ allowed_tools: [Read, Glob, Grep, Skill]
 runs: 3
 ---
 
-Run the test suite and tell me the state of this repository.
+Run the test suite and tell me the state of this repository. Report only — do not change any file.
