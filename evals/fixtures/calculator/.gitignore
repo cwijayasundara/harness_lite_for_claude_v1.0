@@ -1,0 +1,12 @@
+# The evaluator caught this on the first delivered change, 2026-09-16: vitest writes a run cache
+# to node_modules/.vite/ inside the project, and `_base/.gitignore` is Python-only, so the cache
+# landed in the candidate diff — a content-hashed path with an embedded wall-clock duration,
+# outside the approved plan's declared Files. Review finding 2 of
+# .aidlc/evals/comparisons/2026-09-16T09-22-27-265Z/.../deliver/calc-core/review.md.
+node_modules/
+coverage/
+dist/
+
+__pycache__/
+.pytest_cache/
+.ruff_cache/

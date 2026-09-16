@@ -108,13 +108,20 @@ async function concurrent(root, engineers) {
       const released = Date.now(); writeFileSync(path.join(rendezvous, 'release'), String(released));
       return { arrivals, released, both_executing_before_release: true };
     })();
-    const bound = new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('concurrent check timeout')), 30000); });
+    // The bound exists so a rendezvous that never happens fails instead of hanging — it is an
+    // instrument, not a control, and at 30 s it was letting the laptop decide. MEASURED
+    // 2026-09-16: this campaign runs in 20.7 s on a quiet machine and 46.7 s while the rest of the
+    // suite is draining, because the `calculator` fixture replaced zero-dep `node --test` product
+    // checks with real prettier/eslint/tsc/vitest processes. Same lesson as 8bb4f3b.
+    const bound = new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('concurrent check timeout')), 120000); });
     const [reports, overlap] = await Promise.race([Promise.all([completed, ready]), bound]);
     return { reports, overlap };
   } finally { cancelled = true; clearTimeout(timeout); for (const child of children) if (child.exitCode === null) child.kill('SIGKILL'); }
 }
 
-test('two engineers evolve a shared product through isolated work, reversal, integration failure and refactor', { timeout: 90000 }, async t => {
+// The outer bound stays above the rendezvous bound inside it, so the failure that arrives names
+// the rendezvous rather than the whole campaign.
+test('two engineers evolve a shared product through isolated work, reversal, integration failure and refactor', { timeout: 240000 }, async t => {
   const started = Date.now();
   const s = stage(FIXTURES, 'calculator', { product: true });
   const root = s.work;
