@@ -107,20 +107,6 @@ export function stage(fixturesDir, name, { product = false, native = false, gate
   return { root, work, pristine, native, harnessBin: realBin, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
-// A host child process — never a productTree, and never called one. It inherits the cleanup
-// discipline of the container runtime this harness used to run product trials in: a
-// timed-out or errored run's whole process group is killed, not just the direct child, so a
-// script that itself forked children cannot leak one. Ports are claimed the same way a real
-// server binds one — by asking the OS for port 0 and reading back what it assigned, never by
-// picking a constant.
-export function claimPort() {
-  const probe = "const s=require('net').createServer();s.listen(0,()=>{process.stdout.write(String(s.address().port));s.close(()=>process.exit(0));});";
-  const r = spawnSync(process.execPath, ['-e', probe], { encoding: 'utf8', timeout: 5000 });
-  const port = Number((r.stdout || '').trim());
-  if (!port) throw new Error(`failed to claim an ephemeral port: ${r.stderr || r.stdout || r.error?.message}`);
-  return port;
-}
-
 // `node --test` marks its children with NODE_TEST_CONTEXT so they report over IPC instead of
 // exiting on their own verdict. A product check spawned from inside the suite inherits that mark,
 // and the product's own `node --test` then reports a real failure as exit 0 — a failing product
@@ -150,12 +136,6 @@ export function execNode(cwd, nodeArgs, { input, timeout = 15000, env } = {}) {
   // the orphan reap is B4, and B4 is about the timeout.
   if ((r.error || r.signal) && r.pid) killProcessGroup(r.pid);
   return r;
-}
-
-export function spawnDetachedProcess(cwd, nodeArgs, env = {}) {
-  const child = spawn(process.execPath, nodeArgs, { cwd, detached: true, stdio: 'ignore', env: productEnv(env) });
-  child.unref();
-  return child;
 }
 
 // `spawn({detached:true})` makes a session leader, so -pid names a real group. spawnSync does NOT,

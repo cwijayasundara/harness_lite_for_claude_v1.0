@@ -31,7 +31,7 @@ function stop(work, { unattended, active = false }) {
 }
 
 test('an automated turn may pause at a gate without being told to self-approve', () => {
-  const s = stage(FIXTURES, 'campaign-ledger');
+  const s = stage(FIXTURES, 'calculator', { product: true });
   try {
     declared(s.work);
     for (const active of [false, true]) {
@@ -44,7 +44,7 @@ test('an automated turn may pause at a gate without being told to self-approve',
 });
 
 test('attended, the same state blocks nothing and records nothing', () => {
-  const s = stage(FIXTURES, 'campaign-ledger');
+  const s = stage(FIXTURES, 'calculator', { product: true });
   try {
     declared(s.work);
     const r = stop(s.work, { unattended: false });
@@ -54,7 +54,7 @@ test('attended, the same state blocks nothing and records nothing', () => {
 });
 
 test('unattended with nothing waiting blocks nothing', () => {
-  const s = stage(FIXTURES, 'campaign-ledger');
+  const s = stage(FIXTURES, 'calculator', { product: true });
   try {
     const r = stop(s.work, { unattended: true });
     assert.equal(r.block?.decision, undefined, r.stdout);

@@ -4,7 +4,7 @@
 // The deterministic product assertions answer "does the endpoint behave": they call it and check
 // the response. They cannot answer the other half — whether every approved `### B<n>` is observable
 // at all, and whether a behaviour a later sprint reversed is still being presented as current.
-// Sprint 3 of `campaign-ledger` is exactly that shape: a rule is reversed, and a product that
+// A reversed rule is exactly that shape: the old rule is superseded, and a product that
 // still documents the old rule passes every endpoint check while telling its users something that
 // is no longer true.
 //

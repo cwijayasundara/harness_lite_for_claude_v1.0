@@ -5,8 +5,17 @@ defect the floor missed. `successor-contract-links-first` proves that a successo
 to the shipped design instead of opening an unconnected artifact chain. Contract tasks also cover
 owned scope, testability, evidence, and refusal of work outside the approved boundary.
 
-Two product campaigns live in `products.json`, separate from golden tasks. See
-`docs/OPERATING.md`, "Automated product campaigns", for boundaries and evidence semantics.
+One product campaign lives in `products.json`, separate from golden tasks: `calculator`, a
+React + TypeScript application delivered in three intents across two sprints (`calc-core`,
+`calc-ui`, then `calc-ops`). It replaced `campaign-ledger`, `campaign-service` and `retrieval-app`
+on 2026-09-16 — three headless Node products that between them could never fill `fmt`, `lint`,
+`typecheck` or `coverage`, never exercise a UI, and never make an E2E defect expressible at all.
+See `docs/OPERATING.md`, "Automated product campaigns", for boundaries and evidence semantics.
+
+The fixture's dependencies are not committed and are not installed per run. Create them once with
+`npm ci --prefix evals/fixtures/calculator`; staging links the tree at the staged root, one level
+above the product, so a trial costs no network and the 132 MB never enters a diff, a baseline or a
+scope check. The runner refuses by name with that command when it is missing.
 
 This directory is development tooling for the harness, not part of a consumer scaffold.
 Normal application edit/stop hooks run configured project checks, not these model campaigns.
@@ -102,7 +111,7 @@ is a property of where files sit and not a boundary of any kind.
 node evals/run.mjs --live --compare --max-suite-usd 40
 ```
 
-This extends the existing runner. It runs these experiments **sequentially**, using both products:
+This extends the existing runner. It runs these experiments **sequentially**, over the one product:
 
 1. Native Claude Code versus the harness, both using `[models].generator`.
 2. The harness without versus with fresh bounded graph context, using that same generator.
@@ -163,8 +172,8 @@ leaves pending attempts visible. Do not reuse an existing stop file for a new ru
 Comparisons default to a **30-minute suite time limit** (`--max-suite-minutes`). Each model call
 receives the remaining time, and no new call starts after the deadline. Private verification and
 cleanup may finish after it. Remaining scheduled trials are explicitly unmeasured. A complete
-three-pair, two-product matrix is an extended benchmark; use `--dry` to inspect its 48 campaign
-attempts and set a longer time limit deliberately when that run is affordable.
+three-pair matrix is an extended benchmark; use `--dry` to inspect its scheduled campaign attempts
+and set a longer time limit deliberately when that run is affordable.
 
 Approval pauses are verified through completed planning turns with unchanged product source
 and approval metadata, followed by an external decision. They do not require a magic word in
@@ -175,8 +184,8 @@ Git history before repair, so their exact source remains replayable.
 ## Outcome-based pruning (item 5)
 
 `node evals/run.mjs --prune --dry` previews the session-inventory experiment.
-`node evals/run.mjs --live --prune` runs four first-change calibrations and one paired repetition
-of both complete products, capped by default at USD 9 and 40 minutes. Existing `--repeats`,
+`node evals/run.mjs --live --prune` runs the first-change calibrations and one paired repetition
+of the complete product, capped by default at USD 9 and 40 minutes. Existing `--repeats`,
 `--max-suite-usd`, `--max-suite-minutes` and `--stop-file` options apply. Evidence is saved in
 `.aidlc/evals/comparisons/prune-<timestamp>/comparison.json` and per-attempt directories.
 
@@ -200,8 +209,9 @@ baseline: the lean arm showed higher observed cost and latency, with identical c
 recovery results in this single pair. Prior failed, unmeasured and unbilled attempts remain in
 `evals/evidence/pruning-summary.json`. This is a bounded decision, not a general reliability claim.
 Documentation phrase checks are supporting heuristics; private API assertions establish overdue
-behavior. Disposable product checks use `node --test --test-timeout=10000`, so a failed generated
-test that leaks a server can return findings before the model invocation expires. Fixtures and
+behavior. Disposable product checks ran `node --test --test-timeout=10000` so a failed generated test that
+leaked a server could still return findings; with the HTTP service product deleted the product
+runner is `npx vitest run`, which tears its own environment down. Fixtures and
 production configuration are unchanged. The full validation command took about 30 minutes;
 `--prune-arm` and `--id` support focused reruns when only one campaign remains.
 

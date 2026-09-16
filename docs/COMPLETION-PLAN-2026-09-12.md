@@ -49,7 +49,7 @@ redesigns this plan does differently or are dropped with a reason in the appendi
 | G21 | 5 | Golden tasks in the `claude plugin eval` layout | G20 | F16 |
 | G22 | 5 | Spec-compliance LLM grader for campaigns | G21 | — |
 | G23 | 5 | Green baseline and a blocking nightly gate | G21, G22 | — |
-| G24 | 5 | Native comparison on campaign-ledger | G09 to G19, G23 | F05, F17 |
+| G24 | 5 | Native comparison on calculator | G09 to G19, G23 | F05, F17 |
 | G25 | 6 | Playbook metrics from git and the ledger | G24 | — |
 | G26 | 6 | Nightly guidance experiment loop | G25 | — |
 
@@ -427,9 +427,17 @@ fixtures.
 **Acceptance:** `expected.json` shows zero `fail` and zero `flaky`; the next nightly run passes
 the gate; a deliberately regressed task fails it.
 
-### G24 — Native comparison on campaign-ledger (absorbs F05, F17)
+### G24 — Native comparison on calculator (absorbs F05, F17)
 
-**Work:** Run the `native` pair on `campaign-ledger`, three paired repetitions, with the driver
+> **Subject changed 2026-09-16, on the operator's instruction.** It read `campaign-ledger`, and
+> the measurement it asked for could not be afforded: five sprints × three repetitions × two arms
+> was USD 28–32 and 3–4 hours, declined on 2026-09-15. `campaign-ledger`, `campaign-service` and
+> `retrieval-app` are deleted. `calculator` — React + TypeScript, three intents in two sprints —
+> replaces all three. Three repetitions of both arms is now ~18 driver runs rather than ~30 on a
+> five-sprint product, and the arms exercise `fmt`, `lint`, `typecheck` and `coverage`, which no
+> previous measurement ever did because no previous product had them.
+
+**Work:** Run the `native` pair on `calculator`, three paired repetitions, with the driver
 from G09 in the harness arm. Record cost per accepted change, acceptance, evaluator-caught defects
 and wall-clock in `evals/evidence/comparison-summary.json`.
 
@@ -453,6 +461,18 @@ before phase 6.
 > unreviewed repair, no shell for the generator. Driver 0.548 per accepted change (was 1.140),
 > 2.0 min (was 4.8), 0 denied commands (was 7); cost criterion still no at 2.8× the ceiling
 > (was 6.3×) — the one evaluator review is 61% of what is left. Six phases now.
+>
+> **The fixture replaced, 2026-09-16.** The pilot numbers above were measured on
+> `campaign-ledger` sprint 1 and are kept as history; they do not transfer. What carried over is
+> the cut list (no refactor turn, one review, no shell) and the shape of the answer: acceptance
+> yes, cost no, evaluator-caught-defect no. Nothing is re-measured until the calculator arms run,
+> and no criterion is marked met before then.
+>
+> Two things the cut lost, both for the operator to weigh rather than for this plan to decide:
+> the `retrieval` comparison pair had a purpose-built fixture (`retrieval-app`, two modules
+> exporting the same name) and now has nothing to run on, so the graph's disputed value is
+> unmeasured; and `spec-compliance.mjs`, the supersedes grader, was written for a rule reversal
+> that the calculator's two sprints do not contain.
 >
 > **Baseline (G23) 2026-09-15:** not re-recorded. No nightly run has ever fired (no schedule on
 > main, no secret, branch unpushed). The last full local run (2026-09-14, 17/1/4) cannot be
