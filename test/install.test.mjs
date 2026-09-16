@@ -366,3 +366,37 @@ test('the composed instructions stay inside the CLAUDE.md line budget for an ord
   assert.ok(limit > 0, 'the installed registry must state [limits].claude_md_lines');
   assert.ok(lines <= limit, `composed CLAUDE.md is ${lines} lines against the ${limit}-line ceiling`);
 });
+
+// MEASURED in the G24 pilot on `calculator`, 2026-09-16
+// (`.aidlc/evals/comparisons/2026-09-16T08-15-39-145Z`): the implement turn wrote correct code in
+// 87 s, then `--stage stop` failed `fmt` on CODEBASE-MAP.md — which the harness's own Stop hook
+// had just written. The driver spent a repair turn, USD 0.235 and 22 minutes on a file it
+// regenerates, delivered nothing, and was killed on the suite deadline. Native shipped the same
+// change in 56 s for USD 0.121. A project is green until the harness writes into it.
+test('init leaves the project formatter unable to fail on files the harness generates', (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'harness-fmt-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  execFileSync('git', ['init', '-q'], { cwd: root });
+  writeFileSync(path.join(root, 'package.json'), JSON.stringify({ name: 'p', devDependencies: { prettier: '^3' } }));
+  writeFileSync(path.join(root, '.prettierignore'), 'coverage\ndist\n');
+  const r = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr);
+
+  const ignore = readFileSync(path.join(root, '.prettierignore'), 'utf8');
+  for (const generated of ['CLAUDE.md', 'CODEBASE-MAP.md', '.claude/', '.aidlc/']) {
+    assert.ok(ignore.split('\n').includes(generated), `${generated} is generated and must not reach the formatter`);
+  }
+  assert.match(ignore, /^coverage$/m, "the project's own entries are kept");
+  assert.match(r.stderr, /prettierignore/, 'a file the harness edited must be named on the way past');
+
+  // Append-only and idempotent: a second install adds nothing and rewrites nothing.
+  const again = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
+  assert.equal(again.status, 0, again.stderr);
+  assert.equal(readFileSync(path.join(root, '.prettierignore'), 'utf8'), ignore);
+});
+
+// A project with no package.json has no prettier to teach, and a `.prettierignore` there is litter.
+test('init writes no ignore file into a project that has no node toolchain', (t) => {
+  const root = installed(t);
+  assert.equal(existsSync(path.join(root, '.prettierignore')), false);
+});

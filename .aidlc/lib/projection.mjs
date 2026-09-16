@@ -77,3 +77,25 @@ export function composeProjectInstructions(template, adopted = null) {
   const head = titled ? template.replace(/^#[ \t]+.*$/m, `# ${titled[1].trim()}`) : template;
   return `${head.slice(0, head.indexOf(heading[0]))}${heading[0]}\n\n${rest}\n`;
 }
+
+// The files the harness writes into a consumer's tree. The project's own formatter has no reason
+// to know about them, and on 2026-09-16 that cost a whole delivery.
+//
+// MEASURED, G24 pilot on `calculator` (.aidlc/evals/comparisons/2026-09-16T08-15-39-145Z): the
+// implement turn wrote correct code in 87 s, then `--stage stop` failed `fmt` on CODEBASE-MAP.md —
+// which the Stop hook had just generated. The driver spent a repair turn, USD 0.235 and 22 minutes
+// on a file it regenerates, delivered nothing, and was killed on the suite deadline. The native
+// arm shipped the same change in 56 s for USD 0.121. Reproduced in three steps: a staged project
+// passes `--stage stop`, `harness map` writes the file, and the same command then fails forever.
+//
+// `.aidlc/state/` is already gitignored, but a formatter reads the working tree, not git.
+export const GENERATED_PATHS = ['CLAUDE.md', 'CODEBASE-MAP.md', '.claude/', '.aidlc/'];
+
+const IGNORE_HEADER = '# Written by harness init: these are generated, and regenerated. Not yours to format.';
+
+// Append-only, and only what is missing: an ignore file is the project's. Returns the lines added.
+export function ignoreFileAdditions(current, paths = GENERATED_PATHS) {
+  const present = new Set(String(current ?? '').split('\n').map((l) => l.trim()).filter(Boolean));
+  const missing = paths.filter((p) => !present.has(p));
+  return missing.length ? { missing, next: `${String(current ?? '').trimEnd()}\n\n${IGNORE_HEADER}\n${missing.join('\n')}\n`.trimStart() } : null;
+}

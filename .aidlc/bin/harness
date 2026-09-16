@@ -34,7 +34,7 @@ import * as evalGate from '../lib/eval-gate.mjs';
 const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
 import * as artifacts from '../lib/artifacts.mjs';
 import * as intake from '../lib/intake.mjs';
-import { renderClaudeInstructions, renderModel, composeProjectInstructions } from '../lib/projection.mjs';
+import { renderClaudeInstructions, renderModel, composeProjectInstructions, ignoreFileAdditions, GENERATED_PATHS } from '../lib/projection.mjs';
 import { detect, applyDetection, detectionReport } from '../lib/toolchain.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -164,6 +164,18 @@ async function main() {
       for (const d of [L.aidlc, L.claude, path.join(L.aidlc, 'bin'), path.dirname(L.reviewPolicy), L.artifacts, L.state]) mkdirSync(d, { recursive: true });
       for (const [src, dst] of [['templates/harness.toml', L.config], ['templates/gitignore', path.join(L.aidlc, '.gitignore')]]) {
         if (!existsSync(dst)) cpSync(path.join(HERE, src), dst);
+      }
+
+      // The project's formatter must not be handed the harness's own generated files. See
+      // GENERATED_PATHS for the delivery this cost. Append-only, and only in a project that has a
+      // formatter to teach: creating `.prettierignore` where there is no prettier would be litter.
+      if (!self && existsSync(path.join(root, 'package.json'))) {
+        const ignore = path.join(root, '.prettierignore');
+        const added = ignoreFileAdditions(existsSync(ignore) ? readFileSync(ignore, 'utf8') : '');
+        if (added) {
+          writeFileSync(ignore, added.next);
+          console.error(`added ${added.missing.join(', ')} to .prettierignore — the harness generates them and your formatter would fail on them`);
+        }
       }
 
       // G12. An empty verb is `skipped`, which is honest and completely silent: a project
