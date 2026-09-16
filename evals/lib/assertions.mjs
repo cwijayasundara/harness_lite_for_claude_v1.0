@@ -104,7 +104,11 @@ export const CHECKS = {
     return ok((changed.length === 0) === want, changed.length ? `touched: ${changed.slice(0, 8).join(', ')}` : '');
   },
   transcript_matches(ctx, re) {
-    return ok(toRegExp(re).test(ctx.transcript), `no match for /${re}/`);
+    // The detail used to be written whether or not the assertion passed, so a passing row read
+    // `{"pass":true,"detail":"no match for ..."}`. Evidence that contradicts itself is evidence
+    // nobody can act on: triaging the 2026-09-14 baseline started by doubting the passes.
+    const hit = toRegExp(re).test(ctx.transcript);
+    return ok(hit, hit ? '' : `no match for /${re}/`);
   },
   transcript_not_matches(ctx, re) {
     const m = ctx.transcript.match(toRegExp(re));

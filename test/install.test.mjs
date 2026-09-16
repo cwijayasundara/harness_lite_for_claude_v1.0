@@ -327,3 +327,42 @@ test('upgrading removes a runtime left by an older harness', (t) => {
   assert.equal(existsSync(path.join(root, '.claude', 'runtime')), false,
     'init left a copy of an older harness in the project');
 });
+
+// M1 step 2, 2026-09-16. `init` into a repository that already had a CLAUDE.md wrote that file
+// straight into `.aidlc/instructions.md` and never read the template, so the project's agent
+// instructions contained none of the harness's workflow, verification or ask-when-ambiguous
+// steering. Every eval fixture has a `.claude/CLAUDE.md`, which is how all 22 golden tasks came
+// to grade steering that was never loaded. The project's own conventions are still kept.
+test('installing over an existing CLAUDE.md keeps both the harness steering and the project conventions', (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'harness-adopt-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  execFileSync('git', ['init', '-q'], { cwd: root });
+  mkdirSync(path.join(root, '.claude'), { recursive: true });
+  writeFileSync(path.join(root, '.claude/CLAUDE.md'),
+    '# payments-api\n\n## House rules\n\n- Money is integer cents, never a float.\n');
+  const r = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
+  assert.equal(r.status, 0, `init failed: ${r.stderr}`);
+
+  const instructions = readFileSync(path.join(root, '.claude/CLAUDE.md'), 'utf8');
+  assert.equal(instructions, readFileSync(path.join(root, 'CLAUDE.md'), 'utf8'));
+  assert.match(instructions, /^# payments-api$/m, 'the project keeps its own title');
+  assert.match(instructions, /Money is integer cents/, 'the project keeps its own conventions');
+  assert.match(instructions, /intent -> spec \(gate 1\) -> plan \(gate 2\) -> implement -> review -> merge \(gate 3\)/);
+  assert.match(instructions, /Never report a task complete without running `--stage stop`/);
+  assert.match(instructions, /Make the export better/, 'the paragraph that says when to ask must survive adoption');
+  assert.doesNotMatch(instructions, /CHANGE-ME/);
+});
+
+test('the composed instructions stay inside the CLAUDE.md line budget for an ordinary project', (t) => {
+  const root = mkdtempSync(path.join(tmpdir(), 'harness-adopt-budget-'));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  execFileSync('git', ['init', '-q'], { cwd: root });
+  writeFileSync(path.join(root, 'CLAUDE.md'), '# svc\n\n## Rules\n\n- One.\n- Two.\n');
+  const r = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
+  assert.equal(r.status, 0, `init failed: ${r.stderr}`);
+  const lines = readFileSync(path.join(root, '.claude/CLAUDE.md'), 'utf8').split('\n').length;
+  const limit = Number(/^claude_md_lines\s*=\s*(\d+)/m.exec(
+    readFileSync(path.join(root, '.aidlc/harness.toml'), 'utf8'))?.[1]);
+  assert.ok(limit > 0, 'the installed registry must state [limits].claude_md_lines');
+  assert.ok(lines <= limit, `composed CLAUDE.md is ${lines} lines against the ${limit}-line ceiling`);
+});

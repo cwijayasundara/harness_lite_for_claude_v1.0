@@ -48,15 +48,18 @@ test('B2 the write guard names which refusal fired, and the agent sees the same 
 
     const prefix = writeRefusal('.claude/CLAUDE.md', cfg);
     assert.equal(prefix.rule, 'prefix-cache');
-    assert.match(prefix.message, /configures agent instructions or permissions/);
-    // MEASURED 2026-09-14: the reason used to go last, and the model relaying the refusal kept the
-    // opening clause and dropped it — explaining a cache rule as "a configuration file". A reader
-    // summarising a long refusal keeps the head, so the reason leads and the remedy trails.
+    assert.match(prefix.message, /invalidates the prompt cache/);
+    // MEASURED twice, both ways round: with the reason last the model relaying the refusal kept
+    // the head (2026-09-14, "a configuration file that affects session instructions"); with the
+    // reason first it kept the tail (2026-09-15, "the system requires an approved plan"). What it
+    // keeps is the sentence that says what to DO. So the refusal is ONE sentence — reason as the
+    // subject clause, remedy after the dash — and this asserts there is no second sentence before
+    // the scope line to drop.
     assert.match(prefix.message, /prompt cache/, 'the refusal must carry its reason');
     assert.ok(prefix.message.indexOf('prompt cache') < prefix.message.indexOf('approved plan'),
       'the reason comes before the remedy');
-    assert.ok(prefix.message.indexOf('already loaded') < prefix.message.indexOf('configures agent'),
-      'and before the description of what the file is');
+    assert.equal(prefix.message.split('—')[0].split(/(?<=\.)\s/).length, 1,
+      'the reason and the remedy must not be separable sentences');
 
     const protectedPath = writeRefusal('evals/fixtures/clean-app/x.mjs', cfg);
     assert.equal(protectedPath.rule, 'protected-path');

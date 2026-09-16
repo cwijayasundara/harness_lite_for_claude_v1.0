@@ -99,7 +99,9 @@ test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
     // init invalidates the cache exactly as editing the generated file would.
     // lean-v2 B6 removed `.aidlc/harness.toml` from this list: it is a registry, not prompt text.
     for (const rel of ['.claude/CLAUDE.md', '.claude/settings.json', '.aidlc/instructions.md']) {
-      assert.match(String(writeBlocked(rel, cfg)), /agent instructions or permissions/, `stopped guarding ${rel}`);
+      // Matched on the rule's own reason rather than on the clause that used to classify it:
+      // the refusal is one sentence now, because two sentences were two things to drop.
+      assert.match(String(writeBlocked(rel, cfg)), /prompt cache/, `stopped guarding ${rel}`);
     }
   } finally { f.cleanup(); }
 });

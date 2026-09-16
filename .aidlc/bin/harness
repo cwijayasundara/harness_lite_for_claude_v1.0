@@ -34,7 +34,7 @@ import * as evalGate from '../lib/eval-gate.mjs';
 const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
 import * as artifacts from '../lib/artifacts.mjs';
 import * as intake from '../lib/intake.mjs';
-import { renderClaudeInstructions, renderModel } from '../lib/projection.mjs';
+import { renderClaudeInstructions, renderModel, composeProjectInstructions } from '../lib/projection.mjs';
 import { detect, applyDetection, detectionReport } from '../lib/toolchain.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -203,9 +203,21 @@ async function main() {
       // header, so its content legitimately changes — that is installing, not invalidating.
       const reinstall = existsSync(L.instructions);
       if (!reinstall) {
-        if (existsSync(L.rootClaudeMd)) writeFileSync(L.instructions, readFileSync(L.rootClaudeMd, 'utf8'));
-        else if (existsSync(L.claudeMd)) writeFileSync(L.instructions, readFileSync(L.claudeMd, 'utf8'));
-        else cpSync(path.join(HERE, 'templates', 'project-instructions.md'), L.instructions);
+        // Adopting replaces the template's `## Project conventions`; it does not replace the
+        // template. See composeProjectInstructions for what was measured when it did.
+        const adopted = existsSync(L.rootClaudeMd) ? readFileSync(L.rootClaudeMd, 'utf8')
+          : existsSync(L.claudeMd) ? readFileSync(L.claudeMd, 'utf8')
+          : null;
+        const composed = composeProjectInstructions(
+          readFileSync(path.join(HERE, 'templates', 'project-instructions.md'), 'utf8'), adopted);
+        writeFileSync(L.instructions, composed);
+        // Law 5's ceiling is measured on the projection, and a project whose own instructions are
+        // long now crosses it at install time rather than at its first `--stage commit`.
+        const ceiling = loadConfig(root).limits?.claude_md_lines;
+        const projected = renderClaudeInstructions(composed).split('\n').length;
+        if (adopted && ceiling && projected > ceiling) console.error(
+          `.claude/CLAUDE.md will be ${projected} lines against [limits].claude_md_lines = ${ceiling}.`
+          + ` Trim "## Project conventions" in .aidlc/instructions.md and re-run 'harness init --into . --force'.`);
       }
       if (!existsSync(L.reviewPolicy)) cpSync(path.join(HERE, 'policies', 'review.md'), L.reviewPolicy);
 

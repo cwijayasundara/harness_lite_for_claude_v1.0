@@ -55,3 +55,25 @@ export function renderModel(text, model, extra = {}) {
 export function renderClaudeInstructions(source) {
   return `<!-- Generated from .aidlc/instructions.md; edit the canonical file and run harness init. -->\n${source.trim()}\n`;
 }
+
+// MEASURED 2026-09-16, M1 step 2: `harness init` into a repository that already had a CLAUDE.md
+// adopted that file verbatim as `.aidlc/instructions.md` and never opened
+// `templates/project-instructions.md`. Every eval fixture ships a `.claude/CLAUDE.md`, so all 22
+// golden tasks have been running with none of the harness's own steering — no workflow line, no
+// "paste the output of --stage stop", and not the paragraph that names "Make the export better"
+// as the case to ask about, which is the verbatim prompt of `clarify-ambiguous`, failing since
+// the 2026-09-06 record. A consumer installing into an existing repository got the same silence.
+//
+// The project's own file is not the thing to throw away either: it goes under the template's
+// `## Project conventions`, the section that exists to be replaced. Pure, so the composition is
+// tested without an install.
+export function composeProjectInstructions(template, adopted = null) {
+  const body = String(adopted ?? '').trim();
+  if (!body) return template;
+  const heading = /^##[ \t]+Project conventions[ \t]*$/m.exec(template);
+  if (!heading) throw new Error('project-instructions template has no "## Project conventions" section to adopt into');
+  const titled = /^#[ \t]+(.+)$/m.exec(body);
+  const rest = (titled ? body.slice(0, titled.index) + body.slice(titled.index + titled[0].length) : body).trim();
+  const head = titled ? template.replace(/^#[ \t]+.*$/m, `# ${titled[1].trim()}`) : template;
+  return `${head.slice(0, head.indexOf(heading[0]))}${heading[0]}\n\n${rest}\n`;
+}
