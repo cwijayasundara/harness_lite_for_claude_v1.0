@@ -11,13 +11,25 @@ Machine: load 2.5–5.0 at each launch, Microsoft Defender at 74–114% of one c
 0% (the `.metadata_never_index` marker holds). No task was killed by the machine. Total spend
 across all three: USD 1.77.
 
-| | run 1, 08:15 | run 2, 09:22 | run 3, 10:51 |
-|---|---|---|---|
-| native accepted | 1 | **incomplete** | 1 |
-| native USD / min | 0.121 / 0.9 | null / 7.9 | **0.138 / 0.9** |
-| harness accepted | **0** | 1 | **0** |
-| harness USD / min | 0.365 / 23.5 | 0.582 / 5.7 | 0.546 / 3.0 |
-| why the harness arm ended | `fmt` looped on CODEBASE-MAP.md | delivered | repair broke `test` |
+| | run 1, 08:15 | run 2, 09:22 | run 3, 10:51 | run 4, 12:38 |
+|---|---|---|---|---|
+| machine load at launch | 1.77 | 2.47 | 4.97 | **8.41** |
+| native accepted | 1 | **incomplete** | 1 | **incomplete** |
+| native USD / min | 0.121 / 0.9 | null / 7.9 | **0.138 / 0.9** | null / 6.3 |
+| harness accepted | **0** | 1 | **0** | **0** |
+| harness USD / min | 0.365 / 23.5 | 0.582 / 5.7 | 0.546 / 3.0 | 0.207 / 24.8 |
+| the harness arm's implement turn | 87 s | 90 s | 90 s | **1484 s** |
+| why the harness arm ended | `fmt` looped on CODEBASE-MAP.md | delivered | repair broke `test` | suite time exhausted inside implement |
+
+**Run 4 measured nothing, and the operator error is the finding.** Cut 1 landed before it
+(`reviewVerdict` no longer counts a `## Blocking` heading that says `None.` as a finding) and was
+never exercised: the run never reached `check-stop`. The implement turn — 87, 90 and 90 seconds in
+the three runs launched at load 1.8 to 5.0 — took 1484 seconds at load 8.4, a 16x slowdown on the
+same prompt and the same model, and the suite deadline arrived first. The ground truth records the
+hazard at load 12 with a third of a suite silently killed; 8.4 was already far enough up the curve
+to destroy a measurement. The run was started at 8.4 deliberately, to save five minutes of waiting,
+and it cost USD 0.21 and 25 minutes for no number. **Quiesce below 5 and confirm it, or do not
+start.**
 
 Raw: `.aidlc/evals/comparisons/2026-09-16T{08-15-39,09-22-27,10-51-24}*`.
 
