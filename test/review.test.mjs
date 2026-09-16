@@ -192,14 +192,19 @@ test('the review export is scoped to the plan, its importers, the tests naming i
 });
 
 test('a review that outlives its timeout keeps the findings and the spend and reports itself incomplete', () => {
+  let killSignal = null;
   const s = candidateRepo();
   try {
     const envelope = JSON.stringify({ result: 'Blocking: text.py:5 drops the hyphen. changes-requested', total_cost_usd: 1.5 });
     let passed = null;
     const result = review({ root: s.work, base: s.base, candidate: s.candidate, model: 'test-evaluator',
       output: 'timed-out.md', timeoutMs: 1234,
-      invoke(args, options) { passed = options.timeout; return { status: null, signal: 'SIGTERM', stdout: envelope, error: Object.assign(new Error('spawnSync ETIMEDOUT'), { code: 'ETIMEDOUT' }) }; } });
+      invoke(args, options) { passed = options.timeout; killSignal = options.killSignal; return { status: null, signal: 'SIGKILL', stdout: envelope, error: Object.assign(new Error('spawnSync ETIMEDOUT'), { code: 'ETIMEDOUT' }) }; } });
     assert.equal(passed, 1234, '--timeout overrides the derived allowance');
+    // MEASURED 2026-09-15 (shift-swap sprint 1): the timeout fired at 314 s, the CLI ignored SIGTERM,
+    // and the driver waited 2,922 s for it to finish on its own. A bound the child can decline is
+    // not a bound.
+    assert.equal(killSignal, 'SIGKILL', 'the timeout kills; it does not ask');
     assert.equal(result.status, 'incomplete');
     assert.equal(result.usd, 1.5, 'spend is recorded when the envelope arrived');
     const report = readFileSync(path.join(s.work, 'timed-out.md'), 'utf8');

@@ -182,7 +182,7 @@ export function deliverInvoker({ root, pluginDir = null, run = runSubscriptionCl
     // an environment variable no code reads steers nothing on its own.
     const started = Date.now();
     const out = run(args, { cwd: root, env: { ...process.env, AIDLC_UNATTENDED: '1', ...(pluginDir ? { HARNESS_HOME: pluginDir } : {}) },
-      encoding: 'utf8', timeout: timeoutMs, maxBuffer: 64 * 1024 * 1024 });
+      encoding: 'utf8', timeout: timeoutMs, killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024 });
     if (out.error?.code === 'ENOENT') return { ok: false, transcript: '', error: 'the `claude` CLI is not on PATH' };
     let parsed = null;
     try { parsed = JSON.parse(out.stdout); } catch { /* not JSON: the raw transcript is still honest */ }
@@ -369,6 +369,10 @@ export async function deliver(cfg, slug, {
     if (phase === 'review') {
       reviewResult = await runReviewPhase();
       if (reviewResult.stopped) return stop(reviewResult.stopped, 'before the review');
+      // MEASURED 2026-09-15: a timed-out review's partial text read as changes-requested and bought
+      // a repair turn. A review that did not finish has no verdict. Stop, name it, leave the phase
+      // uncompleted so a resume runs the review again.
+      if (reviewResult.status === 'incomplete') return stop('review', `the review did not finish: ${reviewResult.reason ?? 'incomplete'}`);
       state.review = reviewResult;
       save();
     }

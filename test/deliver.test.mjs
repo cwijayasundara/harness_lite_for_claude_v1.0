@@ -342,3 +342,25 @@ test('an identity error from the checks stops the run by name and buys no repair
     assert.deepEqual(d.calls.turns.map((t) => t.phase), ['implement'], 'no repair turn was paid for');
   } finally { d.s.cleanup(); }
 });
+
+// MEASURED 2026-09-15 (shift-swap sprint 1): the review timed out, wrote a partial report, and the
+// driver read a verdict out of the partial text and paid USD 0.27 for a repair turn on it. A review
+// that did not finish has no verdict; the run stops and says so, and the human decides.
+test('an incomplete review is not a verdict: the run stops by name and buys no repair turn', async () => {
+  const d = delivery();
+  try {
+    const result = await deliver(d.cfg, SLUG, { ...d.fakes,
+      async review(options) {
+        d.calls.reviews.push(options);
+        writeFileSync(path.resolve(d.s.work, options.output), '# Independent review\n\nStatus: incomplete — timeout after 314000 ms\n\n### Blocking — partial\n\nchanges-requested\n');
+        return { status: 'incomplete', reason: 'timeout after 314000 ms', output: options.output, usd: 0.4, export: { scope: 'plan', files: 4 } };
+      } });
+    assert.equal(result.ok, false);
+    assert.equal(result.stopped.bound, 'review');
+    assert.match(result.stopped.detail, /timeout after 314000 ms/);
+    assert.deepEqual(d.calls.turns.map((t) => t.phase), ['implement'], 'no repair turn on a verdict nobody gave');
+    assert.equal(d.calls.prs.length, 0);
+    // Resumable: the review is not recorded as completed, so a resume runs it again.
+    assert.ok(!readState(d.cfg, SLUG).completed.includes('review'));
+  } finally { d.s.cleanup(); }
+});

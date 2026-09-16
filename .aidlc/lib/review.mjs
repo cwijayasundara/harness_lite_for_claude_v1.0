@@ -155,7 +155,7 @@ function testsNaming(git, revision, paths) {
   return out.split('\n').filter(Boolean).map((line) => line.slice(revision.length + 1));
 }
 
-const timedOut = (out) => out?.error?.code === 'ETIMEDOUT' || (!out?.status && out?.signal === 'SIGTERM');
+const timedOut = (out) => out?.error?.code === 'ETIMEDOUT' || (!out?.status && ['SIGTERM', 'SIGKILL'].includes(out?.signal));
 const text = (value) => (typeof value === 'string' ? value : value?.toString('utf8') ?? '');
 
 export function review({ root, base, candidate, model, output, budgetUsd = 2, timeoutMs = null,
@@ -199,7 +199,9 @@ export function review({ root, base, candidate, model, output, budgetUsd = 2, ti
         'repeat class be counted rather than rediscovered.' : '');
     const started = Date.now();
     const out = invoke(reviewArgs({ model, prompt, budgetUsd, schema }), {
-      cwd: temp, env: process.env, encoding: 'utf8', timeout: allowance, maxBuffer: 16 * 1024 * 1024,
+      // MEASURED 2026-09-15: the CLI ignored SIGTERM and the caller waited 2,922 s past a 314 s
+      // allowance. The timeout is a bound only if the signal is one the child cannot decline.
+      cwd: temp, env: process.env, encoding: 'utf8', timeout: allowance, killSignal: 'SIGKILL', maxBuffer: 16 * 1024 * 1024,
     });
     // `status: incomplete` is a body line and not frontmatter on purpose: `status: approved` in a
     // review artifact is what advances a change to `merge`, and this function must never write to
