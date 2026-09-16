@@ -68,10 +68,16 @@ export function invokerEnv({ pluginDir = null, base = {} }) {
 //
 // `spawnSync` is kept for `requireSubscription`'s own `claude auth status` probe: that is a fast,
 // local call whose result the synchronous preamble needs before it decides anything.
-export function runClaude(args, { cwd, env, timeoutMs, maxBuffer = 64 * 1024 * 1024 }) {
+export function runClaude(args, { cwd, env, timeoutMs, maxBuffer = 64 * 1024 * 1024, bin = 'claude' }) {
   return new Promise((resolve) => {
     let child;
-    try { child = spawn('claude', args, { cwd, env }); }
+    // stdin is /dev/null, not an open pipe nobody writes to. MEASURED 2026-09-16, the G24 pilot
+    // rerun: the native arm's implement turn returned one line — "Warning: no stdin data received
+    // in 3s, proceeding without it. […] redirect stdin explicitly: < /dev/null to skip" — then
+    // produced nothing for 7.6 minutes and was SIGKILLed on its deadline, `usage: {}`, billing
+    // incomplete, and the comparison it was half of had no cost number at all. Nothing here ever
+    // writes to the child's stdin; `spawnSync` closes it for you and this did not.
+    try { child = spawn(bin, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] }); }
     catch (error) { resolve({ error, status: null, signal: null, stdout: '', stderr: '' }); return; }
 
     let stdout = '';

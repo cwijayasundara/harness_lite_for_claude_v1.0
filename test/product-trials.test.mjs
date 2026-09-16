@@ -225,3 +225,16 @@ test('a product trial loads the staged plugin it was given, not the container mo
   const native = invokerArgs({ product: true, model: 'm', prompt: 'p', budgetUsd: 1, pluginDir: '/tmp/eval-x/plugin', native: true });
   assert.ok(!native.includes('--plugin-dir'), 'the native arm has no harness');
 });
+
+// The child never reads stdin, and an open pipe nobody writes to made the CLI wait on it. See
+// runClaude for the run this cost: one arm of a paired comparison, unmeasured. `bin` exists so
+// this can be proved against a real child rather than asserted against the source text.
+test('a model child that reads stdin gets EOF instead of waiting for its deadline', async () => {
+  const { runClaude } = await import('../evals/lib/invoker.mjs');
+  const reader = "let seen='';process.stdin.on('data',(d)=>{seen+=d});"
+    + "process.stdin.on('end',()=>{console.log(JSON.stringify({eof:true,seen}));process.exit(0)});";
+  const r = await runClaude(['-e', reader], { cwd: ROOT, env: process.env, timeoutMs: 8000, bin: process.execPath });
+  assert.equal(r.error?.code, undefined, `a child reading stdin must not time out: ${JSON.stringify(r.error ?? null)}`);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(JSON.parse(r.stdout.trim()), { eof: true, seen: '' }, 'stdin must end immediately and carry nothing');
+});

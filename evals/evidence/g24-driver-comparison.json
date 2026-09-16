@@ -1,13 +1,33 @@
 {
   "kind": "g24-pilot-first-sprint-once-per-arm",
-  "recorded_at": "2026-09-16T08:40:06.306Z",
-  "harnessRevision": "8c392cd0067beedb51836d4bda5422f4ebf71f90",
-  "evidenceRoot": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/evals/comparisons/2026-09-16T08-15-39-145Z",
+  "recorded_at": "2026-09-16T09:36:03.895Z",
+  "harnessRevision": "bbfbdbe5cfbcef2e2675e859f1067772fb854d84",
+  "evidenceRoot": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/evals/comparisons/2026-09-16T09-22-27-265Z",
   "repetitions": 0,
   "maxUsd": 4,
-  "maxMinutes": 20,
+  "maxMinutes": 25,
   "summary": {
     "driver/native/smoke": {
+      "attempts": 1,
+      "passed": 0,
+      "incomplete": 1,
+      "unmeasured": 0,
+      "acceptedChanges": 0,
+      "regressions": 0,
+      "verificationFailures": 0,
+      "approvalViolations": 0,
+      "retries": 0,
+      "reportedUsd": 0.0578504,
+      "billingComplete": false,
+      "latencyMs": 474805,
+      "unnecessaryQuestions": null,
+      "evaluatorCaughtDefects": 0,
+      "shippedDefects": 0,
+      "driverStops": 0,
+      "usd": null,
+      "costPerAcceptedChange": null
+    },
+    "driver/harness-driver/smoke": {
       "attempts": 1,
       "passed": 1,
       "incomplete": 0,
@@ -17,45 +37,25 @@
       "verificationFailures": 0,
       "approvalViolations": 0,
       "retries": 0,
-      "reportedUsd": 0.12098820000000002,
+      "reportedUsd": 0.5823266,
       "billingComplete": true,
-      "latencyMs": 56310,
+      "latencyMs": 340517,
       "unnecessaryQuestions": null,
-      "evaluatorCaughtDefects": 0,
+      "evaluatorCaughtDefects": 1,
       "shippedDefects": 0,
       "driverStops": 0,
-      "usd": 0.12098820000000002,
-      "costPerAcceptedChange": 0.12098820000000002
-    },
-    "driver/harness-driver/smoke": {
-      "attempts": 1,
-      "passed": 0,
-      "incomplete": 0,
-      "unmeasured": 0,
-      "acceptedChanges": 0,
-      "regressions": 0,
-      "verificationFailures": 0,
-      "approvalViolations": 0,
-      "retries": 0,
-      "reportedUsd": 0.3650492000000001,
-      "billingComplete": true,
-      "latencyMs": 1408854,
-      "unnecessaryQuestions": null,
-      "evaluatorCaughtDefects": 0,
-      "shippedDefects": 0,
-      "driverStops": 1,
-      "usd": 0.3650492000000001,
-      "costPerAcceptedChange": null
+      "usd": 0.5823266,
+      "costPerAcceptedChange": 0.5823266
     }
   },
   "calibrations": [
     {
       "pair": "driver",
       "successful": false,
-      "smokeCost": 0.48603740000000006,
+      "smokeCost": 0.5823266,
       "projectedUsd": 0,
-      "remainingUsd": 3.5139625999999997,
-      "reason": "suite_time_exhausted"
+      "remainingUsd": 1.859823,
+      "reason": "calibration_failed_or_unknown_billing"
     }
   ],
   "verdict": {
@@ -63,19 +63,19 @@
     "repetitions": 0,
     "pilot": true,
     "acceptance": {
-      "native": 1,
-      "harness": 0,
-      "pass": false
+      "native": 0,
+      "harness": 1,
+      "pass": true
     },
     "cost": {
-      "native": 0.12098820000000002,
-      "harness": null,
-      "billingComplete": true,
-      "ceiling": 0.13308702000000003,
+      "native": null,
+      "harness": 0.5823266,
+      "billingComplete": false,
+      "ceiling": null,
       "pass": false
     },
     "defects": {
-      "evaluatorCaught": 0,
+      "evaluatorCaught": 1,
       "nativeShipped": 0,
       "harnessShipped": 0,
       "campaigns": 1,
