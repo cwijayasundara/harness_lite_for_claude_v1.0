@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {stage,stageProduct} from './stage.mjs';
 import {runComparisonCampaign,walk} from './campaign.mjs';
 import {runDriverCampaign} from './driver-campaign.mjs';
-import {verifyLedger,verifyService,verifyReporting,ledgerDescriptionExplainsPaidRule} from './assertions.mjs';
+import {verifyCalculator} from './assertions.mjs';
 
 export function comparisonPairs(models, {prune=false,pruneArm=null,pair=null}={}) {
   for(const key of (prune?['generator','evaluator']:['generator','evaluator','evals']))if(!models?.[key])throw new Error(`comparison requires explicit ${key} model; no substitution`);
@@ -120,15 +120,8 @@ export function configureComparison(s, config={}) {
 }
 
 export async function gradeComparisonProduct(s,step,product) {
-  if(product==='reporting')return verifyReporting(s,step.level);
-  const proof=product==='ledger'?verifyLedger(s,step.level):verifyService(s,step.level);
-  if(product==='ledger'&&step.level===4&&!existsSync(path.join(s.work,'src/store.mjs')))throw new Error('storage extraction missing');
-  if(product==='ledger'&&step.level===5){
-    const doc=readFileSync(path.join(s.work,'docs/PRODUCT.md'),'utf8');
-    if(!/partial|payment/i.test(doc)||!ledgerDescriptionExplainsPaidRule(doc))throw new Error('current product description misses payment/overdue rule');
-    if(existsSync(path.join(s.work,'src/store.mjs')))throw new Error('external rename undone');
-  }
-  return proof;
+  if(product!=='calculator')throw new Error(`no grader for product "${product}"`);
+  return verifyCalculator(s,step.level);
 }
 
 export async function runComparisons({tasks,models,root,fixturesDir,evidenceRoot,maxUsd=40,maxMinutes=30,prune=false,pruneArm=null,pair=null,now=Date.now,repetitions=3,invokeFactory,available=true,shouldStop=()=>false,log=()=>{},runCampaign=null,stageTrial=stage,isolate=stageProduct}) {

@@ -28,7 +28,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { loadConfig } from '../../.aidlc/lib/config.mjs';
 import { approvalDriver } from './approvals.mjs';
-import { assertProductTree, productTestArgs, productTestCommand, execNode } from './stage.mjs';
+import { assertProductTree, runProductTests, PRODUCT_TEST_COMMAND, execNode } from './stage.mjs';
 import { prepareProductChange, walk } from './campaign.mjs';
 import { invokerEnv } from './invoker.mjs';
 
@@ -68,7 +68,7 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
   const save = () => writeFileSync(path.join(evidenceDir, 'phases.json'), JSON.stringify(result, null, 2) + '\n');
   const event = (name, extra = {}) => { result.phases.push({ ...extra, name }); save(); log(`${config.id}/${t.id}: ${name}`); };
   const sourceDigest = () => walk(s.work).filter((f) => !f.startsWith('.aidlc/') && f !== 'CODEBASE-MAP.md').map((f) => [f, createHash('sha256').update(readFileSync(path.join(s.work, f))).digest('hex')]);
-  const publicCheck = () => { const out = execNode(s.work, productTestArgs, { timeout: 60000 }); assert.equal(out.status, 0, `public tests failed: ${out.stdout}${out.stderr}`); return out.stdout; };
+  const publicCheck = () => { const out = runProductTests(s.work); assert.equal(out.status, 0, `public tests failed: ${out.stdout}${out.stderr}`); return out.stdout; };
   const allowance = Number(t.deliverUsd ?? Math.max(Number(t.budgetUsd ?? 0), DRIVER_BOUNDS.max_usd));
   const minutes = Number(t.deliverMinutes ?? DRIVER_BOUNDS.max_minutes);
 
@@ -161,7 +161,7 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
           event('product-proof-failed', { slug: step.slug, candidateRevision: commit('Failed verification candidate'), detail: error.message });
           if (attempt === 2) throw error;
           result.retries++;
-          await repair(step, `Repair within the same approved scope (${step.files.join(', ')}). External verification failed: ${error.message}\nRun ${productTestCommand}. Do not modify approval artifacts.`);
+          await repair(step, `Repair within the same approved scope (${step.files.join(', ')}). External verification failed: ${error.message}\nRun ${PRODUCT_TEST_COMMAND}. Do not modify approval artifacts.`);
         }
       }
       result.evaluatorCaughtDefects += caught;

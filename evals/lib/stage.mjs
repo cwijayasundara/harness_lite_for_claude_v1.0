@@ -1,27 +1,22 @@
 // Staging: _base, then the fixture on top, then a pristine snapshot to diff against.
 // The work copy is a real git repo, because scope-drift and the commit stage read the diff.
-import { cpSync, mkdtempSync, existsSync, rmSync, mkdirSync, chmodSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, existsSync, rmSync, mkdirSync, chmodSync, readdirSync, readFileSync, writeFileSync, symlinkSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { selectChange } from '../../.aidlc/lib/artifacts.mjs';
 
-// `--test-timeout` bounds a test that hangs; it does not bound a test that FAILS while leaving a
-// listening socket open, because the failure is instant and it is the file's process that then
-// refuses to exit. Without `--test-force-exit` such a seeded defect converts a reported failure
-// into an outer invocation timeout, which is the one outcome the leaked-server trial forbids.
-export const PRODUCT_TEST_ARGS = ['--test', '--test-timeout=10000'];
-export const PRODUCT_TEST_COMMAND = `node ${PRODUCT_TEST_ARGS.join(' ')}`;
-// Process mode only, and deliberately NOT added to the shared constant above: the spec's Design
-// says the container path is unchanged in behaviour, and PRODUCT_TEST_ARGS is what the container
-// path runs. A container gets a fresh PID namespace and `--rm`, so a leaked socket dies with it;
-// a host child does not, and `--test-timeout` does not help — it bounds a test that HANGS, while
-// this one FAILS instantly and it is the file's process that then refuses to exit. Measured
-// before this flag existed: the seeded leaked-server case returned ETIMEDOUT after 25,009ms
-// instead of the failure it was supposed to report.
-export const productTestArgs = [...PRODUCT_TEST_ARGS, '--test-force-exit'];
-export const productTestCommand = `node ${productTestArgs.join(' ')}`;
+// The product's own test command. `calculator` is React + TypeScript on vitest, so this is no
+// longer `node --test`: a product with a real toolchain runs the toolchain's runner, and the
+// three `--test-force-exit` paragraphs that used to live here went with the HTTP service product
+// they were written for — vitest tears its own environment down.
+export const PRODUCT_TEST_COMMAND = 'npx vitest run';
+
+// Not `execNode`: the runner is a bin in the linked `node_modules`, not a Node entry point.
+export function runProductTests(cwd, { timeout = 180000 } = {}) {
+  return spawnSync('npx', ['vitest', 'run'], { cwd, encoding: 'utf8', timeout, killSignal: 'SIGKILL', env: productEnv() });
+}
 
 export const FIXTURES = path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), 'fixtures');
 
@@ -31,6 +26,30 @@ export const FIXTURES = path.join(path.dirname(path.dirname(fileURLToPath(import
 // `clean-app` serves both kinds of task, so pinning the mode per fixture is not available: a task
 // that asserts a refusal has to say which mode it means, exactly as `test/_gates.mjs` makes the
 // unit tests say it.
+// A fixture with a real toolchain (the calculator is React + TypeScript + vitest + eslint +
+// prettier) needs its dependencies, and copying 132 MB of `node_modules` into every staged trial —
+// two arms, three repetitions, three intents — would cost more than the model calls do. One
+// symlink at the staged ROOT instead: Node's resolution walks up from `work/` and finds it, the
+// tree never enters `work/` so no diff, scope check or baseline can see it, and the agent's writes
+// land in `work/` rather than in the fixture everyone else stages from.
+//
+// Not installed here on purpose. An install inside a measured trial is network, minutes and a
+// lockfile resolution that could differ between the two arms being compared.
+export function linkDependencies(fixtureDir, root) {
+  // Absolute: a relative target resolves against the SYMLINK's directory, which is a tmpdir, so
+  // `evals/fixtures/calculator/node_modules` dangled silently and every verb fell back to npx's
+  // registry path.
+  const modules = path.resolve(fixtureDir, 'node_modules');
+  if (!existsSync(path.join(fixtureDir, 'package.json'))) return null;
+  if (!existsSync(modules)) {
+    throw new Error(`${path.basename(fixtureDir)} declares dependencies but has no node_modules — `
+      + `run: npm ci --prefix ${path.relative(process.cwd(), fixtureDir) || fixtureDir}`);
+  }
+  const link = path.join(root, 'node_modules');
+  symlinkSync(modules, link, 'dir');
+  return link;
+}
+
 export function stage(fixturesDir, name, { product = false, native = false, gates = null } = {}) {
   const base = path.join(fixturesDir, '_base');
   const fx = path.join(fixturesDir, name);
@@ -45,22 +64,23 @@ export function stage(fixturesDir, name, { product = false, native = false, gate
   writeFileSync(path.join(root, '.metadata_never_index'), '');
   const work = path.join(root, 'work');
   const pristine = path.join(root, 'pristine');
+  linkDependencies(fx, root);
   if(product){mkdirSync(path.join(work,'.aidlc'),{recursive:true});for(const rel of ['.gitignore','.aidlc/.gitignore'])cpSync(path.join(base,rel),path.join(work,rel));}
   else cpSync(base, work, { recursive: true });
-  cpSync(fx, work, { recursive: true });
+  // Never the dependency tree: it is gitignored, so `git` cannot see it, but `cpSync` copies what
+  // is on disk. MEASURED: staging went from ~200 ms to 35 s, and `assertProductTree` then walked
+  // 10,000 files looking for symlinks. `linkDependencies` put it at the staged root instead.
+  cpSync(fx, work, { recursive: true, filter: (src) => path.basename(src) !== 'node_modules' });
   rmSync(path.join(work, 'README.md'), { force: true });
-  // Failed generated HTTP tests may leak listening servers. Bound the existing check inside
-  // disposable product trials so a seeded defect cannot consume an entire planning turn.
-  if(product){
-    const config=path.join(work,'.aidlc/harness.toml');
-    if(existsSync(config))writeFileSync(config,readFileSync(config,'utf8').replace(/(^test\s*=\s*")node --test(?=[" ])/m,`$1${productTestCommand}`));
-  }
   // Install through the real boundary. Hand-building only the shim omitted the inventory record
   // after Phase 1B, so the budget correctly failed every model task on an unaccounted surface.
   const realBin = path.join(path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url)))), '.aidlc', 'bin', 'harness');
   if (native) {
     rmSync(path.join(work, '.aidlc'), {recursive:true, force:true});
-    writeFileSync(path.join(work, 'CLAUDE.md'), `Use existing code patterns and meaningful regression tests. Run ${PRODUCT_TEST_COMMAND}. Use rg and bounded source reads for navigation. Preserve public compatibility except explicit requirement changes. Ask about consequential ambiguity; routine implementation choices are yours. Follow the external driver’s current approval decision. No dependencies or remote deployment.\n`);
+    // The native arm's whole steering. It names the same checks the harness arm reads out of the
+    // detected `harness.toml`, because an arm that did not know how to run the type checker would
+    // be losing to a worse harness rather than to a better one.
+    writeFileSync(path.join(work, 'CLAUDE.md'), `Use existing code patterns and meaningful regression tests. Checks: ${PRODUCT_TEST_COMMAND}, npx tsc --noEmit, npx eslint ., npx prettier --check . — all four must pass before you report done. Use rg and bounded source reads for navigation. Preserve public compatibility except explicit requirement changes. Ask about consequential ambiguity; routine implementation choices are yours. Follow the external driver’s current approval decision. Add no new dependencies, and do not deploy.\n`);
   }
   const installed = native ? {status:0} : spawnSync(process.execPath, [realBin, 'init', '--into', work], { cwd: work, encoding: 'utf8' });
   if (installed.status !== 0) throw new Error(`fixture harness install failed: ${installed.stderr || installed.stdout}`);
@@ -109,7 +129,7 @@ export function claimPort() {
 // appeared only once trials ran as host processes. It must be cleared deliberately: inheriting
 // the parent environment is exactly what makes it unsafe.
 const PRODUCT_ENV_STRIP = ['NODE_TEST_CONTEXT', 'NODE_TEST_WORKER_ID'];
-function productEnv(env) {
+export function productEnv(env) {
   const merged = { ...process.env, ...env };
   for (const key of PRODUCT_ENV_STRIP) delete merged[key];
   return merged;

@@ -9,10 +9,11 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, rmSync } fr
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { evaluate, KNOWN, toRegExp, verifyLedger, verifyService, verifyReporting, ledgerDescriptionExplainsPaidRule } from './lib/assertions.mjs';
+import { evaluate, KNOWN, toRegExp } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
 import { stage, stageProduct } from './lib/stage.mjs';
 import { runProductCampaign } from './lib/campaign.mjs';
+import { gradeComparisonProduct } from './lib/comparison.mjs';
 import { parse } from '../.aidlc/lib/artifacts.mjs';
 import { approvalDriver } from './lib/approvals.mjs';
 import { loadConfig } from '../.aidlc/lib/config.mjs';
@@ -122,7 +123,7 @@ export function validate(tasks, fixturesDir) {
     if (ids.has(t.id)) problems.push(`${at}: duplicate id`);
     ids.add(t.id);
     if (t.product) {
-      if (!['ledger','service','reporting'].includes(t.product)) problems.push(`${at}: unknown product`);
+      if (t.product !== 'calculator') problems.push(`${at}: unknown product`);
       if (!t.steps?.length) problems.push(`${at}: product steps are empty`);
       for (const step of t.steps ?? []) {
         if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(step.slug ?? '') || !step.request || !step.behaviours?.length || !step.files?.length || !(step.level > 0)) problems.push(`${at}: invalid product step`);
@@ -270,24 +271,12 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
       if(t.product) stageProduct(s,PLUGIN_ROOT);
       try {
         const out = t.product ? await runProductCampaign({task:t,invoke:boundedInvoke,productTree:s,harnessBin,evaluatorModel,evidenceDir:trialDir,log,
-          evaluateProduct:async (productTree,step)=> {
-            // G03. `retrieval-app` declares `product: "reporting"` and there was no branch for it
-            // here, so it fell through to the SERVICE verifier — a trial graded by assertions
-            // about a different product. The comparison path already dispatched all three; this
-            // one dispatched two and silently mis-graded the third.
-            const checked=t.product==='reporting'?verifyReporting(productTree,step.level)
-              :t.product==='ledger'?verifyLedger(productTree,step.level):verifyService(productTree,step.level);
-            if(t.product==='ledger' && step.level===4) {
-              if(!existsSync(path.join(productTree.work,'src/store.mjs')))throw new Error('storage extraction is missing');
-            }
-            if(t.product==='ledger' && step.level===5) {
-              const doc=readFileSync(path.join(productTree.work,'docs/PRODUCT.md'),'utf8');
-              if(!/partial|payment/i.test(doc)||!ledgerDescriptionExplainsPaidRule(doc))throw new Error('current product description misses payment or paid-invoice behaviour');
-              if(/overdue[^\n]*regardless of[^\n]*pa(id|yment)/i.test(doc))throw new Error('product description states superseded overdue rule');
-              if(existsSync(path.join(productTree.work,'src/store.mjs')))throw new Error('external rename was incorrectly undone');
-            }
-            return checked;
-          }}) : await runAttempt(t, boundedInvoke, s, harnessBin, baseline);
+          // One product, one grader, one branch. This used to dispatch three by name and get it
+          // wrong: `retrieval-app` declared `product: "reporting"`, had no branch here, and fell
+          // through to the SERVICE verifier — a trial graded by assertions about a different
+          // product, with the ledger's level-4 and level-5 special cases inlined beside it.
+          evaluateProduct:async (productTree,step)=>gradeComparisonProduct(productTree,step,t.product),
+        }) : await runAttempt(t, boundedInvoke, s, harnessBin, baseline);
         // An ungraded run is not a passing run, and an empty assertion list is not a pass
         // either — "An empty suite is not a pass" (6496934) applies to a single attempt too.
         const pass = !out.incomplete && out.assertions.length > 0 && out.assertions.every((a) => a.pass);
