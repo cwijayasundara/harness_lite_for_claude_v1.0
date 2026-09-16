@@ -364,3 +364,25 @@ test('an incomplete review is not a verdict: the run stops by name and buys no r
     assert.ok(!readState(d.cfg, SLUG).completed.includes('review'));
   } finally { d.s.cleanup(); }
 });
+
+// MEASURED, the G24 pilot on `calculator` 2026-09-16, run 3: `reviewVerdict` counted `## Blocking`
+// as a finding rather than as the heading above one. A review that opened `## Blocking` / `None.`
+// and closed `changes-requested` over a single Important item bought a repair turn; the repair
+// anchored one assertion to the wrong argument, `--stage stop` caught it, and a change that had
+// passed every check was not delivered at all. USD 0.546 for nothing, against native's 0.138 for a
+// shipped change.
+test('a review section that says None holds no findings, and only a blocking finding buys a repair turn', () => {
+  const none = reviewVerdict('## Blocking\n\nNone.\n\n## Important\n\n### 1. Vacuous assertions\n\nbody\n\n`changes-requested`\n');
+  assert.equal(none.verdict, 'changes-requested', "the reviewer's own last word is preserved");
+  assert.equal(none.blocking, 0, '"None." under a heading is an empty category, not an item');
+  assert.deepEqual(none.findings, [], 'and it is not handed to a repair turn as a finding');
+
+  const blocking = reviewVerdict('## Blocking\n\n**1. The tests are vacuous** — src/calc.test.ts:56\n\nbody\n\n`changes-requested`\n');
+  assert.equal(blocking.blocking, 1, 'a section with an item in it still blocks');
+  assert.equal(blocking.findings.length, 1);
+
+  for (const empty of ['None', 'n/a', 'Nothing.', '—']) {
+    assert.equal(reviewVerdict(`## Blocking\n\n${empty}\n\n\`changes-requested\`\n`).blocking, 0, empty);
+  }
+  assert.equal(reviewVerdict('## Blocking\n\nNone.\n\n`approve`\n').verdict, 'approve');
+});

@@ -93,15 +93,52 @@ function commitIfDirty(root, message) {
   return git(root, 'rev-parse', 'HEAD');
 }
 
-// Findings the repair turn is asked to address. Blocking and Important only: a nit is not worth a
-// model turn, and the reviewer is told to separate them.
+// Findings the repair turn is asked to address, and how many of them block.
+//
+// MEASURED, the G24 pilot on `calculator` 2026-09-16, run 3
+// (.aidlc/evals/comparisons/2026-09-16T10-51-24-499Z): this counted `## Blocking` as a FINDING
+// rather than as the heading above one. The review opened with `## Blocking` / `None.` and closed
+// `changes-requested` over a single Important item, so the heading itself bought a repair turn —
+// USD 0.114 — which anchored one assertion to the wrong argument (`subtract(1, '2')` names `b`; it
+// asserted `/^a must be/`), `--stage stop` caught it, and the run stopped with nothing delivered.
+// A change that passed every check became no delivery, on a review with nothing blocking in it.
+//
+// So: a heading whose body is `None` holds no findings, and only a Blocking finding is worth a
+// model turn. An Important finding on an otherwise green change rides to the pull request in the
+// review report, where a human reads it — which is where Law 8 puts the last gate anyway.
+const NONE_BODY = /^(none|n\/a|nothing|—|-)\.?$/i;
+
 export function reviewVerdict(report) {
   const text = String(report ?? '');
-  const findings = text.split('\n').filter((line) => /^#{2,4}\s*(Blocking|Important)\b/i.test(line) || /^\*\*(Blocking|Important)\b/i.test(line));
-  // The reviewer's own last word. `changes-requested` anywhere in the verdict region is the
-  // conservative read: an ambiguous review is not an approval.
+  const lines = text.split('\n');
+  const isHeading = (line) => /^#{2,4}\s*(Blocking|Important)\b/i.test(line) || /^\*\*(Blocking|Important)\b/i.test(line);
+  const severityOf = (line) => (/blocking/i.test(line) ? 'blocking' : 'important');
+
+  // Reviewers write these two ways round: the finding on the heading line (`### Blocking — a`), or
+  // a bare category heading with the finding beneath it. Both are findings; a bare heading whose
+  // body says only "None." is the reviewer reporting an empty category.
+  const inlineText = (line) => line.replace(/^#{2,4}\s*/, '').replace(/^\*\*/, '')
+    .replace(/^(Blocking|Important)\b/i, '').replace(/[\s*:—–-]+/g, ' ').trim();
+
+  const findings = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!isHeading(lines[i])) continue;
+    if (!inlineText(lines[i])) {
+      let body = '';
+      for (let j = i + 1; j < lines.length && !/^#{1,6}\s/.test(lines[j]); j++) body += lines[j].trim() ? lines[j].trim() + '\n' : '';
+      const stated = body.trim();
+      if (!stated || NONE_BODY.test(stated.split('\n')[0])) continue;
+    }
+    findings.push({ severity: severityOf(lines[i]), heading: lines[i].trim() });
+  }
+  // The reviewer's own last word, preserved whatever the sections say: an ambiguous review is not
+  // an approval, and this verdict is what goes on the pull request.
   const requested = /changes-requested/i.test(text);
-  return { verdict: requested ? 'changes-requested' : 'approve', findings };
+  return {
+    verdict: requested ? 'changes-requested' : 'approve',
+    findings: findings.map((f) => f.heading),
+    blocking: findings.filter((f) => f.severity === 'blocking').length,
+  };
 }
 
 // G15. Every suppression the commit-stage checks saw, with its reason, on the pull request. A
@@ -130,7 +167,13 @@ function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, s
     '## Review',
     '',
     `Verdict: **${review?.verdict ?? 'not run'}**${review?.status === 'incomplete' ? ' (review incomplete: ' + review.reason + ')' : ''}` +
-      (review?.repaired ? ' — one repair turn addressed its Blocking/Important findings and the checks passed again; not re-reviewed: the second look is this pull request\'s' : ''),
+      (review?.repaired ? ' — one repair turn addressed its Blocking findings and the checks passed again; not re-reviewed: the second look is this pull request\'s' : '') +
+      // The findings are not dropped, they are handed to the reader of the pull request. A repair
+      // turn on a review with nothing blocking is what turned a green change into no delivery at
+      // all on 2026-09-16; see reviewVerdict.
+      (review?.verdict === 'changes-requested' && !review?.repaired && review?.blocking === 0
+        ? ' — nothing blocking, so no repair turn was bought. The findings are in the report below and are yours to weigh before merging.'
+        : ''),
     review?.output ? `Report: \`${review.output}\`` : '',
     '',
     ...(suppressions.length ? [
@@ -377,7 +420,7 @@ export async function deliver(cfg, slug, {
       save();
     }
 
-    if (phase === 'repair' && reviewResult?.verdict === 'changes-requested' && !reviewResult.repaired) {
+    if (phase === 'repair' && reviewResult?.verdict === 'changes-requested' && reviewResult.blocking > 0 && !reviewResult.repaired) {
       // One repair turn on the review's Blocking/Important findings, then the deterministic checks
       // again. No confirming review: the verdict and the repair both go on the pull request, and
       // the reader of that pull request is the second look.
@@ -443,7 +486,7 @@ export async function deliver(cfg, slug, {
   }
   return { slug, ok: true, stopped: null, completed: state.completed, invocation, ...economics,
     pr: state.pr, ...(state.pr_unopened ? { pr_unopened: state.pr_unopened } : {}),
-    review: reviewResult ? { verdict: reviewResult.verdict, status: reviewResult.status, repaired: !!reviewResult.repaired } : null };
+    review: reviewResult ? { verdict: reviewResult.verdict, status: reviewResult.status, repaired: !!reviewResult.repaired, blocking: reviewResult.blocking ?? 0 } : null };
 
   async function runReviewPhase() {
     const bound = exceeded();
