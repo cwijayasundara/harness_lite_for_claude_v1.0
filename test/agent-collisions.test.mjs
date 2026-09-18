@@ -55,9 +55,9 @@ test('an installed plugin answering to one of our agent names is a collision', (
 });
 
 test('our own plugin, installed, is not a collision with itself', () => {
-  const c = cache([['mine', 'lean-harness-cs-v1', '0.1.0', ['evaluator', 'explorer', 'verifier']]]);
+  const c = cache([['mine', 'lean-harness-cs-v1', '0.1.0', ['evaluator', 'verifier']]]);
   try {
-    assert.equal(collisions({ rolesDir: path.join(A, 'roles'), cacheDir: c.root }).length, 3,
+    assert.equal(collisions({ rolesDir: path.join(A, 'roles'), cacheDir: c.root }).length, 2,
       'without knowing which plugin is ours, every one of our own agents looks like a clash');
     assert.deepEqual(collisions({ rolesDir: path.join(A, 'roles'), cacheDir: c.root, self: 'lean-harness-cs-v1' }), []);
   } finally { c.cleanup(); }
@@ -77,8 +77,8 @@ test('a clean machine says so, and an unreadable cache is silence rather than an
 });
 
 test('our agent names come from the roles themselves, not a second list', () => {
-  // Three names in one place. A hardcoded copy here would be a second list to drift.
-  assert.deepEqual(ourAgents(path.join(A, 'roles')).sort(), ['evaluator', 'explorer', 'verifier']);
+  // Names live in one place. A hardcoded production registry would be a second list to drift.
+  assert.deepEqual(ourAgents(path.join(A, 'roles')).sort(), ['evaluator', 'verifier']);
 });
 
 test('doctor reports the collision, and keeps the isolation the eval invoker relies on', () => {

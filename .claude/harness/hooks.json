@@ -21,7 +21,7 @@
             "timeout": 10
           }
         ],
-        "matcher": "Write|Edit|MultiEdit|Bash|Grep|Glob|Read"
+        "matcher": "Write|Edit|MultiEdit|Bash"
       }
     ],
     "PostToolUse": [

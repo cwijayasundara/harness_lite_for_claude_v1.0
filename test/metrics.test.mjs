@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import {
-  firstPassChecks, reworkCycles, planToPr, specChurn, escapedVersusCaught,
+  firstPassChecks, artifactTransition, reworkCycles, planToPr, specChurn, escapedVersusCaught,
   repeatClasses, contributionTrend, deliveredChanges, metrics, render, MIN_SAMPLE,
 } from '../.claude/harness/lib/metrics.mjs';
 import { render as renderArtifact } from '../.claude/harness/lib/artifacts.mjs';
@@ -51,6 +51,24 @@ test('a proportion with too little behind it is unmeasured, not a number', () =>
   ]));
   assert.equal(withFast.of, 6);
   assert.equal(withFast.value, 0.5);
+});
+
+test('artifact transitions use first Git commits and refuse a thin sample', () => {
+  const r = repo();
+  try {
+    for (let i = 0; i < MIN_SAMPLE; i++) {
+      const dir = path.join(r.L.artifacts, `c${i}`);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(path.join(dir, 'intent.md'), '# intent\n');
+      r.git('add', '.'); r.git('commit', '-qm', `intent ${i}`);
+      writeFileSync(path.join(dir, 'spec.md'), '# spec\n');
+      r.git('add', '.'); r.git('commit', '-qm', `spec ${i}`);
+    }
+    const result = artifactTransition(r.cfg, 'intent', 'spec');
+    assert.equal(result.of, MIN_SAMPLE);
+    assert.ok(result.value >= 0);
+    assert.match(artifactTransition(r.cfg, 'spec', 'plan').why, /0 of a needed/);
+  } finally { r.cleanup(); }
 });
 
 test('rework and lead time come from the driver phase records, or say they cannot', () => {
@@ -200,7 +218,7 @@ test('the rendered report shows every metric, and says plainly when one is unmea
   try {
     const m = metrics(r.cfg, { days: 30 });
     const text = render(m);
-    for (const label of ['first-pass checks', 'rework cycles / change', 'plan approval to PR',
+    for (const label of ['first-pass checks', 'intent to spec', 'spec to plan', 'rework cycles / change', 'plan approval to PR',
       'spec edits after plan', 'escaped of all defects', 'eval contribution', 'changes delivered', 'repeat classes']) {
       assert.ok(text.includes(label), `${label} is missing from the report`);
     }

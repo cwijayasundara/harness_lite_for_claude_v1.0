@@ -1,5 +1,10 @@
 # Lean harness completion plan
 
+> **Historical/superseded for forward work.** Production implementation continues in
+> [PRODUCTION-IMPLEMENTATION-PLAN-2026-09-18.md](PRODUCTION-IMPLEMENTATION-PLAN-2026-09-18.md).
+> Keep this as the disposition record for G01–G26; do not resume work from it without a linked
+> `REOPEN` decision in the active plan.
+
 > **Sequencing superseded 2026-09-16 by [docs/final_impl.md](final_impl.md).** This document
 > remains the work order of record for G01–G26 and keeps its annotations of what shipped; what to
 > do next, what it costs and which decisions are outstanding live in the final implementation plan.

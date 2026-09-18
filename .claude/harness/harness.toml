@@ -100,8 +100,8 @@ max_usd     = 10   # usage estimate, clamped before every model call
 
 [limits]
 skills          = 7
-agents          = 3
-hooks           = 5
+agents          = 2
+hooks           = 4
 hook_loc        = 600
 claude_md_lines = 120
 

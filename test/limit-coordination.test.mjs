@@ -89,7 +89,7 @@ test('B5 no scheduler or assignment verb; control budget unchanged', () => {
   assert.doesNotMatch(help, /\bschedule\b|\bassign\b/);
   const limits = read('.claude/harness/harness.toml');
   assert.match(limits, /^skills\s*=\s*7$/m);
-  assert.match(limits, /^agents\s*=\s*3$/m);
-  assert.match(limits, /^hooks\s*=\s*5$/m);
-  assert.equal(JSON.parse(read('.claude-plugin/plugin.json')).agents.length, 3);
+  assert.match(limits, /^agents\s*=\s*2$/m);
+  assert.match(limits, /^hooks\s*=\s*4$/m);
+  assert.equal(JSON.parse(read('.claude-plugin/plugin.json')).agents.length, 2);
 });

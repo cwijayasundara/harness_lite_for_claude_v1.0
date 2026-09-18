@@ -22,20 +22,14 @@ function stop(work) {
   return rows.filter((row) => row.control === 'map-drift').pop();
 }
 
-test('map-drift passes after a fresh map, fails after a structural edit, and the map is current afterwards', () => {
+test('Stop does not rebuild or grade the optional code map', () => {
   const s = stage(FIXTURES, 'graph-app');
   try {
     assert.equal(spawnSync(process.execPath, [BIN, 'map'], { cwd: s.work, encoding: 'utf8' }).status, 0);
-    assert.equal(stop(s.work).verdict, 'pass', 'a map written moments ago is not stale');
-
+    const before = readFileSync(path.join(s.work, 'CODEBASE-MAP.md'), 'utf8');
     appendFileSync(path.join(s.work, 'web/util.js'), '\nexport function brandNew() { return 1; }\n');
-    const drifted = stop(s.work);
-    assert.equal(drifted.verdict, 'fail', 'the tree changed shape and the map did not');
-    assert.equal(drifted.rule, 'stale-map');
-    // The Stop that found the drift also repaired it, so the next Stop is honest again and a
-    // stale map never outlives the session that made it stale.
-    assert.match(readFileSync(path.join(s.work, 'CODEBASE-MAP.md'), 'utf8'), /brandNew|util\.js/);
-    assert.equal(stop(s.work).verdict, 'pass');
+    assert.equal(stop(s.work), undefined, 'map-drift is not an interactive hook control');
+    assert.equal(readFileSync(path.join(s.work, 'CODEBASE-MAP.md'), 'utf8'), before);
   } finally { s.cleanup(); }
 });
 
@@ -50,13 +44,12 @@ test('a regenerated CODEBASE-MAP.md is not scope drift', async () => {
   } finally { s.cleanup(); }
 });
 
-test('a repository whose map has never been written is drifted, and Stop writes the first one', () => {
+test('Stop does not create an optional map in a repository that has none', () => {
   const s = stage(FIXTURES, 'graph-app');
   try {
     assert.equal(spawnSync(process.execPath, [BIN, 'graph', 'build'], { cwd: s.work, encoding: 'utf8' }).status, 0);
     assert.ok(!existsSync(path.join(s.work, 'CODEBASE-MAP.md')));
-    assert.equal(stop(s.work).verdict, 'fail');
-    assert.ok(existsSync(path.join(s.work, 'CODEBASE-MAP.md')));
-    assert.equal(stop(s.work).verdict, 'pass');
+    assert.equal(stop(s.work), undefined);
+    assert.ok(!existsSync(path.join(s.work, 'CODEBASE-MAP.md')));
   } finally { s.cleanup(); }
 });

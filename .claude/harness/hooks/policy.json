@@ -8,7 +8,7 @@
     },
     {
       "event": "pre-tool",
-      "matcher": "tools",
+      "matcher": "safety",
       "action": "pre-tool",
       "timeout": 10
     },

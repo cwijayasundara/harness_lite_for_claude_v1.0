@@ -23,6 +23,29 @@ const rate = (hits, total, why) => (total < MIN_SAMPLE
   ? unmeasured(`${total} of a needed ${MIN_SAMPLE} — ${why}`)
   : { value: Number((hits / total).toFixed(3)), of: total });
 
+// Plan and Design should be measurable without asking engineers to run timers. Git is already
+// the artifact clock: the first commit containing each file is the stage boundary. We report a
+// median only after enough completed transitions exist, just like the rate metrics below.
+export function artifactTransition(cfg, from, to) {
+  const spans = [];
+  for (const slug of slugs(cfg)) {
+    const committedAt = (name) => {
+      const rel = path.relative(cfg.layout.root, path.join(cfg.layout.artifacts, slug, `${name}.md`));
+      try {
+        const out = execFileSync('git', ['log', '--follow', '--diff-filter=A', '--format=%aI', '--', rel],
+          { cwd: cfg.layout.root, encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+        return out.at(-1) ?? null;
+      } catch { return null; }
+    };
+    const a = Date.parse(committedAt(from));
+    const b = Date.parse(committedAt(to));
+    if (Number.isFinite(a) && Number.isFinite(b) && b >= a) spans.push((b - a) / 3600000);
+  }
+  if (spans.length < MIN_SAMPLE) return unmeasured(`${spans.length} of a needed ${MIN_SAMPLE} committed ${from}-to-${to} transitions`);
+  spans.sort((a, b) => a - b);
+  return { value: Number(spans[Math.floor(spans.length / 2)].toFixed(2)), unit: 'hours (median)', of: spans.length };
+}
+
 // 1. First-pass CI success. A check invocation is the unit: how often did a stage come back green
 // without anyone having to go round again?
 export function firstPassChecks(rows) {
@@ -140,6 +163,8 @@ export function metrics(cfg, { days = 30 } = {}) {
     days,
     rows: rows.length,
     first_pass_checks: firstPassChecks(rows),
+    intent_to_spec: artifactTransition(cfg, 'intent', 'spec'),
+    spec_to_plan: artifactTransition(cfg, 'spec', 'plan'),
     rework_cycles_per_change: reworkCycles(cfg),
     plan_approval_to_pr: planToPr(cfg),
     spec_edits_after_plan: specChurn(cfg),
@@ -159,6 +184,8 @@ export function render(m) {
   };
   const pct = (v) => `${(v * 100).toFixed(1)}%`;
   show('first-pass checks', m.first_pass_checks, pct);
+  show('intent to spec', m.intent_to_spec, (v) => `${v} h (median)`);
+  show('spec to plan', m.spec_to_plan, (v) => `${v} h (median)`);
   show('rework cycles / change', m.rework_cycles_per_change);
   show('plan approval to PR', m.plan_approval_to_pr, (v) => `${v} h (median)`);
   show('spec edits after plan', m.spec_edits_after_plan, pct);

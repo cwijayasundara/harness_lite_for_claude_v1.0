@@ -1,37 +1,17 @@
 // graph-first-retrieval: the index is the first lookup, Grep is the miss path.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { A, C, ROOT } from './_paths.mjs';
 import { renderClaudeInstructions } from '../.claude/harness/lib/projection.mjs';
 
 const read = (rel) => readFileSync(path.join(ROOT, rel), 'utf8');
-const frontmatter = (text) => {
-  const m = text.match(/^---\n([\s\S]*?)\n---/);
-  assert.ok(m, 'missing frontmatter');
-  const out = {};
-  for (const line of m[1].split('\n')) {
-    const i = line.indexOf(':');
-    if (i > 0) out[line.slice(0, i).trim()] = line.slice(i + 1).trim();
-  }
-  return out;
-};
-
-test('B1 explorer can run graph lookup and still cannot write', () => {
-  const md = read('.claude/harness/roles/explorer.md');
-  const contract = JSON.parse(read('.claude/harness/roles/explorer.contract.json'));
-  const tools = (frontmatter(md).tools ?? '').split(',').map((s) => s.trim());
-  assert.deepEqual(tools, contract.tools);
-  assert.ok(tools.includes('Bash'), 'explorer must be able to run harness graph query / pack');
-  for (const t of ['Read', 'Grep', 'Glob']) assert.ok(tools.includes(t), t);
-  assert.equal(contract.may_write, false);
-  assert.ok(!tools.includes('Write') && !tools.includes('Edit'));
-  assert.match(md, /harness graph query/);
-  assert.match(md, /harness pack/);
-  assert.match(md, /first|before/i);
-  assert.match(md, /miss/i);
-  assert.doesNotMatch(md, /\bWrite\b|\bEdit\b/);
+test('B1 optional graph lookup does not require a shipped explorer agent', () => {
+  assert.equal(existsSync(path.join(A, 'roles/explorer.md')), false);
+  assert.equal(existsSync(path.join(A, 'roles/explorer.contract.json')), false);
+  const agents = JSON.parse(read('.claude-plugin/plugin.json')).agents;
+  assert.deepEqual(agents.map((p) => path.basename(p, '.md')).sort(), ['evaluator', 'verifier']);
 });
 
 // The Claude surface is the projection a *consumer* project gets, rendered from the canonical
@@ -60,15 +40,11 @@ test('B2 steering names graph/pack first and Grep as the miss path', () => {
   assert.match(surfaces.implement, /pack|graph query/);
 });
 
-test('B3 Grep stays allowed; preSearch does not dump a pack', () => {
+test('B3 Grep stays native and graph advice is not in the hot hook path', () => {
   const dispatch = read('.claude/harness/hooks/dispatch.mjs');
-  assert.match(dispatch, /tool === 'Grep' \|\| tool === 'Glob'/);
-  assert.match(dispatch, /return preSearch/);
-  const fn = dispatch.slice(dispatch.indexOf('function preSearch'), dispatch.indexOf('export async function dispatch'));
-  assert.doesNotMatch(fn, /permissionDecision:\s*'deny'/);
-  assert.doesNotMatch(fn, /renderPack|# context pack/);
-  assert.match(fn, /additionalContext/);
-  assert.match(fn, /graph query callers/);
+  assert.doesNotMatch(dispatch, /function preSearch|return preSearch/);
+  const hooks = JSON.parse(read('.claude/harness/hooks.json'));
+  assert.doesNotMatch(hooks.hooks.PreToolUse[0].matcher, /Grep|Glob|Read/);
   const miss = read('.claude/harness/bin/harness');
   assert.match(miss, /fall back to: grep -rn/);
 });
@@ -81,6 +57,6 @@ test('B4 lean-review row freezes expansion and repairs usage', () => {
   assert.match(row, /repair usage|graph-first/i);
   assert.doesNotMatch(row, /First removal experiment/);
   const limits = read('.claude/harness/harness.toml');
-  assert.match(limits, /^agents\s*=\s*3$/m);
-  assert.equal(JSON.parse(read('.claude-plugin/plugin.json')).agents.length, 3);
+  assert.match(limits, /^agents\s*=\s*2$/m);
+  assert.equal(JSON.parse(read('.claude-plugin/plugin.json')).agents.length, 2);
 });

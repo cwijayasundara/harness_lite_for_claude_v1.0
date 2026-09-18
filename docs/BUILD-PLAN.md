@@ -6,6 +6,9 @@
 > plan describes, along with the three overlapping plan documents that described them. What
 > survives here is the design argument, which is still the best account of why the kernel is
 > shaped the way it is.
+>
+> Forward production work is governed only by
+> [PRODUCTION-IMPLEMENTATION-PLAN-2026-09-18.md](PRODUCTION-IMPLEMENTATION-PLAN-2026-09-18.md).
 
 > A lean, language-agnostic SDLC harness for Claude Code, built from the v6 post-mortem
 > and aligned to Anthropic's AI-native SDLC playbook.

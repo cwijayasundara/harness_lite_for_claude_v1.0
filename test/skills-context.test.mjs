@@ -33,7 +33,7 @@ test('B1 the shipped skills are the reviewed six, and the ceiling has not moved'
   const toml = read('.claude/harness/harness.toml');
   const limits = Object.fromEntries(
     [...toml.matchAll(/^(skills|agents|hooks)\s*=\s*(\d+)/gm)].map(m => [m[1], Number(m[2])]));
-  assert.deepEqual(limits, { skills: 7, agents: 3, hooks: 5 },
+  assert.deepEqual(limits, { skills: 7, agents: 2, hooks: 4 },
     'the registry ceiling moved; the budget is spent, not a starting position');
 });
 

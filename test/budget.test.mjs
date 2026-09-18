@@ -9,7 +9,7 @@ import { A, C, BIN } from './_paths.mjs';
 import { loadConfig } from '../.claude/harness/lib/config.mjs';
 import { measure, run as budgetRun, RECORD } from '../.claude/harness/checks/budget.mjs';
 
-const LIMITS = { skills: 7, agents: 3, hooks: 4, hook_loc: 600, claude_md_lines: 120 };
+const LIMITS = { skills: 7, agents: 2, hooks: 4, hook_loc: 600, claude_md_lines: 120 };
 
 // An installed project, measured the way a user's CI measures it: by running the harness that
 // was actually installed there. Importing `measure` directly would resolve the harness root to
@@ -46,7 +46,7 @@ test('an installed project measures the harness it was given', () => {
     const b = budgetOf(root);
     assert.equal(b.measured.hooks, 4, 'hook bindings');
     assert.equal(b.measured.skills, 6, 'skills');
-    assert.equal(b.measured.agents, 3, 'agents');
+    assert.equal(b.measured.agents, 2, 'agents');
     assert.ok(b.measured.hook_loc > 0, `hook_loc = ${b.measured.hook_loc}`);
     assert.equal(b.verdict, 'pass', 'a full harness in an empty project sits inside its budget');
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -60,7 +60,7 @@ test('init records what it shipped, and a self-install records nothing', () => {
   try {
     const record = path.join(root, '.claude/harness', RECORD);
     assert.ok(existsSync(record), `${RECORD} was not written`);
-    assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).shipped, { skills: 6, agents: 3 });
+    assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).shipped, { skills: 6, agents: 2 });
     assert.equal(existsSync(path.join(A, RECORD)), false, 'a self-install must not record itself');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -128,7 +128,7 @@ test('re-running init refreshes the recorded inventory', () => {
     const again = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
     assert.equal(again.status, 0, again.stderr);
     assert.equal(budgetOf(root).measured.skills, 6);
-    assert.equal(budgetOf(root).measured.agents, 3);
+    assert.equal(budgetOf(root).measured.agents, 2);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
@@ -140,7 +140,7 @@ test('the budget reads nothing outside the project', () => {
   try {
     const b = budgetOf(root, { HOME: home, USERPROFILE: home });
     assert.equal(b.measured.skills, 6);
-    assert.equal(b.measured.agents, 3);
+    assert.equal(b.measured.agents, 2);
     assert.equal(b.measured.hooks, 4);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -152,7 +152,7 @@ test('the budget reads nothing outside the project', () => {
 // the recorded half must never apply here, or this repository could stop counting its own.
 test('the self-install measures the harness itself, not a record', () => {
   const m = measure({ layout: { harness: A, claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
-  assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 6, agents: 3, hooks: 4 });
+  assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 6, agents: 2, hooks: 4 });
   assert.ok(m.hook_loc > 0, `hook_loc = ${m.hook_loc}`);
 });
 

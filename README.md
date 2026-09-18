@@ -225,15 +225,19 @@ governing anything, so a gate cannot quietly still read as passed while the text
 Once installed, hooks fire on their own:
 
 - **After every edit** — fmt, lint, typecheck on changed files
-- **Before Claude says "done"** — the full stop stage, including tests
+- **Before Claude says "done"** — changed-file QA and targeted tests; the full suite remains the CI authority
 - **Before writes** — guards on protected artifacts and test integrity
 - **In CI** — the commit stage, adding secrets scanning, scope-drift, and budget limits
 
+These hooks are independent of the artifact workflow. A user can start with an informal prompt
+and edit code immediately; PostToolUse and Stop still run the configured quality sensors. Empty
+capabilities remain visible as `SKIP`, so production rollout must make `doctor` green for the
+project's formatter, linter/type checker, tests, architecture and hardening profiles.
+
 Claude repairs failures itself and pastes the evidence. It should never ask you to run a check.
 
-Claude also picks skills on its own from ordinary requests — "fix this bug" pulls in `diagnose`,
-"how should this be shaped" pulls in `design`, and unfamiliar code pulls in the `explorer`
-subagent. You don't invoke them by name.
+Claude also picks skills on its own from ordinary requests — "start this change" pulls in `intent`, "fix this bug" pulls in `diagnose`, and "how should this be shaped" pulls in `design`. You don't invoke them by name. The two shipped
+subagents have quality roles only: independent evaluation and runtime verification.
 
 ---
 
@@ -243,6 +247,7 @@ Everything below is optional; Claude runs these itself during normal work.
 
 ```bash
 .claude/harness/bin/harness doctor     # is my harness.toml wired up?
+.claude/harness/bin/harness doctor --production  # fail if required QA would be skipped
 .claude/harness/bin/harness status     # where is each change in the chain?
 .claude/harness/bin/harness check --stage stop    # run the checks yourself
 ```
@@ -280,8 +285,7 @@ in your project.
 The design follows the [guides and sensors model of harness
 engineering](https://martinfowler.com/articles/harness-engineering.html):
 
-- **Guides** act before Claude works — `CLAUDE.md`, a handful of focused skills, artifact templates, the
-  code graph, and the explorer agent.
+- **Guides** act before Claude works — `CLAUDE.md`, focused skills, and artifact templates.
 - **Sensors** observe the result — tests, lint, types, secret and plan scope-drift checks, the hook
   bindings, and the evaluator and verifier agents.
 - **The ledger** records every sensor invocation: what fired, how often, and how often a human

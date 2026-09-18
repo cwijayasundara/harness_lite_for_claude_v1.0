@@ -211,12 +211,12 @@ test('pruning changes only automatic session inventory in the isolated lean arm'
       const session=readFileSync(path.join(s.plugin,'.claude/harness/lib/session.mjs'),'utf8');
       assert.equal(session,config.prune?pruneSessionInventory(baseline):baseline);
       assert.equal(readFileSync(path.join(s.plugin,'.claude/harness/lib/graph.mjs'),'utf8'),readFileSync('.claude/harness/lib/graph.mjs','utf8'));
-      assert.ok(session.includes('ledger.report('));assert.ok(session.includes('currentLine(cfg)'));
-      // G11 removed the `ledger:` row count from the payload; `ledger.report(` is still called,
-      // for the noisy-control warnings, which is what this experiment must not prune.
+      assert.doesNotMatch(session,/ledger\.report\(/);assert.ok(session.includes('currentLine(cfg)'));
+      // Production pruning removed ledger/graph history from every session. This experiment now
+      // changes only the remaining automatic budget inventory.
       const banner=JSON.parse(execFileSync(process.execPath,[path.join(s.plugin,'.claude/harness/bin/harness'),'hook','session-start'],{cwd:s.work,encoding:'utf8',input:JSON.stringify({cwd:s.work})})).hookSpecificOutput.additionalContext;
       assert.equal(/^budget:/m.test(banner),!config.prune);
-      assert.match(banner,/contract:/);assert.match(banner,/^check:/m);assert.match(banner,/^current:/m);
+      assert.match(banner,/quality:/);assert.match(banner,/^check:/m);assert.match(banner,/^current:/m);
 
     }finally{s.cleanup();}
   }

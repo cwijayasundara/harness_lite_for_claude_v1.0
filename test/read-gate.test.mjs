@@ -123,18 +123,17 @@ test('B6 the threshold is configurable and zero turns the gate off', () => {
   } finally { s.cleanup(); }
 });
 
-test('B7 the gate is wired to Read without spending a binding', () => {
+test('B7 whole-file advice is not an ambient Read interception', () => {
   const policy = JSON.parse(read('.claude/harness/hooks/policy.json'));
   const rendered = renderClaudeHooks(policy);
   const preTool = rendered.hooks.PreToolUse;
   assert.equal(preTool.length, 1, 'still one pre-tool binding — the ceiling is five for all events');
-  assert.match(preTool[0].matcher, /\bRead\b/, 'the hook has to see Read to have an opinion about it');
+  assert.doesNotMatch(preTool[0].matcher, /\bRead\b/, 'ordinary reads stay on Claude Code native behavior');
   assert.equal(policy.bindings.length, 4, 'the gate adds no binding');
 
   // The committed projection is a generated view; a stale one means the shipped hook never fires.
   assert.deepEqual(JSON.parse(read('.claude/harness/hooks.json')).hooks, rendered.hooks,
     'run `harness init` — the Claude projection is behind .claude/harness/hooks/policy.json');
 
-  assert.match(DISPATCH, /tool === 'Read'/);
-  assert.match(DISPATCH, /return preRead/);
+  assert.doesNotMatch(DISPATCH, /tool === 'Read'|return preRead/);
 });

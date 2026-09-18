@@ -1,6 +1,11 @@
 # Final implementation plan — finishing M1, M2 and M3
 
-Written 2026-09-16 at the operator's request. This is the **single live plan**. It supersedes the
+> **Superseded for forward work on 2026-09-18 by**
+> [PRODUCTION-IMPLEMENTATION-PLAN-2026-09-18.md](PRODUCTION-IMPLEMENTATION-PLAN-2026-09-18.md).
+> This document remains the evidence and disposition record for M1–M3. Its former “single live
+> plan” statement is historical and must not be used to restart completed work.
+
+Written 2026-09-16 at the operator's request. At that time this was the **single live plan**. It superseded the
 sequencing in `COMPLETION-PLAN-2026-09-12.md` (which remains the work order of record for G01–G26
 and is still annotated with what shipped), `IMPROVEMENT-PLAN.md`, `DEFECT-REPAIR-PLAN.md`,
 `SPDD-TEAM-EVOLUTION-PLAN.md` and `LEAN-HARNESS-RESEARCH-PROPOSAL.md`. Nothing new goes in a

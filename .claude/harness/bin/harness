@@ -26,6 +26,7 @@ import { review, hostReview } from '../lib/review.mjs';
 import * as prReview from '../lib/pr-review.mjs';
 import * as release from '../lib/release.mjs';
 import { metrics, render as renderMetrics } from '../lib/metrics.mjs';
+import { assessProduction, renderProduction } from '../lib/admission.mjs';
 import { collisions, collisionLines } from '../lib/agent-collisions.mjs';
 import { deliver, deliverInvoker, ghPullRequest, readState, PHASES } from '../lib/deliver.mjs';
 import { changedFiles as diffFiles, prChange } from '../lib/diff.mjs';
@@ -333,7 +334,19 @@ async function main() {
       const cfg = loadConfig(findRepoRoot());
       const identity = { runtime: runtimeIdentity(cfg.layout.root), policy: policyIdentity(cfg.layout.root) };
       const identityOK = ['verified', 'development'].includes(identity.runtime.status) && identity.policy.digest !== null;
-      if (has('json')) { console.log(JSON.stringify(identity, null, 2)); return identityOK ? 0 : 1; }
+      const production = has('production') ? assessProduction(cfg) : null;
+      const market = path.join(cfg.layout.root, '.claude-plugin/marketplace.json');
+      let selfPlugin = null;
+      if (existsSync(market)) {
+        try { selfPlugin = JSON.parse(readFileSync(market, 'utf8')).plugins?.[0]?.name ?? null; } catch { /* advisory */ }
+      }
+      let agentCollisions = [];
+      try { agentCollisions = collisions({ rolesDir: path.join(HERE, 'roles'), self: selfPlugin }); } catch { /* advisory outside production */ }
+      if (production && agentCollisions.length) {
+        production.ok = false;
+        production.findings.push({ kind: 'agent-collision', name: 'agents', reason: `${agentCollisions.length} installed agent name collision(s)` });
+      }
+      if (has('json')) { console.log(JSON.stringify({ ...identity, ...(production ? { production } : {}), agent_collisions: agentCollisions }, null, 2)); return identityOK && (!production || production.ok) ? 0 : 1; }
       console.log(`runtime   ${identity.runtime.status} (${identity.runtime.method}) expected=${identity.runtime.expected?.commit ?? 'none'} observed=${identity.runtime.observed?.commit ?? 'unknown'} content=${identity.runtime.observed?.content?.digest ?? 'unknown'}\npolicy    ${identity.policy.digest ?? 'unavailable'} (${identity.policy.state})`);
       console.log('coverage  ' + RUNTIME_PATHS.join(', '));
       console.log('policy inputs  ' + (identity.policy.entries ?? []).map(e => e.path + (e.digest ? '' : ' (absent)')).join(', '));
@@ -348,8 +361,6 @@ async function main() {
       const m = measure(cfg);
       // `?`, never `0`: a surface the budget could not account for must not read as an empty one.
       console.log(`\nbudget    ${Object.entries(m).map(([k, v]) => `${k}=${v ?? '?'}/${cfg.limits[k] ?? '-'}`).join('  ')}`);
-      const market = path.join(cfg.layout.root, '.claude-plugin/marketplace.json');
-      let selfPlugin = null;
       if (existsSync(market)) {
         try {
           const plugins = JSON.parse(readFileSync(market, 'utf8')).plugins ?? [];
@@ -361,10 +372,9 @@ async function main() {
       // run that can obtain its independent review from a different harness and say nothing about
       // it. Reported, never refused: which plugins an operator keeps is their decision, and this
       // repository does not legislate for the rest of their machine.
-      try {
-        console.log(collisionLines(collisions({ rolesDir: path.join(HERE, 'roles'), self: selfPlugin })).join('\n'));
-      } catch { /* a diagnostic that cannot read the plugin cache reports nothing, not an error */ }
-      return identityOK ? 0 : 1;
+      console.log(collisionLines(agentCollisions).join('\n'));
+      if (production) console.log(`\n${renderProduction(production)}`);
+      return identityOK && (!production || production.ok) ? 0 : 1;
     }
 
     case 'check': {
@@ -772,7 +782,7 @@ async function main() {
     [--detect]                     print what the toolchain detector sees, and exit
     [--redetect] [--no-detect]     fill verbs left empty since install / skip detection
     [--ci]                         write .github/workflows/harness.yml for this project
-  harness doctor                   capability verbs and budget
+  harness doctor [--production]    capabilities and budget; production fails missing required sensors
   harness check --stage <s>        run a stage   (--changed  --all  --json)
     --base <ref> --candidate <ref>  check the full candidate diff (candidate must be HEAD)
     --change <slug> | --pr-event <file>  candidate-only selection; leaves local binding intact

@@ -210,15 +210,15 @@ test('harness status names a superseded behaviour and what superseded it', () =>
 
 // evidence.md F6: a notice that only speaks when asked never reached an agent that began working
 // immediately. SessionStart pushes the same fact whether or not the agent goes looking.
-test('SessionStart carries the same superseded fact', () => {
+test('SessionStart stays compact; status remains the supersession authority', () => {
   const root = repo();
   try {
     ledgerAndEvolves(root);
     const r = spawnSync(process.execPath, [BIN, 'hook', 'session-start'], { cwd: root, encoding: 'utf8', input: JSON.stringify({ cwd: root }) });
     assert.equal(r.status, 0, r.stderr);
     const ctx = JSON.parse(r.stdout).hookSpecificOutput.additionalContext;
-    assert.match(ctx, /ledger#B2/);
-    assert.match(ctx, /evolves/);
+    assert.doesNotMatch(ctx, /ledger#B2|evolves/);
+    assert.match(ctx, /quality:/);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

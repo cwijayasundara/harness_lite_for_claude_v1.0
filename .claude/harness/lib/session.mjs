@@ -9,11 +9,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { measure } from '../checks/budget.mjs';
-import * as ledger from './ledger.mjs';
-import { staleSince } from './refresh.mjs';
-import * as graph from './graph.mjs';
-import * as codemap from './map.mjs';
-import { supersededBy, currentLine } from './artifacts.mjs';
+import { currentLine } from './artifacts.mjs';
 
 // In an installed project `.claude/harness/bin/harness` is a bash shim; in this repository it is the
 // executable itself, and `bash` on it dies with a shell syntax error. The banner printed the
@@ -40,10 +36,7 @@ export const invocation = (cfg) =>
 // The ledger row count is gone rather than moved. It was the most volatile line in the payload —
 // it changed on literally every check — and no session ever acted on it; `harness ledger` is
 // where that question is answered.
-export const STABLE_END = 'contract:';
-
-// Above this many supersessions the payload carries the count instead of the links.
-export const SUPERSEDED_NAMED = 3;
+export const STABLE_END = 'quality:';
 
 export function sessionContext(cfg) {
   const m = measure(cfg);
@@ -53,51 +46,15 @@ export function sessionContext(cfg) {
     `budget: ${Object.entries(m).map(([k, v]) => `${k} ${v}/${cfg.limits[k] ?? '-'}`).join(' · ')}`,
   ];
 
-  // B11. Two lines, so the session knows the map exists and what it says the hubs are.
-  // The index was measured at 90% recall and a 96.5% token reduction against reading the
-  // files, and nothing had ever used it, because nothing said it was there.
-  try {
-    const g = graph.load(cfg);
-    if (g) stable.push(...codemap.summary(cfg, g));
-  } catch { /* no index yet: the map line would be noise, not help */ }
-  // The last stable line, and the marker the cache test measures against.
-  stable.push(cfg.guard?.require_contract
-    ? `${STABLE_END} product file edits need the current change's committed approved plan to name the path`
-    : `${STABLE_END} scope enforcement is off; set [guard].require_contract = true for product repositories`);
+  // Keep the ambient contract short. The PostToolUse and Stop hooks enforce this even when a
+  // user starts coding from a one-line prompt and never invokes a workflow command.
+  stable.push(`${STABLE_END} edits run fast checks; Stop runs changed tests; CI owns the full candidate check`);
 
   const volatile = [];
-  const led = ledger.report(cfg.layout, { days: 30 });
-  const noisy = led.controls.filter((c) => c.verdict === 'unreliable' || c.verdict === 'candidate-for-deletion').slice(0, 3);
-  if (noisy.length) volatile.push(`review: ${noisy.map((c) => `${c.control} (${c.verdict})`).join(', ')}`);
-  const stale = staleSince(cfg);
-  if (stale) volatile.push(`graph:  STALE since ${stale} — verify anything load-bearing against the source`);
   // a-diff-belongs-to-one-change B6. Which change a write belongs to, and whether that
   // change can permit one yet. Pushed here for the F6 reason: an agent that starts working
   // immediately never asks `status`, and a refusal it cannot predict is one it routes around.
   try { volatile.push(currentLine(cfg)); } catch { /* artifacts unreadable: the guard will say so on the first write */ }
-
-  // B4: the same reason F7's map line is here rather than only in `status` — a fact
-  // available on request does not reach an agent that begins working immediately (F6). A
-  // superseded behaviour's spec is never edited, so nothing else at session start would
-  // ever surface it.
-  // G03. A count and the way to read them, not twenty-eight links. Every approved supersession is
-  // a permanent fact, so this list only grows — it was twenty-eight of the payload's thirty-three
-  // lines, sent to every session, and a session acts on at most one of them. What a session needs
-  // is to know the fact exists before it reads a spec as current; `harness status` has the links.
-  try {
-    const superseded = [...supersededBy(cfg)];
-    // Named while there are few, counted once there are many. Every approved supersession is a
-    // permanent fact, so this list only grows: in this repository it reached twenty-eight of the
-    // payload's thirty-three lines, sent to every session, of which a session acts on at most one.
-    // A project with two wants to see which two; a project with twenty-eight wants to know the
-    // fact exists and where to read it.
-    if (superseded.length > SUPERSEDED_NAMED) {
-      volatile.push(`superseded: ${superseded.length} behaviour(s) reversed by a later approved spec`
-        + ' — harness status lists them; check before treating a spec as current');
-    } else {
-      for (const [link, by] of superseded) volatile.push(`superseded: ${link} — superseded by ${by.join(', ')}`);
-    }
-  } catch { /* computed from artifacts already on disk; a read failure here is not fatal */ }
 
   return [...stable, ...volatile].join('\n');
 }

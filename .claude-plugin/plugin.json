@@ -7,7 +7,6 @@
   },
   "skills": "./.claude/harness/skills/",
   "agents": [
-    "./.claude/harness/roles/explorer.md",
     "./.claude/harness/roles/evaluator.md",
     "./.claude/harness/roles/verifier.md"
   ],

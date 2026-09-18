@@ -1,5 +1,9 @@
 # Improvement plan: dependable engineering with a lean harness
 
+> **Historical evidence, not an active backlog.** Current production sequencing and the register
+> of delivered decisions live in
+> [PRODUCTION-IMPLEMENTATION-PLAN-2026-09-18.md](PRODUCTION-IMPLEMENTATION-PLAN-2026-09-18.md).
+
 Date: 2026-09-06. Implementation authorized by the user's instruction to save this plan
 and start implementation. This records conversation authorization, not a fabricated CLI
 approval or a claim that the existing artifact gates have been exercised.

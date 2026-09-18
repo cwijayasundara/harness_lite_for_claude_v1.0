@@ -89,10 +89,10 @@ export function loadConfig(root) {
     capabilities: raw.capabilities ?? {},
     formats: raw.formats ?? {},
     stages: { ...DEFAULT_STAGES, ...(raw.stages ?? {}) },
-    // G03. `[sensors]` is not parsed into cfg. Nothing at runtime ever read `cfg.sensors`: the
-    // live reader is `test/contracts.test.mjs`, which parses the TOML directly to ask whether
-    // every required profile's commands are reachable from a stage. Defaults merged here were a
-    // second copy of that table for nobody.
+    // Production admission reads the same profile declaration the contract tests validate.
+    // This is selection, not another registry: the capability commands remain the only executable
+    // source and a profile merely says which of them can satisfy a production responsibility.
+    sensors: raw.sensors ?? {},
     check: { fail_fast: true, ...(raw.check ?? {}) },
     graph: { include: ['.', '.claude/harness'], exclude: ['node_modules', '.venv', 'dist', 'target', '.git', '.claude/worktrees'], ...(raw.graph ?? {}) },
     // G03. Only `max_findings` is read — by `buildReport`, to cap what a control shows the model.
@@ -100,7 +100,7 @@ export function loadConfig(root) {
     // `review_diff_max_bytes` were defaults nothing ever looked at: numbers that read as policy
     // and governed nothing, which is worse than their absence because a reader believes them.
     budget: { max_findings: 20, ...(raw.budget ?? {}) },
-    limits: { skills: 12, hooks: 5, agents: 3, hook_loc: 600, claude_md_lines: 120, ...(raw.limits ?? {}) },
+    limits: { skills: 7, hooks: 4, agents: 2, hook_loc: 600, claude_md_lines: 120, ...(raw.limits ?? {}) },
     // require_contract defaults ON. It used to default off while the installed template set it
     // true, so the control ran for anyone who took the template and not for anyone who did not —
     // and the second group was invisible, because a control that is absent looks exactly like a

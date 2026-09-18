@@ -24,7 +24,7 @@ export function renderClaudeHooks(policy, commandRoot = '${CLAUDE_PLUGIN_ROOT}')
   // `Read` joined `tools` with the read gate: same binding, one more branch in the dispatcher,
   // which is the whole point of having merged them. A whole-file read is the largest avoidable
   // input cost in a session and the hook cannot have an opinion about a tool it never sees.
-  const matchers = { write: 'Write|Edit|MultiEdit', shell: 'Bash', tools: 'Write|Edit|MultiEdit|Bash|Grep|Glob|Read' };
+  const matchers = { write: 'Write|Edit|MultiEdit', shell: 'Bash', safety: 'Write|Edit|MultiEdit|Bash' };
   for (const binding of policy.bindings) {
     const event = eventNames[binding.event];
     if (!event || !binding.action || !Number.isInteger(binding.timeout)) throw new Error(`invalid hook binding: ${JSON.stringify(binding)}`);

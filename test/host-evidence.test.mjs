@@ -125,6 +125,6 @@ test('B5 the guidance and the lean-review row state the limit', () => {
 
   const limits = read('.claude/harness/harness.toml');
   assert.match(limits, /^skills\s*=\s*7$/m);
-  assert.match(limits, /^agents\s*=\s*3$/m);
-  assert.match(limits, /^hooks\s*=\s*5$/m);
+  assert.match(limits, /^agents\s*=\s*2$/m);
+  assert.match(limits, /^hooks\s*=\s*4$/m);
 });
