@@ -1,6 +1,6 @@
 # Evals
 
-22 golden tasks are the Law 9 floor. The suite grows only when a new task measures a
+24 golden tasks are the Law 9 floor. The suite grows only when a new task measures a
 defect the floor missed. `successor-contract-links-first` proves that a successor contract links
 to the shipped design instead of opening an unconnected artifact chain. Contract tasks also cover
 owned scope, testability, evidence, and refusal of work outside the approved boundary.
