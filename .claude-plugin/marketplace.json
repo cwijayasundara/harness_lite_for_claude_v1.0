@@ -8,7 +8,7 @@
     {
       "name": "lean-harness-cs-v1",
       "source": "./.",
-      "description": "Claude adapter for the .claude/harness kernel: skills, agents, and five hook bindings."
+      "description": "Claude adapter for the .claude/harness kernel: skills, agents, and four hook bindings."
     }
   ]
 }

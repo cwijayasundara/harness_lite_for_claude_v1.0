@@ -117,6 +117,8 @@ for (const [language, product] of Object.entries(products)) {
     assert.equal(doctor.status, 0, doctor.stderr || doctor.stdout);
     const diagnosis = JSON.parse(doctor.stdout);
     assert.equal(diagnosis.production.ok, true);
+    assert.equal(diagnosis.production.evidence_ok, false);
+    assert.ok(diagnosis.production.profiles.every((profile) => profile.evidence.status === 'skipped'));
     assert.deepEqual(diagnosis.agent_collisions, []);
 
     // An ordinary edit, with no harness artifacts, must still trigger fast QA and targeted tests.

@@ -44,6 +44,41 @@ unknown targets, and waivers whose target is already healthy all fail admission.
 through the ordinary code-review protection on this committed policy; the harness does not invent
 a second approval identity or waiver database.
 
+The JSON result separates configuration admission (`production.ok`) from observed execution
+(`production.evidence_ok`). Every required profile and command reports `missing`, `skipped`,
+`errored`, `failed`, `passed`, or `waived`. Evidence comes from the latest ledger outcomes for the
+current Git revision and policy digest; `doctor` never reruns a sensor. A configured fresh install
+can therefore pass configuration admission while reporting skipped evidence until hooks and CI
+have actually exercised it. Candidate-bound CI remains the merge authority.
+
+## Onboarding, upgrade and rollback
+
+These steps use Claude Code's documented [plugin installation and management
+workflow](https://code.claude.com/docs/en/plugins).
+
+Onboard a repository from a clean, reviewed harness checkout:
+
+1. Run `node <harness>/.claude/harness/bin/harness init --into <project>`.
+2. Configure capabilities and sensor profiles in `.claude/harness/harness.toml`.
+3. Commit the generated project files, including `harness-install.json`.
+4. Install `lean-harness-cs-v1@lean-harness-cs-v1` from the configured marketplace on each
+   machine; restart Claude Code after plugin changes.
+5. Run `doctor --production`, exercise the edit and Stop hooks, then run candidate-bound commit
+   checks in CI. Configuration PASS with `evidence_ok: false` is not rollout evidence.
+
+Upgrade by checking out the intended harness revision, running `harness init --into <project>`,
+reviewing the changed install record/projections, and passing production doctor plus candidate CI.
+Update the installed plugin with
+`claude plugin update lean-harness-cs-v1@lean-harness-cs-v1`; restart Claude Code to apply it.
+
+Rollback is a Git operation first: revert the project commit that moved `harness-install.json`,
+restore the harness checkout at that recorded commit, rerun `init`, and rerun the same admission
+and candidate checks. If hooks must be stopped immediately, use
+`claude plugin disable lean-harness-cs-v1@lean-harness-cs-v1`; re-enable only after verification.
+Use `claude plugin uninstall <conflicting-plugin>@<marketplace>` for an agent-name collision, not
+manual deletion of `~/.claude/plugins`. Uninstall this harness only when removing it from service;
+the committed project declaration is otherwise intentionally left reviewable and reversible.
+
 ## Evidence required before broad rollout
 
 Run a controlled pilot against native Claude Code plus the same project CI. Join every change by a

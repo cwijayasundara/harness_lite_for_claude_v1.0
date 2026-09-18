@@ -83,3 +83,23 @@ test('expired, malformed, unknown and unused waivers fail production admission',
     assert.match(result.findings.find((f) => f.kind === 'waiver').reason, message);
   }
 });
+
+test('admission evidence distinguishes missing, skipped, errored, failed and passed outcomes', () => {
+  const result = assessProduction(cfg({ test: 't', test_changed: 'tc', lint: 'lint', arch: 'arch' }), {
+    evidence: [
+      { control: 'test', verdict: 'pass', stage: 'commit', ts: '2026-09-18T12:00:00Z' },
+      { control: 'test_changed', verdict: 'skipped', stage: 'stop_hook', note: 'no affected test' },
+      { control: 'lint', verdict: 'errored', stage: 'fast', error: 'tool unavailable' },
+      { control: 'arch', verdict: 'fail', stage: 'commit' },
+    ],
+  });
+  assert.equal(result.profiles.find((p) => p.profile === 'behaviour').evidence.status, 'passed');
+  assert.equal(result.profiles.find((p) => p.profile === 'hardening').evidence.status, 'skipped');
+  assert.equal(result.profiles.find((p) => p.profile === 'qa').evidence.status, 'errored');
+  assert.equal(result.profiles.find((p) => p.profile === 'architecture').evidence.status, 'failed');
+  assert.equal(result.commands.find((c) => c.verb === 'test_changed').evidence.status, 'skipped');
+  assert.equal(result.evidence_ok, false);
+
+  const missing = assessProduction(cfg({ test: 't', test_changed: '' }), { evidence: [] });
+  assert.equal(missing.commands.find((c) => c.verb === 'test_changed').evidence.status, 'missing');
+});

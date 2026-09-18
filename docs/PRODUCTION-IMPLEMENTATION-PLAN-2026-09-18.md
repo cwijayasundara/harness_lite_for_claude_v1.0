@@ -59,6 +59,8 @@ States: `DELIVERED`, `RETAIN`, `OPTIONAL`, `REMOVE`, `REOPEN`, `BLOCKED`.
 | D21 | DELIVERED | Hook latency emits machine-readable Python/TypeScript samples; commit-stage regression proves the full suite runs once | Treat the initial two-language sample as a baseline, not a productivity claim |
 | D22 | DELIVERED | Production admission mandates behaviour, hardening and QA; a declared architecture profile is also mandatory | Projects may add profiles but cannot weaken the production floor |
 | D23 | DELIVERED | Committed, target-specific production waivers require reason, owner and future expiry; invalid, expired and unused records fail | No waiver service or self-approval mechanism |
+| D24 | DELIVERED | Production doctor separates configuration readiness from current-revision evidence and classifies missing/skipped/errored/failed/passed/waived | Never rerun sensors from doctor |
+| D25 | DELIVERED | One onboarding, upgrade and rollback runbook covers plugin lifecycle, pinned identity and collision removal | No second installer or state store |
 
 D06–D09 and D16–D19 are committed at `19a4ad7` with verified runtime identity. D20 is covered by
 `test/production-install-smoke.test.mjs`; it creates isolated repositories and isolated homes so
@@ -112,8 +114,8 @@ latency. Phase 1 is complete; performance improvement remains an evidence-led op
 - [x] P2.1 Add `doctor --production` that fails missing required profiles and full/targeted tests.
 - [x] P2.2 Require behaviour, QA, hardening and applicable architecture sensors.
 - [x] P2.3 Support reviewed waivers with reason, owner and expiry.
-- [ ] P2.4 Distinguish missing, errored, skipped and failed commands in admission evidence.
-- [ ] P2.5 Publish onboarding, upgrade and rollback instructions.
+- [x] P2.4 Distinguish missing, errored, skipped and failed commands in admission evidence.
+- [x] P2.5 Publish onboarding, upgrade and rollback instructions.
 
 Exit: misconfiguration fails before rollout; a clean configured project passes; waivers are visible
 and expire.

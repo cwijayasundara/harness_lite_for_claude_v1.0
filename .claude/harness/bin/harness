@@ -334,7 +334,14 @@ async function main() {
       const cfg = loadConfig(findRepoRoot());
       const identity = { runtime: runtimeIdentity(cfg.layout.root), policy: policyIdentity(cfg.layout.root) };
       const identityOK = ['verified', 'development'].includes(identity.runtime.status) && identity.policy.digest !== null;
-      const production = has('production') ? assessProduction(cfg) : null;
+      let production = null;
+      if (has('production')) {
+        const head = gitHead(cfg.layout.root);
+        const evidence = ledger.read(cfg.layout).filter((row) => row.control
+          && row.provenance?.policy?.digest === identity.policy.digest
+          && row.provenance?.repository?.head === head);
+        production = assessProduction(cfg, { evidence });
+      }
       const market = path.join(cfg.layout.root, '.claude-plugin/marketplace.json');
       let selfPlugin = null;
       if (existsSync(market)) {
