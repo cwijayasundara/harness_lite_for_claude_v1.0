@@ -13,6 +13,7 @@ import { stage, stageProduct, assertProductTree, execNode } from '../evals/lib/s
 import { invokerArgs, claudeInvoker } from '../evals/lib/invoker.mjs';
 import { resolveBoundary } from '../evals/lib/boundary.mjs';
 import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 import { verifyCalculator } from '../evals/lib/assertions.mjs';
 import { runProductCampaign } from '../evals/lib/campaign.mjs';
 import { ROOT } from './_paths.mjs';
@@ -162,7 +163,16 @@ test('two concurrent stages never share a directory', () => {
 });
 
 // B4: a run that times out must leave no live descendant — asserted, not assumed.
-test('a run that times out leaves no live descendant process', () => {
+test('a run that times out leaves no live descendant process', (t) => {
+  // Some managed test sandboxes deny process-table inspection with EPERM. The production reaper
+  // must continue to fail loudly in that environment; the test, however, must probe before it
+  // creates the deliberately immortal grandchild or the skipped assertion would leak it itself.
+  // This is a capability skip, not a pass: ordinary macOS/Linux hosts still execute every line.
+  const processTable = spawnSync('ps', ['-Ao', 'pid=,pgid='], { encoding: 'utf8', timeout: 5000 });
+  if (processTable.status !== 0 || !processTable.stdout) {
+    t.skip(`process-table inspection unavailable: ${processTable.error?.message ?? processTable.stderr ?? `exit ${processTable.status}`}`);
+    return;
+  }
   // A direct child proves nothing here: spawnSync's own killSignal already reaps it, so this test
   // passed with killProcessGroup deleted. The group kill exists for the GRANDCHILD — the grader's
   // runtime bridge can spawn one, and those are what outlive a killed parent. So the child reports

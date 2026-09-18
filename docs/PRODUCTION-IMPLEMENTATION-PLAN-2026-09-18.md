@@ -84,8 +84,9 @@ delivery, coordination, live campaigns and production adapters are optional and 
 - [x] P1.3 Regenerate derived hook/settings projections through repository generators.
 - [x] P1.4 Commit the runtime change so identity checks have a real candidate.
 - [x] P1.5 Refresh the pinned install/runtime record from that clean commit.
-- [ ] P1.6 Run the complete offline suite from a clean tree: 632/634 pass, one skip, and one
-  environment-blocked assertion because this sandbox denies `ps` (`spawnSync ps EPERM`).
+- [x] P1.6 Complete offline suite: 636 tests, 634 pass, zero fail, two explicit skips. The
+  descendant-process test preflights process-table access before creating its immortal fixture;
+  it still runs the complete assertion on hosts that permit `ps` and skips honestly under EPERM.
 - [ ] P1.7 Candidate-bound `check --stage commit --all` ran for `19a4ad7..1472488`: runtime,
   policy and candidate identity verified; secrets, budget, tamper, architecture and baseline passed;
   the gate remains open only because the same sandbox-denied `ps` assertion fails the test control.
