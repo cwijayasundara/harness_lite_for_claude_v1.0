@@ -25,13 +25,13 @@ Everything below serves that reframe.
 
 | Old world | Artifact | Harness stage | What exists today | What is missing |
 |---|---|---|---|---|
-| BA interviews users | PRD | `intent` | `.aidlc/skills/intent/` (Opus, high effort); `lib/intake.mjs` reads a PRD or tracker story (G08) | Nothing. This row is done. |
-| Break into epics/stories | Jira/Linear board | `spec` | `.aidlc/skills/spec/`; numbered `### B<n>` behaviours, `supersedes:`/`extends:`, gate 1 | No write-back to a tracker. A story goes in; a SHA does not come out. |
-| Architect designs | Confluence | `design` | `.aidlc/skills/design/` (G16) — Entities, Approach, Structure, Safeguards into `spec.md` | Nothing blocking. Brownfield design reads existing code via the graph. |
-| QA writes test cases, plans, data | Excel | — | **Nothing.** `mutation`, `sast`, `layers` verbs exist as declarations and are empty everywhere; `coverage_lines_pct` is `null` in `.aidlc/baseline.json` | **The genuinely empty row.** No test-plan generation, no test-data generation, no E2E, no Playwright. Your essay names this and the code does not have it. |
-| Engineer plans the work | — | `plan` | `.aidlc/skills/plan/`; `## Files` is the ownership declaration the write guard reads; gate 2 | Nothing. |
+| BA interviews users | PRD | `intent` | `.claude/harness/skills/intent/` (Opus, high effort); `lib/intake.mjs` reads a PRD or tracker story (G08) | Nothing. This row is done. |
+| Break into epics/stories | Jira/Linear board | `spec` | `.claude/harness/skills/spec/`; numbered `### B<n>` behaviours, `supersedes:`/`extends:`, gate 1 | No write-back to a tracker. A story goes in; a SHA does not come out. |
+| Architect designs | Confluence | `design` | `.claude/harness/skills/design/` (G16) — Entities, Approach, Structure, Safeguards into `spec.md` | Nothing blocking. Brownfield design reads existing code via the graph. |
+| QA writes test cases, plans, data | Excel | — | **Nothing.** `mutation`, `sast`, `layers` verbs exist as declarations and are empty everywhere; `coverage_lines_pct` is `null` in `.claude/harness/baseline.json` | **The genuinely empty row.** No test-plan generation, no test-data generation, no E2E, no Playwright. Your essay names this and the code does not have it. |
+| Engineer plans the work | — | `plan` | `.claude/harness/skills/plan/`; `## Files` is the ownership declaration the write guard reads; gate 2 | Nothing. |
 | Identify the blast radius | manual review | — | `lib/graph.mjs` — `callers`, `co-edit-hubs`, `changed-since`; plus `checks/scope-drift.mjs` | The capability exists and is never called "blast radius". Its **value is disputed and unresolved** — see 1.4. |
-| Engineer implements (TDD) | code + tests | `implement` | `.aidlc/skills/implement/` (Sonnet, low effort, `context: fork`); PostToolUse exit-2 self-correction | Your essay says TDD is not productive for agents and the skill agrees. Settled. |
+| Engineer implements (TDD) | code + tests | `implement` | `.claude/harness/skills/implement/` (Sonnet, low effort, `context: fork`); PostToolUse exit-2 self-correction | Your essay says TDD is not productive for agents and the skill agrees. Settled. |
 | 2–3 peers review the PR | PR comments | `review` | `roles/evaluator.md` (Opus, read-only, fresh context, `git archive` snapshot); `lib/deliver.mjs` repair loop, max 2 | Nothing. This is the strongest part of the harness. |
 | CI/CD builds and deploys | pipeline | `deploy` | `templates/consumer-ci.yml` (G17); `lib/release.mjs` release record (G18) | Never exercised by a real app. No deployable workload exists to exercise it. |
 | Prod breach loops back | incident | `maintain` | `examples/maintain/band-to-intent.mjs` (G19) | Same — no real signal has ever gone round this loop. |
@@ -52,12 +52,12 @@ prompt points at them rather than restating them:
 | Quality improves like a ratchet | Law 9 (evals before controls) — currently non-blocking, see 1.4 |
 | Fix the framework, not the code it emitted | Law 10 (every control carries its defect), Law 11 (the defect comes from outside this repo) |
 | Right-sized code, not a lot of code | Law 6 (capability verbs, empty is `skipped` not `failed`) |
-| Good, maintainable, performant code | `.aidlc/policies/review.md` — review criteria, not law |
+| Good, maintainable, performant code | `.claude/harness/policies/review.md` — review criteria, not law |
 
 Two are **not** written down anywhere:
 
 - **DRY / extract the reusable function** — a review-policy concern. If you want it enforced it
-  belongs in `.aidlc/policies/review.md`, not as a new control.
+  belongs in `.claude/harness/policies/review.md`, not as a new control.
 - **Democratization** — nowhere. Not a law, not a metric, not an eval. This is the omission that
   matters, and M3 closes it.
 
@@ -67,7 +67,7 @@ The completion plan's work order **G01–G26 has landed, except G24.** Delivery 
 policy modes, coverage ratchet, deploy and maintain edges, plugin-eval layout, nightly loop: all
 shipped. What is missing is evidence.
 
-- **`harness deliver` has never run.** `.aidlc/state/deliver/` does not exist. The driver is
+- **`harness deliver` has never run.** `.claude/harness/state/deliver/` does not exist. The driver is
   exercised only by `test/deliver.test.mjs` with fakes. Phase 2's own exit criterion — "one sprint
   delivered end to end with one human action" — is unproven, on the branch named after it.
 - **G24 has never run.** No commit builds it. It gates Phase 5 exit and, by the plan's own rule,
@@ -82,7 +82,7 @@ shipped. What is missing is evidence.
   ($0.1816 per change), harness USD 8.218 ($0.2348) — **29% dearer at identical acceptance**. The
   graph arm adds 6.6% on top ($0.2521 vs $0.2365) for the same 35.
 
-**Stop doing this:** 70 directories under `.aidlc/artifacts/`, a 16 MB ledger whose own export path
+**Stop doing this:** 70 directories under `.claude/harness/artifacts/`, a 16 MB ledger whose own export path
 refuses anything above 32 MB, 5.2k lines across ten `docs/` files with several marked superseded and
 the live plan never annotated with what shipped, a ghost `stop-guard` in `HOOK_CONTROLS` whose test
 passes by asserting no rows, and consumer-template `[budget]` numbers that govern nothing.
@@ -110,7 +110,7 @@ you are avoiding M1.
 
 - The work order G01-G26 in docs/COMPLETION-PLAN-2026-09-12.md has all landed EXCEPT G24. The
   plan document was never annotated with what shipped; git log is the only record.
-- `harness deliver` has never actually run. .aidlc/state/deliver/ does not exist. It is tested
+- `harness deliver` has never actually run. .claude/harness/state/deliver/ does not exist. It is tested
   only with fakes in test/deliver.test.mjs and appears in no CI job.
 - evals/expected.json: recorded 2026-09-06, commit 6aa9a5d8, 12 pass / 9 fail / 2 flaky,
   USD 8.5939. A live run on 2026-09-14 scored 17 pass / 5 fail. The record is nine days stale.
@@ -123,10 +123,10 @@ you are avoiding M1.
 - The one finished comparison, at 35 accepted changes each: native USD 6.355 ($0.1816/change),
   harness USD 8.218 ($0.2348/change) — 29% dearer at identical acceptance. Graph arm: $0.2521
   with vs $0.2365 without, same 35 accepted.
-- Budget ceilings in .aidlc/harness.toml [limits]: skills 7 (6 used), agents 3 (3 used),
+- Budget ceilings in .claude/harness/harness.toml [limits]: skills 7 (6 used), agents 3 (3 used),
   hooks 5 (4 used), hook_loc 600, claude_md_lines 120. Enforced by test/budget.test.mjs.
 - [gates] is spec=advisory, plan=advisory, merge=human. merge takes no other value.
-- Auth is subscription-only. .aidlc/lib/claude-auth.mjs refuses ANTHROPIC_API_KEY, Bedrock,
+- Auth is subscription-only. .claude/harness/lib/claude-auth.mjs refuses ANTHROPIC_API_KEY, Bedrock,
   Vertex and Foundry env vars outright.
 - MEASURED HAZARD: with Spotlight (mds_stores) and Defender running, machine load reached 12 and
   a third of the suite was silently killed rather than graded. Quiesce the machine before any
@@ -207,7 +207,7 @@ This is what the harness is for. It has never been tested. Four deliverables.
    doctor` leave a new project working, or refuse loudly with the exact next command.
 
 3. Every refusal names its remedy. The prefix-cache guard already set the pattern and the
-   measurement, at .aidlc/lib/guard.mjs:95 — "MEASURED 2026-09-14: the reason went last and the
+   measurement, at .claude/harness/lib/guard.mjs:95 — "MEASURED 2026-09-14: the reason went last and the
    model dropped it. [...] A model relaying a long refusal keeps the head, so the operative fact
    goes first and the remedy goes last." Apply that to every refusal a newcomer can hit, and
    measure it the same way.

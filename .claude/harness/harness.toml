@@ -1,0 +1,119 @@
+[project]
+name = "lean-harness"
+
+# This is the harness source repository. Claude activation is disabled here so project hooks do
+# not recursively run the harness while those same hooks and checks are being changed.
+[capabilities]
+fmt       = ""
+lint      = ""      # zero-dependency by constitution: no linter to install
+typecheck = ""
+test      = "node --test --test-reporter=tap test/*.test.mjs"
+test_changed = "node --test --test-reporter=tap {files}"
+coverage  = ""
+arch      = "node .claude/harness/sensors/architecture.mjs"
+secrets   = ""      # built-in scanner
+deps      = ""      # no dependencies to go stale
+
+[formats]
+test = "tap"
+test_changed = "tap"
+
+[check]
+fail_fast = true
+
+[stages]
+fast   = ["secrets"]
+stop   = ["fast", "test"]
+# G11. What the Stop hook runs. The full suite is the delivery driver's, once per iteration.
+stop_hook = ["fast", "test_changed"]
+commit = ["stop", "scope-drift", "budget", "tamper", "arch", "baseline"]
+# G13. `proof` reads every promise spec, and this repository has 14 historical rows naming test
+# files that later changes deleted. They are delivered work with stale evidence, which is exactly
+# what G03 closes; until it does, the control runs here rather than blocking every commit on
+# archaeology. The template ships it in `commit`, where a project starting today belongs.
+drift  = ["proof"]
+
+[sensors]
+behaviour = ["test"]
+architecture = ["arch"]
+hardening = ["secrets"]
+qa = ["fmt", "lint", "typecheck"]
+required_profiles = ["behaviour", "architecture", "hardening"]
+latency_budget_ms = 120000
+
+[graph]
+include = [".", ".claude"]
+exclude = ["node_modules", ".venv", "dist", ".git", "__pycache__", "fixtures"]
+
+[budget]
+max_findings = 20
+
+# The generator/evaluator split, as model ids rather than a routing subsystem.
+#
+# lean-v2 cut 5 deleted 330 lines of policy resolution, handoff receipts and a provider adapter
+# that no contract's evidence had ever invoked. Claude Code frontmatter does the same job: the
+# `implement` skill runs on the generator in a forked context, the `evaluator` agent runs on the
+# evaluator in a worktree it did not write to. `harness init` renders both from here.
+#
+# Three roles, because they are paid for by different things.
+#
+# `generator` writes the code a person will review and merge, so it is not the place to save
+# money — Sidekick's own failure case is delegating the part that carries judgment, and choosing
+# an approach is judgment even when typing the diff is not.
+#
+# `evaluator` is the frontier model, read-only, in a worktree it did not write to. Independence
+# is structural here: a different model, a different context, and no tool that could make the
+# checks pass.
+#
+# `evals` is the model the golden suite drives. Cheap on purpose: what the suite measures is
+# whether the *harness* steers a model to the right answer, and a suite cheap enough to run on
+# every steering change is worth more than one that flatters the harness with a frontier model.
+[models]
+generator = "claude-sonnet-5"
+evaluator = "claude-opus-5"
+evals     = "claude-haiku-4-5-20251001"
+# G10. The model that decides rather than types: intent, spec, plan, design, and the evaluator.
+judgment  = "claude-opus-5"
+
+# G10. Effort per kind of work, rendered into the same frontmatter as the model and passed to the
+# driver's own turns. Typing under an approved plan is the cheap band; judging is the expensive
+# one; a repair sits between, because it is re-reading a verdict rather than writing one.
+[effort]
+implement = "low"
+repair    = "medium"
+review    = "high"
+
+# G06. A gate is a policy, not a constant: `human` refuses, `advisory` reports and lets the loop
+# continue, `auto` lets the driver record the approval with a digest of this setting. `merge`
+# takes one value — the harness never approves its own merge.
+[gates]
+spec  = "advisory"   # human | advisory | auto
+plan  = "advisory"
+merge = "human"      # the only permitted value
+
+# G09. `harness deliver <slug> --live` drives the six phases between the plan approval and the
+# merge decision. The bounds are the whole safety story of an unattended loop: it stops and names
+# the one it hit rather than exceeding it, and what it leaves behind is resumable.
+[deliver]
+max_minutes = 60   # wall-clock for one run; a resumed run gets its own
+max_usd     = 10   # usage estimate, clamped before every model call
+
+[limits]
+skills          = 7
+agents          = 3
+hooks           = 5
+hook_loc        = 600
+claude_md_lines = 120
+
+# A control that has never fired is a deterrent standing at its limit or a control that checks
+# nothing, and the ledger cannot tell which. Each entry names the test that plants the defect the
+# control's why: describes; the audit checks the file exists and names the control, and reads
+# `deterrent — keep` instead of `never-fired — decide`.
+[deterrents]
+budget       = "test/budget.test.mjs"
+arch         = "test/arch.test.mjs"
+proof        = "test/coverage-and-proof.test.mjs"
+
+[guard]
+protected_paths = ["evals/fixtures"]
+require_contract = true

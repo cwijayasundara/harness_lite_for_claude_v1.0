@@ -14,11 +14,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { normalize, KNOWN_FORMATS } from '../.aidlc/lib/normalize.mjs';
-import { render } from '../.aidlc/lib/runner.mjs';
-import { run as tamper } from '../.aidlc/checks/tamper.mjs';
-import { suppressionsOf } from '../.aidlc/lib/deliver.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
+import { normalize, KNOWN_FORMATS } from '../.claude/harness/lib/normalize.mjs';
+import { render } from '../.claude/harness/lib/runner.mjs';
+import { run as tamper } from '../.claude/harness/checks/tamper.mjs';
+import { suppressionsOf } from '../.claude/harness/lib/deliver.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 
 // One representative failure per format, in the shape the tool actually emits.
@@ -116,7 +116,7 @@ test('a suppression with a reason is recorded rather than refused, and one witho
 });
 
 test('the driver lists the suppressions the commit-stage checks saw on the pull request', async () => {
-  const { deliver } = await import('../.aidlc/lib/deliver.mjs');
+  const { deliver } = await import('../.claude/harness/lib/deliver.mjs');
   const s = stage(FIXTURES, 'contract-planned');
   try {
     const cfg = loadConfig(s.work);

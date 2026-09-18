@@ -7,9 +7,9 @@ import path from 'node:path';
 import {comparisonPairs,summarizeComparisons,configureComparison,pruneSessionInventory,restoreSessionInventory,runComparisons} from '../evals/lib/comparison.mjs';
 import {stage,stageProduct,FIXTURES} from '../evals/lib/stage.mjs';
 import {invokerArgs} from '../evals/lib/invoker.mjs';
-import {loadConfig} from '../.aidlc/lib/config.mjs';
-import {ensure,load} from '../.aidlc/lib/graph.mjs';
-import {refresh} from '../.aidlc/lib/refresh.mjs';
+import {loadConfig} from '../.claude/harness/lib/config.mjs';
+import {ensure,load} from '../.claude/harness/lib/graph.mjs';
+import {refresh} from '../.claude/harness/lib/refresh.mjs';
 import {boundedSearch,bench} from '../evals/bench/pack-bench.mjs';
 const root=path.resolve('.');
 const models={generator:'capable',evaluator:'strong',evals:'economical'};
@@ -61,7 +61,7 @@ test('native staging has normal instructions, public tests and no harness plugin
   const s=stage(FIXTURES,'calculator',{product:true,native:true});
   try{
     stageProduct(s,root);assert.ok(existsSync(path.join(s.work,'CLAUDE.md')));
-    assert.ok(!existsSync(path.join(s.work,'.aidlc')));assert.ok(!existsSync(path.join(s.work,'.claude')));
+    assert.ok(!existsSync(path.join(s.work,'.claude/harness')));assert.ok(!existsSync(path.join(s.work,'.claude')));
     assert.ok(!existsSync(path.join(s.work,'products.json')));
     assert.ok(!existsSync(path.join(s.work,'plugin')),'the native arm gets no harness plugin');
     const args=invokerArgs({product:true,native:true,comparison:true,model:'capable',budgetUsd:1});
@@ -72,11 +72,11 @@ test('native staging has normal instructions, public tests and no harness plugin
 });
 
 test('comparison graph suppression changes only disposable plugin and leaves normal source readable',()=>{
-  const original=readFileSync('.aidlc/lib/graph.mjs','utf8');
+  const original=readFileSync('.claude/harness/lib/graph.mjs','utf8');
   const s=stage(FIXTURES,'calculator',{product:true});
   try{stageProduct(s,root);configureComparison(s);
-    assert.match(readFileSync(path.join(s.plugin,'.aidlc/lib/graph.mjs'),'utf8'),/load\(cfg\) \{ return null/);
-    assert.equal(readFileSync('.aidlc/lib/graph.mjs','utf8'),original);
+    assert.match(readFileSync(path.join(s.plugin,'.claude/harness/lib/graph.mjs'),'utf8'),/load\(cfg\) \{ return null/);
+    assert.equal(readFileSync('.claude/harness/lib/graph.mjs','utf8'),original);
     assert.ok(existsSync(path.join(s.work,'src/App.tsx')));
   }finally{s.cleanup();}
 });
@@ -199,7 +199,7 @@ test('suite deadline stops further model calls and preserves scheduled unmeasure
 test('pruning changes only automatic session inventory in the isolated lean arm',()=>{
   // a-baseline-measures-what-ships step 9: the payload the experiment prunes now lives in
   // lib/session.mjs, so the experiment reads and writes that module instead of the hook.
-  const original=readFileSync('.aidlc/lib/session.mjs','utf8');
+  const original=readFileSync('.claude/harness/lib/session.mjs','utf8');
   const baseline=restoreSessionInventory(original);
   assert.equal(restoreSessionInventory(pruneSessionInventory(baseline)),baseline);
   const pairs=comparisonPairs(models,{prune:true});
@@ -208,19 +208,19 @@ test('pruning changes only automatic session inventory in the isolated lean arm'
     const s=stage(FIXTURES,'calculator',{product:true});
     try{
       stageProduct(s,root);configureComparison(s,config);
-      const session=readFileSync(path.join(s.plugin,'.aidlc/lib/session.mjs'),'utf8');
+      const session=readFileSync(path.join(s.plugin,'.claude/harness/lib/session.mjs'),'utf8');
       assert.equal(session,config.prune?pruneSessionInventory(baseline):baseline);
-      assert.equal(readFileSync(path.join(s.plugin,'.aidlc/lib/graph.mjs'),'utf8'),readFileSync('.aidlc/lib/graph.mjs','utf8'));
+      assert.equal(readFileSync(path.join(s.plugin,'.claude/harness/lib/graph.mjs'),'utf8'),readFileSync('.claude/harness/lib/graph.mjs','utf8'));
       assert.ok(session.includes('ledger.report('));assert.ok(session.includes('currentLine(cfg)'));
       // G11 removed the `ledger:` row count from the payload; `ledger.report(` is still called,
       // for the noisy-control warnings, which is what this experiment must not prune.
-      const banner=JSON.parse(execFileSync(process.execPath,[path.join(s.plugin,'.aidlc/bin/harness'),'hook','session-start'],{cwd:s.work,encoding:'utf8',input:JSON.stringify({cwd:s.work})})).hookSpecificOutput.additionalContext;
+      const banner=JSON.parse(execFileSync(process.execPath,[path.join(s.plugin,'.claude/harness/bin/harness'),'hook','session-start'],{cwd:s.work,encoding:'utf8',input:JSON.stringify({cwd:s.work})})).hookSpecificOutput.additionalContext;
       assert.equal(/^budget:/m.test(banner),!config.prune);
       assert.match(banner,/contract:/);assert.match(banner,/^check:/m);assert.match(banner,/^current:/m);
 
     }finally{s.cleanup();}
   }
-  assert.equal(readFileSync('.aidlc/lib/session.mjs','utf8'),original);
+  assert.equal(readFileSync('.claude/harness/lib/session.mjs','utf8'),original);
   assert.throws(()=>pruneSessionInventory('changed source'),/source drift/);
 });
 

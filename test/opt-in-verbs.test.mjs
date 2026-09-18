@@ -15,8 +15,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { normalize, KNOWN_FORMATS } from '../.aidlc/lib/normalize.mjs';
-import { VERBS, DEFAULT_STAGES, loadConfig, resolveStage } from '../.aidlc/lib/config.mjs';
+import { normalize, KNOWN_FORMATS } from '../.claude/harness/lib/normalize.mjs';
+import { VERBS, DEFAULT_STAGES, loadConfig, resolveStage } from '../.claude/harness/lib/config.mjs';
 import { ROOT, A } from './_paths.mjs';
 
 const fixture = (name) => readFileSync(path.join(ROOT, 'test/fixtures', name), 'utf8');

@@ -33,12 +33,13 @@ test('a fresh scaffold contains only consumer files and empty project state', (t
   const files = readdirSync(root, { recursive: true }).filter(rel =>
     !rel.startsWith('.git/') && rel !== '.git' && statSync(path.join(root, rel)).isFile()).sort();
   assert.deepEqual(files, [
-    '.aidlc/.gitignore', '.aidlc/bin/harness', '.aidlc/harness-install.json',
-    '.aidlc/harness.toml', '.aidlc/instructions.md', '.aidlc/policies/review.md',
-    '.claude/CLAUDE.md', '.claude/settings.json', 'CLAUDE.md',
+    '.claude/CLAUDE.md',
+    '.claude/harness/.gitignore', '.claude/harness/bin/harness', '.claude/harness/harness-install.json',
+    '.claude/harness/harness.toml', '.claude/harness/instructions.md', '.claude/harness/policies/review.md',
+    '.claude/settings.json', 'CLAUDE.md',
   ]);
-  assert.deepEqual(readdirSync(path.join(root, '.aidlc/artifacts')), []);
-  assert.deepEqual(readdirSync(path.join(root, '.aidlc/state')), []);
+  assert.deepEqual(readdirSync(path.join(root, '.claude/harness/artifacts')), []);
+  assert.deepEqual(readdirSync(path.join(root, '.claude/harness/state')), []);
 });
 
 test('fresh consumer instructions describe the executable workflow', (t) => {
@@ -52,7 +53,7 @@ test('fresh consumer instructions describe the executable workflow', (t) => {
   assert.match(instructions, /harness status/);
   const status = spawnSync(process.execPath, [BIN, 'status', '--json'], { cwd: root, encoding: 'utf8' });
   assert.equal(status.status, 0, status.stderr);
-  assert.doesNotMatch(readFileSync(path.join(root, '.aidlc/harness.toml'), 'utf8'), /^\[\]$|production_allowed_risks|compose_file/m);
+  assert.doesNotMatch(readFileSync(path.join(root, '.claude/harness/harness.toml'), 'utf8'), /^\[\]$|production_allowed_risks|compose_file/m);
 });
 
 test('the maintenance example creates a discoverable intent and preserves human edits', (t) => {
@@ -63,11 +64,11 @@ test('the maintenance example creates a discoverable intent and preserves human 
   for (const observed of [1, 2]) {
     const result = run(observed);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(readdirSync(path.join(root, '.aidlc/artifacts')), []);
+    assert.deepEqual(readdirSync(path.join(root, '.claude/harness/artifacts')), []);
   }
   const result = run(3);
   assert.equal(result.status, 0, result.stderr);
-  const intent = path.join(root, '.aidlc/artifacts/ci-failure-rate-breach/intent.md');
+  const intent = path.join(root, '.claude/harness/artifacts/ci-failure-rate-breach/intent.md');
   assert.ok(existsSync(intent), result.stdout);
   assert.match(readFileSync(intent, 'utf8'), /^---\nstatus: draft\n---/);
   const status = spawnSync(process.execPath, [BIN, 'status', '--json'], { cwd: root, encoding: 'utf8' });
@@ -214,7 +215,7 @@ test('this repository does not activate the harness it is building', () => {
 });
 
 // Spec behaviour 13. The banner is the first instruction the harness gives itself every
-// session, and here it printed `bash .aidlc/bin/harness`, which in this repository is a shell
+// session, and here it printed `bash .claude/harness/bin/harness`, which in this repository is a shell
 // syntax error — the file is JavaScript, not a shim. A control that tells you to run something
 // that cannot run is worse than no control: it teaches people to ignore the banner.
 test('the command the banner prints is the command that runs here', () => {
@@ -234,7 +235,7 @@ test('the command the banner prints is the command that runs here', () => {
 // than a missing field: a value the record could not fill must not read as an empty one.
 test('the install record names the marketplace, the plugin and the commit', (t) => {
   const root = installed(t);
-  const rec = readJson(path.join(root, '.aidlc', 'harness-install.json'));
+  const rec = readJson(path.join(root, '.claude/harness', 'harness-install.json'));
   const name = readJson(PLUGIN).name;
 
   assert.equal(rec.marketplace, name);
@@ -248,7 +249,7 @@ test('the install record names the marketplace, the plugin and the commit', (t) 
 // to be exactly that. Re-running must not silently discard the one file the user hand-edits.
 test('re-running init leaves the hand-edited files untouched', (t) => {
   const root = installed(t);
-  const hand = [path.join(root, '.aidlc', 'harness.toml'), path.join(root, '.aidlc', 'instructions.md')];
+  const hand = [path.join(root, '.claude/harness', 'harness.toml'), path.join(root, '.claude/harness', 'instructions.md')];
   const before = hand.map((f) => readFileSync(f, 'utf8'));
 
   const again = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
@@ -265,8 +266,8 @@ test('re-running init leaves the hand-edited files untouched', (t) => {
 // that drove the design. Recorded here so the distinction is not lost.
 test('the shim resolves the harness from HARNESS_HOME and from the plugin cache', (t) => {
   const root = installed(t);
-  const shim = path.join(root, '.aidlc', 'bin', 'harness');
-  const rec = readJson(path.join(root, '.aidlc', 'harness-install.json'));
+  const shim = path.join(root, '.claude/harness', 'bin', 'harness');
+  const rec = readJson(path.join(root, '.claude/harness', 'harness-install.json'));
   const home = mkdtempSync(path.join(tmpdir(), 'harness-home-'));
   t.after(() => rmSync(home, { recursive: true, force: true }));
 
@@ -282,8 +283,8 @@ test('the shim resolves the harness from HARNESS_HOME and from the plugin cache'
     filter: source => {
       const rel = path.relative(ROOT, source);
       const within = dir => rel === dir || rel.startsWith(dir + path.sep);
-      return !rel || (['.aidlc', '.claude', '.claude-plugin'].some(within)
-        && !['.aidlc/artifacts', '.aidlc/evals', '.aidlc/state', '.claude/state', '.claude/worktrees'].some(within));
+      return !rel || (['.claude/harness', '.claude', '.claude-plugin'].some(within)
+        && !['.claude/harness/artifacts', '.claude/harness/evals', '.claude/harness/state', '.claude/state', '.claude/worktrees'].some(within));
     },
   });
   const viaCache = spawnSync('bash', [shim, 'doctor'],
@@ -296,7 +297,7 @@ test('the shim fails loudly when the harness is nowhere', (t) => {
   const home = mkdtempSync(path.join(tmpdir(), 'harness-nohome-'));
   t.after(() => rmSync(home, { recursive: true, force: true }));
 
-  const r = spawnSync('bash', [path.join(root, '.aidlc', 'bin', 'harness'), 'doctor'],
+  const r = spawnSync('bash', [path.join(root, '.claude/harness', 'bin', 'harness'), 'doctor'],
     { cwd: root, encoding: 'utf8', env: { ...process.env, HOME: home, HARNESS_HOME: '' } });
 
   assert.notEqual(r.status, 0, 'a shim that cannot find the harness must not exit 0');
@@ -305,10 +306,10 @@ test('the shim fails loudly when the harness is nowhere', (t) => {
 
   // A HARNESS_HOME that points nowhere is a mistyped CI variable, not a reason to hand the
   // operator a module-loader stack trace. Behaviour 12 asks for the two commands every time.
-  const wrong = spawnSync('bash', [path.join(root, '.aidlc', 'bin', 'harness'), 'doctor'],
+  const wrong = spawnSync('bash', [path.join(root, '.claude/harness', 'bin', 'harness'), 'doctor'],
     { cwd: root, encoding: 'utf8', env: { ...process.env, HOME: home, HARNESS_HOME: path.join(home, 'nope') } });
   assert.notEqual(wrong.status, 0);
-  assert.match(wrong.stderr, /HARNESS_HOME.*holds no \.aidlc\/bin\/harness/, 'the failure says which variable is wrong');
+  assert.match(wrong.stderr, /HARNESS_HOME.*holds no \.claude\/harness\/bin\/harness/, 'the failure says which variable is wrong');
   assert.match(wrong.stderr, /claude plugin marketplace add/, 'and still names the way out');
 });
 
@@ -329,7 +330,7 @@ test('upgrading removes a runtime left by an older harness', (t) => {
 });
 
 // M1 step 2, 2026-09-16. `init` into a repository that already had a CLAUDE.md wrote that file
-// straight into `.aidlc/instructions.md` and never read the template, so the project's agent
+// straight into `.claude/harness/instructions.md` and never read the template, so the project's agent
 // instructions contained none of the harness's workflow, verification or ask-when-ambiguous
 // steering. Every eval fixture has a `.claude/CLAUDE.md`, which is how all 22 golden tasks came
 // to grade steering that was never loaded. The project's own conventions are still kept.
@@ -362,13 +363,13 @@ test('the composed instructions stay inside the CLAUDE.md line budget for an ord
   assert.equal(r.status, 0, `init failed: ${r.stderr}`);
   const lines = readFileSync(path.join(root, '.claude/CLAUDE.md'), 'utf8').split('\n').length;
   const limit = Number(/^claude_md_lines\s*=\s*(\d+)/m.exec(
-    readFileSync(path.join(root, '.aidlc/harness.toml'), 'utf8'))?.[1]);
+    readFileSync(path.join(root, '.claude/harness/harness.toml'), 'utf8'))?.[1]);
   assert.ok(limit > 0, 'the installed registry must state [limits].claude_md_lines');
   assert.ok(lines <= limit, `composed CLAUDE.md is ${lines} lines against the ${limit}-line ceiling`);
 });
 
 // MEASURED in the G24 pilot on `calculator`, 2026-09-16
-// (`.aidlc/evals/comparisons/2026-09-16T08-15-39-145Z`): the implement turn wrote correct code in
+// (`.claude/harness/evals/comparisons/2026-09-16T08-15-39-145Z`): the implement turn wrote correct code in
 // 87 s, then `--stage stop` failed `fmt` on CODEBASE-MAP.md — which the harness's own Stop hook
 // had just written. The driver spent a repair turn, USD 0.235 and 22 minutes on a file it
 // regenerates, delivered nothing, and was killed on the suite deadline. Native shipped the same
@@ -383,7 +384,7 @@ test('init leaves the project formatter unable to fail on files the harness gene
   assert.equal(r.status, 0, r.stderr);
 
   const ignore = readFileSync(path.join(root, '.prettierignore'), 'utf8');
-  for (const generated of ['CLAUDE.md', 'CODEBASE-MAP.md', '.claude/', '.aidlc/']) {
+  for (const generated of ['CLAUDE.md', 'CODEBASE-MAP.md', '.claude/']) {
     assert.ok(ignore.split('\n').includes(generated), `${generated} is generated and must not reach the formatter`);
   }
   assert.match(ignore, /^coverage$/m, "the project's own entries are kept");

@@ -26,7 +26,7 @@ import { spawnSync, execFileSync } from 'node:child_process';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { loadConfig } from '../../.aidlc/lib/config.mjs';
+import { loadConfig } from '../../.claude/harness/lib/config.mjs';
 import { approvalDriver } from './approvals.mjs';
 import { assertProductTree, runProductTests, PRODUCT_TEST_COMMAND, execNode } from './stage.mjs';
 import { prepareProductChange, walk } from './campaign.mjs';
@@ -49,7 +49,7 @@ export function spawnDeliver({ work, harnessBin, slug, args, timeoutMs, env = pr
 }
 
 function pinBounds(work, { maxUsd, maxMinutes }) {
-  const file = path.join(work, '.aidlc/harness.toml');
+  const file = path.join(work, '.claude/harness/harness.toml');
   const text = readFileSync(file, 'utf8').replace(/\n\[deliver\][\s\S]*?(?=\n\[|$)/, '');
   writeFileSync(file, `${text.trimEnd()}\n\n# Pinned by the comparison arm: one sprint's allowance.\n[deliver]\nmax_usd = ${maxUsd}\nmax_minutes = ${maxMinutes}\n`);
 }
@@ -67,7 +67,7 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
   const commit = (message) => { assertProductTree(s.work); git('add', '-A'); if (git('status', '--porcelain')) git('commit', '-qm', message); return git('rev-parse', 'HEAD'); };
   const save = () => writeFileSync(path.join(evidenceDir, 'phases.json'), JSON.stringify(result, null, 2) + '\n');
   const event = (name, extra = {}) => { result.phases.push({ ...extra, name }); save(); log(`${config.id}/${t.id}: ${name}`); };
-  const sourceDigest = () => walk(s.work).filter((f) => !f.startsWith('.aidlc/') && f !== 'CODEBASE-MAP.md').map((f) => [f, createHash('sha256').update(readFileSync(path.join(s.work, f))).digest('hex')]);
+  const sourceDigest = () => walk(s.work).filter((f) => !f.startsWith('.claude/harness/') && f !== 'CODEBASE-MAP.md').map((f) => [f, createHash('sha256').update(readFileSync(path.join(s.work, f))).digest('hex')]);
   const publicCheck = () => { const out = runProductTests(s.work); assert.equal(out.status, 0, `public tests failed: ${out.stdout}${out.stderr}`); return out.stdout; };
   const allowance = Number(t.deliverUsd ?? Math.max(Number(t.budgetUsd ?? 0), DRIVER_BOUNDS.max_usd));
   const minutes = Number(t.deliverMinutes ?? DRIVER_BOUNDS.max_minutes);
@@ -117,7 +117,7 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
       // *started* with `{` read a nested object and reported a finished run as not delivered.
       const stdout = String(out.stdout ?? ''); const envelope = stdout.slice(Math.max(0, stdout.lastIndexOf('\n{\n'))).trim();
       let parsed = null; try { parsed = JSON.parse(envelope.startsWith('{') ? envelope : stdout.trim()); } catch { /* the driver did not finish its envelope */ }
-      const stateFile = path.join(s.work, '.aidlc/state/deliver', step.slug, 'phases.json');
+      const stateFile = path.join(s.work, '.claude/harness/state/deliver', step.slug, 'phases.json');
       const state = existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, 'utf8')) : null;
       const usd = Number.isFinite(parsed?.usd) ? parsed.usd : Number.isFinite(state?.usd) ? state.usd : null;
       // A turn the driver could not price reserved its allowance; the comparison treats that as
@@ -134,7 +134,7 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
       // Keep the driver's own record beside the product: the phase file, the review, the PR body.
       const keep = path.join(evidenceDir, 'deliver', step.slug); mkdirSync(keep, { recursive: true });
       if (state) writeFileSync(path.join(keep, 'phases.json'), JSON.stringify(state, null, 2) + '\n');
-      for (const name of ['review.md', 'pr.md']) { const f = path.join(s.work, '.aidlc/artifacts', step.slug, name); if (existsSync(f)) cpSync(f, path.join(keep, name)); }
+      for (const name of ['review.md', 'pr.md']) { const f = path.join(s.work, '.claude/harness/artifacts', step.slug, name); if (existsSync(f)) cpSync(f, path.join(keep, name)); }
       if (!parsed?.ok) {
         result.driverStops++;
         throw new Error(`the driver did not deliver ${step.slug}: ${parsed?.stopped ? `${parsed.stopped.bound} — ${parsed.stopped.detail}` : out.error?.message ?? `exit ${out.status}: ${String(out.stderr ?? '').trim().split('\n').pop()}`}`);
@@ -165,7 +165,7 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
         }
       }
       result.evaluatorCaughtDefects += caught;
-      const intent = path.join(s.work, '.aidlc/artifacts', step.slug, 'intent.md');
+      const intent = path.join(s.work, '.claude/harness/artifacts', step.slug, 'intent.md');
       writeFileSync(intent, readFileSync(intent, 'utf8').replace('status: draft', 'status: closed'));
       result.candidateRevision = commit(`Accepted ${step.slug}`); result.completedSteps++;
       event('accepted-change', { slug: step.slug, candidateRevision: result.candidateRevision, evaluatorCaughtDefects: caught });

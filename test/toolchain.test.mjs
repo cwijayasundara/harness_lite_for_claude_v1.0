@@ -13,8 +13,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { detect, applyDetection, detectionReport, ESLINT_THRESHOLDS } from '../.aidlc/lib/toolchain.mjs';
-import { VERBS, loadConfig } from '../.aidlc/lib/config.mjs';
+import { detect, applyDetection, detectionReport, ESLINT_THRESHOLDS } from '../.claude/harness/lib/toolchain.mjs';
+import { VERBS, loadConfig } from '../.claude/harness/lib/config.mjs';
 import { BIN, ROOT } from './_paths.mjs';
 
 function project(files) {
@@ -101,7 +101,7 @@ test('what it cannot see stays empty, and a stack it has no verbs for says so', 
 });
 
 test('detection fills an empty verb and never overwrites a configured one, section by section', () => {
-  const registry = readFileSync(path.join(ROOT, '.aidlc/templates/harness.toml'), 'utf8');
+  const registry = readFileSync(path.join(ROOT, '.claude/harness/templates/harness.toml'), 'utf8');
   const detected = { capabilities: { lint: 'ruff check {files}', test: 'python3 -m pytest' }, formats: { lint: 'ruff' } };
 
   const first = applyDetection(registry, detected);
@@ -132,7 +132,7 @@ test('init fills the registry it writes, reports on one it did not, and --no-det
     assert.equal(cfg.capabilities.arch, '', 'a verb it cannot see stays empty');
 
     // A verb emptied by hand stays empty on a plain re-run: the registry belongs to the project.
-    const config = path.join(p.root, '.aidlc/harness.toml');
+    const config = path.join(p.root, '.claude/harness/harness.toml');
     writeFileSync(config, readFileSync(config, 'utf8').replace(/^lint\s+= ".*"$/m, 'lint      = ""'));
     const rerun = run();
     assert.equal(loadConfig(p.root).capabilities.lint, '', 'a re-run overwrote a registry the project owns');

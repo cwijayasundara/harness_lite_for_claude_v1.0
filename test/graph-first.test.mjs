@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { A, C, ROOT } from './_paths.mjs';
-import { renderClaudeInstructions } from '../.aidlc/lib/projection.mjs';
+import { renderClaudeInstructions } from '../.claude/harness/lib/projection.mjs';
 
 const read = (rel) => readFileSync(path.join(ROOT, rel), 'utf8');
 const frontmatter = (text) => {
@@ -19,8 +19,8 @@ const frontmatter = (text) => {
 };
 
 test('B1 explorer can run graph lookup and still cannot write', () => {
-  const md = read('.aidlc/roles/explorer.md');
-  const contract = JSON.parse(read('.aidlc/roles/explorer.contract.json'));
+  const md = read('.claude/harness/roles/explorer.md');
+  const contract = JSON.parse(read('.claude/harness/roles/explorer.contract.json'));
   const tools = (frontmatter(md).tools ?? '').split(',').map((s) => s.trim());
   assert.deepEqual(tools, contract.tools);
   assert.ok(tools.includes('Bash'), 'explorer must be able to run harness graph query / pack');
@@ -39,10 +39,10 @@ test('B1 explorer can run graph lookup and still cannot write', () => {
 // stub — reading it here would test the harness source repo's wiring, not the steering shipped.
 test('B2 steering names graph/pack first and Grep as the miss path', () => {
   const surfaces = {
-    instructions: read('.aidlc/instructions.md'),
-    claude: renderClaudeInstructions(read('.aidlc/instructions.md')),
+    instructions: read('.claude/harness/instructions.md'),
+    claude: renderClaudeInstructions(read('.claude/harness/instructions.md')),
 
-    implement: read('.aidlc/skills/implement/SKILL.md'),
+    implement: read('.claude/harness/skills/implement/SKILL.md'),
   };
   for (const [name, text] of Object.entries(surfaces)) {
     assert.doesNotMatch(text, /CRITICAL|YOU MUST NEVER GREP/, name);
@@ -61,7 +61,7 @@ test('B2 steering names graph/pack first and Grep as the miss path', () => {
 });
 
 test('B3 Grep stays allowed; preSearch does not dump a pack', () => {
-  const dispatch = read('.aidlc/hooks/dispatch.mjs');
+  const dispatch = read('.claude/harness/hooks/dispatch.mjs');
   assert.match(dispatch, /tool === 'Grep' \|\| tool === 'Glob'/);
   assert.match(dispatch, /return preSearch/);
   const fn = dispatch.slice(dispatch.indexOf('function preSearch'), dispatch.indexOf('export async function dispatch'));
@@ -69,7 +69,7 @@ test('B3 Grep stays allowed; preSearch does not dump a pack', () => {
   assert.doesNotMatch(fn, /renderPack|# context pack/);
   assert.match(fn, /additionalContext/);
   assert.match(fn, /graph query callers/);
-  const miss = read('.aidlc/bin/harness');
+  const miss = read('.claude/harness/bin/harness');
   assert.match(miss, /fall back to: grep -rn/);
 });
 
@@ -80,7 +80,7 @@ test('B4 lean-review row freezes expansion and repairs usage', () => {
   assert.match(row, /freeze/i);
   assert.match(row, /repair usage|graph-first/i);
   assert.doesNotMatch(row, /First removal experiment/);
-  const limits = read('.aidlc/harness.toml');
+  const limits = read('.claude/harness/harness.toml');
   assert.match(limits, /^agents\s*=\s*3$/m);
   assert.equal(JSON.parse(read('.claude-plugin/plugin.json')).agents.length, 3);
 });

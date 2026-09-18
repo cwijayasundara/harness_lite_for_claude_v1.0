@@ -119,8 +119,8 @@ after repeatable product evidence shows it necessary.
 | D | Item 5 validated; item 4 native/graph comparisons complete, generation partial | Native and graph pairs completed; further paid generation comparisons cancelled after the user redirected validation to a minimal two-sprint app, which passed local workflow checks |
 
 First implementation slice: runner aggregation, malformed structured reports, full-run selection,
-absolute result reporting and CI conditions/trigger coverage. Files: .aidlc/lib/runner.mjs,
-.aidlc/lib/normalize.mjs, .aidlc/lib/eval-gate.mjs, .github/workflows/harness.yml, and their existing
+absolute result reporting and CI conditions/trigger coverage. Files: .claude/harness/lib/runner.mjs,
+.claude/harness/lib/normalize.mjs, .claude/harness/lib/eval-gate.mjs, .github/workflows/harness.yml, and their existing
 tests. Verification: reproduce failures first, targeted tests, full stop check, and commit-stage
 diagnostics. Existing approval records remain untouched; any scope-check mismatch is reported.
 
@@ -205,7 +205,7 @@ to read tools, resumes the same session through rejection/correction, gives impl
 only after parent approvals, independently executes product cases, then asks the configured
 higher-capability evaluator to find a seeded defect in an explicit candidate. The fixture,
 decisions and runtime assertions are supplied by the driver. The first run tested native CLI mechanisms with customizations disabled. The completion pass
-below also tests actual plugin loading; neither run replaces end-to-end product campaigns. Its evidence lives under `.aidlc/evals/smoke/`.
+below also tests actual plugin loading; neither run replaces end-to-end product campaigns. Its evidence lives under `.claude/harness/evals/smoke/`.
 
 Live result: the retry outside the restricted execution sandbox passed all four phases using
 Claude Code 2.1.263 and the configured Sonnet/Opus models. The successful native-only run reported $0.1395525 in the prior turn; its per-run JSON was
@@ -220,7 +220,7 @@ repository's implementation commits.
 ### Item 1 acceptance completion
 
 The user's subsequent instruction to complete item 1, merge to main and push authorizes this
-iteration's scope and delivery. `.aidlc/artifacts/correct-existing-mechanisms/` records that
+iteration's scope and delivery. `.claude/harness/artifacts/correct-existing-mechanisms/` records that
 conversation authority through the ordinary committed spec/plan approval path. It supersedes
 the earlier campaign self-approval exception without rewriting historical approvals.
 
@@ -241,7 +241,7 @@ Item 1 acceptance is complete. Hosted unit/graph and verified Python cost jobs p
 The first hosted runs exposed missing CLI/history and a Git-metadata snapshot-copy failure;
 those defects were fixed and rerun without changing test expectations or token thresholds.
 The actual-plugin integration reported $0.1853427 and passed all phases. Detailed outcomes,
-including incomplete attempts, are in `.aidlc/artifacts/correct-existing-mechanisms/evidence.md`.
+including incomplete attempts, are in `.claude/harness/artifacts/correct-existing-mechanisms/evidence.md`.
 The confirmation review of 6a1cd15 cleared the mechanism corrections and requested two
 documentation fixes: cite this newer CI run and distinguish the completed review archive from
 the earlier timeout. Both are now corrected against recorded evidence. No further model
@@ -267,7 +267,7 @@ unfinished item-1 mechanism tests.
 ### Item 2 implementation, 2026-09-06
 
 The user's instruction to complete item 2, test, merge and push authorizes this delivery.
-The ordinary spec/plan approval records are under `.aidlc/artifacts/simplify-daily-guidance/`.
+The ordinary spec/plan approval records are under `.claude/harness/artifacts/simplify-daily-guidance/`.
 Existing skills now encourage relevant system reads, consequential clarification, existing
 patterns, small behavioural slices, reproduction, runtime proof and honest reporting.
 Intent no longer demands an interview or invented questions, or splits an outcome on "and".
@@ -283,7 +283,7 @@ the graph benchmark passed. The live installed-plugin smoke passed, including ap
 review. The paired guidance sample passed all boundary and product checks with zero unnecessary
 questions/stops in both variants: it demonstrates no regression, not fewer workflow-repair turns.
 That empirical reduction criterion remains unproven. Detailed results, original grading, incomplete
-attempt and costs are recorded in `.aidlc/artifacts/simplify-daily-guidance/evidence.md`.
+attempt and costs are recorded in `.claude/harness/artifacts/simplify-daily-guidance/evidence.md`.
 Full product campaigns remain item 3.
 
 ### Item 3 delivered, 2026-09-06
@@ -315,7 +315,7 @@ checks also passed. Credential preflight fails closed for product trials; missin
 unknown, and failed invocations reserve their spend allowance.
 
 Portable results and exact evidence locations are in `evals/evidence/product-summary.json`.
-Full private snapshots/transcripts remain in ignored `.aidlc/evals/products/`. These are one
+Full private snapshots/transcripts remain in ignored `.claude/harness/evals/products/`. These are one
 complete run per campaign, not a reliability-rate estimate. Approvals test the scripted protocol;
 deployment remains local and disposable. The separate whole-change evaluator timed out twice
 (180 and 480 seconds), with no verdict or reported billing. Those reviews remain incomplete,
@@ -356,7 +356,7 @@ a particular word in the response. Failed verification candidates are saved befo
 are unmeasured; no winner, universal reliability or item 5 pruning is claimed.
 
 Portable evidence is in `evals/evidence/comparison-summary.json`; complete private phases and source
-histories remain under ignored `.aidlc/evals/comparisons/`. Total reported spend was **$7.45033505**;
+histories remain under ignored `.claude/harness/evals/comparisons/`. Total reported spend was **$7.45033505**;
 one timeout omitted billing, so total cost is unknown. Reported spend plus reserved allowance
 was $8.95033505. Failed, abandoned and unmeasured attempts are retained, not rounded into passes.
 
@@ -414,12 +414,12 @@ conclusively proven cause. Both repairs apply equally to the matched arms.
 
 All twelve deterministic Docker checks passed, including isolation, external approvals,
 seeded-defect rejection, HTTP recovery and failure-with-leaked-server reporting. Full local
-stop/commit results are recorded in `.aidlc/artifacts/prune-session-inventory/evidence.md`.
+stop/commit results are recorded in `.claude/harness/artifacts/prune-session-inventory/evidence.md`.
 The user authorized merging all changes and pushing to main on 2026-09-07. Spec and plan
 approvals are committed, and all final commit checks passed; earlier approvals were not rewritten.
 No hosted CI or separate whole-change model review is claimed. The existing CODEBASE-MAP.md
 edit is unchanged. Portable outcomes are in `evals/evidence/pruning-summary.json`; full phases,
-product histories and the captured driver patch are in ignored `.aidlc/evals/comparisons/prune-*`.
+product histories and the captured driver patch are in ignored `.claude/harness/evals/comparisons/prune-*`.
 
 
 ### Item 4 closeout and minimal-app validation — 2026-09-08
@@ -439,7 +439,7 @@ session are not claimed. Empty optional capabilities were explicitly skipped.
 
 Portable outcomes, identities, costs and retained failed attempts are in
 `evals/evidence/comparison-summary.json`; findings and limitations are recorded in
-`.aidlc/artifacts/complete-native-comparisons/evidence.md`.
+`.claude/harness/artifacts/complete-native-comparisons/evidence.md`.
 
 
 ### Bounded gap follow-up — 2026-09-08
@@ -472,7 +472,7 @@ the current workflow and commands. The template no longer advertises removed dep
 configuration. Existing consumer instructions/configuration remain preserved on reinstall.
 
 The maintenance example now creates a discoverable draft at
-`.aidlc/artifacts/<slug>/intent.md` and preserves existing triage edits. Curated reports moved
+`.claude/harness/artifacts/<slug>/intent.md` and preserves existing triage edits. Curated reports moved
 byte-for-byte to `evals/evidence/`; full raw runs remain ignored. Historical approved specs and
 plans are unchanged. Four delivered implementation intents were closed; the two incomplete
 comparison intents remain open and qualified by their recorded evidence.
@@ -498,8 +498,8 @@ coordination and evidence machinery. Passing the current budget cannot refute th
 
 **Measured footprint.** Physical lines, including comments/blanks, from Git-tracked files:
 
-- Lean executable core: 4,890 lines in 29 files. This counts `.aidlc/bin/harness` and `.mjs`
-  files under `.aidlc/{lib,checks,hooks,sensors}`; it excludes templates, skills, tests and evidence.
+- Lean executable core: 4,890 lines in 29 files. This counts `.claude/harness/bin/harness` and `.mjs`
+  files under `.claude/harness/{lib,checks,hooks,sensors}`; it excludes templates, skills, tests and evidence.
   The identical selection at `3c79375` was 3,689 lines in 24 files: 33% growth.
 - v6's `.claude/hooks` and `.claude/scripts` alone contain 40,010 lines across 284 tracked
   JS/TS/Python/Markdown/JSON/TOML/shell files. This is a footprint reference, not an equivalent
@@ -532,8 +532,8 @@ adequate solution; this review does not authorize a rewrite or promise blanket f
 | Graph, map and context packing | Freeze feature expansion; usage was repaired so the agent queries the index first (graph-first retrieval). Removal still needs a graph-first versus Grep-first product comparison, which does not exist. Building one on 2026-09-09 established why: the existing `graph` pair is not it — `configureComparison` disables the staged plugin's graph for every harness arm, so both its arms ran with no index and differed only by packs pasted into the prompt, which is the advisory packing this row already rejected. The four earlier arms also saturated at 33/33, so those products cannot separate retrieval strategies. A `retrieval` pair and a discriminating product (`evals/fixtures/retrieval-app`, where `format` is exported by two modules) are now built, tested and reachable by name; a default `--compare` run is unchanged. One bounded attempt aborted at calibration for an unrelated defect, spending USD 0.11 and measuring nothing — recorded in `evals/evidence/retrieval-comparison-aborted.json`, and not a tie. The user chose to land the tooling rather than spend again. Consider removal only after someone runs it. |
 | Coordination and revision-specific product context | Limited to demonstrated D/E needs. Tracker links and targeted Git reads preferred. Selected-change status shows that slice, not a backlog dashboard. Product query kept; delivery.json and pack-revision not expanded. No scheduler or new assignment authority. |
 | Host review and runtime identity | Frozen at the honest surface already shipped. Candidate and pin checks preserved, including the conservative downgrades that refuse a verdict while a branch control is invisible. Host merge policy stays authoritative and is not emulated locally; local JSON, pins, digests and `--by` labels stay unsigned observations. No new assessment state, host verdict field or identity root, and no signing or certification verb. `test/host-evidence.test.mjs` fails if the surface grows, so an addition argues against a recorded limit instead of filling a silence. |
-| Skills and roles | Reviewed per skill at `89b5c20`; the assessment and its findings are in `.aidlc/artifacts/skills-earn-their-context/review.md`. Five are specific to this harness, `map` additionally measured; `diagnose` and `change-safely` carried generic prose no record motivated, and it is gone. The review also caught `README.md` naming `pure-refactor`, deleted at `3332615`. A skill now enters only with a failing eval or a defect recorded while building an application through the harness — a capable agent being able to follow a recipe is not that evidence — and the ceiling is not raised to admit one. No pack, bundle, overlay or per-domain marketplace; that is the v6 path. `change-safely` was deleted on 2026-09-09 by `retire-change-safely` on the user's decision. Mapping it sentence by sentence before removal corrected that review's own finding F2: four harness-specific rules had no second home, not one, and all four moved into `implement`; four generic rules had none either and were dropped as the criterion intends. The ceiling was deliberately left at its value, so the place the deletion freed belongs to a consuming project — reversing a clause of `skills-earn-their-context#B4` and of `lean-v2#B3`, both named in `supersedes:`. `test/skills-context.test.mjs` fails if the skill set, the ceiling, the verb surface, the stated limit or any rescued rule moves. |
-| Ledger and development evidence | Investigated 2026-09-09 from the rows already held — 8,075 rows over 630 runs from 2026-08-24, 729 of them blocks — and recorded in `.aidlc/artifacts/ledger-evidence-not-reporting/review.md`. Three blocks have ever been called false, all `bash-guard/contract-scope`. An unflagged block is an uninvestigated one, not a true positive: nothing in a row records what the block prevented, and this is local development history, not a product-benefit sample. 54 blocks since rule labelling carried no rule at all, so `harness ledger flag` could not reach them; `a-block-names-its-rule` closed that on 2026-09-09. The tags `scope-drift`, `tamper` and the test control already built now reach the ledger row, and `write-guard` names which of its four refusals fired. Historical rows are not backfilled: a rule invented for a past block would be a guess in evidence. 120 of `bash-guard`'s 128 attributable fires are `init-force`, and every `map-drift` fire is a reminder to run `harness map`. Fire rate measures busyness and a seeded deterrent test proves reachability; neither measures net benefit, and only an `unreliable` control may be deleted on the ledger's own evidence. History is retained and nothing publishes it — no benefit field, threshold, verdict, subcommand or reporting service. `test/ledger-evidence.test.mjs` fails if any of that changes. |
+| Skills and roles | Reviewed per skill at `89b5c20`; the assessment and its findings are in `.claude/harness/artifacts/skills-earn-their-context/review.md`. Five are specific to this harness, `map` additionally measured; `diagnose` and `change-safely` carried generic prose no record motivated, and it is gone. The review also caught `README.md` naming `pure-refactor`, deleted at `3332615`. A skill now enters only with a failing eval or a defect recorded while building an application through the harness — a capable agent being able to follow a recipe is not that evidence — and the ceiling is not raised to admit one. No pack, bundle, overlay or per-domain marketplace; that is the v6 path. `change-safely` was deleted on 2026-09-09 by `retire-change-safely` on the user's decision. Mapping it sentence by sentence before removal corrected that review's own finding F2: four harness-specific rules had no second home, not one, and all four moved into `implement`; four generic rules had none either and were dropped as the criterion intends. The ceiling was deliberately left at its value, so the place the deletion freed belongs to a consuming project — reversing a clause of `skills-earn-their-context#B4` and of `lean-v2#B3`, both named in `supersedes:`. `test/skills-context.test.mjs` fails if the skill set, the ceiling, the verb surface, the stated limit or any rescued rule moves. |
+| Ledger and development evidence | Investigated 2026-09-09 from the rows already held — 8,075 rows over 630 runs from 2026-08-24, 729 of them blocks — and recorded in `.claude/harness/artifacts/ledger-evidence-not-reporting/review.md`. Three blocks have ever been called false, all `bash-guard/contract-scope`. An unflagged block is an uninvestigated one, not a true positive: nothing in a row records what the block prevented, and this is local development history, not a product-benefit sample. 54 blocks since rule labelling carried no rule at all, so `harness ledger flag` could not reach them; `a-block-names-its-rule` closed that on 2026-09-09. The tags `scope-drift`, `tamper` and the test control already built now reach the ledger row, and `write-guard` names which of its four refusals fired. Historical rows are not backfilled: a rule invented for a past block would be a guess in evidence. 120 of `bash-guard`'s 128 attributable fires are `init-force`, and every `map-drift` fire is a reminder to run `harness map`. Fire rate measures busyness and a seeded deterrent test proves reachability; neither measures net benefit, and only an `unreliable` control may be deleted on the ledger's own evidence. History is retained and nothing publishes it — no benefit field, threshold, verdict, subcommand or reporting service. `test/ledger-evidence.test.mjs` fails if any of that changes. |
 
 The local ledger audit reported 7,493 rows over 593 runs when this review was written on
 2026-09-08, including three `contract-scope` firings flagged false; the ledger row above carries a
@@ -566,7 +566,7 @@ Assessment: the harness already implements most of that guidance, and one instru
 prove so is measuring the wrong string.
 
 **Prompt surface.** All 665 lines of agent-facing prompt — `.claude/CLAUDE.md`, six `SKILL.md`,
-three roles, `.aidlc/instructions.md`, `.aidlc/policies/review.md` — were scanned against the six
+three roles, `.claude/harness/instructions.md`, `.claude/harness/policies/review.md` — were scanned against the six
 prompting anti-patterns the guidance names. No verification rituals, no emphasis boosters, no
 scratchpad scaffolds and no stale few-shot examples were found. Fourteen case-insensitive
 `never`/`must` occurrences are bounded scope statements rather than thoroughness boosters, and the
@@ -580,14 +580,14 @@ findings instead of raw output; `harness review` runs the evaluator in a separat
 read-only tools; `--max-budget-usd` bounds every model invocation. These are the documented
 recommendations, already mechanised, and none of them is changed by this review.
 
-**Context baseline** (`lean-review-context-baseline`). `.aidlc/lib/baseline.mjs:3` states that
+**Context baseline** (`lean-review-context-baseline`). `.claude/harness/lib/baseline.mjs:3` states that
 keeping token usage in check only means something if a regression fails a build. Neither half
 holds. `capture()` builds a synthetic four-line session context, while `dispatch.mjs` session-start
 emits that block plus the map summary, the hubs, contract and current-change lines, and one line
 per superseded behaviour — measured on 2026-09-09 at 2,593 characters and roughly 649 estimated
 tokens, against a recorded `session_context_tokens` of 52. Twenty-five of the 33 lines are
 `superseded:` entries. `baseline` appears in no `[stages]` entry, so no gate grades the ratchet,
-and `.aidlc/baseline.json` still carries `wiki_index_tokens`, a key `capture()` no longer returns.
+and `.claude/harness/baseline.json` still carries `wiki_index_tokens`, a key `capture()` no longer returns.
 Next decision: measure the payload from the one path that emits it, and put the existing ratchet
 behind a gate. Whether the `superseded:` list stays in the payload is a separate decision and is
 not taken here.
@@ -612,7 +612,7 @@ No runtime mechanism, dependency, gate, control or budget was added by this revi
 ### Context baseline repaired — 2026-09-09
 
 `a-baseline-measures-what-ships` landed at `76b37ebf1200521db6cbd713524f868945ea729f`. The
-SessionStart payload is assembled by `.aidlc/lib/session.mjs` and by nothing else; the hook writes
+SessionStart payload is assembled by `.claude/harness/lib/session.mjs` and by nothing else; the hook writes
 what that function returns and `baseline.mjs`'s `capture()` measures the same string. The
 synthetic four-line reconstruction is deleted rather than corrected, and a test fails if a second
 assembly reappears in the hook.
@@ -628,7 +628,7 @@ a key `capture()` had stopped producing. `compare()` now reports such a key inst
 so a file that has drifted from its schema is visible rather than silently graded. That the whole
 file was stale is the same defect as the headline one: nothing ran the ratchet, so nothing noticed.
 
-The ratchet is now a control. `.aidlc/checks/baseline.mjs` runs the existing `compare()` and
+The ratchet is now a control. `.claude/harness/checks/baseline.mjs` runs the existing `compare()` and
 `[stages] commit` names it, so a rise beyond the recorded 1.10 tolerance fails a build and the
 finding carries the metric and both figures. No measurement was invented and no `[limits]` value
 moved; `hook_loc` fell from 255 to 212 as a side effect of the extraction.
@@ -652,7 +652,7 @@ rather than planning.
 **The index was 83% its own history.** The audit stage landed by `code-property-graph` made the
 composition visible for the first time: of 543 indexed modules, 92 were real source. The other 451
 were directories the harness itself writes — 377 recorded comparison runs under
-`.aidlc/evals/comparisons/`, 50 agent worktree copies under `.claude/worktrees/`, and 17 recorded
+`.claude/harness/evals/comparisons/`, 50 agent worktree copies under `.claude/worktrees/`, and 17 recorded
 product runs. `[graph] exclude` had never named them. The consequence was not cosmetic: the audit
 reported 282 ambiguous symbol names, of which the largest was one `src/ledger.mjs` copied into
 sixty run directories, and the PageRank that replaces fan-in counting would have ranked those
@@ -668,9 +668,9 @@ Measured before and after, on this repository:
 | index on disk | 620.1 KB | 173.9 KB |
 | full rebuild | 853 ms | 62 ms |
 
-99 rather than 92 because `.aidlc/artifacts/**` reproduction scripts are hand-written source and
+99 rather than 92 because `.claude/harness/artifacts/**` reproduction scripts are hand-written source and
 stay indexed; only machine-written run directories and worktree copies go. The exclusion lives in
-`.aidlc/lib/graph.mjs` rather than in `[graph] exclude`, because a default is a value each project
+`.claude/harness/lib/graph.mjs` rather than in `[graph] exclude`, because a default is a value each project
 may edit away and then silently re-index its own test history; a project's own list is unioned
 with it, never replaced.
 
@@ -710,7 +710,7 @@ duplicate edges collapsed — where `filter(Boolean)` previously dropped all of 
 anchor resolves a reference to the definition its call site reaches: on `evals/fixtures/retrieval-app`,
 `format` from `src/reporting/summary.mjs` now names that module rather than returning both
 definers as equal candidates. Ranking is power iteration, damping 0.85, dangling mass
-redistributed uniformly; `.aidlc/lib/pack.mjs` at fan-in 4 now outranks `.aidlc/lib/graph.mjs` at
+redistributed uniformly; `.claude/harness/lib/pack.mjs` at fan-in 4 now outranks `.claude/harness/lib/graph.mjs` at
 fan-in 10, because pack is imported by central modules rather than by leaves.
 
 **The benchmark went against it, and that is the number that governs.**
@@ -747,7 +747,7 @@ the user on 2026-09-09 rather than delete the `why:` comments needed to reach it
 
 The evaluator reviewed `the-index-tracks-the-source` read-only over the committed snapshot
 (claude-opus-5, USD 1.71) and returned **changes-requested**. Its findings are filed at
-`.aidlc/artifacts/the-index-tracks-the-source/review.md`; `the-gate-grades-what-it-can-measure`
+`.claude/harness/artifacts/the-index-tracks-the-source/review.md`; `the-gate-grades-what-it-can-measure`
 repairs them.
 
 **The review found a regression three deterministic gates had passed.** `check_stop_tokens`
@@ -788,7 +788,7 @@ modules the exclusions removed.
 
 Two review findings are recorded and deliberately not fixed here: `refresh()` computes
 `fingerprint()` twice per invocation, and `HARNESS_OUTPUT` overlaps a list in
-`test/install.test.mjs` that additionally names `.aidlc/state` and `.claude/state`. Both are real,
+`test/install.test.mjs` that additionally names `.claude/harness/state` and `.claude/state`. Both are real,
 neither is a behavioural defect, and neither file is otherwise touched by this change.
 
 **And a defect in the reviewer itself.** `harness review` hardcodes a 180-second timeout that the

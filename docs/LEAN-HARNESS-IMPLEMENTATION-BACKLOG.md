@@ -9,7 +9,7 @@
 > | Item | Delivered as |
 > |---|---|
 > | F01 | The artifact chain and its gates — `intent.md` → `spec.md` → `plan.md` → `review.md`, with `harness approve` recording each gate against a committed digest. |
-> | F04 | One suite execution per commit check — `baseline.capture()` reuses the in-flight `stop` results instead of running the stage a second time (`.aidlc/checks/baseline.mjs`, `stopReportFrom`). |
+> | F04 | One suite execution per commit check — `baseline.capture()` reuses the in-flight `stop` results instead of running the stage a second time (`.claude/harness/checks/baseline.mjs`, `stopReportFrom`). |
 > | F18 | The eval suite measures this harness rather than a pre-migration one — `evals/expected.json` is gated against the artifact-model commit, and `test/suite-truth.test.mjs` is the permanent check. |
 >
 > Everything else here is either absorbed by a completion-plan item (see its appendix), redesigned
@@ -30,9 +30,9 @@ Prepared 10 September 2026 from [the research proposal](LEAN-HARNESS-RESEARCH-PR
 
 ## Current handoff state
 
-Already implemented locally: removal of automatic `.env` loading; subscription guard in `.aidlc/lib/claude-auth.mjs`; protection of evaluation and independent-review invocations; explicit `--live` for evaluation runners; a 30-turn invocation bound; and manual subscription-only CI smoke configuration. This is a starting patch to finish and review, not evidence that Max inference or hosted CI has been verified.
+Already implemented locally: removal of automatic `.env` loading; subscription guard in `.claude/harness/lib/claude-auth.mjs`; protection of evaluation and independent-review invocations; explicit `--live` for evaluation runners; a 30-turn invocation bound; and manual subscription-only CI smoke configuration. This is a starting patch to finish and review, not evidence that Max inference or hosted CI has been verified.
 
-The execution environment reported no active Claude Code login. No inference calls were made. The hosted workflow and account settings have not been changed. Model selection still uses the existing generator/evaluator/evaluation IDs in `.aidlc/harness.toml` and `.aidlc/lib/config.mjs`.
+The execution environment reported no active Claude Code login. No inference calls were made. The hosted workflow and account settings have not been changed. Model selection still uses the existing generator/evaluator/evaluation IDs in `.claude/harness/harness.toml` and `.claude/harness/lib/config.mjs`.
 
 Verification recorded in the proposal: a disposable clean clone ran 436 tests, with 423 passing, 12 skipped, and one clone-origin consistency failure. That remaining test passed after correcting the clone's origin metadata. A focused 32-test suite also passed in the working checkout. Tests that require a clean runtime may reject an edited checkout; use a disposable clone containing the candidate changes and original history, without weakening runtime identity checks.
 
@@ -69,7 +69,7 @@ Suggested sequence: finish F01–F03; land F18 and F04; establish F05; extract F
 
 **Work:** Review the existing patch rather than replacing it. Inspect every native Claude invocation, credential preflight, settings inheritance, container credential boundary, and CI trigger. Ensure an API key, API helper, alternate provider or profile cannot silently select paid API execution. Preserve explicit refusal rather than silently changing authentication.
 
-**Start here:** `.aidlc/lib/claude-auth.mjs`, `.aidlc/lib/review.mjs`, `evals/run.mjs`, `evals/lib/invoker.mjs`, `evals/agent-mechanisms.mjs`, `.github/workflows/harness.yml`, and their tests.
+**Start here:** `.claude/harness/lib/claude-auth.mjs`, `.claude/harness/lib/review.mjs`, `evals/run.mjs`, `evals/lib/invoker.mjs`, `evals/agent-mechanisms.mjs`, `.github/workflows/harness.yml`, and their tests.
 
 **Acceptance:** Offline regression tests cover API/OAuth conflicts, missing login, rejected configuration, dry-run behavior, and no credential leakage. Ordinary PR checks need no model secret or Docker. An explicitly requested bounded smoke works with the user's Max login; non-interactive environments use the supported subscription token path where needed. Record any unverified authentication case. Publish the reviewed workflow through the normal repository process; inspect required checks so an obsolete mandatory live-eval check cannot strand PRs. Publication and account sign-in must be recorded separately from code completion.
 
@@ -85,7 +85,7 @@ Suggested sequence: finish F01–F03; land F18 and F04; establish F05; extract F
 
 **Work:** Separate authentication from model selection. Allow normal development to use the user's native-agent choice, with explicit overrides for controlled trials. Remove the assumption that the reviewer must use a different model; preserve separate context and read-only access. Keep exact version pins where reproducibility requires them.
 
-**Start here:** `.aidlc/harness.toml`, `.aidlc/lib/config.mjs`, model projections generated during installation, invoker/review argument builders, `test/contracts.test.mjs`.
+**Start here:** `.claude/harness/harness.toml`, `.claude/harness/lib/config.mjs`, model projections generated during installation, invoker/review argument builders, `test/contracts.test.mjs`.
 
 **Acceptance:** Config/default/override precedence is documented and tested offline. Requested and actually reported models are distinguishable. Unavailable models fail clearly without silent substitution. Same-model independent review is permitted. Native and harness comparison arms use the same model and effort. Do not add another provider SDK merely to select a model.
 
@@ -93,7 +93,7 @@ Suggested sequence: finish F01–F03; land F18 and F04; establish F05; extract F
 
 **Work:** Remove `baseline.capture()`'s recursive execution of the full `stop` stage when the enclosing commit check already executed it. Reuse evidence only when its candidate, command/configuration and relevant environment still match; otherwise rerun the necessary check. Preserve an explicit standalone-check path where required.
 
-**Start here:** `.aidlc/lib/baseline.mjs`, check runner/stage resolution, `.aidlc/harness.toml`, budget/baseline tests.
+**Start here:** `.claude/harness/lib/baseline.mjs`, check runner/stage resolution, `.claude/harness/harness.toml`, budget/baseline tests.
 
 **Acceptance:** A stub counter proves the main suite executes once for a normal commit check. Failures still block verification. Changed source/configuration invalidates reused evidence. Show before/after elapsed time on the same local workload; this requires no model call.
 
@@ -131,7 +131,7 @@ Suggested sequence: finish F01–F03; land F18 and F04; establish F05; extract F
 
 **Work:** Make predicted file lists advisory for ordinary product work. Retain protection for sensitive operations, trust configuration and independently owned acceptance evidence. Permit legitimate source/test discovery within approved behavior; escalate material changes to behavior, data handling, architecture or release authority.
 
-**Start here:** `.aidlc/lib/guard.mjs`, scope checks, relevant hooks and ownership tests.
+**Start here:** `.claude/harness/lib/guard.mjs`, scope checks, relevant hooks and ownership tests.
 
 **Acceptance:** Reproduce the historical unexpected-file false block, then show a legitimate fix can proceed. Negative tests still reject a consequential unauthorized change, tampered approvals, weakened independent acceptance checks and protected production actions. Routine test maintenance remains possible. Do not achieve this by removing all permission enforcement.
 

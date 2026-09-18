@@ -4,8 +4,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import * as a from '../.aidlc/lib/artifacts.mjs';
-import { layout } from '../.aidlc/lib/paths.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
+import { layout } from '../.claude/harness/lib/paths.mjs';
 
 // Migration baseline: approval declarations and closure never depend on a delivery index.
 test('item 5 migration preserves approval-time links and historical bytes', () => {
@@ -25,7 +25,7 @@ test('item 5 migration preserves approval-time links and historical bytes', () =
 });
 
 import { productFixture } from './_product-context-fixture.mjs';
-import { productContext, revisionPack, renderProduct, withSnapshot } from '../.aidlc/lib/product-context.mjs';
+import { productContext, revisionPack, renderProduct, withSnapshot } from '../.claude/harness/lib/product-context.mjs';
 import { BIN } from './_paths.mjs';
 const view = (f, revision = 'HEAD', records = 'HEAD') => productContext(f.cfg, { revision, records });
 const row = (v, slug) => v.changes.find(c => c.change === slug);
@@ -48,7 +48,7 @@ test('exact delivered revision, source, unsigned host policy and absent executio
     assert.equal(behaviour(v, 'original').execution, 'not-executed');
     assert(row(v, 'original').code.every(f => f.matches_requested));
     assert.match(renderProduct(v), /not deployment/);
-    f.write('.aidlc/artifacts/original/delivery.json', '{}');
+    f.write('.claude/harness/artifacts/original/delivery.json', '{}');
     assert.deepEqual(view(f, d.merge), v, 'dirty catalog does not change committed truth');
     assert.equal(row(view(f, d.base), 'original').state, 'not-delivered-at-revision');
     assert.throws(() => view(f, '--all'), /requires --revision/);
@@ -90,13 +90,13 @@ test('deleted records and current spec links retain committed delivery history; 
   try {
     delivered(f);
     delivered(f, 'reversal', { supersedes: 'original#B1' });
-    const record = '.aidlc/artifacts/reversal/delivery.json';
-    f.git('rm', record); f.git('rm', '.aidlc/artifacts/reversal/spec.md'); f.commit('Remove current navigation links');
+    const record = '.claude/harness/artifacts/reversal/delivery.json';
+    f.git('rm', record); f.git('rm', '.claude/harness/artifacts/reversal/spec.md'); f.commit('Remove current navigation links');
     let v = view(f);
     assert.equal(row(v, 'reversal').state, 'recorded-delivered');
     assert.equal(behaviour(v, 'original').state, 'historical');
     assert(v.findings.some(f => f.code === 'deleted-record'));
-    const originalRecord = '.aidlc/artifacts/original/delivery.json';
+    const originalRecord = '.claude/harness/artifacts/original/delivery.json';
     const r = JSON.parse(readFileSync(path.join(f.root, originalRecord), 'utf8'));
     r.pr = 999;
     f.write(originalRecord, JSON.stringify(r)); f.commit('Conflicting record identity');
@@ -144,8 +144,8 @@ test('fresh integrated report supports changed merge without borrowing old proof
     const c = f.prepare('original'); const candidate = f.code();
     f.write('src/app/text.py', 'def titlecase(value):\n    return value\n');
     const merge = f.commit('Integration implementation');
-    f.write('.aidlc/artifacts/original/integrated.json', JSON.stringify(f.report(c, merge)));
-    f.record(c, { candidate, merge, recordEdit: r => { r.integrated_checks = '.aidlc/artifacts/original/integrated.json'; } });
+    f.write('.claude/harness/artifacts/original/integrated.json', JSON.stringify(f.report(c, merge)));
+    f.record(c, { candidate, merge, recordEdit: r => { r.integrated_checks = '.claude/harness/artifacts/original/integrated.json'; } });
     assert.equal(row(view(f), 'original').state, 'recorded-delivered');
     assert.equal(behaviour(view(f), 'original').execution, 'not-executed');
   } finally { f.cleanup(); }
@@ -204,7 +204,7 @@ test('closed pending work stays unknown and does not retire delivered behavior',
     delivered(f);
     f.prepare('canceled', { supersedes: 'original#B1' });
     const intent = a.read(f.cfg, 'canceled', 'intent');
-    f.write('.aidlc/artifacts/canceled/intent.md', a.render({ ...intent.front, status: 'closed' }, intent.body));
+    f.write('.claude/harness/artifacts/canceled/intent.md', a.render({ ...intent.front, status: 'closed' }, intent.body));
     f.commit('Cancel proposal');
     const v = view(f);
     assert.equal(row(v, 'canceled').closed, true);
@@ -234,7 +234,7 @@ test('cycles and missing delivered targets do not produce unique effective truth
     const first = f.prepare('first');
     const second = f.prepare('second', { supersedes: 'first#B1' });
     const spec = a.read(f.cfg, 'first', 'spec');
-    f.write('.aidlc/artifacts/first/spec.md', a.render({ ...spec.front, status: 'draft', supersedes: 'second#B1' }, spec.body));
+    f.write('.claude/harness/artifacts/first/spec.md', a.render({ ...spec.front, status: 'draft', supersedes: 'second#B1' }, spec.body));
     f.commit('Simulated cyclic requirement correction');
     a.approve(f.cfg, 'first', 'spec', { by: 'simulated-fixture-reviewer' });
     a.approve(f.cfg, 'first', 'plan', { by: 'simulated-fixture-reviewer' });
@@ -301,11 +301,11 @@ test('unbound legacy gates are retained without inventing bound delivery authori
   try {
     const slug = 'legacy';
     mkdirSync(a.dir(f.cfg, slug), { recursive: true });
-    f.write('.aidlc/artifacts/legacy/intent.md', a.render({ status: 'closed' }, '# Historical intent\n'));
+    f.write('.claude/harness/artifacts/legacy/intent.md', a.render({ status: 'closed' }, '# Historical intent\n'));
     const body = '# Spec\n\n### B1\n\nRender a name.\n';
-    f.write('.aidlc/artifacts/legacy/spec.md', a.render({ status: 'approved', digest: a.bodyDigest(body) }, body));
+    f.write('.claude/harness/artifacts/legacy/spec.md', a.render({ status: 'approved', digest: a.bodyDigest(body) }, body));
     const plan = '# Plan\n\n## Files\n\n- `src/app/text.py`\n\n## Proof\n\n| Behaviour | Test or evidence |\n|---|---|\n| B1 | tests/test_rule.py |\n';
-    f.write('.aidlc/artifacts/legacy/plan.md', a.render({ status: 'approved', digest: a.bodyDigest(plan), spec_digest: a.bodyDigest(body) }, plan));
+    f.write('.claude/harness/artifacts/legacy/plan.md', a.render({ status: 'approved', digest: a.bodyDigest(plan), spec_digest: a.bodyDigest(body) }, plan));
     const base = f.git('rev-parse', 'HEAD'); f.code();
     f.record({ slug, base });
     assert.equal(row(view(f), slug).state, 'delivery-unbound');
@@ -327,7 +327,7 @@ test('catalog history includes discarded record variants on reachable merged bra
     delivered(f);
     const main = f.git('branch', '--show-current');
     f.git('checkout', '-qb', 'conflicting-record');
-    const file = '.aidlc/artifacts/original/delivery.json';
+    const file = '.claude/harness/artifacts/original/delivery.json';
     const r = JSON.parse(readFileSync(path.join(f.root, file), 'utf8')); r.pr = 500;
     f.write(file, JSON.stringify(r)); f.commit('Conflicting observation on side branch');
     f.git('checkout', '-q', main);

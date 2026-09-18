@@ -15,7 +15,7 @@ const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
 
 function declared(work) {
   assert.equal(spawnSync(process.execPath, [BIN, 'new', 'product-docs'], { cwd: work, encoding: 'utf8' }).status, 0);
-  writeFileSync(path.join(work, '.aidlc/artifacts/product-docs/intent.md'), '---\nstatus: draft\n---\n# Intent: product-docs\n\n## Problem\n\nNo statement of what the ledger does.\n');
+  writeFileSync(path.join(work, '.claude/harness/artifacts/product-docs/intent.md'), '---\nstatus: draft\n---\n# Intent: product-docs\n\n## Problem\n\nNo statement of what the ledger does.\n');
 }
 
 function stop(work, { unattended, active = false }) {
@@ -23,7 +23,7 @@ function stop(work, { unattended, active = false }) {
   if (unattended) env.AIDLC_UNATTENDED = '1'; else delete env.AIDLC_UNATTENDED;
   const r = spawnSync(process.execPath, [BIN, 'hook', 'stop'], { cwd: work, encoding: 'utf8', env, input: JSON.stringify({ cwd: work, hook_event_name: 'Stop', stop_hook_active: active }) });
   assert.equal(r.status, 0, r.stderr);
-  const ledger = path.join(work, '.aidlc/state/ledger.jsonl');
+  const ledger = path.join(work, '.claude/harness/state/ledger.jsonl');
   const rows = existsSync(ledger) ? readFileSync(ledger, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)).filter((row) => row.control === 'stop-guard') : [];
   let block = null;
   try { block = JSON.parse(r.stdout); } catch { /* plain notes or nothing */ }

@@ -371,7 +371,7 @@
     "base": "ad74c5f36e7aae618a0c00be26edbc0789ba17bf",
     "candidate": "0f1189d92ba9ee0e86f0d0df54804cd558b2e4cb",
     "model": "claude-opus-5",
-    "output": ".aidlc/artifacts/ledger-characterize/review.md",
+    "output": ".claude/harness/artifacts/ledger-characterize/review.md",
     "export": {
       "scope": "plan",
       "files": 7

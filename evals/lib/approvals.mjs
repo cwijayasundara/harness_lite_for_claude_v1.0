@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { approve, file, read, bodyDigest } from '../../.aidlc/lib/artifacts.mjs';
+import { approve, file, read, bodyDigest } from '../../.claude/harness/lib/artifacts.mjs';
 
 const digest = text => createHash('sha256').update(text).digest('hex');
 export function approvalDriver(cfg) {

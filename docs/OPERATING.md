@@ -15,17 +15,17 @@ Write candidates down instead. There is a list at the bottom of this file.
 ## Daily — nothing
 
 The hooks run themselves. `PostToolUse` checks each edit, `Stop` coalesces the graph refresh and
-the stage run, and every verdict lands in `.aidlc/state/ledger.jsonl`. If you find yourself
+the stage run, and every verdict lands in `.claude/harness/state/ledger.jsonl`. If you find yourself
 running `harness check` by hand a lot, that is a finding: the hook is not firing, or it is not
 firing where the work happens.
 
 ## Weekly — five minutes
 
 ```
-.aidlc/bin/harness ledger              # what fired, how often, how slow
-.aidlc/bin/harness metrics             # first-pass checks, rework, lead time, escaped defects
-.aidlc/bin/harness baseline check      # did the token surface grow
-.aidlc/bin/harness status              # artifact progress, gates, current change
+.claude/harness/bin/harness ledger              # what fired, how often, how slow
+.claude/harness/bin/harness metrics             # first-pass checks, rework, lead time, escaped defects
+.claude/harness/bin/harness baseline check      # did the token surface grow
+.claude/harness/bin/harness status              # artifact progress, gates, current change
 ```
 
 `metrics` is the playbook's own numbers, each from evidence the harness already writes —
@@ -57,7 +57,7 @@ Two questions:
 ## Monthly — twenty minutes
 
 ```
-.aidlc/bin/harness ledger audit
+.claude/harness/bin/harness ledger audit
 ```
 
 A control that never fires is a deterrent standing at its limit or a control that checks
@@ -127,7 +127,7 @@ What still runs, on any machine, with no container runtime installed:
 
 ```sh
 node --test test/*.test.mjs
-.aidlc/bin/harness check --stage commit
+.claude/harness/bin/harness check --stage commit
 node evals/run.mjs --products --dry --max-suite-usd 20
 ```
 
@@ -318,7 +318,7 @@ workflow's check, require a review from CODEOWNERS, and do not grant the workflo
 to approve. The workflow asks for `contents: read` and `pull-requests: write` and needs nothing
 more.
 
-The review returns structured findings against `.aidlc/schemas/review-findings.schema.json`, so the
+The review returns structured findings against `.claude/harness/schemas/review-findings.schema.json`, so the
 CLI validates the shape before the harness sees it. Each finding carries a `detected_pattern` — a
 short slug naming the recurring class it belongs to — and findings are deduped against what the
 harness has already said on that pull request, by file, pattern and title rather than by line: a
@@ -346,7 +346,7 @@ decision, so a human stops relaying one command's output into the next:
 7. `pr` — `gh pr create` with the `Harness-Change:` line, the approval rows, the review verdict,
    the export scope and the ledger invocation id.
 
-Each phase is recorded in `.aidlc/state/deliver/<slug>/phases.json` before it starts and after it
+Each phase is recorded in `.claude/harness/state/deliver/<slug>/phases.json` before it starts and after it
 ends, so an interrupted run resumes from the phase that had not completed rather than paying for
 the ones that had. `harness deliver <slug> --status` prints that record. If the approved plan's
 digest moved while the run was stopped, the driver refuses to resume: the authority it was
@@ -396,7 +396,7 @@ editing root CLAUDE.md does not invalidate an already loaded prompt mid-session.
    impact and the mitigation in the `intent.md` it writes. The loop has re-entered Plan.
 2. Fix it through the normal intent → spec → plan → diff → review chain.
 3. **Keep the incident as an eval, permanently.** `harness new eval <slug>` writes the regression
-   under `.aidlc/evals/pending/`; promote it into `evals/tasks.json`. One incident, one task,
+   under `.claude/harness/evals/pending/`; promote it into `evals/tasks.json`. One incident, one task,
    forever. This is the only sanctioned way the suite grows.
 4. Only then ask whether a control would have prevented it.
 
@@ -544,7 +544,7 @@ re-approval is refused when `### B<n>` headings were added since the committed a
 because the amendment route was how run 6 reversed a promise under an `extends:` line that had
 been true (`close-the-harness`). And approval is the human's gate: the pre-bash hook refuses
 `harness approve` from an agent in every session — a human's shell runs no hook. Neither
-`AIDLC_UNATTENDED` nor `AIDLC_EVAL` grants an exception. The registry, `.aidlc/harness.toml`, is a
+`AIDLC_UNATTENDED` nor `AIDLC_EVAL` grants an exception. The registry, `.claude/harness/harness.toml`, is a
 protected path by default; a plan that names it still may change it.
 
 ## Provider adapter boundary
@@ -569,15 +569,15 @@ your-metric-command | node examples/maintain/band-to-intent.mjs
 harness status <slug>
 ```
 
-This checkout is one local plugin whose portable kernel lives under `.aidlc/`. The repo-root marketplace lists that kernel
-only. Do not add policy skills or extra agents under `.aidlc/skills` or `.aidlc/roles` —
+This checkout is one local plugin whose portable kernel lives under `.claude/harness/`. The repo-root marketplace lists that kernel
+only. Do not add policy skills or extra agents under `.claude/harness/skills` or `.claude/harness/roles` —
 Law 5 is full. The kernel hook budget is also full (5/5); do not add a sixth kernel binding.
 
 ### Review
 
-The `harness review` caller saves `.aidlc/artifacts/<slug>/review.md`. The evaluator runs on
+The `harness review` caller saves `.claude/harness/artifacts/<slug>/review.md`. The evaluator runs on
 `[models] evaluator` with explicit snapshots and only Read/Grep/Glob. Checks run separately. Every finding cites a behaviour id from `spec.md`
-or a named pass from `.aidlc/policies/review.md`; a finding that cites nothing is an opinion.
+or a named pass from `.claude/harness/policies/review.md`; a finding that cites nothing is an opinion.
 
 A `changes-requested` review returns to `implement` at most twice. A third automated repair on
 the same finding is a loop, not a fix, and the human decides instead. The review artifact stays
@@ -663,12 +663,12 @@ moving branch, or CI and the laptop stop agreeing about what was checked.
   with: { node-version: '22' }
 - name: Fetch the harness this project declared
   run: |
-    commit=$(node -p "require('./.aidlc/harness-install.json').commit")
-    repo=$(node -p "require('./.aidlc/harness-install.json').repository")
+    commit=$(node -p "require('./.claude/harness/harness-install.json').commit")
+    repo=$(node -p "require('./.claude/harness/harness-install.json').repository")
     git clone -q "https://github.com/$repo" "$RUNNER_TEMP/harness"
     git -C "$RUNNER_TEMP/harness" checkout -q "$commit"
-    echo "HARNESS_HOME=$RUNNER_TEMP/harness/.aidlc" >> "$GITHUB_ENV"
-- run: bash .aidlc/bin/harness check --stage commit
+    echo "HARNESS_HOME=$RUNNER_TEMP/harness/.claude/harness" >> "$GITHUB_ENV"
+- run: bash .claude/harness/bin/harness check --stage commit
 ```
 
 `HARNESS_HOME` is the shim's first resolution step, ahead of the plugin cache, precisely so CI
@@ -696,7 +696,7 @@ it only speaks for one unusual codebase. `harness init --into <repo>` takes abou
 that SessionStart ran. Planning has read tools only; externally approved implementation gains
 Write/Edit, with tests executed by the driver. The evaluator receives a separate safe-mode
 session and explicit revisions. Evidence, including review findings, is saved under
-`.aidlc/evals/smoke/`. This bounded mechanism test does not replace product campaigns.
+`.claude/harness/evals/smoke/`. This bounded mechanism test does not replace product campaigns.
 
 The GitHub workflow runs deterministic tests, graph benchmarks and the Python example's verified
 cost comparison on pushes. PR checks invoke no models. A manual dispatch with

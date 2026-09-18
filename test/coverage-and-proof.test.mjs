@@ -11,13 +11,13 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { parseLcov, parseCoveragePy, linesPct, reportCandidates } from '../.aidlc/lib/coverage.mjs';
-import * as baseline from '../.aidlc/lib/baseline.mjs';
-import { run as baselineCheck } from '../.aidlc/checks/baseline.mjs';
-import { proofRows, run as proofCheck } from '../.aidlc/checks/proof.mjs';
-import { loadConfig, VERBS, resolveStage } from '../.aidlc/lib/config.mjs';
-import { render } from '../.aidlc/lib/artifacts.mjs';
-import { layout } from '../.aidlc/lib/paths.mjs';
+import { parseLcov, parseCoveragePy, linesPct, reportCandidates } from '../.claude/harness/lib/coverage.mjs';
+import * as baseline from '../.claude/harness/lib/baseline.mjs';
+import { run as baselineCheck } from '../.claude/harness/checks/baseline.mjs';
+import { proofRows, run as proofCheck } from '../.claude/harness/checks/proof.mjs';
+import { loadConfig, VERBS, resolveStage } from '../.claude/harness/lib/config.mjs';
+import { render } from '../.claude/harness/lib/artifacts.mjs';
+import { layout } from '../.claude/harness/lib/paths.mjs';
 import { BIN, ROOT, A } from './_paths.mjs';
 
 const LCOV = 'TN:\nSF:src/a.js\nLF:10\nLH:8\nend_of_record\nTN:\nSF:src/b.js\nLF:10\nLH:7\nend_of_record\n';
@@ -49,8 +49,8 @@ test('the report is looked for where the project told the runner to write it', (
     assert.equal(linesPct(cfg), 75);
 
     // The `{report}` path the runner hands the command wins, because it is where the runner looked.
-    mkdirSync(path.join(root, '.aidlc/state'), { recursive: true });
-    writeFileSync(path.join(root, '.aidlc/state/coverage-report.json'), JSON.stringify({ totals: { percent_covered: 42 } }));
+    mkdirSync(path.join(root, '.claude/harness/state'), { recursive: true });
+    writeFileSync(path.join(root, '.claude/harness/state/coverage-report.json'), JSON.stringify({ totals: { percent_covered: 42 } }));
     cfg.formats.coverage = 'coverage.py';
     assert.equal(linesPct(cfg), 42);
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -133,7 +133,7 @@ test('a planted coverage drop is caught by the ratchet, end to end, with no depe
 
 function planned(files) {
   const root = mkdtempSync(path.join(tmpdir(), 'proof-'));
-  const dir = path.join(root, '.aidlc/artifacts/addition');
+  const dir = path.join(root, '.claude/harness/artifacts/addition');
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, 'intent.md'), '# Addition\n');
   writeFileSync(path.join(dir, 'spec.md'), render({ status: 'approved', by: 'tester', at: '2026-09-13T00:00:00.000Z' },

@@ -16,8 +16,8 @@ import path from 'node:path';
 import {
   fingerprint, postedFingerprints, dedupeFindings, renderReviewComment, parseFindings,
   shouldComment, ghComments, postComment, reviewSchema, SCHEMA_FILE,
-} from '../.aidlc/lib/pr-review.mjs';
-import { reviewArgs } from '../.aidlc/lib/review.mjs';
+} from '../.claude/harness/lib/pr-review.mjs';
+import { reviewArgs } from '../.claude/harness/lib/review.mjs';
 import { BIN, ROOT, A } from './_paths.mjs';
 
 // A stored review, in the shape the schema describes. Two findings, one of them a nit.

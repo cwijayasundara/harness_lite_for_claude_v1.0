@@ -1,7 +1,7 @@
 // The real invoker. It is injected rather than imported by the runner, so the runner and the
 // assertion engine are unit-testable with no model, no key and no spend.
 import { spawn, spawnSync } from 'node:child_process';
-import { requireSubscription, subscriptionArgs } from '../../.aidlc/lib/claude-auth.mjs';
+import { requireSubscription, subscriptionArgs } from '../../.claude/harness/lib/claude-auth.mjs';
 import { resolveBoundary, boundaryArgs } from './boundary.mjs';
 
 // Comparison models are explicit; unavailable models are never substituted.
@@ -35,7 +35,7 @@ export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd 
       '--setting-sources', 'project,local',
       // Evals run against a disposable copy in mkdtemp, so permission prompts measure the CLI
       // rather than the guides. MEASURED: under `acceptEdits` the model's own skills told it to
-      // run `.aidlc/bin/harness` and to write `.aidlc/artifacts/...`, and both were denied —
+      // run `.claude/harness/bin/harness` and to write `.claude/harness/artifacts/...`, and both were denied —
       // six tasks failed while every guide behaved correctly. Real repositories get the scoped
       // grant that `harness init` writes into settings.json instead of this.
       // MEASURED: --dangerously-skip-permissions alone is inert — the CLI needs its enabling

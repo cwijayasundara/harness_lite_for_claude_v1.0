@@ -14,15 +14,15 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { BIN } from './_paths.mjs';
-import { parse, render, bodyDigest, read, supersededBy } from '../.aidlc/lib/artifacts.mjs';
+import { parse, render, bodyDigest, read, supersededBy } from '../.claude/harness/lib/artifacts.mjs';
 
-const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts') } });
+const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.claude/harness/artifacts') } });
 
 // A spec as `supersededBy` reads it: no git, no CLI, just the files on disk — the same shape
 // `test/scope-drift.test.mjs` uses for a plan. `front.supersedes` is set before approval, exactly
 // where a human approving the file would find it.
 function writeSpec(root, slug, body, { front = {}, approved = true } = {}) {
-  const dir = path.join(root, '.aidlc/artifacts', slug);
+  const dir = path.join(root, '.claude/harness/artifacts', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
   const file = path.join(dir, 'spec.md');
@@ -99,7 +99,7 @@ function commit(root, message) {
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', message], { cwd: root });
 }
 
-const specPath = (root, slug) => path.join(root, '.aidlc/artifacts', slug, 'spec.md');
+const specPath = (root, slug) => path.join(root, '.claude/harness/artifacts', slug, 'spec.md');
 
 // A real, non-scaffold spec, as in test/gate-content.test.mjs — one `### B<n>` per id, none of it
 // template prose, so a supersedes: refusal is never confused with the placeholder refusal (B1).
@@ -315,7 +315,7 @@ test('a closed approved change needs no relation declared', () => {
     writeFileSync(specPath(root, 'ledger'), realSpec(['B2']));
     commit(root, 'ledger drafted');
     assert.equal(run(root, 'approve', 'ledger', 'spec', '--by', 'tester').status, 0);
-    const intent = path.join(root, '.aidlc/artifacts/ledger/intent.md');
+    const intent = path.join(root, '.claude/harness/artifacts/ledger/intent.md');
     writeFileSync(intent, readFileSync(intent, 'utf8').replace('status: draft', 'status: closed'));
     commit(root, 'ledger approved and closed');
 

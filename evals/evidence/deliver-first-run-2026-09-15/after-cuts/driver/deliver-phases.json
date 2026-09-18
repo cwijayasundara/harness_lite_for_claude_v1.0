@@ -259,7 +259,7 @@
     "base": "d334ead962f682baf7d2af7abda1e50a86140476",
     "candidate": "3e02b7ca16d6a1674664d3311720bfb8d4cd755c",
     "model": "claude-opus-5",
-    "output": ".aidlc/artifacts/ledger-characterize/review.md",
+    "output": ".claude/harness/artifacts/ledger-characterize/review.md",
     "export": {
       "scope": "plan",
       "files": 6

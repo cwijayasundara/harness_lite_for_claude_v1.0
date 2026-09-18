@@ -7,9 +7,9 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { BIN } from './_paths.mjs';
-import { render, bodyDigest, currentChange, governingPlans, selectChange } from '../.aidlc/lib/artifacts.mjs';
+import { render, bodyDigest, currentChange, governingPlans, selectChange } from '../.claude/harness/lib/artifacts.mjs';
 
-const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts') } });
+const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.claude/harness/artifacts') } });
 
 function repo() {
   const root = mkdtempSync(path.join(tmpdir(), 'harness-current-'));
@@ -32,7 +32,7 @@ const approved = (body, at) => {
 // Simulated gate records followed by explicit selection for these sequential tests.
 // `specAt` is audit metadata only; `plan` is approved, draft, or absent.
 function change(root, slug, { closed = false, spec = 'approved', specAt = '2026-09-01T00:00:00.000Z', plan = 'approved', owns = [`src/${slug}.mjs`] } = {}) {
-  const dir = path.join(root, '.aidlc/artifacts', slug);
+  const dir = path.join(root, '.claude/harness/artifacts', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, 'intent.md'), `---\nstatus: ${closed ? 'closed' : 'draft'}\n---\n# Intent: ${slug}\n`);
   const specBody = `# Spec: ${slug}\n\n## Observable behaviours\n\n### B1\n\nGiven, when, then.\n`;
@@ -132,18 +132,18 @@ test('harness status and SessionStart both name the current change and its plan 
 // of work not yet gated; the scaffold `harness new` leaves is not.
 const SCAFFOLD_B1 = 'Given ...\nWhen ...\nThen ...';
 function draftSpec(root, slug, body) {
-  const dir = path.join(root, '.aidlc/artifacts', slug);
+  const dir = path.join(root, '.claude/harness/artifacts', slug);
   mkdirSync(dir, { recursive: true });
   // The scaffold intent, as `harness new` leaves it: a backlog item declares nothing
   // (an-unattended-turn-does-not-end-on-a-question B2). A written intent would.
-  const scaffold = readFileSync(new URL('../.aidlc/templates/intent.md', import.meta.url), 'utf8').replaceAll('{{slug}}', slug);
+  const scaffold = readFileSync(new URL('../.claude/harness/templates/intent.md', import.meta.url), 'utf8').replaceAll('{{slug}}', slug);
   writeFileSync(path.join(dir, 'intent.md'), scaffold);
   writeFileSync(path.join(dir, 'spec.md'), render({ status: 'draft' }, `# Spec: ${slug}\n\n## Observable behaviours\n\n### B1\n\n${body}\n`));
   commit(root, `${slug} drafted`);
 }
 
 test('unselected drafts do not block; selecting one waits at its own gate', async () => {
-  const { draftsAwaitingGate } = await import('../.aidlc/lib/artifacts.mjs');
+  const { draftsAwaitingGate } = await import('../.claude/harness/lib/artifacts.mjs');
   const root = repo();
   try {
     change(root, 'sprint-2', { specAt: '2026-09-02T00:00:00.000Z' });
@@ -159,7 +159,7 @@ test('unselected drafts do not block; selecting one waits at its own gate', asyn
     assert.equal(currentChange(cfg(root)).slug, 'sprint-3');
     assert.deepEqual(governingPlans(cfg(root)), [], 'but nothing governs while a declaration waits');
 
-    const closed = path.join(root, '.aidlc/artifacts/sprint-3/intent.md');
+    const closed = path.join(root, '.claude/harness/artifacts/sprint-3/intent.md');
     writeFileSync(closed, '---\nstatus: closed\n---\n# Intent: sprint-3\n');
     assert.deepEqual(draftsAwaitingGate(cfg(root)), [], 'closed selection has no execution gate or authority');
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -183,31 +183,31 @@ test('harness status and SessionStart name a draft awaiting gate 1', () => {
 // approved spec; the approval went stale, the stale spec was no longer current, and sprint 1's
 // plan governed the write. An edited approval is a declaration that the promise changed.
 test('the selected change’s stale spec or plan awaits its gate and cannot borrow another plan', async () => {
-  const { draftsAwaitingGate } = await import('../.aidlc/lib/artifacts.mjs');
+  const { draftsAwaitingGate } = await import('../.claude/harness/lib/artifacts.mjs');
   const root = repo();
   try {
     change(root, 'sprint-1', { specAt: '2026-09-01T00:00:00.000Z', owns: ['src/ledger.mjs'] });
     change(root, 'sprint-2', { specAt: '2026-09-02T00:00:00.000Z', owns: ['src/ledger.mjs'] });
-    const spec = path.join(root, '.aidlc/artifacts/sprint-2/spec.md');
+    const spec = path.join(root, '.claude/harness/artifacts/sprint-2/spec.md');
     writeFileSync(spec, readFileSync(spec, 'utf8') + '\n### B8\n\nGiven a paid invoice\nWhen asked\nThen never overdue\n');
     assert.deepEqual(draftsAwaitingGate(cfg(root)), [{ slug: 'sprint-2', kind: 'spec', reason: 'stale' }]);
     assert.deepEqual(governingPlans(cfg(root)), [], 'sprint-1 must not govern in sprint-2\'s place');
 
     // Restore the approved text: the list empties and sprint-2 governs again.
-    spawnSync('git', ['checkout', '--', '.aidlc/artifacts/sprint-2/spec.md'], { cwd: root });
+    spawnSync('git', ['checkout', '--', '.claude/harness/artifacts/sprint-2/spec.md'], { cwd: root });
     assert.deepEqual(draftsAwaitingGate(cfg(root)), []);
     assert.deepEqual(governingPlans(cfg(root)).map((p) => p.slug), ['sprint-2']);
 
     // An edited approved plan likewise, at gate 2.
-    const plan = path.join(root, '.aidlc/artifacts/sprint-2/plan.md');
+    const plan = path.join(root, '.claude/harness/artifacts/sprint-2/plan.md');
     writeFileSync(plan, readFileSync(plan, 'utf8') + '- `src/store.mjs`\n');
     assert.deepEqual(draftsAwaitingGate(cfg(root)), [{ slug: 'sprint-2', kind: 'plan', reason: 'stale' }]);
     assert.deepEqual(governingPlans(cfg(root)), []);
-    spawnSync('git', ['checkout', '--', '.aidlc/artifacts/sprint-2/plan.md'], { cwd: root });
+    spawnSync('git', ['checkout', '--', '.claude/harness/artifacts/sprint-2/plan.md'], { cwd: root });
 
     // B3: a closed change's edited artifacts are history.
     change(root, 'finished', { closed: true, specAt: '2026-08-01T00:00:00.000Z' });
-    const old = path.join(root, '.aidlc/artifacts/finished/spec.md');
+    const old = path.join(root, '.claude/harness/artifacts/finished/spec.md');
     writeFileSync(old, readFileSync(old, 'utf8') + '\nnote added later\n');
     assert.deepEqual(draftsAwaitingGate(cfg(root)), []);
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -218,7 +218,7 @@ test('harness status and SessionStart name an edited approval and its gate', () 
   try {
     assert.equal(spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' }).status, 0);
     change(root, 'sprint-2', { specAt: '2026-09-02T00:00:00.000Z' });
-    const spec = path.join(root, '.aidlc/artifacts/sprint-2/spec.md');
+    const spec = path.join(root, '.claude/harness/artifacts/sprint-2/spec.md');
     writeFileSync(spec, readFileSync(spec, 'utf8') + '\nedited after approval\n');
     const status = spawnSync(process.execPath, [BIN, 'status'], { cwd: root, encoding: 'utf8' });
     assert.match(status.stdout, /awaiting gate 1: sprint-2 \(spec edited after approval\)/);
@@ -231,7 +231,7 @@ test('harness status and SessionStart name an edited approval and its gate', () 
 // to ask, and nobody answered. A written intent with no spec yet is declared work; the scaffold
 // `harness new` leaves is not.
 test('unselected intents are backlog; selecting an intent with a scaffold spec awaits gate 1', async () => {
-  const { draftsAwaitingGate } = await import('../.aidlc/lib/artifacts.mjs');
+  const { draftsAwaitingGate } = await import('../.claude/harness/lib/artifacts.mjs');
   const root = repo();
   try {
     assert.equal(spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' }).status, 0);
@@ -240,7 +240,7 @@ test('unselected intents are backlog; selecting an intent with a scaffold spec a
     assert.deepEqual(draftsAwaitingGate(cfg(root)), [], 'a scaffold intent is a backlog item');
     assert.deepEqual(governingPlans(cfg(root)).map((p) => p.slug), ['sprint-4']);
 
-    const intent = path.join(root, '.aidlc/artifacts/product-docs/intent.md');
+    const intent = path.join(root, '.claude/harness/artifacts/product-docs/intent.md');
     writeFileSync(intent, '---\nstatus: draft\n---\n# Intent: product-docs\n\n## Problem\n\nNo customer-facing statement of what the ledger does.\n\n## Proposed outcome\n\ndocs/PRODUCT.md exists and is true of the code.\n');
     assert.deepEqual(draftsAwaitingGate(cfg(root)), [], 'unselected intent does not block');
     selectChange(cfg(root), 'product-docs');

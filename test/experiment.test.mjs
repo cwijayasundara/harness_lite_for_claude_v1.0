@@ -25,9 +25,9 @@ function repo(programText = PROGRAM) {
   git('init', '-q');
   git('config', 'user.email', 'e@example.invalid');
   git('config', 'user.name', 'Experiment');
-  mkdirSync(path.join(root, '.aidlc/skills/implement'), { recursive: true });
-  writeFileSync(path.join(root, '.aidlc/instructions.md'), '# steering\n\noriginal line\n');
-  writeFileSync(path.join(root, '.aidlc/skills/implement/SKILL.md'), '---\nname: implement\n---\n');
+  mkdirSync(path.join(root, '.claude/harness/skills/implement'), { recursive: true });
+  writeFileSync(path.join(root, '.claude/harness/instructions.md'), '# steering\n\noriginal line\n');
+  writeFileSync(path.join(root, '.claude/harness/skills/implement/SKILL.md'), '---\nname: implement\n---\n');
   mkdirSync(path.join(root, 'evals/experiments'), { recursive: true });
   writeFileSync(path.join(root, 'evals/run.mjs'), '// the thing that measures\n');
   writeFileSync(path.join(root, 'evals/experiments/program.md'), programText);
@@ -45,29 +45,29 @@ const PROGRAM = `# Experiments
 
 ## Try a sharper miss path
 
-file: .aidlc/instructions.md
+file: .claude/harness/instructions.md
 
 Some hypothesis.
 `;
 
 test('the steering set is guidance only, and never what measures a run', () => {
-  for (const allowed of ['.aidlc/instructions.md', '.aidlc/skills/implement/SKILL.md',
-    '.aidlc/roles/evaluator.md', '.aidlc/policies/review.md', '.aidlc/templates/project-instructions.md']) {
+  for (const allowed of ['.claude/harness/instructions.md', '.claude/harness/skills/implement/SKILL.md',
+    '.claude/harness/roles/evaluator.md', '.claude/harness/policies/review.md', '.claude/harness/templates/project-instructions.md']) {
     assert.ok(isSteering(allowed), `${allowed} should be steering`);
   }
   // The refusal that matters: an experiment that could edit the runner, the assertions, the tasks
   // or a fixture could produce its own result.
   for (const refused of ['evals/run.mjs', 'evals/lib/assertions.mjs', 'evals/tasks.json',
-    'evals/fixtures/clean-app/src/app/text.py', '.aidlc/lib/guard.mjs', '.aidlc/bin/harness',
-    'test/unit.test.mjs', '.aidlc/harness.toml']) {
+    'evals/fixtures/clean-app/src/app/text.py', '.claude/harness/lib/guard.mjs', '.claude/harness/bin/harness',
+    'test/unit.test.mjs', '.claude/harness/harness.toml']) {
     assert.equal(isSteering(refused), false, `${refused} must not be editable by an experiment`);
   }
-  assert.ok(STEERING.every((s) => s.startsWith('.aidlc/')), 'the steering set is inside the harness');
+  assert.ok(STEERING.every((s) => s.startsWith('.claude/harness/')), 'the steering set is inside the harness');
 });
 
 test('the program is a queue a person wrote, and a bad entry stops the run rather than guessing', () => {
   assert.deepEqual(parseProgram(PROGRAM).map((e) => e.name), ['Try a sharper miss path']);
-  assert.equal(nextExperiment(PROGRAM).experiment.file, '.aidlc/instructions.md');
+  assert.equal(nextExperiment(PROGRAM).experiment.file, '.claude/harness/instructions.md');
 
   // Done entries are skipped, and an empty queue is not an error.
   assert.equal(nextExperiment(`${PROGRAM}\nstatus: done\n`).experiment, null);
@@ -99,7 +99,7 @@ test('the loop keeps an improving change on a branch and never merges it', async
     const out = await runExperiment({
       root: r.root, program: r.program, log: r.log,
       gateGreen: () => true,
-      edit: () => { writeFileSync(path.join(r.root, '.aidlc/instructions.md'), '# steering\n\nsharper line\n'); return '.aidlc/instructions.md'; },
+      edit: () => { writeFileSync(path.join(r.root, '.claude/harness/instructions.md'), '# steering\n\nsharper line\n'); return '.claude/harness/instructions.md'; },
       measure: () => ({ score: 0.42, usd: 1.5 }),
     });
 
@@ -110,9 +110,9 @@ test('the loop keeps an improving change on a branch and never merges it', async
 
     // The branch holds the change; the branch it started on does not. Nothing merged.
     assert.equal(r.git('rev-parse', '--abbrev-ref', 'HEAD'), 'master');
-    assert.match(readFileSync(path.join(r.root, '.aidlc/instructions.md'), 'utf8'), /original line/,
+    assert.match(readFileSync(path.join(r.root, '.claude/harness/instructions.md'), 'utf8'), /original line/,
       'the working tree must be back where it started');
-    assert.match(r.git('show', `${out.branch}:.aidlc/instructions.md`), /sharper line/);
+    assert.match(r.git('show', `${out.branch}:.claude/harness/instructions.md`), /sharper line/);
     assert.match(r.git('log', '-1', '--format=%B', out.branch), /a human decides whether it is real/);
 
     const rows = readLog(r.log);
@@ -132,7 +132,7 @@ test('the loop resets a regressing change and still records that it tried', asyn
     const out = await runExperiment({
       root: r.root, program: r.program, log: r.log,
       gateGreen: () => true,
-      edit: () => { writeFileSync(path.join(r.root, '.aidlc/instructions.md'), '# steering\n\nworse line\n'); return '.aidlc/instructions.md'; },
+      edit: () => { writeFileSync(path.join(r.root, '.claude/harness/instructions.md'), '# steering\n\nworse line\n'); return '.claude/harness/instructions.md'; },
       measure: () => ({ score: 0.1, usd: 1.2 }),
     });
 
@@ -143,7 +143,7 @@ test('the loop resets a regressing change and still records that it tried', asyn
     // Nothing left but the loop's own log — which is the one thing a run is supposed to leave, and
     // the one thing the next run's dirty check has to forgive.
     assert.equal(r.git('status', '--porcelain'), '?? evals/experiments.tsv');
-    assert.match(readFileSync(path.join(r.root, '.aidlc/instructions.md'), 'utf8'), /original line/);
+    assert.match(readFileSync(path.join(r.root, '.claude/harness/instructions.md'), 'utf8'), /original line/);
 
     // A night that learned nothing still leaves a row: the record is the point.
     const rows = readLog(r.log);
@@ -162,9 +162,9 @@ test('an edit that strays outside the steering set is reverted and the run refus
       // The program named a steering file; the edit touched the runner as well. Both claims are
       // checked, because "which file was named" and "which file was written" are different facts.
       edit: () => {
-        writeFileSync(path.join(r.root, '.aidlc/instructions.md'), '# steering\n\nedited\n');
+        writeFileSync(path.join(r.root, '.claude/harness/instructions.md'), '# steering\n\nedited\n');
         writeFileSync(path.join(r.root, 'evals/run.mjs'), '// quietly made the suite easier\n');
-        return '.aidlc/instructions.md';
+        return '.claude/harness/instructions.md';
       },
       measure: () => { throw new Error('must not measure an experiment that escaped its scope'); },
     });
@@ -188,7 +188,7 @@ test('the loop refuses to start on a red baseline or a dirty tree', async () => 
     assert.equal(red.ran, false);
     assert.match(red.why, /not green/);
 
-    writeFileSync(path.join(r.root, '.aidlc/instructions.md'), '# steering\n\nsomeone was mid-edit\n');
+    writeFileSync(path.join(r.root, '.claude/harness/instructions.md'), '# steering\n\nsomeone was mid-edit\n');
     const dirty = await runExperiment({ root: r.root, program: r.program, log: r.log, gateGreen: () => true, ...shouldNotRun });
     assert.equal(dirty.ran, false);
     assert.match(dirty.why, /dirty/);

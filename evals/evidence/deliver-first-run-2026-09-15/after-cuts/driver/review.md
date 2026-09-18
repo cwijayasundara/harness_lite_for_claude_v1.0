@@ -15,7 +15,7 @@ Inputs used: `candidate.diff`, `candidate/` snapshot, `spec.md` (approved, diges
 
 ### Scope and limitations
 - **No tests, builds, or commands were run by this reviewer.** All statements about behaviour are from reading `src/ledger.mjs` and `tests/ledger.test.mjs`; nothing below is backed by an observed test run.
-- `.aidlc/policies/review.md` is **not present** in the snapshot, so no finding cites a named pass — every finding cites a behaviour id from `spec.md`.
+- `.claude/harness/policies/review.md` is **not present** in the snapshot, so no finding cites a named pass — every finding cites a behaviour id from `spec.md`.
 - The snapshot is partial: `src/fees.mjs` and `NOTES.md` are referenced (`candidate/tests/smoke.test.mjs:6`, `spec.md:4`) but absent. I verified the intent safeguard "keep unrelated late-fee code unchanged" from the diff itself — it touches exactly three files, none of them `src/fees.mjs` — not from the snapshot.
 - `candidate/tests/ledger.test.mjs` matches the diff hunk byte-for-byte; no snapshot/diff divergence.
 

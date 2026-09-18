@@ -13,10 +13,10 @@ import { tmpdir } from 'node:os';
 import { spawnSync, execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import * as release from '../.aidlc/lib/release.mjs';
-import { productionDenied, releaseDecision } from '../.aidlc/lib/guard.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
-import { read as readLedger } from '../.aidlc/lib/ledger.mjs';
+import * as release from '../.claude/harness/lib/release.mjs';
+import { productionDenied, releaseDecision } from '../.claude/harness/lib/guard.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
+import { read as readLedger } from '../.claude/harness/lib/ledger.mjs';
 import { BIN } from './_paths.mjs';
 
 function repo() {
@@ -37,7 +37,7 @@ const cli = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd
 // The pre-tool hook, in process, with stdin and stdout borrowed. Running the hook is the only way
 // to assert what it does; reading the regex that implements it asserts only that a regex exists.
 async function bashHook(root, command) {
-  const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
+  const { dispatch } = await import('../.claude/harness/hooks/dispatch.mjs');
   const stdin = Readable.from([JSON.stringify({ cwd: root, tool_name: 'Bash', tool_input: { command } })]);
   const original = Object.getOwnPropertyDescriptor(process, 'stdin');
   const write = process.stdout.write.bind(process.stdout);
@@ -128,7 +128,7 @@ test('an approval needs an approver and a positive window, and authorises a comm
 
     const bare = mkdtempSync(path.join(tmpdir(), 'release-nogit-'));
     try {
-      assert.throws(() => release.approve({ layout: { root: bare, state: path.join(bare, '.aidlc/state') } }, { by: 'x' }),
+      assert.throws(() => release.approve({ layout: { root: bare, state: path.join(bare, '.claude/harness/state') } }, { by: 'x' }),
         /authorises a commit, not a working tree/);
     } finally { rmSync(bare, { recursive: true, force: true }); }
   } finally { r.cleanup(); }
@@ -187,14 +187,14 @@ test('the CLI writes, reads and revokes the record, and the agent cannot run the
     // The whole point of a record over a variable is that the agent cannot write it either.
     // `approve-is-the-humans` covers the release verb for the same reason it covers a gate —
     // asserted by running the hook, not by reading the regex that implements it.
-    const refusal = await bashHook(r.root, 'node .aidlc/bin/harness release approve --by me');
+    const refusal = await bashHook(r.root, 'node .claude/harness/bin/harness release approve --by me');
     assert.match(refusal, /approval is the human/i);
     assert.match(refusal, /"permissionDecision":"deny"/);
   } finally { r.cleanup(); }
 });
 
 test('the project template tells a consumer how to authorise a release and how to roll one back', () => {
-  const template = readFileSync(new URL('../.aidlc/templates/project-instructions.md', import.meta.url), 'utf8');
+  const template = readFileSync(new URL('../.claude/harness/templates/project-instructions.md', import.meta.url), 'utf8');
   assert.match(template, /harness release approve --by/);
   assert.match(template, /harness release revoke/);
   // A rollback command nobody wrote down is a rollback command nobody has at three in the morning.

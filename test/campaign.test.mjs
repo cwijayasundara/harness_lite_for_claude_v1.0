@@ -1,4 +1,4 @@
-import { selectChange } from '../.aidlc/lib/artifacts.mjs';
+import { selectChange } from '../.claude/harness/lib/artifacts.mjs';
 // Campaign assertions: pure functions over a staged working copy, no model, no spend. If this
 // file is green, a multi-sprint eval that names these checks is grading something real.
 import { test } from 'node:test';
@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { unseenRequirements, modifiedNotReplaced, behavioursHaveTests, diffOwnedByCurrentChange } from '../evals/lib/campaign.mjs';
-import { render, bodyDigest } from '../.aidlc/lib/artifacts.mjs';
+import { render, bodyDigest } from '../.claude/harness/lib/artifacts.mjs';
 import { evaluate, KNOWN } from '../evals/lib/assertions.mjs';
 import { runSuite } from '../evals/run.mjs';
 import { stage } from '../evals/lib/stage.mjs';
@@ -42,7 +42,7 @@ test('calculator passes harness check --stage stop as staged, before any sprint 
 test('detection fills the capability verbs a headless Node product could never fill', () => {
   const s = stage(FIXTURES, 'calculator', { product: true });
   try {
-    const toml = readFileSync(path.join(s.work, '.aidlc/harness.toml'), 'utf8');
+    const toml = readFileSync(path.join(s.work, '.claude/harness/harness.toml'), 'utf8');
     for (const verb of ['fmt', 'lint', 'typecheck', 'test', 'coverage']) {
       const [, command] = new RegExp(`^${verb}\\s*=\\s*"([^"]*)"`, 'm').exec(toml) ?? [];
       assert.ok(command, `${verb} is not in the installed registry at all`);
@@ -58,11 +58,11 @@ test('detection fills the capability verbs a headless Node product could never f
 test('the calculator starts green and empty, and product campaigns are separate from golden tasks', () => {
   const s = stage(FIXTURES, 'calculator', { product: true });
   try {
-    for (const f of ['NOTES.md', 'package.json', 'tsconfig.json', 'src/App.tsx', 'src/App.test.tsx', '.aidlc/harness.toml']) {
+    for (const f of ['NOTES.md', 'package.json', 'tsconfig.json', 'src/App.tsx', 'src/App.test.tsx', '.claude/harness/harness.toml']) {
       assert.ok(existsSync(path.join(s.work, f)), `${f} missing from the staged fixture`);
     }
     // `harness init` creates the empty directory when staging; what must be absent is a change.
-    const artifacts = path.join(s.work, '.aidlc/artifacts');
+    const artifacts = path.join(s.work, '.claude/harness/artifacts');
     const changes = existsSync(artifacts) ? readdirSync(artifacts).filter((d) => existsSync(path.join(artifacts, d, 'intent.md'))) : [];
     assert.deepEqual(changes, [], 'the fixture has no change yet');
     assert.equal(existsSync(path.join(s.work, 'src/calc.ts')), false, 'the arithmetic service is sprint 1 step 1\'s job');
@@ -148,7 +148,7 @@ test('CHECKS registers modified_not_replaced and it reads ctx.work', () => {
 // not two. `` `path`::`id` `` (two spans either side of a bare "::") is not a shape anything in
 // this repository writes; it was invented for the first version of these tests and is fixed here.
 function artifact(root, slug, { specStatus = 'approved', behaviours, planStatus = 'approved', proofRows, evidenceRows = [] }) {
-  const dir = path.join(root, '.aidlc/artifacts', slug);
+  const dir = path.join(root, '.claude/harness/artifacts', slug);
   mkdirSync(dir, { recursive: true });
   const specBody = behaviours.map((b) => `### ${b}\n\nGiven, when, then.\n`).join('\n');
   writeFileSync(path.join(dir, 'spec.md'), `---\nstatus: ${specStatus}\n---\n# Spec: ${slug}\n\n## Observable behaviours\n\n${specBody}`);
@@ -269,7 +269,7 @@ test('behavioursHaveTests reports a runtime-evidence row as unverifiable, and do
 // Regression for the defect team-lead found: run behavioursHaveTests against rows written in
 // this repository's actual house style — a backtick-quoted test file followed by free prose,
 // and evidence rows that name no test file at all — and confirm none of it is misread as a
-// violation. Rows lifted verbatim from .aidlc/artifacts/evolving-scope/plan.md itself.
+// violation. Rows lifted verbatim from .claude/harness/artifacts/evolving-scope/plan.md itself.
 test('behavioursHaveTests does not fire on this repository\'s real Proof-row house style', () => {
   const d = dir();
   try {
@@ -282,7 +282,7 @@ test('behavioursHaveTests does not fire on this repository\'s real Proof-row hou
         ['B1', '`test/campaign.test.mjs` — "a multi-step task runs each step against one working copy" via `runSuite` with a fake invoker'],
         ['B3', 'the `campaign-ledger` run recorded in `evidence.md`, three sprints, stop stage green after each'],
         ['B9', 'a step given a 0.01 USD ceiling records `inconclusive`, asserted in `test/campaign.test.mjs`'],
-        ['B10', '`.aidlc/artifacts/evolving-scope/evidence.md` exists and every entry names a component'],
+        ['B10', '`.claude/harness/artifacts/evolving-scope/evidence.md` exists and every entry names a component'],
       ],
     });
     const r = behavioursHaveTests(d.root);
@@ -300,7 +300,7 @@ test('behavioursHaveTests ignores a spec that is not approved, and passes with n
   const d = dir();
   try {
     const empty = behavioursHaveTests(d.root);
-    assert.equal(empty.ok, true, 'no .aidlc/artifacts at all');
+    assert.equal(empty.ok, true, 'no .claude/harness/artifacts at all');
     assert.equal(empty.checked, 0, 'nothing existed to check');
     artifact(d.root, 'draft-thing', { specStatus: 'draft', behaviours: ['B1'], proofRows: [] });
     const r = behavioursHaveTests(d.root);
@@ -346,7 +346,7 @@ test('behaviours_have_tests: true fails when nothing was checked, not passes vac
   const d = dir();
   try {
     const [nothingAtAll] = evaluate({ work: d.root }, [{ behaviours_have_tests: true }]);
-    assert.equal(nothingAtAll.pass, false, 'no .aidlc/artifacts at all is not evidence a spec was approved');
+    assert.equal(nothingAtAll.pass, false, 'no .claude/harness/artifacts at all is not evidence a spec was approved');
     assert.match(nothingAtAll.detail, /no approved behaviour found to check/);
 
     artifact(d.root, 'draft-thing', { specStatus: 'draft', behaviours: ['B1'], proofRows: [] });
@@ -495,7 +495,7 @@ test('diffOwnedByCurrentChange passes a file the current plan names and fails on
       return render({ status: 'approved', by: 'unattended-eval-run', at, digest: bodyDigest(draft) }, body);
     };
     for (const [slug, at, owns] of [['sprint-2', '2026-09-01T00:00:00.000Z', 'src/ledger.mjs'], ['sprint-3', '2026-09-02T00:00:00.000Z', 'src/rules.mjs']]) {
-      const a = path.join(d.root, '.aidlc/artifacts', slug);
+      const a = path.join(d.root, '.claude/harness/artifacts', slug);
       mkdirSync(a, { recursive: true });
       writeFileSync(path.join(a, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
       writeFileSync(path.join(a, 'spec.md'), seal(`# Spec: ${slug}\n\n### B1\n\nGiven, when, then.\n`, at));
@@ -506,7 +506,7 @@ test('diffOwnedByCurrentChange passes a file the current plan names and fails on
 
     writeFileSync(path.join(d.root, 'src/rules.mjs'), 'export const b = 2;\n');
     writeFileSync(path.join(d.root,'CODEBASE-MAP.md'),'generated map output');
-    selectChange({ layout: { root: d.root, artifacts: path.join(d.root, '.aidlc/artifacts') } }, 'sprint-3');
+    selectChange({ layout: { root: d.root, artifacts: path.join(d.root, '.claude/harness/artifacts') } }, 'sprint-3');
     const owned = diffOwnedByCurrentChange(d.root, before);
     assert.equal(owned.ok, true, owned.violations.join('; '));
     assert.equal(owned.current, 'sprint-3');
@@ -519,7 +519,7 @@ test('diffOwnedByCurrentChange passes a file the current plan names and fails on
 
     // Artifacts and state never count as product files.
     writeFileSync(path.join(d.root, 'src/ledger.mjs'), 'export const a = 1;\n');
-    writeFileSync(path.join(d.root, '.aidlc/artifacts/sprint-3/evidence.md'), '# notes\n');
+    writeFileSync(path.join(d.root, '.claude/harness/artifacts/sprint-3/evidence.md'), '# notes\n');
     assert.equal(diffOwnedByCurrentChange(d.root, before).ok, true);
   } finally { d.cleanup(); rmSync(before, { recursive: true, force: true }); }
 });

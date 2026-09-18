@@ -46,7 +46,7 @@ heading that says `None.` as a finding) and was never exercised: the run never r
 > **Fixed, in the runner rather than in operator discipline:** `evals/lib/awake.mjs` holds an
 > idle-sleep assertion for every live run and marks any run that slept anyway. F14 below.
 
-Raw: `.aidlc/evals/comparisons/2026-09-16T{08-15-39,09-22-27,10-51-24}*`.
+Raw: `.claude/harness/evals/comparisons/2026-09-16T{08-15-39,09-22-27,10-51-24}*`.
 
 ## The three criteria, measured on run 3 — the only run where both arms completed
 
@@ -109,5 +109,5 @@ green `check-stop` would be cheaper than native and would meet criterion 2.
   four pilots here were killed mid-sleep with empty transcripts, and a third of a turn recorded as
   a load slowdown was 94.4% sleep. Diagnosed from the persisted CLI sessions plus `pmset -g log`,
   with no model calls and no spend. This repository had already found and lost this once
-  (`.aidlc/artifacts/complete-native-comparisons/evidence.md:15`, remedied by an operator typing
+  (`.claude/harness/artifacts/complete-native-comparisons/evidence.md:15`, remedied by an operator typing
   `caffeinate -i`). Fixed in the runner: `evals/lib/awake.mjs`, `test/host-sleep.test.mjs`.

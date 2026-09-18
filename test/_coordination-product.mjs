@@ -2,9 +2,9 @@
 import { writeFileSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { stage, FIXTURES } from '../evals/lib/stage.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
 import { A } from './_paths.mjs';
-import * as a from '../.aidlc/lib/artifacts.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
 export const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 export const commit = root => { git(root, 'add', '-A'); git(root, '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-qm', 'Simulated coordination product trial'); };
 export function edit(cfg, slug, kind, fn) {

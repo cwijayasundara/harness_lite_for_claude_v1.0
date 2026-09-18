@@ -5,10 +5,10 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { review } from '../.aidlc/lib/review.mjs';
+import { review } from '../.claude/harness/lib/review.mjs';
 import { approvalDriver } from '../evals/lib/approvals.mjs';
-import { read, render, bodyDigest, approve } from '../.aidlc/lib/artifacts.mjs';
-import { layout } from '../.aidlc/lib/paths.mjs';
+import { read, render, bodyDigest, approve } from '../.claude/harness/lib/artifacts.mjs';
+import { layout } from '../.claude/harness/lib/paths.mjs';
 
 function repo() {
   const root = mkdtempSync(path.join(tmpdir(), 'mechanisms-'));
@@ -105,7 +105,7 @@ test('campaign runner uses external decisions and records them when stale approv
       ] }],
     invoke: ({ cwd, prompt }) => {
       calls++;
-      const dir = path.join(cwd, '.aidlc/artifacts/addition');
+      const dir = path.join(cwd, '.claude/harness/artifacts/addition');
       if (prompt === 'prepare') {
         mkdirSync(dir, { recursive: true });
         writeFileSync(path.join(dir, 'intent.md'), '# Addition\n');

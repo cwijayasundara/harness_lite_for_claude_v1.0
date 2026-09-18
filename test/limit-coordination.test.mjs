@@ -6,8 +6,8 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { BIN, ROOT } from './_paths.mjs';
 import { product } from './_coordination-product.mjs';
-import * as a from '../.aidlc/lib/artifacts.mjs';
-import { renderClaudeInstructions } from '../.aidlc/lib/projection.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
+import { renderClaudeInstructions } from '../.claude/harness/lib/projection.mjs';
 
 const read = rel => readFileSync(path.join(ROOT, rel), 'utf8');
 const cli = (cwd, ...args) => execFileSync(process.execPath, [BIN, ...args], { cwd, encoding: 'utf8' });
@@ -39,8 +39,8 @@ test('B2 selected status is that change slice; slug still filters; no selection 
 });
 
 test('B3 product query still needs an exact revision; delivery keys and pack options stay frozen', () => {
-  const harness = read('.aidlc/bin/harness');
-  const lib = read('.aidlc/lib/product-context.mjs');
+  const harness = read('.claude/harness/bin/harness');
+  const lib = read('.claude/harness/lib/product-context.mjs');
   assert.match(harness, /question === 'product'/);
   assert.match(harness, /context requires --revision <commit>/);
   assert.match(lib, /git grep -n -F -e <term> \$\{requested\} -- <path>; git show \$\{requested\}:<path>/);
@@ -54,14 +54,14 @@ test('B3 product query still needs an exact revision; delivery keys and pack opt
 // would stop proving anything about the steering consumers actually receive.
 test('B4 steering prefers tracker links and git show/git grep over a local delivery platform', () => {
   const surfaces = {
-    instructions: read('.aidlc/instructions.md'),
-    claude: renderClaudeInstructions(read('.aidlc/instructions.md')),
-    intent: read('.aidlc/skills/intent/SKILL.md'),
-    plan: read('.aidlc/skills/plan/SKILL.md'),
+    instructions: read('.claude/harness/instructions.md'),
+    claude: renderClaudeInstructions(read('.claude/harness/instructions.md')),
+    intent: read('.claude/harness/skills/intent/SKILL.md'),
+    plan: read('.claude/harness/skills/plan/SKILL.md'),
 
-    review: read('.aidlc/policies/review.md'),
+    review: read('.claude/harness/policies/review.md'),
     readme: read('README.md'),
-    template: read('.aidlc/templates/intent.md'),
+    template: read('.claude/harness/templates/intent.md'),
   };
   for (const name of ['instructions', 'claude', 'review', 'readme']) {
     assert.match(surfaces[name], /git show/, name);
@@ -87,7 +87,7 @@ test('B4 steering prefers tracker links and git show/git grep over a local deliv
 test('B5 no scheduler or assignment verb; control budget unchanged', () => {
   const help = execFileSync(process.execPath, [BIN], { encoding: 'utf8' });
   assert.doesNotMatch(help, /\bschedule\b|\bassign\b/);
-  const limits = read('.aidlc/harness.toml');
+  const limits = read('.claude/harness/harness.toml');
   assert.match(limits, /^skills\s*=\s*7$/m);
   assert.match(limits, /^agents\s*=\s*3$/m);
   assert.match(limits, /^hooks\s*=\s*5$/m);

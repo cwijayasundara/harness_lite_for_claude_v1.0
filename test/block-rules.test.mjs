@@ -7,17 +7,17 @@ import path from 'node:path';
 import os from 'node:os';
 import { ROOT } from './_paths.mjs';
 import { HUMAN } from './_gates.mjs';
-import { ruleOf } from '../.aidlc/lib/runner.mjs';
-import { writeBlocked, writeRefusal } from '../.aidlc/lib/guard.mjs';
-import { flag, read as readLedger, append } from '../.aidlc/lib/ledger.mjs';
+import { ruleOf } from '../.claude/harness/lib/runner.mjs';
+import { writeBlocked, writeRefusal } from '../.claude/harness/lib/guard.mjs';
+import { flag, read as readLedger, append } from '../.claude/harness/lib/ledger.mjs';
 
 const read = rel => readFileSync(path.join(ROOT, rel), 'utf8');
-const RUNNER = read('.aidlc/lib/runner.mjs');
-const DISPATCH = read('.aidlc/hooks/dispatch.mjs');
+const RUNNER = read('.claude/harness/lib/runner.mjs');
+const DISPATCH = read('.claude/harness/hooks/dispatch.mjs');
 
 const workspace = () => {
   const root = mkdtempSync(path.join(os.tmpdir(), 'block-rules-'));
-  const state = path.join(root, '.aidlc/state');
+  const state = path.join(root, '.claude/harness/state');
   mkdirSync(state, { recursive: true });
   return { root, L: { root, state, ledger: path.join(state, 'ledger.jsonl'), runId: path.join(state, 'run-id') },
     cleanup: () => rmSync(root, { recursive: true, force: true }) };
@@ -80,12 +80,12 @@ test('B2 the write guard names which refusal fired, and the agent sees the same 
     assert.equal(scope.rule, 'write-scope');
     assert.ok(scope.message.length > 0, 'the refusal still carries text for the agent');
 
-    assert.equal(writeRefusal('.aidlc/artifacts/x/intent.md', cfg), null,
+    assert.equal(writeRefusal('.claude/harness/artifacts/x/intent.md', cfg), null,
       'an artifact stays writable: a gate you cannot draft is not a gate');
 
     // Every existing caller keeps the refusal string it has always read.
     assert.equal(writeBlocked('src/anything.mjs', cfg), scope.message);
-    assert.equal(writeBlocked('.aidlc/artifacts/x/intent.md', cfg), null);
+    assert.equal(writeBlocked('.claude/harness/artifacts/x/intent.md', cfg), null);
 
     // The hook records the name and denies with the message, not the object.
     assert.match(DISPATCH, /control: 'write-guard', rule: hit\.rule, verdict: hit\.advisory \? 'warn' : 'fail'/);
@@ -127,7 +127,7 @@ test('B4 nothing else about the row, the guards or the ledger surface moved', ()
       'the row schema gained a key');
 
     // The guards still refuse exactly what they refused; only the naming changed.
-    const GUARD = read('.aidlc/lib/guard.mjs');
+    const GUARD = read('.claude/harness/lib/guard.mjs');
     for (const branch of [/PREFIX_CACHE_PATHS/, /protected_paths/, /requireContract/]) {
       assert.match(GUARD, branch, 'a refusal branch disappeared');
     }

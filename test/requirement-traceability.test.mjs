@@ -4,11 +4,11 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync, symlinkSync } from 'n
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { writeBlocked } from '../.aidlc/lib/guard.mjs';
+import { writeBlocked } from '../.claude/harness/lib/guard.mjs';
 import { stage, FIXTURES } from '../evals/lib/stage.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
 import { HUMAN } from './_gates.mjs';
-import * as a from '../.aidlc/lib/artifacts.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
 
 const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const commit = root => { git(root, 'add', '-A'); git(root, '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-qm', 'Simulated trace test'); };

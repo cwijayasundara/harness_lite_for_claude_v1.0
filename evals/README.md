@@ -19,7 +19,7 @@ scope check. The runner refuses by name with that command when it is missing.
 
 This directory is development tooling for the harness, not part of a consumer scaffold.
 Normal application edit/stop hooks run configured project checks, not these model campaigns.
-Runners write raw output to ignored `.aidlc/evals/`. Curated reports live in
+Runners write raw output to ignored `.claude/harness/evals/`. Curated reports live in
 [`evidence/`](evidence/README.md); older artifact records retain the reports' original paths.
 
 ## What the gate holds, and what it does not yet
@@ -92,7 +92,7 @@ Ordinary pushes and PRs run offline checks. Live CI is only the manually request
 `model_smoke` workflow input and requires the `CLAUDE_CODE_OAUTH_TOKEN` repository secret.
 It does not use an API-key secret. A skipped live job is not evidence of model quality.
 
-Product repos: `harness new eval <incident-slug>` writes `.aidlc/evals/pending/<id>.json`.
+Product repos: `harness new eval <incident-slug>` writes `.claude/harness/evals/pending/<id>.json`.
 Merge that stub into `evals/tasks.json` before treating the incident as closed. The kernel
 suite in this checkout is the golden tasks in `evals/tasks.json`.
 
@@ -101,7 +101,7 @@ Live product trials cannot run: `the-harness-needs-no-container` removed the con
 inside, and `evals/lib/invoker.mjs` refuses a sandboxed invocation rather than executing a coding
 agent with Bash on the host. `node --test test/product-trials.test.mjs` exercises grading and the
 campaign protocol with no model calls and no container runtime.
-Every attempt retains source snapshots and phase evidence under `.aidlc/evals/products/`, even
+Every attempt retains source snapshots and phase evidence under `.claude/harness/evals/products/`, even
 when it fails. Those private outputs are written outside the tree the product is given, which
 is a property of where files sit and not a boundary of any kind.
 
@@ -144,7 +144,7 @@ compares graph packs against declaration-first `rg` results with bounded reads u
 budget. Historical whole-file totals are context, not evidence that graph assistance earns its cost.
 Both visible search hits and source reads count toward the budget. Golden entries must identify a real source symbol, so deleted symbols cannot silently count as hits.
 
-Every invocation and attempt is saved under `.aidlc/evals/comparisons/<timestamp>/`, including a
+Every invocation and attempt is saved under `.claude/harness/evals/comparisons/<timestamp>/`, including a
 started record before a call, requested and actual model usage (including CLI auxiliary models),
 tool versions, harness/scenario/fixture/candidate identity, latency, token/cache usage when supplied,
 public/private verification, retries and external decisions. Full transcripts and product Git histories
@@ -187,7 +187,7 @@ Git history before repair, so their exact source remains replayable.
 `node evals/run.mjs --live --prune` runs the first-change calibrations and one paired repetition
 of the complete product, capped by default at USD 9 and 40 minutes. Existing `--repeats`,
 `--max-suite-usd`, `--max-suite-minutes` and `--stop-file` options apply. Evidence is saved in
-`.aidlc/evals/comparisons/prune-<timestamp>/comparison.json` and per-attempt directories.
+`.claude/harness/evals/comparisons/prune-<timestamp>/comparison.json` and per-attempt directories.
 
 The baseline restores the original inventory line if production has already been pruned; all
 other code comes from the current plugin. The lean disposable copy removes only the
@@ -221,7 +221,7 @@ supporting heuristic now recognizes that conditional, with negative regression c
 Saved live verdicts and unnecessary repair costs remain unchanged; deterministic regrading
 of the original document is recorded separately from the measured campaign.
 
-Item 6's `.aidlc/artifacts/team-reuse/post-fix.mjs` uses the existing `stage` product boundary
+Item 6's `.claude/harness/artifacts/team-reuse/post-fix.mjs` uses the existing `stage` product boundary
 and simulated contract helper to exercise two isolated installations and reuse a proven product
 assertion procedure on a second slice. It executes actual Python assertions and candidate
 checks; actor and approval labels explicitly say simulation. Local installations are not two

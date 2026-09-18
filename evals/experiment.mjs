@@ -24,7 +24,7 @@ import { existsSync, readFileSync, writeFileSync, appendFileSync, mkdirSync, rmS
 import { execFileSync, spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import * as evalGate from '../.aidlc/lib/eval-gate.mjs';
+import * as evalGate from '../.claude/harness/lib/eval-gate.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.dirname(HERE);
@@ -40,11 +40,11 @@ export const MAX_NIGHT_USD = 8;
 // The only files an experiment may touch. Guidance, and nothing that could change what a run
 // measures: not the runner, not the assertions, not the tasks, not a fixture.
 export const STEERING = [
-  '.aidlc/instructions.md',
-  '.aidlc/skills/',
-  '.aidlc/roles/',
-  '.aidlc/policies/',
-  '.aidlc/templates/project-instructions.md',
+  '.claude/harness/instructions.md',
+  '.claude/harness/skills/',
+  '.claude/harness/roles/',
+  '.claude/harness/policies/',
+  '.claude/harness/templates/project-instructions.md',
 ];
 
 export function isSteering(rel) {
@@ -124,7 +124,7 @@ const git = (root) => {
   const g = (...args) => raw(...args).trim();
   // Porcelain status puts the state in the first two columns, and an unstaged modification leaves
   // the first of them blank. Trimming that output eats the blank and takes the leading character
-  // of the first path with it, which is how `.aidlc/instructions.md` becomes `aidlc/…`.
+  // of the first path with it, which is how `.claude/harness/instructions.md` becomes `aidlc/…`.
   g.raw = raw;
   return g;
 };
@@ -224,7 +224,7 @@ export async function runExperiment({
 // loop never runs. What matters is that the tree is where the record says it is, so tonight's
 // score is a score against something known.
 export function recordedGateGreen(root = ROOT) {
-  const results = evalGate.loadResults(path.join(root, '.aidlc', 'evals', 'results'));
+  const results = evalGate.loadResults(path.join(root, '.claude/harness', 'evals', 'results'));
   if (!results) return false;
   try { return evalGate.gate(results, evalGate.readRecord(path.join(root, 'evals', 'expected.json'))).ok; }
   catch { return false; }
@@ -235,7 +235,7 @@ export function recordedGateGreen(root = ROOT) {
 export function makeEdit({ root = ROOT, model = null } = {}) {
   return async (experiment) => {
     const { runClaude } = await import('./lib/invoker.mjs');
-    const { subscriptionArgs, requireSubscription } = await import('../.aidlc/lib/claude-auth.mjs');
+    const { subscriptionArgs, requireSubscription } = await import('../.claude/harness/lib/claude-auth.mjs');
     requireSubscription({ cwd: root });
     const prompt = [
       `Edit exactly one file: ${experiment.file}.`,
@@ -269,7 +269,7 @@ export function makeMeasure({ root = ROOT, concurrency = 4, maxUsd = MAX_NIGHT_U
         { cwd: root, stdio: 'inherit' });
       child.on('exit', resolve);
     });
-    const results = evalGate.loadResults(path.join(root, '.aidlc', 'evals', 'results'));
+    const results = evalGate.loadResults(path.join(root, '.claude/harness', 'evals', 'results'));
     const graded = (results?.results ?? []).filter((r) => r.verdict === 'pass' || r.verdict === 'fail');
     if (!graded.length) return { score: null, usd: null };
     const usd = (results.results ?? []).reduce((n, r) => n + (r.usd ?? 0), 0);

@@ -14,7 +14,7 @@ import { execFileSync } from 'node:child_process';
 import { FIXTURES, stage, stageProduct } from '../evals/lib/stage.mjs';
 import { runDriverCampaign } from '../evals/lib/driver-campaign.mjs';
 import { comparisonPairs, summarizeComparisons, g24Verdict } from '../evals/lib/comparison.mjs';
-import { parse } from '../.aidlc/lib/artifacts.mjs';
+import { parse } from '../.claude/harness/lib/artifacts.mjs';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const models = { generator: 'gen', evaluator: 'eval', evals: 'cheap' };
@@ -35,12 +35,12 @@ function fakeDriver({ edits = ['src/calc.ts'], repaired = 1, usd = 0.8, ok = tru
   return { calls, run: ({ work, harnessBin, slug, args }) => {
     calls.push({ work, harnessBin, slug, args });
     for (const rel of edits) { const f = path.join(work, rel); mkdirSync(path.dirname(f), { recursive: true }); writeFileSync(f, `${existsSync(f) ? readFileSync(f, 'utf8') : ''}// delivered by fake driver\n`); }
-    const dir = path.join(work, '.aidlc/state/deliver', slug); mkdirSync(dir, { recursive: true });
+    const dir = path.join(work, '.claude/harness/state/deliver', slug); mkdirSync(dir, { recursive: true });
     const events = [{ phase: 'implement', event: 'model-turn-done', usd: 0.2, usage: { input_tokens: 10, cache_read_input_tokens: 90, cache_creation_input_tokens: 0, output_tokens: 5 } },
       { phase: 'review', event: 'model-turn-done', usd: 0.5 }, ...Array.from({ length: repaired }, (_, i) => ({ phase: 'repair', event: 'repaired', attempt: i + 1 }))];
     writeFileSync(path.join(dir, 'phases.json'), JSON.stringify({ slug, completed: ok ? ['implement', 'check-stop', 'review', 'repair', 'check-commit', 'pr'] : ['implement'], repairs: repaired, usd, events, review: { verdict: 'approve' } }));
-    mkdirSync(path.join(work, '.aidlc/artifacts', slug), { recursive: true });
-    writeFileSync(path.join(work, '.aidlc/artifacts', slug, 'review.md'), '# Independent review\n\n## Important\n\nfake finding\n\napprove\n');
+    mkdirSync(path.join(work, '.claude/harness/artifacts', slug), { recursive: true });
+    writeFileSync(path.join(work, '.claude/harness/artifacts', slug, 'review.md'), '# Independent review\n\n## Important\n\nfake finding\n\napprove\n');
     const result = ok ? { slug, ok: true, usd, usd_per_accepted_change: usd, cache_read_share: 0.9, turns: 6, wall_ms: 90000, repairs: repaired, completed: ['implement', 'check-stop', 'review', 'repair', 'check-commit', 'pr'], pr: null, pr_unopened: 'no git remotes found' }
       : { slug, ok: false, usd, stopped, completed: ['implement'] };
     // Pretty-printed after progress lines, the way the CLI actually prints it.
@@ -62,7 +62,7 @@ test('the driver arm approves before the driver runs, runs it once per sprint in
     // The approvals were on disk and committed before the driver started: the driver never grants one.
     const log = execFileSync('git', ['log', '--format=%s'], { cwd: t.s.work, encoding: 'utf8' });
     assert.match(log, /Simulated approval: calc-core\/plan/);
-    for (const kind of ['spec', 'plan']) assert.equal(parse(readFileSync(path.join(t.s.work, '.aidlc/artifacts/calc-core', `${kind}.md`), 'utf8')).front.status, 'approved');
+    for (const kind of ['spec', 'plan']) assert.equal(parse(readFileSync(path.join(t.s.work, '.claude/harness/artifacts/calc-core', `${kind}.md`), 'utf8')).front.status, 'approved');
     assert.equal(out.completedSteps, 1);
     assert.equal(out.pass, true, JSON.stringify(out.assertions));
     assert.equal(out.usage.usd, 0.8);
@@ -75,7 +75,7 @@ test('the driver arm approves before the driver runs, runs it once per sprint in
     assert.ok(existsSync(path.join(t.evidence, 'deliver', 'calc-core', 'phases.json')));
     assert.ok(existsSync(path.join(t.evidence, 'deliver', 'calc-core', 'review.md')));
     // [deliver] bounds were pinned in the staged product before the run.
-    assert.match(readFileSync(path.join(t.s.work, '.aidlc/harness.toml'), 'utf8'), /\[deliver\]\nmax_usd\s*=\s*3/);
+    assert.match(readFileSync(path.join(t.s.work, '.claude/harness/harness.toml'), 'utf8'), /\[deliver\]\nmax_usd\s*=\s*3/);
   } finally { t.cleanup(); }
 });
 

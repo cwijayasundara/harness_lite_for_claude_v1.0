@@ -5,17 +5,17 @@ import { mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
-import * as artifacts from '../.aidlc/lib/artifacts.mjs';
-import { writeBlocked, bashContractBlocked } from '../.aidlc/lib/guard.mjs';
-import { run } from '../.aidlc/checks/scope-drift.mjs';
+import * as artifacts from '../.claude/harness/lib/artifacts.mjs';
+import { writeBlocked, bashContractBlocked } from '../.claude/harness/lib/guard.mjs';
+import { run } from '../.claude/harness/checks/scope-drift.mjs';
 import { BIN } from './_paths.mjs';
 import { HUMAN } from './_gates.mjs';
-const cfg = root => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts'), state: path.join(root, '.aidlc/state') }, guard: { require_contract: true }, gates: HUMAN });
+const cfg = root => ({ layout: { root, artifacts: path.join(root, '.claude/harness/artifacts'), state: path.join(root, '.claude/harness/state') }, guard: { require_contract: true }, gates: HUMAN });
 const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const commit = root => { git(root, 'add', '-A'); git(root, '-c', 'commit.gpgsign=false', 'commit', '-qm', 'test artifacts'); };
 const cli = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
 function second(root) {
-  const d = path.join(root, '.aidlc/artifacts/second'); mkdirSync(d, { recursive: true });
+  const d = path.join(root, '.claude/harness/artifacts/second'); mkdirSync(d, { recursive: true });
   writeFileSync(path.join(d, 'intent.md'), '---\nstatus: draft\n---\n# Second product change\n');
   for (const kind of ['spec', 'plan']) {
     const body = kind === 'spec' ? '# Spec\n\n### B1\nHandle requests.\n' : '# Plan\n\n## Files\n- `src/app/handlers.py`\n';
@@ -64,7 +64,7 @@ test('selection survives restart, rejects branch changes, detached movement and 
     git(s.work, 'checkout', '-b', 'different');
     assert.equal(artifacts.currentChange(c), null);
     assert.match(writeBlocked('src/app/text.py', c), /branch|reselect/);
-    assert.equal(writeBlocked('.aidlc/artifacts/new/spec.md', c), null);
+    assert.equal(writeBlocked('.claude/harness/artifacts/new/spec.md', c), null);
     assert.equal(bashContractBlocked('cat src/app/text.py', c), null);
     git(s.work, 'checkout', branch.replace('refs/heads/', ''));
     assert.ok(artifacts.currentChange(c).plan);
@@ -136,7 +136,7 @@ test('absence never infers authority and invalid CLI selection preserves the bin
     rmSync(spec); mkdirSync(spec);
     assert.deepEqual(artifacts.governingPlans(c), []);
     assert.match(writeBlocked('src/app/text.py', c), /hyphen-titlecase.*unreadable|readable artifacts for hyphen-titlecase/);
-    assert.equal(writeBlocked('.aidlc/artifacts/second/spec.md', c), null);
+    assert.equal(writeBlocked('.claude/harness/artifacts/second/spec.md', c), null);
   } finally { s.cleanup(); }
 });
 

@@ -19,7 +19,7 @@
 import { mkdirSync, readFileSync, writeFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PATTERNS } from '../.aidlc/checks/secrets.mjs';
+import { PATTERNS } from '../.claude/harness/checks/secrets.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const CASES_DIR = path.join(HERE, 'cases');

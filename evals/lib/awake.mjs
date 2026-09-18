@@ -26,7 +26,7 @@
 // in run 3 as well, in 10 ms (11 ms in run 4), and run 3 completed — `toolDenialKind: permission-rule` is an answer,
 // not a prompt with nowhere to go. The stdin pipe was closed by `cee53d1` and run 4 still hung.
 //
-// This repository has already paid for this once: `.aidlc/artifacts/complete-native-comparisons/
+// This repository has already paid for this once: `.claude/harness/artifacts/complete-native-comparisons/
 // evidence.md:15` records the same contamination ("Sleep materially contaminated latency and
 // process completion; this run cannot support a comparative latency decision"), and the remedy was
 // an operator remembering to type `caffeinate -i`. It was never written down anywhere the runner

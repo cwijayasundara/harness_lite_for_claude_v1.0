@@ -59,7 +59,7 @@ The same evidence also shows that the harness has crossed its useful complexity 
 
 | Observation | Repository evidence | Consequence |
 |---|---|---|
-| Historical protocol dominates the tree | 291 of 532 tracked files are under `.aidlc/artifacts`; 64 artifact directories exist | Navigation, status, maintenance, and review carry history that does not help the current change |
+| Historical protocol dominates the tree | 291 of 532 tracked files are under `.claude/harness/artifacts`; 64 artifact directories exist | Navigation, status, maintenance, and review carry history that does not help the current change |
 | Broad agent behavior is not reliably green | The recorded 6 September broad run reports 12 pass, 9 fail, and 2 flaky; the following campaign failed after spending about $1.61 | Deterministic unit coverage of the harness is not evidence that the harness improves coding-agent outcomes |
 | Exact authority can trap the agent | The later ledger campaign consumed 44,513 output tokens and 86 turns before proposing fresh changes or bypasses after write refusal | A guard intended to preserve scope can create the very workaround behavior it is meant to prevent |
 | Native Claude was cheaper in the completed paired comparison | Both native and harness arms delivered 33 accepted changes in six completed trials; cost per accepted change was about $0.185 native and $0.238 harness | The harness showed a possible reliability benefit—one avoided verification failure—but no demonstrated throughput or cost benefit |
@@ -506,7 +506,7 @@ The previous 420-pass test result came from the deterministic command. It was no
 
 ### Model selection is separate from authentication
 
-The current `.aidlc/harness.toml` explicitly sets `generator = "claude-sonnet-5"`, `evaluator = "claude-opus-5"`, and `evals = "claude-haiku-4-5-20251001"`; `.aidlc/lib/config.mjs` contains corresponding defaults. No Opus 4.7 requirement was found in these active configurations. These are configured identifiers, not a claim that every account can access them.
+The current `.claude/harness/harness.toml` explicitly sets `generator = "claude-sonnet-5"`, `evaluator = "claude-opus-5"`, and `evals = "claude-haiku-4-5-20251001"`; `.claude/harness/lib/config.mjs` contains corresponding defaults. No Opus 4.7 requirement was found in these active configurations. These are configured identifiers, not a claim that every account can access them.
 
 For normal development, let the user choose the model available in Claude Code; record the actual model used. A separate review context may use the same model—independence does not require purchasing another model. Reserve explicit version pins for reproducible comparisons, expose the choice before launch, and stop with an actionable error if unavailable. Do not benchmark a weak model as a proxy for the competent agent the team actually uses.
 
@@ -615,9 +615,9 @@ Everything else must win its way back through representative paired evidence. Th
 ## Repository evidence inspected
 
 - `README.md`, `docs/CONSTITUTION.md`, `docs/OPERATING.md`, `docs/IMPROVEMENT-PLAN.md`, and `docs/SPDD-TEAM-EVOLUTION-PLAN.md`
-- `.aidlc/harness.toml`, canonical instructions, skills, roles, hooks, checks, and library implementation
+- `.claude/harness/harness.toml`, canonical instructions, skills, roles, hooks, checks, and library implementation
 - `evals/tasks.json`, `evals/products.json`, product evidence, pruning evidence, and native/graph/generation comparisons
-- `.aidlc/evals/results/2026-09-06T14-53-28-712Z.json` and `.aidlc/evals/results/2026-09-06T15-42-55-342Z.json`
+- `.claude/harness/evals/results/2026-09-06T14-53-28-712Z.json` and `.claude/harness/evals/results/2026-09-06T15-42-55-342Z.json`
 - deterministic command: `node --test --test-reporter=tap test/*.test.mjs`
 - retrieval command: `node evals/bench/pack-bench.mjs`
 - repository inventory and current harness status at commit `2b626692a64f0c83aa87ac466ed715d935f987f3`

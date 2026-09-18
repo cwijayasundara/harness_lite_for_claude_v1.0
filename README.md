@@ -37,15 +37,15 @@ degrade or fail.
 ### 3. Install the harness into your project
 
 ```bash
-node ~/lean-harness-cs-v1/.aidlc/bin/harness init --into .
+node ~/lean-harness-cs-v1/.claude/harness/bin/harness init --into .
 ```
 
-This creates an agent-neutral control plane plus the Claude adapter declaration:
+This creates the control plane plus the Claude plugin declaration:
 
 ```
-.aidlc/
+.claude/harness/
   harness.toml          ← the one file you edit
-  instructions.md       ← canonical instructions shared by agent adapters
+  instructions.md       ← canonical instructions
   policies/review.md    ← canonical review policy
   harness-install.json  ← generated; names the marketplace, plugin and exact commit
   bin/harness           ← generated shim; finds the harness and runs it
@@ -71,7 +71,7 @@ fetch the exact harness commit you installed.
 
 Scaffold with `harness init --into /path/to/project`; do not copy this repository wholesale.
 The scaffold contains nine files: the project config, canonical instructions, review policy,
-`.aidlc/.gitignore`, the CLI shim and install record, `.claude/CLAUDE.md`, `.claude/settings.json`,
+`.claude/harness/.gitignore`, the CLI shim and install record, `.claude/CLAUDE.md`, `.claude/settings.json`,
 and a comprehensive root `CLAUDE.md` generated from the same projection. Its artifact and
 runtime-state directories start empty. Your existing project instructions and configuration are
 preserved when you re-run the installer.
@@ -82,7 +82,7 @@ tests, evals, reports, examples and credentials are never copied into the new pr
 
 ### 4. Tell the harness how to build your project
 
-Open `.aidlc/harness.toml` and fill in the eight capability verbs with your project's own
+Open `.claude/harness/harness.toml` and fill in the eight capability verbs with your project's own
 commands. **This is the step people skip, and nothing works until it's done.** Any verb left
 empty is reported as *skipped*, never as *passed*.
 
@@ -125,19 +125,19 @@ typecheck = "tsc"
 Verify it took:
 
 ```bash
-.aidlc/bin/harness doctor
+.claude/harness/bin/harness doctor
 ```
 
 You should see `set` next to every verb you filled in. Note it is `bash`, not `node` — the
-installed `.aidlc/bin/harness` is a shell shim.
+installed `.claude/harness/bin/harness` is a shell shim.
 
 ### 5. Commit the installation
 
 ```bash
-git add .aidlc .claude && git commit -m "Install company AIDLC harness"
+git add .claude/harness .claude && git commit -m "Install company AIDLC harness"
 ```
 
-Commit `.aidlc/` and whichever provider projections the pod uses. `.aidlc/state/` is already
+Commit `.claude/harness/` and whichever provider projections the pod uses. `.claude/harness/state/` is already
 gitignored.
 
 ### 6. Install the plugin — once per machine, not once per project
@@ -185,7 +185,7 @@ Take docs/search-prd.md through the Lean AIDLC workflow as faster-search.
 ```
 
 Claude will investigate, ask you a few focused questions, and write
-`.aidlc/artifacts/<slug>/intent.md`. Then it stops and waits for you.
+`.claude/harness/artifacts/<slug>/intent.md`. Then it stops and waits for you.
 
 ---
 
@@ -205,7 +205,7 @@ remember where you were.
 Approve a gate with one command, after the artifact is committed:
 
 ```bash
-.aidlc/bin/harness approve <slug> spec --by "your name"
+.claude/harness/bin/harness approve <slug> spec --by "your name"
 ```
 
 Commit the approval, then tell Claude:
@@ -242,9 +242,9 @@ subagent. You don't invoke them by name.
 Everything below is optional; Claude runs these itself during normal work.
 
 ```bash
-.aidlc/bin/harness doctor     # is my harness.toml wired up?
-.aidlc/bin/harness status     # where is each change in the chain?
-.aidlc/bin/harness check --stage stop    # run the checks yourself
+.claude/harness/bin/harness doctor     # is my harness.toml wired up?
+.claude/harness/bin/harness status     # where is each change in the chain?
+.claude/harness/bin/harness check --stage stop    # run the checks yourself
 ```
 
 ---
@@ -253,11 +253,11 @@ Everything below is optional; Claude runs these itself during normal work.
 
 **"I started Claude with `--plugin-dir` and nothing happened."**
 That's expected — the plugin has no banner. If you also skipped `harness init`, your project has
-no `.aidlc/harness.toml` and every check will fail. Do steps 2–5 above first.
+no `.claude/harness/harness.toml` and every check will fail. Do steps 2–5 above first.
 
-**`.aidlc/bin/harness` throws `SyntaxError: Invalid or unexpected token`.**
+**`.claude/harness/bin/harness` throws `SyntaxError: Invalid or unexpected token`.**
 In an installed project that file is a bash shim, not JavaScript. Use
-`.aidlc/bin/harness ...`.
+`.claude/harness/bin/harness ...`.
 
 **`harness: not installed on this machine`.**
 The shim could not find the harness. Run the two commands in step 6, or set `HARNESS_HOME` to a
@@ -267,7 +267,7 @@ checkout — which is what CI does, using the commit named in `harness-install.j
 You're not in a project that ran `init`, or you're above its root. `cd` to the project root.
 
 **Every check says `SKIP`.**
-`.aidlc/harness.toml` still has empty capability verbs. Go back to step 4.
+`.claude/harness/harness.toml` still has empty capability verbs. Go back to step 4.
 
 **Claude ignores the workflow.**
 Confirm the plugin loaded with `/plugin` inside Claude Code, and that `.claude/CLAUDE.md` exists
@@ -291,7 +291,7 @@ engineering](https://martinfowler.com/articles/harness-engineering.html):
   `unreliable` control; `never-fired` and `unwired` are printed as questions for a person holding
   the control's `why:`.
 
-The budget is fixed in `[limits]` of `.aidlc/harness.toml` and nowhere else. Adding one means deleting one; the commit stage enforces it.
+The budget is fixed in `[limits]` of `.claude/harness/harness.toml` and nowhere else. Adding one means deleting one; the commit stage enforces it.
 
 Your project inherits that budget **already largely spent**. The skills the harness ships are
 counted alongside any you add, against one ceiling, so what is left to you is what the harness
@@ -321,13 +321,13 @@ intent, and no deployment code at all.
 
 | Directory | Purpose |
 |---|---|
-| `.aidlc/bin`, `lib`, `checks`, `hooks`, `skills`, `roles`, `templates` | Shared harness implementation and scaffold templates |
-| `.aidlc/artifacts/` | This repository's own change history and approvals; each consumer project has its own |
-| `.aidlc/state/` | Ignored runtime state and caches |
+| `.claude/harness/bin`, `lib`, `checks`, `hooks`, `skills`, `roles`, `templates` | Shared harness implementation and scaffold templates |
+| `.claude/harness/artifacts/` | This repository's own change history and approvals; each consumer project has its own |
+| `.claude/harness/state/` | Ignored runtime state and caches |
 | `test/` | Deterministic tests of the harness |
 | `evals/` | Development evaluation runners, scenarios and fixtures |
 | `evals/evidence/` | Curated development reports and historical evidence |
-| `.aidlc/evals/` | Ignored raw evaluation output; never run automatically by normal edit/stop hooks |
+| `.claude/harness/evals/` | Ignored raw evaluation output; never run automatically by normal edit/stop hooks |
 | `examples/` | Small consumer projects and a maintenance recipe; not scaffold contents |
 
 During application development, hooks run the application's configured fast/stop checks.
@@ -371,7 +371,7 @@ examines staged, unstaged and untracked changes. Use candidate mode for committe
 In a clean tracked checkout of the candidate, run:
 
 ```bash
-node .aidlc/bin/harness check --stage fast --base <base-sha> --candidate <head-sha> --change <slug> --json
+node .claude/harness/bin/harness check --stage fast --base <base-sha> --candidate <head-sha> --change <slug> --json
 ```
 
 The two revisions define an endpoint diff, including all net changes across the commits.
@@ -379,7 +379,7 @@ Scope validation always runs in candidate mode, even if the chosen stage omits i
 check both old and new paths; deletions also need ownership. Both selected approvals must
 be current and committed. Untracked files cannot satisfy candidate proof promises.
 `--change` selects for this invocation only; without it the worktree selection applies.
-The report, `.aidlc/state/last-check.json`, and ledger include resolved `base`, `candidate`
+The report, `.claude/harness/state/last-check.json`, and ledger include resolved `base`, `candidate`
 and `change` under `revision`. Built-in tamper and secret checks use the same boundary when
 included in the stage. Configured external tools receive the candidate file list through
 `{files}` if configured; their other behavior remains the project's responsibility.
@@ -537,7 +537,7 @@ only after recorded integration; for a refactor, preserve behaviour tests and us
 
 `init` records a version-1 runtime identity in `harness-install.json`. Commit that file and
 its generated shim. The manifest hashes sorted relative paths, executable modes and SHA-256
-file digests, then hashes their JSON array. Coverage is `.aidlc/{bin,lib,checks,sensors,hooks,
+file digests, then hashes their JSON array. Coverage is `.claude/harness/{bin,lib,checks,sensors,hooks,
 adapters,skills,roles,templates,policies,instructions.md}` and `.claude-plugin/`. Mutable state,
 change artifacts and product code are excluded. Symlinks are refused. Installation from dirty
 covered content or without Git remains unverified; use a clean exact checkout to create a pin.
@@ -547,7 +547,7 @@ The shim verifies before executing runtime code. Explicit `HARNESS_HOME` mismatc
 cache fallback. Cache discovery accepts matching covered content only. A cache without Git
 reports `pinned-content`, not independently verified Git provenance. A checkout must match both
 commit and bytes/modes. Version directory names alone establish nothing. Legacy records require
-a deliberate `node <clean-runtime>/.aidlc/bin/harness init --into <project>` migration and commit;
+a deliberate `node <clean-runtime>/.claude/harness/bin/harness init --into <project>` migration and commit;
 review generated changes. No automatic repinning occurs. This repository reports `development`
 for its own uncommitted runtime edits, retaining all existing scope and approval controls.
 
@@ -569,7 +569,7 @@ checks makes evidence unsuccessful. No credentials or full environment are captu
 Export an exact recorded invocation with:
 
 ```sh
-.aidlc/bin/harness ledger export --invocation <uuid> > check-export.json
+.claude/harness/bin/harness ledger export --invocation <uuid> > check-export.json
 ```
 
 The export preserves original observations. It attaches the full last-check report only if
@@ -587,15 +587,15 @@ and CHANGE from its trusted event inputs:
 
 ```bash
 set -euo pipefail
-mkdir -p .aidlc/state
-.aidlc/bin/harness doctor --json > .aidlc/state/doctor.json
+mkdir -p .claude/harness/state
+.claude/harness/bin/harness doctor --json > .claude/harness/state/doctor.json
 set +e
-.aidlc/bin/harness check --stage commit --base "$BASE_SHA" --candidate "$CANDIDATE_SHA" --change "$CHANGE" --json > .aidlc/state/check.json
+.claude/harness/bin/harness check --stage commit --base "$BASE_SHA" --candidate "$CANDIDATE_SHA" --change "$CHANGE" --json > .claude/harness/state/check.json
 check_status=$?
 set -e
-if [ -f .aidlc/state/last-check.json ]; then
-  invocation=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(".aidlc/state/last-check.json")).provenance.invocation)')
-  .aidlc/bin/harness ledger export --invocation "$invocation" > .aidlc/state/check-export.json
+if [ -f .claude/harness/state/last-check.json ]; then
+  invocation=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(".claude/harness/state/last-check.json")).provenance.invocation)')
+  .claude/harness/bin/harness ledger export --invocation "$invocation" > .claude/harness/state/check-export.json
 fi
 exit "$check_status"
 ```

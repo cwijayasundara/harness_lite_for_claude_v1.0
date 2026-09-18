@@ -4,10 +4,18 @@
   },
   "permissions": {
     "allow": [
-      "Edit(.aidlc/artifacts/**)",
-      "Bash(.aidlc/bin/harness:*)",
-      "Bash(node .aidlc/bin/harness:*)",
-      "Write(.aidlc/artifacts/**)"
+      "Edit(.claude/harness/artifacts/**)",
+      "Bash(.claude/harness/bin/harness:*)",
+      "Bash(node .claude/harness/bin/harness:*)",
+      "Write(.claude/harness/artifacts/**)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Edit(.env)",
+      "Write(.env)",
+      "Read(.env.*)",
+      "Edit(.env.*)",
+      "Write(.env.*)"
     ]
   }
 }

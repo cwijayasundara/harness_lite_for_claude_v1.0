@@ -15,11 +15,11 @@ import { readFileSync, writeFileSync, mkdirSync, mkdtempSync, rmSync } from 'nod
 import path from 'node:path';
 import os from 'node:os';
 import { ROOT } from './_paths.mjs';
-import { readRefusal, bashReadRefusal, READ_LINES } from '../.aidlc/lib/guard.mjs';
-import { renderClaudeHooks } from '../.aidlc/lib/projection.mjs';
+import { readRefusal, bashReadRefusal, READ_LINES } from '../.claude/harness/lib/guard.mjs';
+import { renderClaudeHooks } from '../.claude/harness/lib/projection.mjs';
 
 const read = (rel) => readFileSync(path.join(ROOT, rel), 'utf8');
-const DISPATCH = read('.aidlc/hooks/dispatch.mjs');
+const DISPATCH = read('.claude/harness/hooks/dispatch.mjs');
 
 const workspace = () => {
   const root = mkdtempSync(path.join(os.tmpdir(), 'read-gate-'));
@@ -79,7 +79,7 @@ test('B4 the change\'s own contract is read whole', () => {
   try {
     // A spec or plan governs the write that follows it, and compliance is judged against its
     // exact text. The graph does not index it, so there is no pack to send the agent to.
-    const plan = s.write('.aidlc/artifacts/some-change/plan.md', READ_LINES * 2);
+    const plan = s.write('.claude/harness/artifacts/some-change/plan.md', READ_LINES * 2);
     assert.equal(readRefusal(plan, s.cfg()), null, 'the contract is not a lookup, it is the terms');
   } finally { s.cleanup(); }
 });
@@ -124,7 +124,7 @@ test('B6 the threshold is configurable and zero turns the gate off', () => {
 });
 
 test('B7 the gate is wired to Read without spending a binding', () => {
-  const policy = JSON.parse(read('.aidlc/hooks/policy.json'));
+  const policy = JSON.parse(read('.claude/harness/hooks/policy.json'));
   const rendered = renderClaudeHooks(policy);
   const preTool = rendered.hooks.PreToolUse;
   assert.equal(preTool.length, 1, 'still one pre-tool binding — the ceiling is five for all events');
@@ -132,8 +132,8 @@ test('B7 the gate is wired to Read without spending a binding', () => {
   assert.equal(policy.bindings.length, 4, 'the gate adds no binding');
 
   // The committed projection is a generated view; a stale one means the shipped hook never fires.
-  assert.deepEqual(JSON.parse(read('.aidlc/adapters/claude/hooks.json')).hooks, rendered.hooks,
-    'run `harness init` — the Claude projection is behind .aidlc/hooks/policy.json');
+  assert.deepEqual(JSON.parse(read('.claude/harness/hooks.json')).hooks, rendered.hooks,
+    'run `harness init` — the Claude projection is behind .claude/harness/hooks/policy.json');
 
   assert.match(DISPATCH, /tool === 'Read'/);
   assert.match(DISPATCH, /return preRead/);

@@ -6,7 +6,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { A, C, ROOT } from './_paths.mjs';
-import { HARNESS_OUTPUT } from '../.aidlc/lib/graph.mjs';
+import { HARNESS_OUTPUT } from '../.claude/harness/lib/graph.mjs';
 
 
 function frontmatter(file) {
@@ -22,7 +22,7 @@ function frontmatter(file) {
 
 // Every harness.toml in the tree, discovered rather than listed. Two tests ask questions of this
 // set and neither may answer for a file someone forgot to add.
-// G13. Harness output is not a registry. `.aidlc/evals/` holds the recorded output of past runs —
+// G13. Harness output is not a registry. `.claude/harness/evals/` holds the recorded output of past runs —
 // a comparison from September carries whole staged product trees, registries and all — and
 // `.claude/worktrees/` holds working copies of other revisions. Grading either would mean a
 // control renamed today retroactively invalidates a measurement taken before it existed, and the
@@ -103,9 +103,9 @@ test('no skill sequences phases (Law 2)', () => {
 // Configs are discovered, not listed: a test that only checks the files someone remembered to
 // list is the same class of thing as the defect it catches.
 test('every stage entry in every harness.toml resolves to something that runs', async () => {
-  const { LOCAL_CHECKS } = await import('../.aidlc/lib/runner.mjs');
-  const { VERBS } = await import('../.aidlc/lib/config.mjs');
-  const { parseToml } = await import('../.aidlc/lib/toml.mjs');
+  const { LOCAL_CHECKS } = await import('../.claude/harness/lib/runner.mjs');
+  const { VERBS } = await import('../.claude/harness/lib/config.mjs');
+  const { parseToml } = await import('../.claude/harness/lib/toml.mjs');
 
   const configs = discoverConfigs();
 
@@ -134,8 +134,8 @@ test('every stage entry in every harness.toml resolves to something that runs', 
 // B3: reachability is asked through `wiredControls`, the same function `ledger audit` uses. A
 // second stage walk here would be one more pair of components answering one question two ways.
 test('every command a required sensor profile depends on is reachable from a stage', async () => {
-  const { wiredControls } = await import('../.aidlc/lib/ledger.mjs');
-  const { parseToml } = await import('../.aidlc/lib/toml.mjs');
+  const { wiredControls } = await import('../.claude/harness/lib/ledger.mjs');
+  const { parseToml } = await import('../.claude/harness/lib/toml.mjs');
 
   const dormant = [];
   for (const file of discoverConfigs()) {
@@ -155,7 +155,7 @@ test('every command a required sensor profile depends on is reachable from a sta
 // B4. Making every name resolve must not flatten two examples into one — they demonstrate
 // different languages, and that difference is why there are two.
 test('the examples still differ from each other', () => {
-  const stages = (p) => readFileSync(path.join(ROOT, p, '.aidlc/harness.toml'), 'utf8')
+  const stages = (p) => readFileSync(path.join(ROOT, p, '.claude/harness/harness.toml'), 'utf8')
     .split('\n').find((l) => l.trim().startsWith('fast'));
   assert.notEqual(stages('examples/scratch-py'), stages('examples/scratch-ts'),
     'two examples that run identical stages are one example');
@@ -305,8 +305,8 @@ test('no document states a budget number of its own', () => {
 // Frontmatter makes it real: a different model, a context it did not write in, and no tool that
 // could make the checks pass. This test is what stops the two ids quietly becoming one.
 test('the generator and the evaluator are different models, and only one of them can write', async () => {
-  const { parseToml } = await import('../.aidlc/lib/toml.mjs');
-  const { EFFORT_LEVELS } = await import('../.aidlc/lib/config.mjs');
+  const { parseToml } = await import('../.claude/harness/lib/toml.mjs');
+  const { EFFORT_LEVELS } = await import('../.claude/harness/lib/config.mjs');
   const registry = parseToml(readFileSync(path.join(A, 'harness.toml'), 'utf8'));
   const models = registry.models ?? {};
   const effort = registry.effort ?? {};
@@ -359,7 +359,7 @@ test('the generator and the evaluator are different models, and only one of them
 });
 
 test('the shipped plugin resolves every agent and uses the current hook projection', async () => {
-  const { renderClaudeHooks } = await import('../.aidlc/lib/projection.mjs');
+  const { renderClaudeHooks } = await import('../.claude/harness/lib/projection.mjs');
   const manifest = JSON.parse(readFileSync(path.join(ROOT, '.claude-plugin/plugin.json'), 'utf8'));
   for (const file of manifest.agents) assert.ok(existsSync(path.join(ROOT, file)), file);
   assert.ok(manifest.agents.some(file => file.endsWith('/evaluator.md')));

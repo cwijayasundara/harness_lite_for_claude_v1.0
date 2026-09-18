@@ -1,0 +1,47 @@
+[project]
+name = "scratch-ts"
+
+# Law 6 in practice: this file is the ONLY difference between running the harness on a Python
+# repo and a TypeScript one. Eight commands, no plugin, no pack, no adapter.
+[capabilities]
+fmt       = "npx prettier --check ."
+lint      = "npx eslint . --format json"
+typecheck = "npx tsc --noEmit --pretty false"
+test      = "npx tsc --outDir dist && node --test --test-reporter=tap dist/test/*.test.js"
+coverage  = "mkdir -p coverage && npx tsc --outDir dist && node --test --experimental-test-coverage --test-reporter=lcov --test-reporter-destination=coverage/lcov.info dist/test/*.test.js"
+arch      = ""
+secrets   = ""
+deps      = "npm outdated --json || true"
+
+# G14. Opt-in verbs, configured here because this example is where they are demonstrated.
+# `layers` is cheap and runs in `drift`; `mutation` is configured and in no stage, which is what
+# opt-in means — a mutation run is a decision a project makes, not something a stage does to it.
+layers    = "npx depcruise src --output-type json"
+mutation  = "npx stryker run --reporters json > /dev/null && cat reports/mutation.json"
+sast      = ""      # semgrep is not a dependency of this example
+
+[formats]
+lint      = "eslint"
+typecheck = "tsc"
+test      = "tap"
+coverage  = "lcov"
+layers    = "depcruise"
+mutation  = "mutation"
+
+[stages]
+fast   = ["lint", "typecheck"]
+stop   = ["fast", "test"]
+stop_hook = ["fast", "test_changed"]
+commit = ["stop", "secrets", "scope-drift", "budget"]
+drift  = ["deps", "layers"]
+
+[graph]
+include = [".", ".claude/harness"]
+exclude = ["node_modules", "dist", ".git"]
+
+[limits]
+skills = 7
+agents = 3
+hooks = 5
+hook_loc = 600
+claude_md_lines = 120

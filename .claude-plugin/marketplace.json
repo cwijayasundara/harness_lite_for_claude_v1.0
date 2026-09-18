@@ -1,6 +1,6 @@
 {
   "name": "lean-harness-cs-v1",
-  "description": "Marketplace for the Claude adapter and the agent-neutral AIDLC kernel.",
+  "description": "Marketplace for the AIDLC delivery harness for Claude Code.",
   "owner": {
     "name": "Chaminda Wijayasundara"
   },
@@ -8,7 +8,7 @@
     {
       "name": "lean-harness-cs-v1",
       "source": "./.",
-      "description": "Claude adapter for the .aidlc kernel: skills, agents, and five hook bindings."
+      "description": "Claude adapter for the .claude/harness kernel: skills, agents, and five hook bindings."
     }
   ]
 }

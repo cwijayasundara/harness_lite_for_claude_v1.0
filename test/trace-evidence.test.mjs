@@ -4,11 +4,11 @@ import { execFileSync } from 'node:child_process';
 import { writeFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { stage, FIXTURES } from '../evals/lib/stage.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
-import { check } from '../.aidlc/lib/runner.mjs';
-import { testExecution } from '../.aidlc/lib/normalize.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
+import { check } from '../.claude/harness/lib/runner.mjs';
+import { testExecution } from '../.claude/harness/lib/normalize.mjs';
 import { traceFixture } from './_trace-fixture.mjs';
-import * as a from '../.aidlc/lib/artifacts.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
 
 const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const commit = root => { git(root, 'add', '-A'); git(root, '-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-qm', 'Simulated trace product'); return git(root, 'rev-parse', 'HEAD'); };

@@ -14,17 +14,17 @@ import path from 'node:path';
 import { loadTasks, validate, runSuite, summaryLine } from '../evals/run.mjs';
 import { evaluate } from '../evals/lib/assertions.mjs';
 import { stage } from '../evals/lib/stage.mjs';
-import { gate, predatesArtifactModel, ARTIFACT_MODEL_COMMIT, RECORD_SCHEMA } from '../.aidlc/lib/eval-gate.mjs';
-import { promiseSpecs, render } from '../.aidlc/lib/artifacts.mjs';
-import { writeBlocked } from '../.aidlc/lib/guard.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
+import { gate, predatesArtifactModel, ARTIFACT_MODEL_COMMIT, RECORD_SCHEMA } from '../.claude/harness/lib/eval-gate.mjs';
+import { promiseSpecs, render } from '../.claude/harness/lib/artifacts.mjs';
+import { writeBlocked } from '../.claude/harness/lib/guard.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
 import { A, ROOT, BIN } from './_paths.mjs';
 
 const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
 const HARNESS = path.join(A, 'bin', 'harness');
 
 // --- B1 -------------------------------------------------------------------------------------
-// The three tasks that used to write `.aidlc/artifacts/contracts/<name>.md` via a command
+// The three tasks that used to write `.claude/harness/artifacts/contracts/<name>.md` via a command
 // (`harness contract new`) that no longer exists. Repointed to `harness new` and the three-file
 // chain; each is checked here against real chain output, not a hand-typed guess at its shape.
 
@@ -33,7 +33,7 @@ function harnessNew(work, slug) {
   assert.equal(r.status, 0, r.stdout + r.stderr);
 }
 
-test('B1: the three repointed tasks name no path under .aidlc/artifacts/contracts/, and their prompts no longer invoke the retired command', () => {
+test('B1: the three repointed tasks name no path under .claude/harness/artifacts/contracts/, and their prompts no longer invoke the retired command', () => {
   const tasks = loadTasks();
   for (const id of ['contract-is-testable', 'contract-names-owned-files', 'successor-contract-links-first']) {
     const task = tasks.find((t) => t.id === id);
@@ -42,9 +42,9 @@ test('B1: the three repointed tasks name no path under .aidlc/artifacts/contract
     for (const a of task.assert) {
       const [name, value] = Object.entries(a)[0];
       const paths = name === 'files_unchanged' ? value : name === 'file_exists' ? [value] : Array.isArray(value) ? [value[0]] : [];
-      for (const p of paths.filter((p) => p.startsWith('.aidlc/artifacts'))) {
-        assert.doesNotMatch(p, /^\.aidlc\/artifacts\/contracts\//, `${id}: ${p} still names the retired single-file contract path`);
-        assert.match(p, /^\.aidlc\/artifacts\/[a-z0-9-]+\/(intent|spec|plan|review)\.md$/, `${id}: ${p} does not name a path the three-file chain produces`);
+      for (const p of paths.filter((p) => p.startsWith('.claude/harness/artifacts'))) {
+        assert.doesNotMatch(p, /^\.claude\/harness\/artifacts\/contracts\//, `${id}: ${p} still names the retired single-file contract path`);
+        assert.match(p, /^\.claude\/harness\/artifacts\/[a-z0-9-]+\/(intent|spec|plan|review)\.md$/, `${id}: ${p} does not name a path the three-file chain produces`);
       }
     }
   }
@@ -57,7 +57,7 @@ test('B1: contract-is-testable — its assertions pass against a real spec.md th
   const s = stage(FIXTURES, task.fixture);
   try {
     harnessNew(s.work, 'search-latency');
-    const specFile = path.join(s.work, '.aidlc/artifacts/search-latency/spec.md');
+    const specFile = path.join(s.work, '.claude/harness/artifacts/search-latency/spec.md');
     const body = readFileSync(specFile, 'utf8')
       .replace('<The observable result, in the language of the affected user.>', 'Search latency is reduced for enterprise tenants.')
       .replace('Given ...\nWhen ...\nThen ...', 'Given a search request from an enterprise tenant\nWhen it is served\nThen p95 latency is under one second')
@@ -75,7 +75,7 @@ test('B1: contract-names-owned-files — its assertions pass against a real plan
   const s = stage(FIXTURES, task.fixture);
   try {
     harnessNew(s.work, 'health-endpoint');
-    const planFile = path.join(s.work, '.aidlc/artifacts/health-endpoint/plan.md');
+    const planFile = path.join(s.work, '.claude/harness/artifacts/health-endpoint/plan.md');
     const body = readFileSync(planFile, 'utf8').replace('- `path/to/file`', '- `src/app/health.py`\n- `tests/test_health.py`');
     writeFileSync(planFile, body);
     for (const a of task.assert) {
@@ -90,11 +90,11 @@ test('B1: successor-contract-links-first — its assertions pass against a real 
   const s = stage(FIXTURES, task.fixture); // contract-planned — already carries the migrated hyphen-titlecase chain
   try {
     harnessNew(s.work, 'family-sort-key');
-    const intentFile = path.join(s.work, '.aidlc/artifacts/family-sort-key/intent.md');
+    const intentFile = path.join(s.work, '.claude/harness/artifacts/family-sort-key/intent.md');
     writeFileSync(intentFile, readFileSync(intentFile, 'utf8')
       .replace('<What is wrong today, in the language of whoever feels it. No solution here.>', 'Family names with multiple parts do not sort correctly. Follows on from the shipped hyphen-titlecase change.')
       .replace('<What is true when this is done. Observable from outside the system.>', 'Names sort by family name regardless of hyphenation.'));
-    const planFile = path.join(s.work, '.aidlc/artifacts/family-sort-key/plan.md');
+    const planFile = path.join(s.work, '.claude/harness/artifacts/family-sort-key/plan.md');
     writeFileSync(planFile, readFileSync(planFile, 'utf8').replace('- `path/to/file`', '- `src/app/sort_key.py`'));
     for (const a of task.assert) {
       const [r] = evaluate({ work: s.work, pristine: s.pristine }, [a]);
@@ -125,8 +125,8 @@ function commit(root, message) {
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', message], { cwd: root });
 }
 
-const specPath = (root, slug) => path.join(root, '.aidlc/artifacts', slug, 'spec.md');
-const planPath = (root, slug) => path.join(root, '.aidlc/artifacts', slug, 'plan.md');
+const specPath = (root, slug) => path.join(root, '.claude/harness/artifacts', slug, 'spec.md');
+const planPath = (root, slug) => path.join(root, '.claude/harness/artifacts', slug, 'plan.md');
 
 function realSpec(ids, front = {}) {
   const behaviours = ids.map((id) => `### ${id}\n\nGiven a real precondition for ${id}\nWhen the matching action happens\nThen a real, specific result follows\n`).join('\n');
@@ -159,7 +159,7 @@ test('B2: a migrated_from spec is a promise and is not gateable; an approved spe
     writeFileSync(specPath(root, 'draft-thing'), realSpec(['B1']));
     commit(root, 'draft-thing drafted, left unapproved');
 
-    const cfg = { layout: { root, artifacts: path.join(root, '.aidlc/artifacts') } };
+    const cfg = { layout: { root, artifacts: path.join(root, '.claude/harness/artifacts') } };
     const promises = promiseSpecs(cfg).map((s) => s.slug).sort();
     assert.deepEqual(promises, ['approved-thing', 'migrated-thing'], 'a promise is approved, or carries migrated_from — a plain draft is neither');
 
@@ -241,7 +241,7 @@ test('B6: gate grades normally once the baseline is recorded against a commit th
 // artifact model it refused the very re-record B6 sends you to run — ten tasks read `pass` on a
 // harness that no longer existed, and `--update` would not write `fail` over them.
 test('B4: update accepts lowered verdicts only when the record predates the artifact model', async () => {
-  const { update } = await import('../.aidlc/lib/eval-gate.mjs');
+  const { update } = await import('../.claude/harness/lib/eval-gate.mjs');
   const results = { source: 'r.json', results: [{ id: 'a', verdict: 'fail', usd: 0.1 }, { id: 'b', verdict: 'pass', usd: 0.2 }] };
   const stale = { schema: RECORD_SCHEMA, commit: '4616d9e1a527458748382d0049d1856d664629cb', tasks: { a: { verdict: 'pass', usd: 1 }, b: { verdict: 'pass', usd: 1 } } };
   const next = update(stale, results, { commit: 'HEAD', cwd: ROOT });

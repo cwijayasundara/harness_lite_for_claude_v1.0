@@ -2,7 +2,7 @@
   "item": 3,
   "date": "2026-09-06",
   "status": "implemented-and-tested",
-  "fullRun": ".aidlc/evals/products/2026-09-06T21-22-46-051Z.json",
+  "fullRun": ".claude/harness/evals/products/2026-09-06T21-22-46-051Z.json",
   "fullRunSummary": {
     "total": 2,
     "pass": 2,
@@ -23,7 +23,7 @@
       "verdict": "pass",
       "completedSteps": 5,
       "totalSteps": 5,
-      "evidence": ".aidlc/evals/products/2026-09-06T21-08-18-626Z-campaign-ledger-1",
+      "evidence": ".claude/harness/evals/products/2026-09-06T21-08-18-626Z-campaign-ledger-1",
       "harnessRevision": "5df1a80d82fa02569698dd019307ee544b72ad0e",
       "candidateRevision": "4788c502a577d82926e426ad82fd037ffe555129",
       "cli": "2.1.263 (Claude Code)",
@@ -83,7 +83,7 @@
       ],
       "replay": {
         "verifierRevision": "7dbdc44e7925f291e5616aed04e555df643b5bcc",
-        "evidence": ".aidlc/evals/products/2026-09-06T21-08-18-626Z-campaign-ledger-1/current-verifier-replay.json",
+        "evidence": ".claude/harness/evals/products/2026-09-06T21-08-18-626Z-campaign-ledger-1/current-verifier-replay.json",
         "results": [
           {
             "slug": "ledger-characterize",
@@ -133,7 +133,7 @@
       "verdict": "pass",
       "completedSteps": 6,
       "totalSteps": 6,
-      "evidence": ".aidlc/evals/products/2026-09-06T21-15-36-413Z-campaign-service-1",
+      "evidence": ".claude/harness/evals/products/2026-09-06T21-15-36-413Z-campaign-service-1",
       "harnessRevision": "5df1a80d82fa02569698dd019307ee544b72ad0e",
       "candidateRevision": "ae5e4522bf436a3a9475f7dd413cbff3d7d70e38",
       "cli": "2.1.263 (Claude Code)",
@@ -192,7 +192,7 @@
       ],
       "replay": {
         "verifierRevision": "7dbdc44e7925f291e5616aed04e555df643b5bcc",
-        "evidence": ".aidlc/evals/products/2026-09-06T21-15-36-413Z-campaign-service-1/current-verifier-replay.json",
+        "evidence": ".claude/harness/evals/products/2026-09-06T21-15-36-413Z-campaign-service-1/current-verifier-replay.json",
         "results": [
           {
             "slug": "service-create",
@@ -248,7 +248,7 @@
   ],
   "priorAttempts": [
     {
-      "result": ".aidlc/evals/products/2026-09-06T20-33-39-903Z.json",
+      "result": ".claude/harness/evals/products/2026-09-06T20-33-39-903Z.json",
       "calibration": true,
       "summary": {
         "total": 1,
@@ -260,7 +260,7 @@
         "usd": 0.2562
       },
       "evidence": [
-        ".aidlc/evals/products/2026-09-06T20-31-37-780Z-campaign-ledger-1"
+        ".claude/harness/evals/products/2026-09-06T20-31-37-780Z-campaign-ledger-1"
       ],
       "failures": [
         {
@@ -271,7 +271,7 @@
       ]
     },
     {
-      "result": ".aidlc/evals/products/2026-09-06T20-46-23-557Z.json",
+      "result": ".claude/harness/evals/products/2026-09-06T20-46-23-557Z.json",
       "calibration": true,
       "summary": {
         "total": 1,
@@ -283,7 +283,7 @@
         "usd": 0.3212
       },
       "evidence": [
-        ".aidlc/evals/products/2026-09-06T20-44-15-380Z-campaign-ledger-1"
+        ".claude/harness/evals/products/2026-09-06T20-44-15-380Z-campaign-ledger-1"
       ],
       "failures": [
         {
@@ -324,7 +324,7 @@
         "error": "spawnSync claude ETIMEDOUT"
       }
     ],
-    "disposition": ".aidlc/artifacts/automated-product-trials/review.md"
+    "disposition": ".claude/harness/artifacts/automated-product-trials/review.md"
   },
   "limitations": [
     "One complete run per campaign does not establish a statistical reliability rate.",

@@ -7,12 +7,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
-import { review } from '../.aidlc/lib/review.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
-import { layout } from '../.aidlc/lib/paths.mjs';
-import { render } from '../.aidlc/lib/artifacts.mjs';
+import { review } from '../.claude/harness/lib/review.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
+import { layout } from '../.claude/harness/lib/paths.mjs';
+import { render } from '../.claude/harness/lib/artifacts.mjs';
 import { approvalDriver } from './lib/approvals.mjs';
-import { requireSubscription, runSubscriptionClaude } from '../.aidlc/lib/claude-auth.mjs';
+import { requireSubscription, runSubscriptionClaude } from '../.claude/harness/lib/claude-auth.mjs';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 // This comparison measures guidance decisions, not end-to-end workflow repair turns.
@@ -67,7 +67,7 @@ function compareGuidance(base) {
   requireSubscription({ cwd: root });
   const model = loadConfig(root).models.generator;
   const revision = execFileSync('git', ['rev-parse', '--verify', `${base}^{commit}`], { cwd: root, encoding: 'utf8' }).trim();
-  const files = ['.aidlc/instructions.md', ...['intent','spec','plan','implement','diagnose','map'].map(s => `.aidlc/skills/${s}/SKILL.md`)];
+  const files = ['.claude/harness/instructions.md', ...['intent','spec','plan','implement','diagnose','map'].map(s => `.claude/harness/skills/${s}/SKILL.md`)];
   const evidence = { kind: 'bounded-guidance-comparison', base: revision, model,
     cli: execFileSync('claude', ['--version'], { encoding: 'utf8' }).trim(), cases: guidanceCases,
     limitation: 'One paired decision sample; workflowInterventions counts proposed unnecessary stops/splits, not observed repair turns. Product proof is limited to two function outputs. Full product campaigns remain item 3.',
@@ -109,7 +109,7 @@ function compareGuidance(base) {
     evidence.pass = true;
   } catch (error) { evidence.error = error.message; process.exitCode = 1; }
   finally {
-    const output = path.join(root, '.aidlc/evals/smoke/guidance-comparison.json');
+    const output = path.join(root, '.claude/harness/evals/smoke/guidance-comparison.json');
     mkdirSync(path.dirname(output), { recursive: true });
     writeFileSync(output, JSON.stringify(evidence, null, 2)+'\n');
     console.log(JSON.stringify({ pass: evidence.pass, error: evidence.error, runs: evidence.runs.map(({variant,metrics,usd}) => ({variant,metrics,usd})) }, null, 2));
@@ -153,7 +153,7 @@ function invoke(prompt, tools = 'Read,Grep,Glob') {
 }
 try {
   git('init', '-q'); git('config', 'user.email', 'integration@example.invalid'); git('config', 'user.name', 'Simulated Test Driver');
-  execFileSync(process.execPath, [path.join(root, '.aidlc/bin/harness'), 'init', '--into', work], { cwd: work, stdio: 'pipe' });
+  execFileSync(process.execPath, [path.join(root, '.claude/harness/bin/harness'), 'init', '--into', work], { cwd: work, stdio: 'pipe' });
   const cfg = { layout: layout(work) };
   const artifacts = path.join(cfg.layout.artifacts, 'addition');
   mkdirSync(artifacts, { recursive: true });
@@ -164,7 +164,7 @@ try {
   commit();
   const driver = approvalDriver(cfg);
   const initial = readFileSync(path.join(work, 'sum.mjs'), 'utf8');
-  const paused = invoke('Read .aidlc/artifacts/addition/spec.md. This spec has not been approved. Summarize it briefly and request approval, then stop. Do not implement.');
+  const paused = invoke('Read .claude/harness/artifacts/addition/spec.md. This spec has not been approved. Summarize it briefly and request approval, then stop. Do not implement.');
   assert.ok(existsSync(cfg.layout.runId), 'the explicitly loaded plugin must execute SessionStart');
   evidence.plugin = JSON.parse(readFileSync(path.join(root, '.claude-plugin/plugin.json'), 'utf8')).name;
   phase('installed plugin loaded and its SessionStart hook executed');
@@ -208,7 +208,7 @@ try {
   process.exitCode = 1;
 } finally {
   const outputIndex = process.argv.indexOf('--out');
-  const output = outputIndex === -1 ? path.join(root, '.aidlc/evals/smoke/agent-mechanisms.json')
+  const output = outputIndex === -1 ? path.join(root, '.claude/harness/evals/smoke/agent-mechanisms.json')
     : path.resolve(root, process.argv[outputIndex + 1] ?? '');
   assert.ok(output !== root, '--out requires a file path');
   mkdirSync(path.dirname(output), { recursive: true });

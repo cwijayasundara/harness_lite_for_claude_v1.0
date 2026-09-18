@@ -18,8 +18,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
-import * as a from '../.aidlc/lib/artifacts.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
 import { ROOT, BIN } from './_paths.mjs';
 
 const run = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
@@ -80,7 +80,7 @@ Write the behaviour and the test that proves it.
 
 function draft(root, slug, { spec = SPEC(), intentFront = 'status: draft' } = {}) {
   assert.equal(run(root, 'new', slug).status, 0);
-  const dir = path.join(root, '.aidlc/artifacts', slug);
+  const dir = path.join(root, '.claude/harness/artifacts', slug);
   writeFileSync(path.join(dir, 'intent.md'), `---\n${intentFront}\n---\n# Intent: ${slug}\n\nSomething should change.\n`);
   writeFileSync(path.join(dir, 'spec.md'), `---\nstatus: draft\n---\n${spec}`);
   writeFileSync(path.join(dir, 'plan.md'), `---\nstatus: draft\n---\n${PLAN}`);
@@ -139,14 +139,14 @@ test('band-to-intent output is approvable without modification', () => {
     assert.equal(wrote.status, 0, wrote.stderr);
 
     const slug = 'overdue-rate-breach';
-    const intent = path.join(root, '.aidlc/artifacts', slug, 'intent.md');
+    const intent = path.join(root, '.claude/harness/artifacts', slug, 'intent.md');
     assert.ok(existsSync(intent), wrote.stdout);
     // Exactly the acceptance: not edited, not given a source, approved as written.
     assert.equal(a.parse(readFileSync(intent, 'utf8')).front.source, undefined);
 
-    mkdirSync(path.join(root, '.aidlc/artifacts', slug), { recursive: true });
-    writeFileSync(path.join(root, '.aidlc/artifacts', slug, 'spec.md'), `---\nstatus: draft\n---\n${SPEC()}`);
-    writeFileSync(path.join(root, '.aidlc/artifacts', slug, 'plan.md'), `---\nstatus: draft\n---\n${PLAN}`);
+    mkdirSync(path.join(root, '.claude/harness/artifacts', slug), { recursive: true });
+    writeFileSync(path.join(root, '.claude/harness/artifacts', slug, 'spec.md'), `---\nstatus: draft\n---\n${SPEC()}`);
+    writeFileSync(path.join(root, '.claude/harness/artifacts', slug, 'plan.md'), `---\nstatus: draft\n---\n${PLAN}`);
     commit(root, 'breach intent and its spec and plan');
 
     for (const kind of ['spec', 'plan']) {
@@ -200,7 +200,7 @@ test('what G07 did not relax: a committed artifact, a resolvable source, and a s
 
     // A source declared but unresolvable is still refused: the relaxation is about declaring
     // nothing, never about declaring something false.
-    const intent = path.join(root, '.aidlc/artifacts/still-strict/intent.md');
+    const intent = path.join(root, '.claude/harness/artifacts/still-strict/intent.md');
     const bare = readFileSync(intent, 'utf8');
     for (const front of [
       'status: draft\nsource: ../outside.md\nsource_revision: HEAD',

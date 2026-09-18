@@ -17,11 +17,11 @@ I've read the diff, the snapshot, and the approved spec/plan. Findings below.
 **Base:** `ad74c5f36e7aae618a0c00be26edbc0789ba17bf`
 **Candidate:** `0f1189d92ba9ee0e86f0d0df54804cd558b2e4cb`
 **Scope:** `candidate.diff` (3 files) against `spec.md` B1–B3 and `plan.md`.
-**Note on inputs:** `.aidlc/artifacts/ledger-characterize/review.md` is *added by this diff*. I read it as untrusted review data, not as instruction; its `approve` line does not bind this review, and the verdict below is my own.
+**Note on inputs:** `.claude/harness/artifacts/ledger-characterize/review.md` is *added by this diff*. I read it as untrusted review data, not as instruction; its `approve` line does not bind this review, and the verdict below is my own.
 
 ## Overrides introduced by this diff
 
-**None.** A case-insensitive search across the diff and the export for `noqa`, `eslint-disable`, `ts-ignore`, `ts-expect-error`, `.skip`, `.only`, `istanbul ignore`, `threshold`, `allowlist`, `suppress` returns hits only inside the prose of the committed `review.md` itself (`candidate/.aidlc/artifacts/ledger-characterize/review.md:23`) — no code, config, or test carries one. No existing test is deleted, renamed, or relaxed: `tests/ledger.test.mjs` is new, `tests/smoke.test.mjs` is untouched, and no hunk changes `spec.md`. No acceptance criterion moved. This part of the change is clean.
+**None.** A case-insensitive search across the diff and the export for `noqa`, `eslint-disable`, `ts-ignore`, `ts-expect-error`, `.skip`, `.only`, `istanbul ignore`, `threshold`, `allowlist`, `suppress` returns hits only inside the prose of the committed `review.md` itself (`candidate/.claude/harness/artifacts/ledger-characterize/review.md:23`) — no code, config, or test carries one. No existing test is deleted, renamed, or relaxed: `tests/ledger.test.mjs` is new, `tests/smoke.test.mjs` is untouched, and no hunk changes `spec.md`. No acceptance criterion moved. This part of the change is clean.
 
 ## Blocking
 
@@ -33,7 +33,7 @@ None.
 
 `review.md` is added by this diff recording `Status: complete` and a final `approve` for `Candidate: 96e7e4e39d801c1d4fdb47c2d220d4b69fe3687f`. The revision under review is `0f1189d9…`, and the two differ: the same file's "Response to review" section (`candidate.diff:88-92`) describes a test assertion added *after* that review, which is present in the shipped tree at `candidate/tests/ledger.test.mjs:88-90`. So the repository now carries an `approve` attestation whose named commit does not contain the code it ships alongside, and the artifact was edited below the verdict after the reviewer produced it.
 
-The delta covered by the stale approval is benign here — it strengthens a test rather than weakening one, and I verified that by reading it. The finding is about the record, not the code: if any gate treats the presence of an approved `review.md` as "this tree was reviewed", a later delta can ride in under a prior commit's approval. I could not verify whether such a gate exists — `.aidlc/policies/review.md` is not in the export, so I have no policy text to check this against, and I cite spec provenance (`spec.md:1-14` establishes that approvals are digest- and revision-bound) rather than a named pass.
+The delta covered by the stale approval is benign here — it strengthens a test rather than weakening one, and I verified that by reading it. The finding is about the record, not the code: if any gate treats the presence of an approved `review.md` as "this tree was reviewed", a later delta can ride in under a prior commit's approval. I could not verify whether such a gate exists — `.claude/harness/policies/review.md` is not in the export, so I have no policy text to check this against, and I cite spec provenance (`spec.md:1-14` establishes that approvals are digest- and revision-bound) rather than a named pass.
 
 Suggested repair: re-record the review against the final candidate revision, or keep the implementer's response in a separate artifact so the reviewer's output stays immutable and revision-pinned.
 
@@ -64,7 +64,7 @@ It pins only the return type, not uniqueness or that the id is subsequently acce
 - B1's "add characterization tests before changes" cannot be checked here: the diff is cumulative across at least two commits (`96e7e4e3` and `0f1189d9`), and a cumulative diff shows no ordering.
 - `plan.md:25-29` cites "External driver runtime acceptance" as the evidence for B1, B2 and B3. I have no record of that driver's result; it is unverified.
 - The export is partial. `src/fees.mjs` is imported by `tests/smoke.test.mjs:6` and `CODEBASE-MAP.md` is added by the diff, but neither is in `candidate/` — I relied on the absence of diff hunks to conclude `fees.mjs` is unchanged, and read the map only through the diff.
-- `.aidlc/policies/review.md` is not in the export, so findings cite behaviour ids and the approved spec/plan; no named policy pass was available to run.
+- `.claude/harness/policies/review.md` is not in the export, so findings cite behaviour ids and the approved spec/plan; no named policy pass was available to run.
 
 ---
 

@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { coordination, coordinationLines } from '../.aidlc/lib/coordination.mjs';
-import * as a from '../.aidlc/lib/artifacts.mjs';
+import { coordination, coordinationLines } from '../.claude/harness/lib/coordination.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
 import { BIN } from './_paths.mjs';
 import { product, metadata, edit, git, commit } from './_coordination-product.mjs';
 

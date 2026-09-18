@@ -267,7 +267,7 @@ accepted change and cache-hit rate recorded in the ledger.
    dependency layering (`dependency-cruiser` / `import-linter`).
 4. Every finding carries a `fix:` line written for the model, and the tamper rule accepts a
    suppression with a `why:` (already the case) and reports it in the PR.
-5. Skills: merge `map` into `.aidlc/instructions.md` and add `design` (brainstorm the outcome,
+5. Skills: merge `map` into `.claude/harness/instructions.md` and add `design` (brainstorm the outcome,
    resolve design branches, produce the Entities/Approach/Structure/Safeguards sections of the
    spec, in the REASONS shape). The `CLAUDE.md` template gains a Commands-with-healthy-output block
    and a Verification block.
@@ -284,7 +284,7 @@ mutation and a planted layer violation are each caught.
    posted as one PR comment with `detected_pattern` per finding and prior findings deduped; merge
    guarded by branch protection with code-owner review, so the agent that wrote the code cannot
    approve it.
-2. Deploy gate: `release-authorization` reads a release record (`.aidlc/state/release.json` with
+2. Deploy gate: `release-authorization` reads a release record (`.claude/harness/state/release.json` with
    who, when, candidate SHA) instead of an env var; every allow or deny is a ledger row with reason
    and approval route. Rollback is one documented command in `CLAUDE.md`.
 3. `band-to-intent.mjs` writes whatever provenance phase 1 still requires, and `harness new eval`

@@ -1,15 +1,15 @@
 {
   "name": "lean-harness-cs-v1",
-  "description": "Claude Code adapter for the agent-neutral AIDLC harness under .aidlc/.",
+  "description": "The AIDLC delivery harness for Claude Code, under .claude/harness/.",
   "version": "0.1.0",
   "author": {
     "name": "Chaminda Wijayasundara"
   },
-  "skills": "./.aidlc/skills/",
+  "skills": "./.claude/harness/skills/",
   "agents": [
-    "./.aidlc/roles/explorer.md",
-    "./.aidlc/roles/evaluator.md",
-    "./.aidlc/roles/verifier.md"
+    "./.claude/harness/roles/explorer.md",
+    "./.claude/harness/roles/evaluator.md",
+    "./.claude/harness/roles/verifier.md"
   ],
-  "hooks": "./.aidlc/adapters/claude/hooks.json"
+  "hooks": "./.claude/harness/hooks.json"
 }

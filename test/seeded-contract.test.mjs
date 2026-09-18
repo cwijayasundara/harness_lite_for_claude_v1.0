@@ -18,8 +18,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { stage, FIXTURES } from '../evals/lib/stage.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
-import { read } from '../.aidlc/lib/artifacts.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
+import { read } from '../.claude/harness/lib/artifacts.mjs';
 
 const CONTRACT = {
   slug: 'extract-validation',
@@ -45,7 +45,7 @@ test('A1 a seeded contract is approved through the real gate, not written as app
     const plan = read(cfg, CONTRACT.slug, 'plan');
     assert.ok(plan.front.spec_digest, 'the plan records no spec digest, so it is approved against nothing');
     // The scope the agent is allowed to touch is the one the task declared.
-    assert.match(readFileSync(path.join(s.work, `.aidlc/artifacts/${CONTRACT.slug}/plan.md`), 'utf8'),
+    assert.match(readFileSync(path.join(s.work, `.claude/harness/artifacts/${CONTRACT.slug}/plan.md`), 'utf8'),
       /src\/app\/handlers\.py/);
   } finally { s.cleanup(); }
 });
@@ -63,7 +63,7 @@ test('A3 a fixture with no contract declared is untouched, so refusal tasks stil
   // (must be refused). Seeding those would delete the very thing they grade.
   const s = stage(FIXTURES, 'clean-app');
   try {
-    const artifacts = path.join(s.work, '.aidlc/artifacts');
+    const artifacts = path.join(s.work, '.claude/harness/artifacts');
     const seeded = existsSync(path.join(artifacts, CONTRACT.slug));
     assert.equal(seeded, false, 'a fixture staged without `approved` must carry no contract');
   } finally { s.cleanup(); }

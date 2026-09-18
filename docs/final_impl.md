@@ -29,8 +29,8 @@ It inherits four rules and does not restate them elsewhere:
 
 | M1 clause | state | evidence | number |
 |---|---|---|---|
-| one real `harness deliver --live` run recorded | **done** | `.aidlc/evals/comparisons/2026-09-16T09-22-27-265Z/…/deliver/calc-core/review.md:92` | 338 s · USD 0.5823/change · cache-read 90% · 23 turns · 1 repair |
-| `expected.json` green + nightly gate blocking | **not done** | run `.aidlc/evals/results/2026-09-16T12-51-56-081Z.json`; `.github/workflows/harness.yml:168,181` | measured 2026-09-16: **15 pass / 2 flaky / 5 fail**, USD 3.5656. Record still says 12/8/2 from 2026-09-06; both CI lines still `continue-on-error: true`. Six of the seven non-green tasks are one finding — see M1.C F15. |
+| one real `harness deliver --live` run recorded | **done** | `.claude/harness/evals/comparisons/2026-09-16T09-22-27-265Z/…/deliver/calc-core/review.md:92` | 338 s · USD 0.5823/change · cache-read 90% · 23 turns · 1 repair |
+| `expected.json` green + nightly gate blocking | **not done** | run `.claude/harness/evals/results/2026-09-16T12-51-56-081Z.json`; `.github/workflows/harness.yml:168,181` | measured 2026-09-16: **15 pass / 2 flaky / 5 fail**, USD 3.5656. Record still says 12/8/2 from 2026-09-06; both CI lines still `continue-on-error: true`. Six of the seven non-green tasks are one finding — see M1.C F15. |
 | G24's three criteria answered with a path | **done — all three no** | `evals/evidence/g24-calculator-pilots-2026-09-16/` | acceptance 0 vs 1; ceiling 0.152 vs undefined; 0 evaluator-caught |
 
 | mission | state |
@@ -86,7 +86,7 @@ load is a run with nobody at the keyboard, which is precisely why the machine wa
 No pilot measured load at all. See the correction in `evals/evidence/…/README.md`.
 
 **This repository had already paid for this once.**
-`.aidlc/artifacts/complete-native-comparisons/evidence.md:15` records the same contamination —
+`.claude/harness/artifacts/complete-native-comparisons/evidence.md:15` records the same contamination —
 *"Sleep materially contaminated latency and process completion; this run cannot support a
 comparative latency decision"* — and the remedy was an operator remembering to type `caffeinate
 -i`. It reached no file the runner could read, so it regressed. An instrument that depends on the
@@ -122,7 +122,7 @@ sleeping laptop again.
 node evals/run.mjs --live --concurrency 4 --max-suite-usd 15
 ```
 
-Recorded: `.aidlc/evals/results/2026-09-16T12-51-56-081Z.json` —
+Recorded: `.claude/harness/evals/results/2026-09-16T12-51-56-081Z.json` —
 **15 pass · 2 flaky · 5 fail · 0 inconclusive · 0 aborted · USD 3.5656.**
 
 `--concurrency 4` is a deliberate departure from the default of 1 and is recorded here because the
@@ -301,7 +301,7 @@ exact next command**. Today it prints dashes for empty verbs, which is honest (L
 
 ### M3.C Every refusal names its remedy, and it is measured — free plus ~USD 0.5
 
-The pattern and the measurement are at `.aidlc/lib/guard.mjs`: three measurements now, not one —
+The pattern and the measurement are at `.claude/harness/lib/guard.mjs`: three measurements now, not one —
 reason last, the model kept the head; reason first, it kept the tail; so it is one sentence with no
 separable clause to drop. **Position was not the variable — the model keeps the sentence that says
 what to DO.** Apply that to every refusal a newcomer can hit, and measure each the same way rather

@@ -16,7 +16,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'nod
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { collisions, collisionLines, installedAgents, ourAgents } from '../.aidlc/lib/agent-collisions.mjs';
+import { collisions, collisionLines, installedAgents, ourAgents } from '../.claude/harness/lib/agent-collisions.mjs';
 import { A, BIN, ROOT } from './_paths.mjs';
 
 // A plugin cache in the shape the real one has: <marketplace>/<plugin>/<version>/agents/*.md

@@ -1,5 +1,5 @@
 # GitHub requires workflows at this exact path, so this is the one file that cannot live
-# under .aidlc/. It is infrastructure, not a generated artefact.
+# under .claude/harness/. It is infrastructure, not a generated artefact.
 # Pushes validate branches before a PR exists (and direct, explicitly authorized merges).
 # Live model trials are explicit manual subscription runs; PR checks require no model credentials.
 name: harness
@@ -35,29 +35,29 @@ jobs:
           TARGET_SHA: ${{ github.event.pull_request.base.sha }}
           CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          mkdir -p .aidlc/state
-          printf 'target=%s\ncandidate=%s\n' "$TARGET_SHA" "$CANDIDATE_SHA" > .aidlc/state/pr-revisions.txt
+          mkdir -p .claude/harness/state
+          printf 'target=%s\ncandidate=%s\n' "$TARGET_SHA" "$CANDIDATE_SHA" > .claude/harness/state/pr-revisions.txt
           BASE_SHA=$(git merge-base "$TARGET_SHA" "$CANDIDATE_SHA")
-          printf 'base=%s\n' "$BASE_SHA" >> .aidlc/state/pr-revisions.txt
-          .aidlc/bin/harness check --stage fast --base "$BASE_SHA" --candidate "$CANDIDATE_SHA" --pr-event "$GITHUB_EVENT_PATH" --json 2>&1 | tee .aidlc/state/pr-scope.log
+          printf 'base=%s\n' "$BASE_SHA" >> .claude/harness/state/pr-revisions.txt
+          .claude/harness/bin/harness check --stage fast --base "$BASE_SHA" --candidate "$CANDIDATE_SHA" --pr-event "$GITHUB_EVENT_PATH" --json 2>&1 | tee .claude/harness/state/pr-scope.log
       - name: Export attributable check evidence
         if: always()
         shell: bash
         run: |
-          if [ -f .aidlc/state/last-check.json ]; then
-            INVOCATION=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(".aidlc/state/last-check.json")).provenance.invocation)')
-            .aidlc/bin/harness ledger export --invocation "$INVOCATION" > .aidlc/state/check-export.json
+          if [ -f .claude/harness/state/last-check.json ]; then
+            INVOCATION=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(".claude/harness/state/last-check.json")).provenance.invocation)')
+            .claude/harness/bin/harness ledger export --invocation "$INVOCATION" > .claude/harness/state/check-export.json
           fi
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: candidate-scope-evidence
           path: |
-            .aidlc/state/check-export.json
-            .aidlc/state/pr-revisions.txt
-            .aidlc/state/pr-scope.log
-            .aidlc/state/last-check.json
-            .aidlc/state/ledger.jsonl
+            .claude/harness/state/check-export.json
+            .claude/harness/state/pr-revisions.txt
+            .claude/harness/state/pr-scope.log
+            .claude/harness/state/last-check.json
+            .claude/harness/state/ledger.jsonl
           if-no-files-found: warn
 
   unit:
@@ -88,9 +88,9 @@ jobs:
       # guarantee to be absent too.
       - name: The map still describes the tree
         run: |
-          node .aidlc/bin/harness map
+          node .claude/harness/bin/harness map
           git diff --exit-code -- CODEBASE-MAP.md || {
-            echo "::error file=CODEBASE-MAP.md::stale — run '.aidlc/bin/harness map' and commit the result"
+            echo "::error file=CODEBASE-MAP.md::stale — run '.claude/harness/bin/harness map' and commit the result"
             exit 1
           }
 
@@ -108,24 +108,24 @@ jobs:
       - run: python -m pip install pytest==8.4.2 pytest-json-report==1.5.0 pytest-cov==7.0.0 ruff==0.12.12 mypy==1.19.1
       # Deliberate migration of this disposable CI example to the candidate runtime.
       # The historical example record remains intact in source control.
-      - run: node .aidlc/bin/harness init --into examples/scratch-py
-      - run: .aidlc/bin/harness doctor --json
+      - run: node .claude/harness/bin/harness init --into examples/scratch-py
+      - run: .claude/harness/bin/harness doctor --json
         working-directory: examples/scratch-py
         env:
           HARNESS_HOME: ${{ github.workspace }}
-      - run: .aidlc/bin/harness check --stage stop
+      - run: .claude/harness/bin/harness check --stage stop
         working-directory: examples/scratch-py
         env:
-          HARNESS_HOME: ${{ github.workspace }}/.aidlc
+          HARNESS_HOME: ${{ github.workspace }}/.claude/harness
       # The example is a real installed project: it declares the harness and does not contain
       # one, exactly like a pod member's repository. HARNESS_HOME is how CI points the generated
       # shim at a checkout — here the repository itself, in a downstream project a clone made
       # from the commit in its install record.
       # in a directory that had no bin/ at all and died on `Cannot find module`.
-      - run: .aidlc/bin/harness baseline check
+      - run: .claude/harness/bin/harness baseline check
         working-directory: examples/scratch-py
         env:
-          HARNESS_HOME: ${{ github.workspace }}/.aidlc
+          HARNESS_HOME: ${{ github.workspace }}/.claude/harness
 
       # G12. The TypeScript twin. The two examples exist to prove Law 6 — that a language is a
       # table of commands and not a plugin — and a claim with only one language behind it is half
@@ -133,24 +133,24 @@ jobs:
       # detector wrote.
       - run: npm ci
         working-directory: examples/scratch-ts
-      - run: node .aidlc/bin/harness init --into examples/scratch-ts
-      - run: .aidlc/bin/harness doctor
+      - run: node .claude/harness/bin/harness init --into examples/scratch-ts
+      - run: .claude/harness/bin/harness doctor
         working-directory: examples/scratch-ts
         env:
           HARNESS_HOME: ${{ github.workspace }}
-      - run: .aidlc/bin/harness check --stage stop --all
+      - run: .claude/harness/bin/harness check --stage stop --all
         working-directory: examples/scratch-ts
         env:
-          HARNESS_HOME: ${{ github.workspace }}/.aidlc
-      - run: .aidlc/bin/harness check --stage drift --all
+          HARNESS_HOME: ${{ github.workspace }}/.claude/harness
+      - run: .claude/harness/bin/harness check --stage drift --all
         working-directory: examples/scratch-ts
         env:
-          HARNESS_HOME: ${{ github.workspace }}/.aidlc
+          HARNESS_HOME: ${{ github.workspace }}/.claude/harness
       # The Python example's own drift stage, now that coverage and deps are configured for it.
-      - run: .aidlc/bin/harness check --stage drift --all
+      - run: .claude/harness/bin/harness check --stage drift --all
         working-directory: examples/scratch-py
         env:
-          HARNESS_HOME: ${{ github.workspace }}/.aidlc
+          HARNESS_HOME: ${{ github.workspace }}/.claude/harness
 
   # G04/G20. The nightly live suite. The runner is the boundary: an ephemeral virtual machine that
   # is destroyed when the job ends, which is the only OS-level boundary this harness has. The gate
@@ -194,13 +194,13 @@ jobs:
 
       - name: grade against the recorded baseline
         continue-on-error: true   # G23 flips this once expected.json has no fail and no flaky
-        run: node .aidlc/bin/harness evals gate
+        run: node .claude/harness/bin/harness evals gate
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: nightly-eval-results
           path: |
-            .aidlc/evals/results/
+            .claude/harness/evals/results/
             evals/evidence/
 
   # Explicit subscription usage only. Ordinary PRs never invoke a model.
@@ -231,5 +231,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: eval-evidence
-          path: .aidlc/evals/
+          path: .claude/harness/evals/
           if-no-files-found: ignore

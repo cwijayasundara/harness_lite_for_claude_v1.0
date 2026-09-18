@@ -14,11 +14,11 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { loadConfig, DEFAULT_STAGES, resolveStage } from '../.aidlc/lib/config.mjs';
-import { sessionContext, STABLE_END } from '../.aidlc/lib/session.mjs';
-import { changedTests, runOne } from '../.aidlc/lib/runner.mjs';
-import { clearSelection } from '../.aidlc/lib/artifacts.mjs';
-import { append } from '../.aidlc/lib/ledger.mjs';
+import { loadConfig, DEFAULT_STAGES, resolveStage } from '../.claude/harness/lib/config.mjs';
+import { sessionContext, STABLE_END } from '../.claude/harness/lib/session.mjs';
+import { changedTests, runOne } from '../.claude/harness/lib/runner.mjs';
+import { clearSelection } from '../.claude/harness/lib/artifacts.mjs';
+import { append } from '../.claude/harness/lib/ledger.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 import { BIN, ROOT } from './_paths.mjs';
 
@@ -60,7 +60,7 @@ test('the Stop hook runs stop_hook — fast plus the tests naming what changed �
     const out = spawnSync(process.execPath, [BIN, 'hook', 'stop'], { cwd: s.work, encoding: 'utf8',
       input: JSON.stringify({ cwd: s.work, hook_event_name: 'Stop' }) });
     assert.equal(out.status, 0, out.stderr);
-    const ledger = path.join(s.work, '.aidlc/state/ledger.jsonl');
+    const ledger = path.join(s.work, '.claude/harness/state/ledger.jsonl');
     const rows = readFileSync(ledger, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
     const invocations = rows.filter((r) => r.kind === 'check-invocation');
     assert.ok(invocations.length, 'the Stop hook recorded no check at all');
@@ -78,7 +78,7 @@ test('stop_hook is a stage in the defaults and in both registries, and stop stil
   assert.ok(resolveStage(cfg, 'stop_hook').includes('test_changed'));
   assert.ok(!resolveStage(cfg, 'stop_hook').includes('test'), 'the hook stage must not expand to the full suite');
   // The template a project installs carries the same shape, or a consumer gets the old cost.
-  const template = readFileSync(path.join(ROOT, '.aidlc/templates/harness.toml'), 'utf8');
+  const template = readFileSync(path.join(ROOT, '.claude/harness/templates/harness.toml'), 'utf8');
   assert.match(template, /^stop_hook = \["fast", "test_changed"\]$/m);
   assert.match(template, /^test_changed = ""/m);
 });
@@ -90,7 +90,7 @@ test('the narrowed test verb selects what the turn touched, and nothing when not
   // A changed library selects the test whose name carries its stem, and — when the graph has been
   // built — every other test that imports it. `test/mechanisms.test.mjs` imports `review.mjs`
   // without naming it, which is exactly the case a stem match alone would miss.
-  const picked = changedTests(cfg, ['.aidlc/lib/review.mjs']);
+  const picked = changedTests(cfg, ['.claude/harness/lib/review.mjs']);
   assert.ok(picked.includes('test/review.test.mjs'), picked.join(', '));
   assert.ok(picked.every((f) => f.startsWith('test/')));
   assert.ok(picked.length < all.length / 4, `narrowing selected ${picked.length} of ${all.length} test files`);
@@ -98,7 +98,7 @@ test('the narrowed test verb selects what the turn touched, and nothing when not
   // A changed test is its own answer.
   assert.ok(changedTests(cfg, ['test/deliver.test.mjs']).includes('test/deliver.test.mjs'));
   for (const f of ['test/deliver.test.mjs', 'test/review.test.mjs']) {
-    assert.ok(changedTests(cfg, ['.aidlc/lib/deliver.mjs', 'test/review.test.mjs']).includes(f));
+    assert.ok(changedTests(cfg, ['.claude/harness/lib/deliver.mjs', 'test/review.test.mjs']).includes(f));
   }
   // Nothing that any test names is not a pass and not a failure; the verb reports `skipped`.
   assert.deepEqual(changedTests(cfg, ['README.md']), []);

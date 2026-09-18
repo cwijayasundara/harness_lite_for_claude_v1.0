@@ -2,10 +2,10 @@
 // in disposable repos; never alter an approved artifact or real product fixture source.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { parse, render, behavioursOf } from '../.aidlc/lib/artifacts.mjs';
+import { parse, render, behavioursOf } from '../.claude/harness/lib/artifacts.mjs';
 
 export function traceFixture(root) {
-  const artifacts = path.join(root, '.aidlc/artifacts');
+  const artifacts = path.join(root, '.claude/harness/artifacts');
   if (!existsSync(artifacts)) return;
   for (const slug of readdirSync(artifacts)) {
     const specPath = path.join(artifacts, slug, 'spec.md'), intentPath = path.join(artifacts, slug, 'intent.md');

@@ -9,11 +9,11 @@ import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { build } from '../../.aidlc/lib/graph.mjs';
-import { pack, estimateTokens } from '../../.aidlc/lib/pack.mjs';
-import { discover } from '../../.aidlc/lib/graph.mjs';
+import { build } from '../../.claude/harness/lib/graph.mjs';
+import { pack, estimateTokens } from '../../.claude/harness/lib/pack.mjs';
+import { discover } from '../../.claude/harness/lib/graph.mjs';
 
-// Three levels up from evals/bench/ is the repo root: the harness under .aidlc/ and the
+// Three levels up from evals/bench/ is the repo root: the harness under .claude/harness/ and the
 // artefacts that exercise it are both below this point, so golden answers are repo-relative.
 const ROOT = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
 
@@ -22,17 +22,17 @@ export const GOLDEN = [
   { root: path.join(ROOT, 'evals', 'fixtures', 'graph-app'), term: 'find_user', answer: 'src/app/repo.py' },
   { root: path.join(ROOT, 'evals', 'fixtures', 'graph-app'), term: 'slugify', answer: 'web/util.js' },
   { root: path.join(ROOT, 'evals', 'fixtures', 'graph-app'), term: 'handle', answer: 'src/app/api.py' },
-  { root: ROOT, term: 'normalize', answer: '.aidlc/lib/normalize.mjs' },
-  { root: ROOT, term: 'refresh', answer: '.aidlc/lib/refresh.mjs' },
+  { root: ROOT, term: 'normalize', answer: '.claude/harness/lib/normalize.mjs' },
+  { root: ROOT, term: 'refresh', answer: '.claude/harness/lib/refresh.mjs' },
   { root: ROOT, term: 'toRegExp', answer: 'evals/lib/assertions.mjs' },
-  { root: ROOT, term: 'measure', answer: '.aidlc/checks/budget.mjs' },
-  { root: ROOT, term: 'resolveStage', answer: '.aidlc/lib/config.mjs' },
-  { root: ROOT, term: 'renderPack', answer: '.aidlc/lib/pack.mjs' },
+  { root: ROOT, term: 'measure', answer: '.claude/harness/checks/budget.mjs' },
+  { root: ROOT, term: 'resolveStage', answer: '.claude/harness/lib/config.mjs' },
+  { root: ROOT, term: 'renderPack', answer: '.claude/harness/lib/pack.mjs' },
 ];
 
 const cfgFor = (root) => ({
-  layout: { root, graph: path.join(root, '.aidlc', 'state', 'graph.json'), state: path.join(root, '.aidlc', 'state') },
-  graph: { include: ['.', '.aidlc'], exclude: ['node_modules', '.venv', 'dist', '.git', '__pycache__', 'fixtures', 'products', 'comparisons'] },
+  layout: { root, graph: path.join(root, '.claude/harness', 'state', 'graph.json'), state: path.join(root, '.claude/harness', 'state') },
+  graph: { include: ['.', '.claude/harness'], exclude: ['node_modules', '.venv', 'dist', '.git', '__pycache__', 'fixtures', 'products', 'comparisons'] },
 });
 
 // Historical whole-file baseline, retained for continuity; not a competent retrieval strategy.

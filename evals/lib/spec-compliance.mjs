@@ -17,7 +17,7 @@
 //     evidence, and a reader who cannot tell them apart is reading a number that hides its own
 //     uncertainty.
 
-import { promiseSpecs, behavioursOf } from '../../.aidlc/lib/artifacts.mjs';
+import { promiseSpecs, behavioursOf } from '../../.claude/harness/lib/artifacts.mjs';
 import path from 'node:path';
 
 export const VOTES = 3;
@@ -27,7 +27,7 @@ export const MAJORITY = 2;
 // `supersedes:` on an approved spec is the declaration a later sprint makes; the superseded
 // behaviour's own spec is never edited, so this is the only place the reversal is written down.
 export function promises(root) {
-  const cfg = { layout: { root, artifacts: path.join(root, '.aidlc', 'artifacts') } };
+  const cfg = { layout: { root, artifacts: path.join(root, '.claude/harness', 'artifacts') } };
   const current = [];
   const superseded = [];
   for (const spec of promiseSpecs(cfg)) {

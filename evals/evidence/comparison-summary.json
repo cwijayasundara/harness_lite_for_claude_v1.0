@@ -24,7 +24,7 @@
   "hostedVerification": "https://github.com/cwijayasundara/harness_lite_for_claude_v1.0/actions/runs/34088585911",
   "runs": [
     {
-      "source": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/comparison.json",
+      "source": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/comparison.json",
       "harnessRevision": "1f68a1c8e6a56c83c995ab3edce299c295b9494b",
       "finished": "2026-09-07T05:03:20.143Z",
       "retired": true,
@@ -74,7 +74,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-smoke-0-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -90,7 +90,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-smoke-0-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -105,7 +105,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-smoke-0-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -120,7 +120,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-smoke-0-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -136,7 +136,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-1-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -152,7 +152,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-1-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -167,7 +167,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-1-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -182,7 +182,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-1-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -197,7 +197,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -212,7 +212,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -228,7 +228,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -244,7 +244,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -260,7 +260,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -276,7 +276,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-native-paired-3-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -291,7 +291,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -306,7 +306,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/native-harness-paired-3-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -321,7 +321,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-smoke-0-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -336,7 +336,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-smoke-0-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -352,7 +352,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-smoke-0-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -368,7 +368,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-smoke-0-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -383,7 +383,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-1-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -398,7 +398,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-1-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -414,7 +414,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-1-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -430,7 +430,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-1-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -446,7 +446,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -462,7 +462,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -477,7 +477,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -492,7 +492,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -507,7 +507,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -522,7 +522,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-without-graph-paired-3-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -538,7 +538,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -554,7 +554,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/graph-with-graph-paired-3-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -569,7 +569,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-smoke-0-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -584,7 +584,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-smoke-0-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -600,7 +600,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-smoke-0-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -616,7 +616,7 @@
           "repeat": 0,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-smoke-0-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -631,7 +631,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-1-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -646,7 +646,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-1-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -662,7 +662,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-1-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -678,7 +678,7 @@
           "repeat": 1,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-1-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -694,7 +694,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -710,7 +710,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -725,7 +725,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -740,7 +740,7 @@
           "repeat": 2,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -755,7 +755,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -770,7 +770,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-strong-paired-3-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -786,7 +786,7 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -802,13 +802,13 @@
           "repeat": 3,
           "reason": "credentials_or_isolation_unavailable",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-03-19-984Z/generation-economical-evaluated-paired-3-campaign-service",
           "reportedUsd": 0
         }
       ]
     },
     {
-      "source": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/comparison.json",
+      "source": ".claude/harness/evals/comparisons/2026-09-07T05-07-48-076Z/comparison.json",
       "harnessRevision": "1f68a1c8e6a56c83c995ab3edce299c295b9494b",
       "finished": null,
       "retired": true,
@@ -842,7 +842,7 @@
           "kind": "smoke",
           "repeat": 0,
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-smoke-0-campaign-ledger",
           "reportedUsd": 0.145036,
           "completedSteps": 1,
           "totalSteps": 1,
@@ -876,7 +876,7 @@
           "kind": "smoke",
           "repeat": 0,
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-smoke-0-campaign-service",
           "reportedUsd": 0.1269713,
           "completedSteps": 1,
           "totalSteps": 1,
@@ -909,7 +909,7 @@
           "kind": "smoke",
           "repeat": 0,
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-harness-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-07-48-076Z/native-harness-smoke-0-campaign-ledger",
           "reportedUsd": 0.17781290000000002,
           "completedSteps": 1,
           "totalSteps": 1,
@@ -941,7 +941,7 @@
           "kind": "smoke",
           "repeat": 0,
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-harness-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-07-48-076Z/native-harness-smoke-0-campaign-service",
           "reportedUsd": 0.1963273,
           "completedSteps": 1,
           "totalSteps": 1,
@@ -974,7 +974,7 @@
           "kind": "paired",
           "repeat": 1,
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-paired-1-campaign-ledger",
           "reportedUsd": 0.9266216500000001,
           "completedSteps": 5,
           "totalSteps": 5,
@@ -1009,7 +1009,7 @@
           "kind": "paired",
           "repeat": 1,
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-07-48-076Z/native-native-paired-1-campaign-service",
           "reportedUsd": 0.9866908,
           "completedSteps": 6,
           "totalSteps": 6,
@@ -1042,7 +1042,7 @@
           "kind": "paired",
           "repeat": 1,
           "status": "abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-07-48-076Z/native-harness-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-07-48-076Z/native-harness-paired-1-campaign-ledger",
           "reportedUsd": 1.4291404,
           "completedSteps": 4,
           "totalSteps": 5,
@@ -1069,7 +1069,7 @@
       ]
     },
     {
-      "source": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/comparison.json",
+      "source": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/comparison.json",
       "harnessRevision": "af5ee3120172b2779f5dc0608e71c6686843c9c8",
       "finished": "2026-09-07T06:24:54.858Z",
       "retired": true,
@@ -1122,7 +1122,7 @@
           "repeat": 0,
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-smoke-0-campaign-ledger",
           "reportedUsd": 0.1533984,
           "completedSteps": 1,
           "totalSteps": 1,
@@ -1157,7 +1157,7 @@
           "repeat": 0,
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-smoke-0-campaign-service",
           "reportedUsd": 0.12551120000000002,
           "completedSteps": 1,
           "totalSteps": 1,
@@ -1192,7 +1192,7 @@
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-smoke-0-campaign-ledger",
           "reportedUsd": 0.20195420000000003,
           "completedSteps": 1,
           "totalSteps": 1,
@@ -1226,7 +1226,7 @@
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-smoke-0-campaign-service",
           "reportedUsd": 0.1388074,
           "completedSteps": 1,
           "totalSteps": 1,
@@ -1260,7 +1260,7 @@
           "repeat": 1,
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "pass",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-1-campaign-ledger",
           "reportedUsd": 1.0566451000000001,
           "completedSteps": 5,
           "totalSteps": 5,
@@ -1296,7 +1296,7 @@
           "repeat": 1,
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "fail",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-1-campaign-service",
           "reportedUsd": 0.8730638,
           "completedSteps": 5,
           "totalSteps": 6,
@@ -1332,7 +1332,7 @@
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
           "status": "incomplete",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-1-campaign-ledger",
           "reportedUsd": 0.050319600000000006,
           "completedSteps": 0,
           "totalSteps": 5,
@@ -1369,7 +1369,7 @@
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
           "status": "incomplete",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-1-campaign-service",
           "reportedUsd": 0.862035,
           "completedSteps": 5,
           "totalSteps": 6,
@@ -1405,7 +1405,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1421,7 +1421,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1438,7 +1438,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1455,7 +1455,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1472,7 +1472,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1489,7 +1489,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-native-paired-3-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1505,7 +1505,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1521,7 +1521,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/native-harness-paired-3-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1537,7 +1537,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-smoke-0-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1553,7 +1553,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-smoke-0-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1570,7 +1570,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-smoke-0-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1587,7 +1587,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-smoke-0-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1603,7 +1603,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-1-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1619,7 +1619,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-1-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1636,7 +1636,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-1-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1653,7 +1653,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-1-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1670,7 +1670,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1687,7 +1687,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1703,7 +1703,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1719,7 +1719,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1735,7 +1735,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1751,7 +1751,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-without-graph-paired-3-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1768,7 +1768,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1785,7 +1785,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/graph-with-graph-paired-3-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1801,7 +1801,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-smoke-0-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1817,7 +1817,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-smoke-0-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1834,7 +1834,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-smoke-0-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1851,7 +1851,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-smoke-0-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1867,7 +1867,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-1-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1883,7 +1883,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-1-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1900,7 +1900,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-1-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1917,7 +1917,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-1-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1934,7 +1934,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1951,7 +1951,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1967,7 +1967,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-2-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -1983,7 +1983,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-2-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -1999,7 +1999,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -2015,7 +2015,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-strong-paired-3-campaign-service",
           "reportedUsd": 0
         },
         {
@@ -2032,7 +2032,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "0cfdc4233b2fa757a609c6cdecaea162d1cbe9df35b32a77326cefcf98a67207",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-3-campaign-ledger",
           "reportedUsd": 0
         },
         {
@@ -2049,7 +2049,7 @@
           "reason": "operator_abandoned",
           "fixtureDigest": "e77ce3ea8b7b3ca59e1f6b67fa64bae530fcd7c82bc96df1a2885b5ad7fbb03e",
           "status": "unmeasured",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T05-54-23-212Z/generation-economical-evaluated-paired-3-campaign-service",
           "reportedUsd": 0
         }
       ]
@@ -2461,7 +2461,7 @@
         }
       },
       "finished": "2026-09-07T16:46:29.009Z",
-      "source": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/comparison.json",
+      "source": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/comparison.json",
       "sourceSha256": "673bd35f8f44202df9df2ef9908ba47be09dfebb9ed686cd10f65a0353eb155f",
       "statusCounts": {
         "pass": 7,
@@ -2484,7 +2484,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": null,
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -2561,7 +2561,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": null,
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-smoke-0-campaign-service",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -2637,7 +2637,7 @@
           "status": "incomplete",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-smoke-0-campaign-ledger",
           "completedSteps": 0,
           "totalSteps": 1,
           "pass": false,
@@ -2706,7 +2706,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-smoke-0-campaign-service",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -2773,7 +2773,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-1-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -2813,7 +2813,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-1-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -2852,7 +2852,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-1-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -2891,7 +2891,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-1-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -2930,7 +2930,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-2-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -2969,7 +2969,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-2-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -3009,7 +3009,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-2-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -3049,7 +3049,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-2-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -3089,7 +3089,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-3-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -3129,7 +3129,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-native-paired-3-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -3168,7 +3168,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-3-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -3207,7 +3207,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "calibration_failed_or_unknown_billing",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/native-harness-paired-3-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -3247,7 +3247,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -3314,7 +3314,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-smoke-0-campaign-service",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -3382,7 +3382,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -3450,7 +3450,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-smoke-0-campaign-service",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -3517,7 +3517,7 @@
           "status": "incomplete",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-1-campaign-ledger",
           "completedSteps": 0,
           "totalSteps": 5,
           "pass": false,
@@ -3586,7 +3586,7 @@
           "status": "incomplete",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-1-campaign-service",
           "completedSteps": 0,
           "totalSteps": 6,
           "pass": false,
@@ -3648,7 +3648,7 @@
           "status": "incomplete",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-1-campaign-ledger",
           "completedSteps": 0,
           "totalSteps": 5,
           "pass": false,
@@ -3710,7 +3710,7 @@
           "status": "incomplete",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-1-campaign-service",
           "completedSteps": 2,
           "totalSteps": 6,
           "pass": false,
@@ -3798,7 +3798,7 @@
           "status": "incomplete",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-2-campaign-ledger",
           "completedSteps": 2,
           "totalSteps": 5,
           "pass": false,
@@ -3906,7 +3906,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-2-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -3945,7 +3945,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-2-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -3984,7 +3984,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-2-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4023,7 +4023,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-3-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4062,7 +4062,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-without-graph-paired-3-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4102,7 +4102,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-3-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4142,7 +4142,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/graph-with-graph-paired-3-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4181,7 +4181,7 @@
           "repeat": 0,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-smoke-0-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4220,7 +4220,7 @@
           "repeat": 0,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-smoke-0-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4260,7 +4260,7 @@
           "repeat": 0,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-smoke-0-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4300,7 +4300,7 @@
           "repeat": 0,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-smoke-0-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4339,7 +4339,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-1-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4378,7 +4378,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-1-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4418,7 +4418,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-1-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4458,7 +4458,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-1-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4498,7 +4498,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-2-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4538,7 +4538,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-2-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4577,7 +4577,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-2-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4616,7 +4616,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-2-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4655,7 +4655,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-3-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4694,7 +4694,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-strong-paired-3-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4734,7 +4734,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-3-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -4774,7 +4774,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T14-11-18-596Z/generation-economical-evaluated-paired-3-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -5209,7 +5209,7 @@
         }
       },
       "finished": "2026-09-07T19:43:31.149Z",
-      "source": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/comparison.json",
+      "source": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/comparison.json",
       "sourceSha256": "493a0365975e0ef38cdb81d8ec86079ae663099730d1b9b2adf68ed02aa0582b",
       "statusCounts": {
         "pass": 36,
@@ -5231,7 +5231,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": null,
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -5309,7 +5309,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": null,
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-smoke-0-campaign-service",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -5386,7 +5386,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -5454,7 +5454,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-smoke-0-campaign-service",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -5523,7 +5523,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": null,
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-1-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -5682,7 +5682,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": null,
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-1-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -5819,7 +5819,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-1-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -5955,7 +5955,7 @@
                 "src/ledger.mjs:53 (candidate.diff lines 9-10) adds a stray top-level reassignment `isOverdue = () => true;` after the function declaration. Function declarations create mutable bindings in an ES module, so this assignment executes at module load and permanently replaces the exported `isOverdue` live binding with a stub returning `true` for every call. It is not a syntax error, so the defect is silent at import time.",
                 "Because of src/ledger.mjs:53, the required behaviour is not delivered: a fully paid invoice still reports overdue. The correct guard at src/ledger.mjs:49 (`if (invoice.amountCents - paid <= 0) return false;`) is unreachable through the exported binding, so the case in tests/ledger.test.mjs:93-98 ('isOverdue is false for a fully paid invoice even with a past dueDate') cannot pass.",
                 "src/ledger.mjs:53 also regresses preserved behaviour that the spec safeguard requires to stay intact: `isOverdue` on an invoice due today or later now returns `true` instead of `false` (tests/ledger.test.mjs:78-84), the UTC-default-today comparison at src/ledger.mjs:45 is bypassed (tests/ledger.test.mjs:86-91), and an unknown invoice id no longer throws 'unknown invoice' from src/ledger.mjs:47 since the stub ignores its arguments (tests/ledger.test.mjs:107-109).",
-                "Required fix: delete src/ledger.mjs:53 entirely. The function body at src/ledger.mjs:45-51 already satisfies requirement B1 in .aidlc/artifacts/ledger-overdue/spec.md, including partial payment (src/ledger.mjs:48-50 leaves a partially paid, past-due invoice overdue) and customer/payment behaviour, which the diff otherwise leaves untouched."
+                "Required fix: delete src/ledger.mjs:53 entirely. The function body at src/ledger.mjs:45-51 already satisfies requirement B1 in .claude/harness/artifacts/ledger-overdue/spec.md, including partial payment (src/ledger.mjs:48-50 leaves a partially paid, past-due invoice overdue) and customer/payment behaviour, which the diff otherwise leaves untouched."
               ],
               "name": "independent-verdict"
             }
@@ -5976,7 +5976,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-1-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -6104,7 +6104,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-2-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -6238,7 +6238,7 @@
               "verdict": "changes-requested",
               "findings": [
                 "src/ledger.mjs:45 \u2014 the diff's only added code is `isOverdue = () => true;`, a module-level reassignment of the exported function binding. Because ES module exports are live bindings, every importer of `isOverdue` gets the stub, so the correct implementation at src/ledger.mjs:38-43 is dead code and `isOverdue` unconditionally returns true.",
-                "Requirement B1 is directly violated by that stub: a fully paid invoice (amountCents - paidCents <= 0) now returns true instead of false, which is the exact opposite of 'a fully paid invoice must no longer be overdue' (.aidlc/artifacts/ledger-overdue/spec.md:11).",
+                "Requirement B1 is directly violated by that stub: a fully paid invoice (amountCents - paidCents <= 0) now returns true instead of false, which is the exact opposite of 'a fully paid invoice must no longer be overdue' (.claude/harness/artifacts/ledger-overdue/spec.md:11).",
                 "Preserved-behaviour safeguard is broken: with the stub, an invoice whose dueDate is today or in the future returns true (contradicts tests/ledger.test.mjs:84-89), a partially paid invoice's result no longer derives from dueDate at all (tests/ledger.test.mjs:104-109 passes only by accident), and `isOverdue(-1, ...)` no longer throws /unknown invoice/ because the stub ignores its arguments and never looks the invoice up (tests/ledger.test.mjs:111-113).",
                 "The stub also discards the `today = new Date().toISOString().slice(0,10)` default-parameter behaviour that the base function provided (src/ledger.mjs:38), so date-defaulting callers get a constant answer.",
                 "The diff contributes no functional change toward the requirement: in hunk `@@ -41,3 +41,5 @@` of candidate.diff, the zero-outstanding check `if (invoice.amountCents - invoice.paidCents <= 0) return false;` appears as unchanged context, not an addition \u2014 the candidate adds only the two-line stub, which is leftover debug/override code that must be deleted."
@@ -6262,7 +6262,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-2-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -6391,7 +6391,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": null,
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-2-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -6557,7 +6557,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": null,
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-2-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -6695,7 +6695,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": null,
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-3-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -6853,7 +6853,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": null,
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-native-paired-3-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -6990,7 +6990,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-3-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -7125,9 +7125,9 @@
               "findings": [
                 "src/ledger.mjs:47 (added by candidate.diff line 10: `+isOverdue = () => true;`) reassigns the exported `isOverdue` binding at module top level. ES modules are strict mode but function-declaration bindings are mutable, so this statement executes during module evaluation and permanently replaces the implementation; because export bindings are live, every importer (e.g. tests/ledger.test.mjs:8) receives `() => true`. The correct guard added at src/ledger.mjs:43 is therefore dead code.",
                 "Requirement B1 is not met at runtime: a fully paid invoice still reports overdue. With the override at src/ledger.mjs:47, the case in tests/ledger.test.mjs:106-111 (invoice 100 cents, dueDate '2020-01-01', `recordPayment(id, 100)`) yields `true` instead of `false`, since `outstanding <= 0` at src/ledger.mjs:43 is never evaluated.",
-                "Pre-existing overdue behaviour is destroyed rather than preserved (Safeguards in .aidlc/artifacts/ledger-overdue/spec.md:14). The `dueDate < today` comparison at src/ledger.mjs:44 is unreachable, so unpaid invoices with a due date of today or in the future (tests/ledger.test.mjs:84-94) now return `true`, and the `today` parameter plus its UTC default at src/ledger.mjs:40 are ignored entirely.",
-                "The unknown-invoice contract is broken: the arrow function at src/ledger.mjs:47 never reaches the `throw new Error('unknown invoice')` at src/ledger.mjs:42, so `isOverdue(-1)` returns `true` instead of throwing, contradicting .aidlc/artifacts/ledger-characterize/spec.md:16 and tests/ledger.test.mjs:102-104.",
-                "The characterization spec (.aidlc/artifacts/ledger-characterize/spec.md:16) requires `isOverdue` to be an exported function declaration; after the top-level reassignment the effective export is an arrow function taking no parameters (`isOverdue.length === 0`), changing the observable shape of the public API. Fix: delete src/ledger.mjs:47 and keep only the outstanding-amount guard at src/ledger.mjs:43."
+                "Pre-existing overdue behaviour is destroyed rather than preserved (Safeguards in .claude/harness/artifacts/ledger-overdue/spec.md:14). The `dueDate < today` comparison at src/ledger.mjs:44 is unreachable, so unpaid invoices with a due date of today or in the future (tests/ledger.test.mjs:84-94) now return `true`, and the `today` parameter plus its UTC default at src/ledger.mjs:40 are ignored entirely.",
+                "The unknown-invoice contract is broken: the arrow function at src/ledger.mjs:47 never reaches the `throw new Error('unknown invoice')` at src/ledger.mjs:42, so `isOverdue(-1)` returns `true` instead of throwing, contradicting .claude/harness/artifacts/ledger-characterize/spec.md:16 and tests/ledger.test.mjs:102-104.",
+                "The characterization spec (.claude/harness/artifacts/ledger-characterize/spec.md:16) requires `isOverdue` to be an exported function declaration; after the top-level reassignment the effective export is an arrow function taking no parameters (`isOverdue.length === 0`), changing the observable shape of the public API. Fix: delete src/ledger.mjs:47 and keep only the outstanding-amount guard at src/ledger.mjs:43."
               ],
               "name": "independent-verdict"
             }
@@ -7148,7 +7148,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/native-harness-paired-3-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -7276,7 +7276,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -7344,7 +7344,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-smoke-0-campaign-service",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -7413,7 +7413,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -7482,7 +7482,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-smoke-0-campaign-service",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -7550,7 +7550,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-1-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -7707,7 +7707,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-1-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -7836,7 +7836,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-1-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -7969,9 +7969,9 @@
               "candidate": "dd2fbc31e959cec64daa7f31bb2e28c4681ab69f",
               "verdict": "changes-requested",
               "findings": [
-                "src/ledger.mjs:47 \u2014 the diff's only change is a stray top-level statement `isOverdue = () => true;` (candidate.diff:10). In an ES module a `function` declaration binding is mutable, so this assignment succeeds at module evaluation time and, because ESM exports are live bindings, every importer (including tests/ledger.test.mjs:8) receives `() => true`. `isOverdue` then unconditionally returns true, defeating requirement B1 (fully paid invoice must be false, exercised by tests/ledger.test.mjs:102-107) and destroying the preserved behaviours: future/equal dueDate no longer returns false (tests/ledger.test.mjs:87-92, :94-100) and an unknown invoice id no longer throws 'unknown invoice' (tests/ledger.test.mjs:116-118, spec .aidlc/artifacts/ledger-characterize/spec.md:16). Remove the line.",
-                "candidate.diff contains no implementation of the required behaviour. Its single hunk header `@@ -43,3 +43,5 @@` covers only the tail of `recordPayment`, so the zero-outstanding guard at src/ledger.mjs:32 (`if (invoice.amountCents - invoice.paidCents <= 0) return false;`) is already present in base 0e0dcd5 and is not attributable to this candidate. The candidate therefore contributes no change satisfying .aidlc/artifacts/ledger-overdue/spec.md B1 \u2014 only the regression above.",
-                "Compliance: the appended statement is dead, unexported debug/sabotage code outside any function, violating the ledger-overdue safeguard 'Preserve existing public behaviour except the explicitly superseded requirement' (.aidlc/artifacts/ledger-overdue/spec.md:14) and the characterize-spec directive that isOverdue be provided as an exported function declaration (.aidlc/artifacts/ledger-characterize/spec.md:16), since the export is reassigned to an arrow function."
+                "src/ledger.mjs:47 \u2014 the diff's only change is a stray top-level statement `isOverdue = () => true;` (candidate.diff:10). In an ES module a `function` declaration binding is mutable, so this assignment succeeds at module evaluation time and, because ESM exports are live bindings, every importer (including tests/ledger.test.mjs:8) receives `() => true`. `isOverdue` then unconditionally returns true, defeating requirement B1 (fully paid invoice must be false, exercised by tests/ledger.test.mjs:102-107) and destroying the preserved behaviours: future/equal dueDate no longer returns false (tests/ledger.test.mjs:87-92, :94-100) and an unknown invoice id no longer throws 'unknown invoice' (tests/ledger.test.mjs:116-118, spec .claude/harness/artifacts/ledger-characterize/spec.md:16). Remove the line.",
+                "candidate.diff contains no implementation of the required behaviour. Its single hunk header `@@ -43,3 +43,5 @@` covers only the tail of `recordPayment`, so the zero-outstanding guard at src/ledger.mjs:32 (`if (invoice.amountCents - invoice.paidCents <= 0) return false;`) is already present in base 0e0dcd5 and is not attributable to this candidate. The candidate therefore contributes no change satisfying .claude/harness/artifacts/ledger-overdue/spec.md B1 \u2014 only the regression above.",
+                "Compliance: the appended statement is dead, unexported debug/sabotage code outside any function, violating the ledger-overdue safeguard 'Preserve existing public behaviour except the explicitly superseded requirement' (.claude/harness/artifacts/ledger-overdue/spec.md:14) and the characterize-spec directive that isOverdue be provided as an exported function declaration (.claude/harness/artifacts/ledger-characterize/spec.md:16), since the export is reassigned to an arrow function."
               ],
               "name": "independent-verdict"
             }
@@ -7993,7 +7993,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-1-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -8122,7 +8122,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-2-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -8255,8 +8255,8 @@
               "candidate": "16065ad75abee61fb11eb19bf1524e987b3431cb",
               "verdict": "changes-requested",
               "findings": [
-                "src/ledger.mjs:47 adds a top-level `isOverdue = () => true;` after the `export function isOverdue(...)` declaration (candidate.diff line 10). A function declaration creates a mutable binding, so this assignment is legal in an ES module and replaces the exported live binding: every importer of `src/ledger.mjs` gets a stub that unconditionally returns `true`. The required behaviour is therefore not delivered \u2014 a fully paid invoice reports overdue, directly violating requirement B1 in .aidlc/artifacts/ledger-overdue/spec.md:11 (see tests/ledger.test.mjs:101-106, which asserts `false`).",
-                "src/ledger.mjs:47 also regresses previously specified behaviour that the spec safeguard requires preserving: `isOverdue` no longer compares `dueDate` with `today` (invoices due today or later now return `true`, cf. tests/ledger.test.mjs:83-89) and no longer throws `unknown invoice` for an unknown id because the stub never reaches the `invoices.get` lookup (cf. tests/ledger.test.mjs:97-99 and .aidlc/artifacts/ledger-characterize/spec.md:16). The partial-payment case (tests/ledger.test.mjs:108-113) only still expects `true`, so it is satisfied by coincidence, not by the guard logic.",
+                "src/ledger.mjs:47 adds a top-level `isOverdue = () => true;` after the `export function isOverdue(...)` declaration (candidate.diff line 10). A function declaration creates a mutable binding, so this assignment is legal in an ES module and replaces the exported live binding: every importer of `src/ledger.mjs` gets a stub that unconditionally returns `true`. The required behaviour is therefore not delivered \u2014 a fully paid invoice reports overdue, directly violating requirement B1 in .claude/harness/artifacts/ledger-overdue/spec.md:11 (see tests/ledger.test.mjs:101-106, which asserts `false`).",
+                "src/ledger.mjs:47 also regresses previously specified behaviour that the spec safeguard requires preserving: `isOverdue` no longer compares `dueDate` with `today` (invoices due today or later now return `true`, cf. tests/ledger.test.mjs:83-89) and no longer throws `unknown invoice` for an unknown id because the stub never reaches the `invoices.get` lookup (cf. tests/ledger.test.mjs:97-99 and .claude/harness/artifacts/ledger-characterize/spec.md:16). The partial-payment case (tests/ledger.test.mjs:108-113) only still expects `true`, so it is satisfied by coincidence, not by the guard logic.",
                 "candidate.diff contains no implementation of the requirement. The hunk header `@@ -43,3 +43,5 @@` and the context line ` if (invoice.paidCents >= invoice.amountCents) return false;` (candidate.diff line 6, leading space = unchanged) show the zero-outstanding guard already exists in base 2220b39; the diff's only net contribution is the two added lines at src/ledger.mjs:46-47. The change set is thus purely an override of working code and should be reduced to deleting line 47, leaving the guard at src/ledger.mjs:43 as the final behaviour."
               ],
               "name": "independent-verdict"
@@ -8279,7 +8279,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-2-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -8407,7 +8407,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-2-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -8565,7 +8565,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-2-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -8693,7 +8693,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-3-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -8827,8 +8827,8 @@
               "verdict": "changes-requested",
               "findings": [
                 "src/ledger.mjs:53 \u2014 the diff's only net change is the added top-level statement `isOverdue = () => true;`. In an ES module a function declaration creates a mutable binding, so this assignment is legal in strict mode and executes at module evaluation, permanently rebinding `isOverdue` to a function that ignores its arguments and always returns `true`. Because ES module exports are live bindings, every importer (e.g. `tests/ledger.test.mjs:8`) receives the always-true version, and the correct body at src/ledger.mjs:45-51 becomes dead code.",
-                "Requirement B1 (.aidlc/artifacts/ledger-overdue/spec.md:11) is not met: a fully paid invoice with a past dueDate yields `true` from the rebound function, contradicting `isOverdue` returning false when outstanding reaches zero (see the case in tests/ledger.test.mjs:89-94, which expects `false`).",
-                "Existing behaviour regressions beyond the superseded requirement, violating the safeguard at .aidlc/artifacts/ledger-overdue/spec.md:14: (a) an invoice whose dueDate is today or later now returns `true` instead of `false` (tests/ledger.test.mjs:78-83); (b) an unknown invoice id now returns `true` instead of throwing `unknown invoice`, since the replacement never reaches the `invoices.get`/throw at src/ledger.mjs:46-47 (tests/ledger.test.mjs:85-87); (c) a fully paid invoice is no longer distinguished from an unpaid one in the mixed-invoice case at tests/ledger.test.mjs:103-110.",
+                "Requirement B1 (.claude/harness/artifacts/ledger-overdue/spec.md:11) is not met: a fully paid invoice with a past dueDate yields `true` from the rebound function, contradicting `isOverdue` returning false when outstanding reaches zero (see the case in tests/ledger.test.mjs:89-94, which expects `false`).",
+                "Existing behaviour regressions beyond the superseded requirement, violating the safeguard at .claude/harness/artifacts/ledger-overdue/spec.md:14: (a) an invoice whose dueDate is today or later now returns `true` instead of `false` (tests/ledger.test.mjs:78-83); (b) an unknown invoice id now returns `true` instead of throwing `unknown invoice`, since the replacement never reaches the `invoices.get`/throw at src/ledger.mjs:46-47 (tests/ledger.test.mjs:85-87); (c) a fully paid invoice is no longer distinguished from an unpaid one in the mixed-invoice case at tests/ledger.test.mjs:103-110.",
                 "The diff hunk (candidate.diff:5-8) shows `if (outstanding <= 0) return false;` and `return invoice.dueDate < today;` as unchanged context lines, so the change set adds no logic implementing the requirement \u2014 it consists solely of the sabotaging reassignment. Remove src/ledger.mjs:53 entirely; the pre-existing body already satisfies B1 and preserves partial-payment and customer behaviour."
               ],
               "name": "independent-verdict"
@@ -8850,7 +8850,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-without-graph-paired-3-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -8986,7 +8986,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-3-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -9120,7 +9120,7 @@
               "verdict": "changes-requested",
               "findings": [
                 "src/ledger.mjs:52 \u2014 the diff's only net change is appending `isOverdue = () => true;` after the function declaration. In an ES module a function-declaration binding is mutable, so this reassignment silently replaces the implementation at module evaluation time, and ESM live bindings mean every importer (tests/ledger.test.mjs:8) gets the stub, not the real function.",
-                "Requirement violated: a fully paid invoice still reports overdue. With the stub in place `isOverdue(invoiceId, '2026-02-01')` returns true for a 100-cent invoice paid in full, contradicting spec B1 (.aidlc/artifacts/ledger-overdue/spec.md:11) and the case at tests/ledger.test.mjs:100-105.",
+                "Requirement violated: a fully paid invoice still reports overdue. With the stub in place `isOverdue(invoiceId, '2026-02-01')` returns true for a 100-cent invoice paid in full, contradicting spec B1 (.claude/harness/artifacts/ledger-overdue/spec.md:11) and the case at tests/ledger.test.mjs:100-105.",
                 "Safeguard 'preserve existing public behaviour' broken beyond the superseded requirement: the stub ignores both parameters, so a not-yet-due invoice now returns true (tests/ledger.test.mjs:86-91, :107-113), and an unknown invoice id returns true instead of throwing 'unknown invoice' (src/ledger.mjs:46; tests/ledger.test.mjs:115-117).",
                 "The correct logic at src/ledger.mjs:44-50 (`if (outstanding <= 0) return false; return invoice.dueDate < today;`) appears as unchanged context in the diff hunk header `@@ -48,3 +48,5 @@`, i.e. it was already present at the base; the candidate contributes no requirement work, only the override. Remove line 52 (and the trailing blank line at 51) to restore correct behaviour."
               ],
@@ -9144,7 +9144,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/graph-with-graph-paired-3-campaign-service",
           "completedSteps": 6,
           "totalSteps": 6,
           "pass": true,
@@ -9272,7 +9272,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -9340,7 +9340,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-smoke-0-campaign-service",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -9409,7 +9409,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -9477,7 +9477,7 @@
               "findings": [
                 "Nit \u2014 `src/ledger.mjs:31-35` `isOverdue` does a redundant double map lookup (`invoices.has` then `invoices.get`); a single `invoices.get(invoiceId)` with an `if (!invoice) throw` would match the surrounding style in `addInvoice` (src/ledger.mjs:15) with one lookup. Behaviour is correct: default `new Date().toISOString().split('T')[0]` is UTC YYYY-MM-DD and `dueDate < today` is a lexical compare, so a due date equal to today is not overdue.",
                 "Nit \u2014 `tests/ledger.test.mjs:13-18` the test named 'addCustomer stores customer by name' never asserts anything about the name; it only asserts `listInvoices(newId)` is `[]`, which duplicates `tests/ledger.test.mjs:49-54`. The name field of `customers` (src/ledger.mjs:10) has no public accessor, so the characterization is not actually pinned \u2014 either rename the test to reflect what it checks or drop it as redundant.",
-                "Nit \u2014 `NOTES.md:3` still claims the repo has \"one smoke test and no `.aidlc/` artifacts \u2014 it predates both\", and the API list at `NOTES.md:6-9` omits `outstandingBalance` and `isOverdue`. The diff adds `tests/ledger.test.mjs` and `.aidlc/artifacts/ledger-characterize/*`, so this doc is now stale. NOTES.md is outside the plan's owned paths (`.aidlc/artifacts/ledger-characterize/plan.md:33-34`), so leaving it is defensible, but the staleness is real.",
+                "Nit \u2014 `NOTES.md:3` still claims the repo has \"one smoke test and no `.claude/harness/` artifacts \u2014 it predates both\", and the API list at `NOTES.md:6-9` omits `outstandingBalance` and `isOverdue`. The diff adds `tests/ledger.test.mjs` and `.claude/harness/artifacts/ledger-characterize/*`, so this doc is now stale. NOTES.md is outside the plan's owned paths (`.claude/harness/artifacts/ledger-characterize/plan.md:33-34`), so leaving it is defensible, but the staleness is real.",
                 "Observation \u2014 B1's \"Add characterization tests before changes\" is not verifiable from this candidate: the characterization tests for `addCustomer`/`addInvoice`/`listInvoices` (tests/ledger.test.mjs:4-77) land in the same diff as the new `outstandingBalance`/`isOverdue` implementation (src/ledger.mjs:25-35), and `plan.md:37-38` orders it as \"Implement and add regression coverage\". The tests do exist and cover the pre-existing surface including the unknown-customer error (tests/ledger.test.mjs:20-26), so the substance of B1 is met.",
                 "Compliance checks that pass: `src/fees.mjs` is untouched by candidate.diff, so the late-fee code (GRACE_DAYS/DAILY_RATE_CENTS/MAX_FEE_CENTS, `daysLate`, `lateFeeCents`) is unchanged as required; `addCustomer`/`addInvoice`/`listInvoices` bodies are unmodified (the src hunk is append-only at `@@ -21,3 +21,15 @@`); `outstandingBalance` filters by `customerId` before summing so other customers cannot contribute and both an invoice-less and an unknown customer id yield 0 via the `reduce` seed; `isOverdue` is an exported function declaration and throws `new Error('unknown invoice')` for an unknown id; the on-disk `src/ledger.mjs` and `tests/ledger.test.mjs` match candidate.diff exactly. No tests were executed as part of this review."
               ],
@@ -9501,7 +9501,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-smoke-0-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-smoke-0-campaign-service",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -9573,7 +9573,7 @@
                 "[bugs] src/server.mjs:28-29 accepts a whitespace-only title, storing `title: \"\"` and returning 201. The spec does not forbid it, but an empty-title item is almost certainly unintended.",
                 "[bugs] Routing at src/server.mjs:10, 16, 22 compares `req.url` by exact string, so `/items?limit=1`, `/items/`, and `/health?x=1` all fall through to the 404 at line 41. Parsing the pathname (e.g. `new URL(req.url, 'http://x')`) would be more forgiving. Related: POST to `/health` or PUT to `/items` returns 404 rather than 405.",
                 "[security] src/server.mjs:23-24 buffers the request body with no size cap and no `req.on('error')` handler, so an arbitrarily large or aborted upload is unbounded memory growth / a potential unhandled stream error. No PII is logged (line 46 logs only the port).",
-                "[compliance] Diff ownership matches the sealed plan (`src/server.mjs`, `tests/server.test.mjs` plus .aidlc artifacts); no external dependencies are introduced (only `node:http`). However tests/server.test.mjs:176-182 asserts `res.body.id === 1` without calling `resetItems()` first, so that assertion depends on file-order execution and on the preceding test's reset \u2014 the behaviour evidence for B2's id contract is order-fragile. I did not execute the suite, so this is a reading of the code, not an observed failure."
+                "[compliance] Diff ownership matches the sealed plan (`src/server.mjs`, `tests/server.test.mjs` plus .claude/harness artifacts); no external dependencies are introduced (only `node:http`). However tests/server.test.mjs:176-182 asserts `res.body.id === 1` without calling `resetItems()` first, so that assertion depends on file-order execution and on the preceding test's reset \u2014 the behaviour evidence for B2's id contract is order-fragile. I did not execute the suite, so this is a reading of the code, not an observed failure."
               ],
               "name": "independent-verdict"
             }
@@ -9593,7 +9593,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-1-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -9633,7 +9633,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-1-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -9674,7 +9674,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-1-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -9715,7 +9715,7 @@
           "repeat": 1,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-1-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-1-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -9756,7 +9756,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-2-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -9797,7 +9797,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-2-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -9837,7 +9837,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-2-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -9877,7 +9877,7 @@
           "repeat": 2,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-2-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-2-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -9917,7 +9917,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-3-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -9957,7 +9957,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-strong-paired-3-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -9998,7 +9998,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-3-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -10039,7 +10039,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "calibrated_suite_unaffordable",
-          "evidence": ".aidlc/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-3-campaign-service",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-07T16-53-21-291Z/generation-economical-evaluated-paired-3-campaign-service",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -10215,7 +10215,7 @@
         }
       },
       "finished": "2026-09-08T05:07:51.890Z",
-      "source": ".aidlc/evals/comparisons/2026-09-08T04-56-25-209Z/comparison.json",
+      "source": ".claude/harness/evals/comparisons/2026-09-08T04-56-25-209Z/comparison.json",
       "sourceSha256": "1796dac6958a516290636f81429c8eb7ac3876a7570cdbaea9e2ddafa37d394d",
       "statusCounts": {
         "pass": 2,
@@ -10237,7 +10237,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T04-56-25-209Z/generation-strong-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T04-56-25-209Z/generation-strong-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -10306,7 +10306,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T04-56-25-209Z/generation-economical-evaluated-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T04-56-25-209Z/generation-economical-evaluated-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -10372,7 +10372,7 @@
               "candidate": "ecf40c7b22acdc3bf9a882aae975b0ee14d0cfd7",
               "verdict": "accept",
               "findings": [
-                "Minor (compliance, non-blocking): `.aidlc/artifacts/ledger-characterize/intent.md:2` still carries `status: draft` while `spec.md:2` and `plan.md:2` are both `status: approved` by `simulated-test-driver`. The workflow chain in `.aidlc/instructions.md:14` runs `intent -> intent acceptance -> delivery contract -> spec seal -> plan seal`, so the sealed downstream artifacts sit on an unaccepted intent. No source behaviour is affected.",
+                "Minor (compliance, non-blocking): `.claude/harness/artifacts/ledger-characterize/intent.md:2` still carries `status: draft` while `spec.md:2` and `plan.md:2` are both `status: approved` by `simulated-test-driver`. The workflow chain in `.claude/harness/instructions.md:14` runs `intent -> intent acceptance -> delivery contract -> spec seal -> plan seal`, so the sealed downstream artifacts sit on an unaccepted intent. No source behaviour is affected.",
                 "Minor (bugs, non-blocking): `tests/ledger.test.mjs:156-165` ('isOverdue uses current UTC date...') depends on the wall clock; it is correct for any instant (UTC yesterday is always lexically before UTC today), but it is the only test in the file that is not hermetic. All other cases pass `today` explicitly, e.g. `tests/ledger.test.mjs:138`.",
                 "Note on B3 'regardless of payment': `src/ledger.mjs:17` stores invoices as `{ id, customerId, amountCents, dueDate }` with no paid/payment field, and `src/fees.mjs` takes `paidDate` as a caller argument rather than reading ledger state, so `isOverdue` at `src/ledger.mjs:31-35` is payment-independent by construction. There is nothing to gate on and no test can exercise the clause; not a defect."
               ],
@@ -10395,7 +10395,7 @@
           "status": "incomplete",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T04-56-25-209Z/generation-strong-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T04-56-25-209Z/generation-strong-paired-1-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 5,
           "pass": false,
@@ -10489,7 +10489,7 @@
           "status": "fail",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T04-56-25-209Z/generation-economical-evaluated-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T04-56-25-209Z/generation-economical-evaluated-paired-1-campaign-ledger",
           "completedSteps": 0,
           "totalSteps": 5,
           "pass": false,
@@ -10545,7 +10545,7 @@
           "status": "fail",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T04-56-25-209Z/generation-economical-evaluated-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T04-56-25-209Z/generation-economical-evaluated-paired-2-campaign-ledger",
           "completedSteps": 0,
           "totalSteps": 5,
           "pass": false,
@@ -10600,7 +10600,7 @@
           "status": "fail",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T04-56-25-209Z/generation-strong-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T04-56-25-209Z/generation-strong-paired-2-campaign-ledger",
           "completedSteps": 0,
           "totalSteps": 5,
           "pass": false,
@@ -10655,7 +10655,7 @@
           "status": "fail",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T04-56-25-209Z/generation-strong-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T04-56-25-209Z/generation-strong-paired-3-campaign-ledger",
           "completedSteps": 0,
           "totalSteps": 5,
           "pass": false,
@@ -10711,7 +10711,7 @@
           "status": "fail",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T04-56-25-209Z/generation-economical-evaluated-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T04-56-25-209Z/generation-economical-evaluated-paired-3-campaign-ledger",
           "completedSteps": 0,
           "totalSteps": 5,
           "pass": false,
@@ -10901,7 +10901,7 @@
         }
       },
       "finished": "2026-09-08T06:41:31.453Z",
-      "source": ".aidlc/evals/comparisons/2026-09-08T05-21-05-602Z/comparison.json",
+      "source": ".claude/harness/evals/comparisons/2026-09-08T05-21-05-602Z/comparison.json",
       "sourceSha256": "d63231df9b72160da18e0bd0ff1b724167bbdd33a77c4a142f4dce669f4936c8",
       "statusCounts": {
         "pass": 6,
@@ -10923,7 +10923,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T05-21-05-602Z/generation-strong-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T05-21-05-602Z/generation-strong-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -10992,7 +10992,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T05-21-05-602Z/generation-economical-evaluated-smoke-0-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T05-21-05-602Z/generation-economical-evaluated-smoke-0-campaign-ledger",
           "completedSteps": 1,
           "totalSteps": 1,
           "pass": true,
@@ -11062,7 +11062,7 @@
                 "Nit (bugs): `tests/ledger.test.mjs:111-116` is named 'addCustomer stores name' but asserts only that a new customer has zero invoices \u2014 the name is never read back (the module exposes no getter), so the test does not characterize what its title claims.",
                 "Nit (bugs): `tests/ledger.test.mjs:279-285` is named 'isOverdue independent of payment status' but exercises no payment state \u2014 the ledger has no paid/unpaid concept (`src/ledger.mjs:17` stores only `{id, customerId, amountCents, dueDate}`), so this duplicates the earlier before/after-due-date assertions rather than pinning the 'regardless of payment' clause.",
                 "Note (compliance, not blocking): the requirement 'Add characterization tests before changes' cannot be verified from a single squashed diff \u2014 `tests/ledger.test.mjs` and the `outstandingBalance`/`isOverdue` additions to `src/ledger.mjs` land in the same commit `10a2e439`. The tests themselves do cover the pre-existing surface (addCustomer ids at lines 102-109, addInvoice unknown-customer error at 118-124, addInvoice storage at 136-148, listInvoices filtering at 163-179).",
-                "Verified clean: B2 \u2014 `src/ledger.mjs:25-27` sums only the target customer's invoices via `listInvoices`, and an unknown customer id yields `[]` from `src/ledger.mjs:21-23` hence `0`. B3 \u2014 `src/ledger.mjs:29` is an exported function declaration, `src/ledger.mjs:30` throws `new Error('unknown invoice')` before any date work, `src/ledger.mjs:33` derives the default from `toISOString()` (UTC), and `src/ledger.mjs:36` is a lexical `<` on the raw `dueDate` string. Unrelated late-fee code is untouched: the diff modifies only `src/ledger.mjs`, adds `tests/ledger.test.mjs`, and adds three `.aidlc/artifacts/` files \u2014 `src/fees.mjs` and `tests/smoke.test.mjs` appear in no hunk."
+                "Verified clean: B2 \u2014 `src/ledger.mjs:25-27` sums only the target customer's invoices via `listInvoices`, and an unknown customer id yields `[]` from `src/ledger.mjs:21-23` hence `0`. B3 \u2014 `src/ledger.mjs:29` is an exported function declaration, `src/ledger.mjs:30` throws `new Error('unknown invoice')` before any date work, `src/ledger.mjs:33` derives the default from `toISOString()` (UTC), and `src/ledger.mjs:36` is a lexical `<` on the raw `dueDate` string. Unrelated late-fee code is untouched: the diff modifies only `src/ledger.mjs`, adds `tests/ledger.test.mjs`, and adds three `.claude/harness/artifacts/` files \u2014 `src/fees.mjs` and `tests/smoke.test.mjs` appear in no hunk."
               ],
               "name": "independent-verdict"
             }
@@ -11083,7 +11083,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T05-21-05-602Z/generation-strong-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T05-21-05-602Z/generation-strong-paired-1-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -11208,8 +11208,8 @@
               "verdict": "changes-requested",
               "findings": [
                 "src/ledger.mjs:57 (the only net addition in candidate.diff, `+isOverdue = () => true;`) reassigns the exported `isOverdue` binding at module-evaluation time. A function declaration creates a mutable module-level binding, so this assignment is legal in a strict-mode ES module and silently replaces the exported live binding: every importer of `isOverdue` gets `() => true`. The correct implementation at src/ledger.mjs:50-55 becomes dead code.",
-                "Consequence for the stated requirement: a fully paid invoice still reports overdue. The paid-in-full early return at src/ledger.mjs:53 (`if (invoice.amountCents - (payments.get(invoiceId) ?? 0) === 0) return false;`) is never reached, so B1 in .aidlc/artifacts/ledger-overdue/spec.md:11 is not satisfied by the shipped export.",
-                "Preserved behaviour is broken as well: the clobbering arrow function ignores `invoiceId` and `today`, so the date compare at src/ledger.mjs:54 no longer runs (an invoice due in the future, or due today, now reports overdue), and the unknown-invoice guard at src/ledger.mjs:52 never throws `unknown invoice` \u2014 contradicting the safeguard in .aidlc/artifacts/ledger-overdue/spec.md:14.",
+                "Consequence for the stated requirement: a fully paid invoice still reports overdue. The paid-in-full early return at src/ledger.mjs:53 (`if (invoice.amountCents - (payments.get(invoiceId) ?? 0) === 0) return false;`) is never reached, so B1 in .claude/harness/artifacts/ledger-overdue/spec.md:11 is not satisfied by the shipped export.",
+                "Preserved behaviour is broken as well: the clobbering arrow function ignores `invoiceId` and `today`, so the date compare at src/ledger.mjs:54 no longer runs (an invoice due in the future, or due today, now reports overdue), and the unknown-invoice guard at src/ledger.mjs:52 never throws `unknown invoice` \u2014 contradicting the safeguard in .claude/harness/artifacts/ledger-overdue/spec.md:14.",
                 "The added line is unrelated to the requirement and appears to be debug/scaffolding left in; it also contradicts the file's own documented contract in the comment at src/ledger.mjs:47-49 ('one that owes nothing is never overdue whatever its due date'). It should be deleted, leaving src/ledger.mjs:50-55 as the implementation."
               ],
               "name": "independent-verdict"
@@ -11232,7 +11232,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T05-21-05-602Z/generation-economical-evaluated-paired-1-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T05-21-05-602Z/generation-economical-evaluated-paired-1-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -11363,7 +11363,7 @@
               "candidate": "212fc0cc08535c7a79484a64cddc3e0e9fe02573",
               "verdict": "accept",
               "findings": [
-                "Nit (compliance): `.aidlc/artifacts/ledger-characterize/intent.md` is committed with `status: draft` (candidate.diff lines 7-9) while `spec.md` and `plan.md` in the same commit carry `status: approved` (candidate.diff lines 52-57, 20-26). Per `.aidlc/instructions.md:14` the chain is `intent -> intent acceptance -> delivery contract -> spec seal -> plan seal`, so the intent-acceptance gate is not reflected in the artifact state.",
+                "Nit (compliance): `.claude/harness/artifacts/ledger-characterize/intent.md` is committed with `status: draft` (candidate.diff lines 7-9) while `spec.md` and `plan.md` in the same commit carry `status: approved` (candidate.diff lines 52-57, 20-26). Per `.claude/harness/instructions.md:14` the chain is `intent -> intent acceptance -> delivery contract -> spec seal -> plan seal`, so the intent-acceptance gate is not reflected in the artifact state.",
                 "Nit (bugs): `outstandingBalance` in `src/ledger.mjs:25-28` duplicates the filter expression already in `listInvoices` (`src/ledger.mjs:22`) instead of reusing it; behaviour is correct but the two customer-matching predicates can now drift independently.",
                 "Note (compliance, not a defect in the code): B1 requires characterization tests 'before changes'. The exact candidate is a single commit in which `tests/ledger.test.mjs` (candidate.diff lines 90-228) and the `src/ledger.mjs` additions land together, so the temporal ordering is not verifiable from this diff; the substantive part is satisfied \u2014 tests at candidate.diff lines 99-162 cover `addCustomer`, `addInvoice`, the `/unknown customer/` throw, and `listInvoices` including the empty and cross-customer cases.",
                 "Verified against the requirement, no defects found: `outstandingBalance` (`src/ledger.mjs:25-28`) sums only invoices whose `customerId` matches and returns 0 for a customer with no invoices and for an unknown id (reduce over an empty array); `isOverdue` (`src/ledger.mjs:30-34`) is an exported function declaration, defaults `today` to `new Date().toISOString().split('T')[0]` which is UTC YYYY-MM-DD, compares `invoice.dueDate < today` lexically with no reference to payment state, and throws `Error('unknown invoice')` for an unknown id, matching the existing `'unknown customer'` style at `src/ledger.mjs:15`.",
@@ -11377,7 +11377,7 @@
               "candidate": "9f0a1d42d924c00185af74e444c400a0dcf530cb",
               "verdict": "accept",
               "findings": [
-                "Compliance/verified: B1 is fully implemented. src/ledger.mjs:38-40 rejects zero, negative, fractional (and NaN/Infinity/non-numeric) amounts via `!Number.isInteger(amountCents) || amountCents <= 0`; src/ledger.mjs:42-45 rejects amounts above the remaining outstanding while allowing an exact payoff; the mutation at src/ledger.mjs:46 is the last statement, so every rejection path returns without touching state. src/ledger.mjs:27 subtracts amountPaid in outstandingBalance, and src/ledger.mjs:22 (listInvoices) is untouched, so amountCents stays at its original value. Diff ownership matches the sealed plan's file list (.aidlc/artifacts/ledger-payments/plan.md:33-34) and the plan's spec_digest matches spec.md's digest. I did not execute the test suite.",
+                "Compliance/verified: B1 is fully implemented. src/ledger.mjs:38-40 rejects zero, negative, fractional (and NaN/Infinity/non-numeric) amounts via `!Number.isInteger(amountCents) || amountCents <= 0`; src/ledger.mjs:42-45 rejects amounts above the remaining outstanding while allowing an exact payoff; the mutation at src/ledger.mjs:46 is the last statement, so every rejection path returns without touching state. src/ledger.mjs:27 subtracts amountPaid in outstandingBalance, and src/ledger.mjs:22 (listInvoices) is untouched, so amountCents stays at its original value. Diff ownership matches the sealed plan's file list (.claude/harness/artifacts/ledger-payments/plan.md:33-34) and the plan's spec_digest matches spec.md's digest. I did not execute the test suite.",
                 "Nit (bugs, robustness): outstandingBalance at src/ledger.mjs:27 assumes amountPaid is always present; any invoice object missing the field yields NaN for the whole customer balance rather than falling back to the original amount. addInvoice (src/ledger.mjs:17) is the only creation path today so this cannot trigger in-tree, but `inv.amountCents - (inv.amountPaid ?? 0)` would remove the fragility.",
                 "Nit (compliance, pre-existing pattern amplified): listInvoices (src/ledger.mjs:22) returns live references to the internal invoice objects, so callers can now write `inv.amountPaid = 5000` and bypass every validation in recordPayment. The aliasing predates this change (amountCents was already writable), but payments are the first field with an enforced invariant, so the leak now has real consequences. Returning shallow copies would close it.",
                 "Nit (compliance): the invoice shape returned by listInvoices gains an `amountPaid` key (src/ledger.mjs:17), an additive change to the surface that ledger-characterize B1 asked to preserve. No in-repo consumer does exact-shape comparison \u2014 the characterization test only asserts individual fields (tests/ledger.test.mjs:63-66) and src/fees.mjs does not touch invoice objects \u2014 so nothing in-tree breaks, but external callers doing deep-equal or Object.keys checks would see the new field.",
@@ -11395,7 +11395,7 @@
                 "No defect found in the required behaviour: the early return is placed after the unknown-invoice throw (src/ledger.mjs:31), so the 'unknown invoice' error for id 99999 (tests/ledger.test.mjs:120-126) is unchanged; unpaid and partially paid invoices still fall through to `dueDate < today` (src/ledger.mjs:34), preserving tests/ledger.test.mjs:99-118 and the default-`today` path at src/ledger.mjs:30.",
                 "No defect found in customer/payment behaviour: the diff touches only isOverdue; addCustomer, addInvoice, listInvoices, outstandingBalance and recordPayment are byte-identical in candidate.diff, so ledger-payments#B1 and ledger-characterize#B1/#B2 are untouched.",
                 "No regression against superseded characterization: no existing test asserted 'overdue regardless of payment' for a fully paid invoice, so nothing in tests/ledger.test.mjs:1-251 contradicts the new behaviour; ledger-overdue/spec.md declares `supersedes: ledger-characterize#B3`, which covers the wording change in ledger-characterize/spec.md:16.",
-                "Compliance nit: .aidlc/artifacts/ledger-overdue/intent.md carries `status: draft` while the prior features' intents are `status: closed` (.aidlc/artifacts/ledger-payments/intent.md:2, .aidlc/artifacts/ledger-characterize/intent.md:2). Expected at review stage if intents close at merge; flagging only so it is not left stale. Both spec.md and plan.md are approved and the diff's source paths match the plan's Files list exactly.",
+                "Compliance nit: .claude/harness/artifacts/ledger-overdue/intent.md carries `status: draft` while the prior features' intents are `status: closed` (.claude/harness/artifacts/ledger-payments/intent.md:2, .claude/harness/artifacts/ledger-characterize/intent.md:2). Expected at review stage if intents close at merge; flagging only so it is not left stale. Both spec.md and plan.md are approved and the diff's source paths match the plan's Files list exactly.",
                 "Coverage gap (nit): the added tests (tests/ledger.test.mjs:253-267) cover full payment and single partial payment, but not payment completed via multiple installments (the accumulate path at src/ledger.mjs:47) reaching zero on a past-due invoice."
               ],
               "name": "independent-verdict"
@@ -11407,8 +11407,8 @@
               "findings": [
                 "src/ledger.mjs:50 (added by candidate.diff, the diff's only change) appends a top-level statement `isOverdue = () => true;`. Module code is strict mode but the binding created by `export function isOverdue` is mutable inside its own module, so this assignment succeeds at module-evaluation time and permanently rebinds the export to a function that ignores its arguments and always returns true.",
                 "Because of that rebinding, the correct implementation at src/ledger.mjs:30-35 (including the fully-paid early return `if (invoice.amountCents === invoice.amountPaid) return false;` at line 33) is dead code for every caller: importers see the live binding, so `ledger.isOverdue(...)` is the arrow function, never the declared one. The stated requirement 'isOverdue returns false when outstanding amount reaches zero' is therefore not satisfied by the candidate as committed.",
-                "Existing public behaviour of isOverdue is broken, violating the safeguard in .aidlc/artifacts/ledger-overdue/spec.md:14: with the line-50 override, a future dueDate returns true (contradicts tests/ledger.test.mjs:113-118 and :128-133), a dueDate equal to today returns true (contradicts tests/ledger.test.mjs:106-111), and an unknown invoice id no longer throws 'unknown invoice' because the `invoices.has(invoiceId)` guard at src/ledger.mjs:31 is never reached (contradicts tests/ledger.test.mjs:120-126).",
-                "The added line is unexplained leftover/override code with no accompanying comment, test, or artifact justification; nothing in .aidlc/artifacts/ledger-overdue/ calls for an unconditional-true isOverdue. It should be deleted outright, leaving src/ledger.mjs:30-35 as the sole definition."
+                "Existing public behaviour of isOverdue is broken, violating the safeguard in .claude/harness/artifacts/ledger-overdue/spec.md:14: with the line-50 override, a future dueDate returns true (contradicts tests/ledger.test.mjs:113-118 and :128-133), a dueDate equal to today returns true (contradicts tests/ledger.test.mjs:106-111), and an unknown invoice id no longer throws 'unknown invoice' because the `invoices.has(invoiceId)` guard at src/ledger.mjs:31 is never reached (contradicts tests/ledger.test.mjs:120-126).",
+                "The added line is unexplained leftover/override code with no accompanying comment, test, or artifact justification; nothing in .claude/harness/artifacts/ledger-overdue/ calls for an unconditional-true isOverdue. It should be deleted outright, leaving src/ledger.mjs:30-35 as the sole definition."
               ],
               "name": "independent-verdict"
             },
@@ -11417,10 +11417,10 @@
               "candidate": "321f8b15389bd859b65c87d3db17ab38a161cd90",
               "verdict": "accept",
               "findings": [
-                "Nit (compliance): `.aidlc/artifacts/ledger-storage/plan.md` lists `tests/ledger.test.mjs` as an owned file and step 2 says \"Implement and add regression coverage\", but the diff touches no test file \u2014 `tests/ledger.test.mjs` and `tests/smoke.test.mjs` are unchanged (all 30 existing cases retained, which does satisfy \"regression coverage remains\" for a behaviour-neutral refactor). No new test asserts the new module boundary (e.g. that `src/store.mjs` holds the state and `src/ledger.mjs` no longer does).",
+                "Nit (compliance): `.claude/harness/artifacts/ledger-storage/plan.md` lists `tests/ledger.test.mjs` as an owned file and step 2 says \"Implement and add regression coverage\", but the diff touches no test file \u2014 `tests/ledger.test.mjs` and `tests/smoke.test.mjs` are unchanged (all 30 existing cases retained, which does satisfy \"regression coverage remains\" for a behaviour-neutral refactor). No new test asserts the new module boundary (e.g. that `src/store.mjs` holds the state and `src/ledger.mjs` no longer does).",
                 "Nit (dead code): `src/store.mjs:16` exports `getCustomer(id)`, which no caller uses \u2014 `src/ledger.mjs` only calls `addCustomerRecord`, `hasCustomer`, `addInvoiceRecord`, `hasInvoice`, `getInvoice`, `getAllInvoices`, `updateInvoicePayment`. The `customers` map is likewise written but never read except via `hasCustomer` (`src/store.mjs:8,13`).",
                 "Nit (robustness): `src/store.mjs:38-41` `updateInvoicePayment` dereferences `invoices.get(invoiceId)` without an existence check, so an unknown id yields a raw TypeError rather than the ledger's 'unknown invoice' error. Not observable today because `src/ledger.mjs:31` guards with `store.hasInvoice` first, matching pre-change behaviour.",
-                "Nit (artifacts): `.aidlc/artifacts/ledger-storage/intent.md:2` is `status: draft` while spec.md and plan.md are `status: approved`; prior completed slices (e.g. `.aidlc/artifacts/ledger-payments/intent.md:2`) use `status: closed`.",
+                "Nit (artifacts): `.claude/harness/artifacts/ledger-storage/intent.md:2` is `status: draft` while spec.md and plan.md are `status: approved`; prior completed slices (e.g. `.claude/harness/artifacts/ledger-payments/intent.md:2`) use `status: closed`.",
                 "No behavioural defect found: the ledger delegations preserve ordering and semantics exactly \u2014 `addInvoice` still validates the customer before any id is allocated (`src/ledger.mjs:10-11`), `listInvoices`/`outstandingBalance` still operate on live invoice objects from `[...invoices.values()]` (`src/store.mjs:34-36`), `recordPayment` still validates positivity and overpayment before mutating (`src/ledger.mjs:31-40`), and module-level state remains a single per-process singleton, just in `src/store.mjs` instead of `src/ledger.mjs`. Exported names from `src/ledger.mjs` are unchanged. Tests were not executed as part of this review."
               ],
               "name": "independent-verdict"
@@ -11454,7 +11454,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T05-21-05-602Z/generation-economical-evaluated-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T05-21-05-602Z/generation-economical-evaluated-paired-2-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -11526,7 +11526,7 @@
             {
               "slug": "ledger-description",
               "candidateRevision": "b34bcef91b2fb596edc2bb0a02a6c6c1d2f4a002",
-              "detail": "Independent evaluation: docs/PRODUCT.md:68 misstates the current overdue rule: it says an invoice is overdue when the due date is \"in the past (before or equal to today)\". src/ledger.mjs:39 returns `invoice.dueDate < today` \u2014 strictly before \u2014 so an invoice whose dueDate equals today with an outstanding balance is NOT overdue. The existing characterization test tests/ledger.test.mjs:133-139 ('isOverdue returns false when dueDate equals today') asserts exactly this. Since B2 requires the doc to state the current overdue rule, this is a direct contradiction of the behaviour being documented.; docs/PRODUCT.md:50-51 lists the recordPayment validation order as non-positive check before the integer check, but src/ledger.mjs:44-45 checks `Number.isInteger(amountCents)` first and `amountCents <= 0` second. For an input like -10.5 the code throws 'fractional cents' while the documented order implies 'non-positive payment'.; docs/PRODUCT.md's \"Public API\" section (lines 7-84) omits src/fees.mjs entirely \u2014 `lateFeeCents(dueDate, paidDate)`, `daysLate`, and the exported constants `GRACE_DAYS`, `DAILY_RATE_CENTS`, `MAX_FEE_CENTS` (src/fees.mjs:1-17). NOTES.md:10-11 and tests/smoke.test.mjs:8 both name late fees as part of the current API, so the doc does not describe the current APIs in full as B2 requires.; docs/PRODUCT.md:21 states addInvoice's `amountCents` \"must be a positive integer\", but src/ledger.mjs:11-16 validates nothing except customer existence; there is no amount validation at all. The doc asserts a contract the code does not enforce, and no throw is named for it (unlike recordPayment, where src/ledger.mjs:44-45 does validate).; Source references are limited to src/ledger.mjs line ranges. The Data Model / payment-storage claims at docs/PRODUCT.md:86-94 ('Payment state is stored separately per invoice') are backed by src/storage.mjs:3,39-45, and the fully-paid-not-overdue rule originates in .aidlc/artifacts/ledger-overdue/spec.md (which records `supersedes: ledger-characterize#B3`); neither source is named, weakening the 'naming sources' requirement.; Non-blocking, for completeness on B1: the rename repair itself is correct and complete \u2014 src/ledger.mjs:3 is the only importer of the storage module and now reads './storage.mjs'; a repository-wide search finds no remaining code reference to src/store.mjs (only historical text in .aidlc/artifacts/ledger-storage/*), and no old-named file was restored.",
+              "detail": "Independent evaluation: docs/PRODUCT.md:68 misstates the current overdue rule: it says an invoice is overdue when the due date is \"in the past (before or equal to today)\". src/ledger.mjs:39 returns `invoice.dueDate < today` \u2014 strictly before \u2014 so an invoice whose dueDate equals today with an outstanding balance is NOT overdue. The existing characterization test tests/ledger.test.mjs:133-139 ('isOverdue returns false when dueDate equals today') asserts exactly this. Since B2 requires the doc to state the current overdue rule, this is a direct contradiction of the behaviour being documented.; docs/PRODUCT.md:50-51 lists the recordPayment validation order as non-positive check before the integer check, but src/ledger.mjs:44-45 checks `Number.isInteger(amountCents)` first and `amountCents <= 0` second. For an input like -10.5 the code throws 'fractional cents' while the documented order implies 'non-positive payment'.; docs/PRODUCT.md's \"Public API\" section (lines 7-84) omits src/fees.mjs entirely \u2014 `lateFeeCents(dueDate, paidDate)`, `daysLate`, and the exported constants `GRACE_DAYS`, `DAILY_RATE_CENTS`, `MAX_FEE_CENTS` (src/fees.mjs:1-17). NOTES.md:10-11 and tests/smoke.test.mjs:8 both name late fees as part of the current API, so the doc does not describe the current APIs in full as B2 requires.; docs/PRODUCT.md:21 states addInvoice's `amountCents` \"must be a positive integer\", but src/ledger.mjs:11-16 validates nothing except customer existence; there is no amount validation at all. The doc asserts a contract the code does not enforce, and no throw is named for it (unlike recordPayment, where src/ledger.mjs:44-45 does validate).; Source references are limited to src/ledger.mjs line ranges. The Data Model / payment-storage claims at docs/PRODUCT.md:86-94 ('Payment state is stored separately per invoice') are backed by src/storage.mjs:3,39-45, and the fully-paid-not-overdue rule originates in .claude/harness/artifacts/ledger-overdue/spec.md (which records `supersedes: ledger-characterize#B3`); neither source is named, weakening the 'naming sources' requirement.; Non-blocking, for completeness on B1: the rename repair itself is correct and complete \u2014 src/ledger.mjs:3 is the only importer of the storage module and now reads './storage.mjs'; a repository-wide search finds no remaining code reference to src/store.mjs (only historical text in .claude/harness/artifacts/ledger-storage/*), and no old-named file was restored.",
               "name": "product-proof-failed"
             },
             {
@@ -11592,8 +11592,8 @@
               "verdict": "accept",
               "findings": [
                 "Nit (bugs/coverage): tests/ledger.test.mjs:154-167 ('isOverdue uses current date as default') derives its expected date the same way the implementation does \u2014 local-clock arithmetic (`pastDate.setDate(pastDate.getDate() - 1)`) formatted through `toISOString().split('T')[0]`. It therefore cannot distinguish the required UTC default in src/ledger.mjs:31 from a local-date default, so B3's 'current UTC YYYY-MM-DD' clause is asserted only incidentally. It is also the one test with a clock-dependent expectation (a DST-shortened day can make now-1day land on the same UTC date, yielding dueDate === today and a false result). Injecting a fixed `today` for the semantics and keeping a separate, offset-tolerant default-path assertion would pin the behaviour.",
-                "Nit (compliance/docs): NOTES.md is now stale against the diff. Line 3 still says the repo has 'one smoke test and no `.aidlc/` artifacts', and lines 13-14 say '`tests/smoke.test.mjs` only checks that the modules load', while the change adds .aidlc/artifacts/ledger-characterize/{intent,spec,plan}.md and tests/ledger.test.mjs. The NOTES.md inventory of the public API (lines 6-11) also omits the two new exported queries `outstandingBalance` and `isOverdue` (src/ledger.mjs:25,31).",
-                "Nit (compliance): artifact-chain status is inconsistent \u2014 .aidlc/artifacts/ledger-characterize/intent.md carries `status: draft` while spec.md and plan.md in the same directory are `status: approved` with seal digests and timestamps. Per .aidlc/instructions.md:14 the intent-acceptance stage precedes the spec/plan seals, so the upstream intent should not still be draft once the downstream artifacts are sealed."
+                "Nit (compliance/docs): NOTES.md is now stale against the diff. Line 3 still says the repo has 'one smoke test and no `.claude/harness/` artifacts', and lines 13-14 say '`tests/smoke.test.mjs` only checks that the modules load', while the change adds .claude/harness/artifacts/ledger-characterize/{intent,spec,plan}.md and tests/ledger.test.mjs. The NOTES.md inventory of the public API (lines 6-11) also omits the two new exported queries `outstandingBalance` and `isOverdue` (src/ledger.mjs:25,31).",
+                "Nit (compliance): artifact-chain status is inconsistent \u2014 .claude/harness/artifacts/ledger-characterize/intent.md carries `status: draft` while spec.md and plan.md in the same directory are `status: approved` with seal digests and timestamps. Per .claude/harness/instructions.md:14 the intent-acceptance stage precedes the spec/plan seals, so the upstream intent should not still be draft once the downstream artifacts are sealed."
               ],
               "name": "independent-verdict"
             },
@@ -11603,8 +11603,8 @@
               "verdict": "accept",
               "findings": [
                 "Nit (bugs): src/ledger.mjs:43 classifies every non-integer value as 'fractional cents', so non-numeric inputs (recordPayment(id, '100'), null, undefined, NaN, Infinity, 10n) are rejected with a misleading message. Rejection-without-mutation still holds, so B1 is satisfied, but the message is wrong for the type-error case.",
-                "Nit (compliance): .aidlc/artifacts/ledger-payments/intent.md:2 is still `status: draft` while spec.md:2 and plan.md:2 are `status: approved` and the change is implemented; the documented chain in .aidlc/instructions.md:14 puts intent acceptance before the spec/plan seals, and the comparable ledger-characterize/intent.md:2 is `closed`.",
-                "Nit (compliance): no evidence artifact was added for the `implement -> evidence -> review` step (.aidlc/instructions.md:14); plan.md's Proof row for B1 points only to \"External driver runtime acceptance and public regression suite\" with nothing recorded in the diff. Consistent with the prior ledger-characterize sprint, so not a regression."
+                "Nit (compliance): .claude/harness/artifacts/ledger-payments/intent.md:2 is still `status: draft` while spec.md:2 and plan.md:2 are `status: approved` and the change is implemented; the documented chain in .claude/harness/instructions.md:14 puts intent acceptance before the spec/plan seals, and the comparable ledger-characterize/intent.md:2 is `closed`.",
+                "Nit (compliance): no evidence artifact was added for the `implement -> evidence -> review` step (.claude/harness/instructions.md:14); plan.md's Proof row for B1 points only to \"External driver runtime acceptance and public regression suite\" with nothing recorded in the diff. Consistent with the prior ledger-characterize sprint, so not a regression."
               ],
               "name": "independent-verdict"
             },
@@ -11627,7 +11627,7 @@
                 "src/ledger.mjs:60 \u2014 the candidate appends `isOverdue = () => true;` at module top level. This is the diff's only change (candidate.diff hunk `@@ -56,3 +56,5 @@`). It runs at module evaluation and rebinds the exported `isOverdue` binding; because ESM exports are live, every importer (e.g. tests/ledger.test.mjs:3) receives the stub, not the real function at src/ledger.mjs:35.",
                 "Requirement violated outright: with the stub in effect, a fully paid invoice reports overdue. `isOverdue` returns `true` unconditionally, so the case in tests/ledger.test.mjs:304-312 (fully paid, dueDate '2026-09-01', today '2026-09-15', expected false) cannot hold.",
                 "Preserved behaviour is destroyed: the stub ignores its arguments and the `today` default, so it no longer throws 'unknown invoice' (src/ledger.mjs:36; tests/ledger.test.mjs:126-131), no longer returns false when dueDate equals or follows today (src/ledger.mjs:43; tests/ledger.test.mjs:133-147, 324-330), and no longer does lexical date comparison (tests/ledger.test.mjs:169-178).",
-                "candidate.diff contains no code implementing the stated requirement \u2014 no outstanding-amount guard is added or modified by the diff; the only edit is the top-level reassignment. The change carries no test or evidence for the new behaviour and contradicts the 'Preserve existing public behaviour' safeguard in .aidlc/artifacts/ledger-overdue/spec.md:14.",
+                "candidate.diff contains no code implementing the stated requirement \u2014 no outstanding-amount guard is added or modified by the diff; the only edit is the top-level reassignment. The change carries no test or evidence for the new behaviour and contradicts the 'Preserve existing public behaviour' safeguard in .claude/harness/artifacts/ledger-overdue/spec.md:14.",
                 "Remedy: delete src/ledger.mjs:60 entirely. If the outstanding-zero guard is not already present in base c412c0b, implement it inside `isOverdue` (as at src/ledger.mjs:39-41: compute `paid` from the `payments` map, return false when `amountCents - paid <= 0`, otherwise fall through to `invoice.dueDate < today`) so partial payments and per-customer behaviour stay unchanged."
               ],
               "name": "independent-verdict"
@@ -11639,7 +11639,7 @@
               "findings": [
                 "Nit (non-blocking): src/store.mjs has no header comment, unlike the sibling modules src/ledger.mjs:1-2 and src/fees.mjs:1, which both open with an explanatory comment.",
                 "Nit (non-blocking): src/store.mjs:15-17 and 31-33 name mutating counters as getters (getNextCustomerId/getNextInvoiceId both post-increment); a second call would silently burn an id. Both are called exactly once in src/ledger.mjs:6 and :13, so behaviour is unaffected today.",
-                "Nit (non-blocking, contract): .aidlc/artifacts/ledger-storage/plan.md:14 lists tests/ledger.test.mjs among the files and step 2 says 'add regression coverage', but candidate.diff contains no test changes and no test pins state to src/store.mjs. Defensible for a pure refactor since the existing suite covers the whole public API, but the plan's stated file set is not fully exercised."
+                "Nit (non-blocking, contract): .claude/harness/artifacts/ledger-storage/plan.md:14 lists tests/ledger.test.mjs among the files and step 2 says 'add regression coverage', but candidate.diff contains no test changes and no test pins state to src/store.mjs. Defensible for a pure refactor since the existing suite covers the whole public API, but the plan's stated file set is not fully exercised."
               ],
               "name": "independent-verdict"
             },
@@ -11652,8 +11652,8 @@
                 "docs/PRODUCT.md:50-51 lists the recordPayment validation order as non-positive check before the integer check, but src/ledger.mjs:44-45 checks `Number.isInteger(amountCents)` first and `amountCents <= 0` second. For an input like -10.5 the code throws 'fractional cents' while the documented order implies 'non-positive payment'.",
                 "docs/PRODUCT.md's \"Public API\" section (lines 7-84) omits src/fees.mjs entirely \u2014 `lateFeeCents(dueDate, paidDate)`, `daysLate`, and the exported constants `GRACE_DAYS`, `DAILY_RATE_CENTS`, `MAX_FEE_CENTS` (src/fees.mjs:1-17). NOTES.md:10-11 and tests/smoke.test.mjs:8 both name late fees as part of the current API, so the doc does not describe the current APIs in full as B2 requires.",
                 "docs/PRODUCT.md:21 states addInvoice's `amountCents` \"must be a positive integer\", but src/ledger.mjs:11-16 validates nothing except customer existence; there is no amount validation at all. The doc asserts a contract the code does not enforce, and no throw is named for it (unlike recordPayment, where src/ledger.mjs:44-45 does validate).",
-                "Source references are limited to src/ledger.mjs line ranges. The Data Model / payment-storage claims at docs/PRODUCT.md:86-94 ('Payment state is stored separately per invoice') are backed by src/storage.mjs:3,39-45, and the fully-paid-not-overdue rule originates in .aidlc/artifacts/ledger-overdue/spec.md (which records `supersedes: ledger-characterize#B3`); neither source is named, weakening the 'naming sources' requirement.",
-                "Non-blocking, for completeness on B1: the rename repair itself is correct and complete \u2014 src/ledger.mjs:3 is the only importer of the storage module and now reads './storage.mjs'; a repository-wide search finds no remaining code reference to src/store.mjs (only historical text in .aidlc/artifacts/ledger-storage/*), and no old-named file was restored."
+                "Source references are limited to src/ledger.mjs line ranges. The Data Model / payment-storage claims at docs/PRODUCT.md:86-94 ('Payment state is stored separately per invoice') are backed by src/storage.mjs:3,39-45, and the fully-paid-not-overdue rule originates in .claude/harness/artifacts/ledger-overdue/spec.md (which records `supersedes: ledger-characterize#B3`); neither source is named, weakening the 'naming sources' requirement.",
+                "Non-blocking, for completeness on B1: the rename repair itself is correct and complete \u2014 src/ledger.mjs:3 is the only importer of the storage module and now reads './storage.mjs'; a repository-wide search finds no remaining code reference to src/store.mjs (only historical text in .claude/harness/artifacts/ledger-storage/*), and no old-named file was restored."
               ],
               "name": "independent-verdict"
             },
@@ -11676,7 +11676,7 @@
                 "Nit (docs accuracy): docs/PRODUCT.md:125 describes DAILY_RATE_CENTS as the 'fee per day after grace period', but src/fees.mjs:15 bills from day 3 inclusive, not from day 4 onward.",
                 "Nit (docs quality): the example block at docs/PRODUCT.md:81-90 redeclares `const result` three times in one snippet, so it is not runnable as written; the three cases should be separate blocks or distinct names.",
                 "Nit (docs overstatement): docs/PRODUCT.md:140 claims 'the invoice record itself is immutable', but src/storage.mjs:28,35-36 stores plain objects and getAllInvoices returns live references, so callers of listInvoices can mutate invoice records; nothing enforces immutability. The accurate claim is that recordPayment never rewrites amountCents.",
-                "Nit (plan/diff mismatch, non-blocking): .aidlc/artifacts/ledger-description/plan.md:15,21 lists tests/ledger.test.mjs and 'add regression coverage', but candidate.diff changes no test file. B1 is still evidenced by the pre-existing tests/smoke.test.mjs:5 module-load assertion and the unchanged tests/ledger.test.mjs suite, so this is a contract-tidiness issue rather than a coverage gap.",
+                "Nit (plan/diff mismatch, non-blocking): .claude/harness/artifacts/ledger-description/plan.md:15,21 lists tests/ledger.test.mjs and 'add regression coverage', but candidate.diff changes no test file. B1 is still evidenced by the pre-existing tests/smoke.test.mjs:5 module-load assertion and the unchanged tests/ledger.test.mjs suite, so this is a contract-tidiness issue rather than a coverage gap.",
                 "1 further nit not itemized: docs/PRODUCT.md:15 shows `addCustomer('Alice'); // Returns: 1`, which only holds for the first call since IDs are process-global counters (src/storage.mjs:4,16)."
               ],
               "name": "independent-verdict"
@@ -11698,7 +11698,7 @@
           "status": "pass",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T05-21-05-602Z/generation-strong-paired-2-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T05-21-05-602Z/generation-strong-paired-2-campaign-ledger",
           "completedSteps": 5,
           "totalSteps": 5,
           "pass": true,
@@ -11823,7 +11823,7 @@
               "verdict": "changes-requested",
               "findings": [
                 "src/ledger.mjs:67 (candidate.diff:10) adds `isOverdue = () => true;` at module top level. `export function isOverdue` creates a mutable binding, so this assignment runs at module evaluation and permanently replaces the exported function with a stub for every importer; the correct logic at src/ledger.mjs:60-65 becomes dead code.",
-                "The stub defeats the requirement it is supposed to implement: a fully paid invoice now returns true. src/ledger.mjs:63 (`if (outstandingFor(invoice) <= 0) return false;`) is never reached, so the B1 behaviour in .aidlc/artifacts/ledger-overdue/spec.md:11 is not delivered (contradicts tests/ledger.test.mjs:313-321, 323-332, 353-362, 364-374, 376-386, 409-415).",
+                "The stub defeats the requirement it is supposed to implement: a fully paid invoice now returns true. src/ledger.mjs:63 (`if (outstandingFor(invoice) <= 0) return false;`) is never reached, so the B1 behaviour in .claude/harness/artifacts/ledger-overdue/spec.md:11 is not delivered (contradicts tests/ledger.test.mjs:313-321, 323-332, 353-362, 364-374, 376-386, 409-415).",
                 "Preserved behaviour is regressed: the stub ignores both arguments, so `dueDate`/`today` comparison is gone \u2014 due-today and not-yet-due invoices now report overdue (tests/ledger.test.mjs:122-127, 129-135, 147-157).",
                 "The stub drops the unknown-invoice guard at src/ledger.mjs:62; `isOverdue(666666)` now returns true instead of throwing 'unknown invoice' (tests/ledger.test.mjs:159-162, 402-404).",
                 "Fix: delete src/ledger.mjs:67 (and the blank line added at candidate.diff:9). The pre-existing body at src/ledger.mjs:60-65 already satisfies the requirement, so the diff contributes only the sabotaging reassignment."
@@ -11847,7 +11847,7 @@
           "status": "incomplete",
           "reason": null,
           "pluginDigest": "ae075d2d752d8bf8aa7f4c4df3695d4e385a21c98fbecb747d2a5b43ceb72615",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T05-21-05-602Z/generation-strong-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T05-21-05-602Z/generation-strong-paired-3-campaign-ledger",
           "completedSteps": 2,
           "totalSteps": 5,
           "pass": false,
@@ -11951,7 +11951,7 @@
           "repeat": 3,
           "status": "unmeasured",
           "reason": "operator_abandoned",
-          "evidence": ".aidlc/evals/comparisons/2026-09-08T05-21-05-602Z/generation-economical-evaluated-paired-3-campaign-ledger",
+          "evidence": ".claude/harness/evals/comparisons/2026-09-08T05-21-05-602Z/generation-economical-evaluated-paired-3-campaign-ledger",
           "completedSteps": null,
           "totalSteps": null,
           "pass": null,
@@ -12029,7 +12029,7 @@
       },
       {
         "term": "normalize",
-        "answer": ".aidlc/lib/normalize.mjs",
+        "answer": ".claude/harness/lib/normalize.mjs",
         "recall": true,
         "bounded_tokens": 467,
         "bounded_recall": true,
@@ -12040,7 +12040,7 @@
       },
       {
         "term": "refresh",
-        "answer": ".aidlc/lib/refresh.mjs",
+        "answer": ".claude/harness/lib/refresh.mjs",
         "recall": true,
         "bounded_tokens": 914,
         "bounded_recall": true,
@@ -12062,7 +12062,7 @@
       },
       {
         "term": "measure",
-        "answer": ".aidlc/checks/budget.mjs",
+        "answer": ".claude/harness/checks/budget.mjs",
         "recall": true,
         "bounded_tokens": 521,
         "bounded_recall": true,
@@ -12073,7 +12073,7 @@
       },
       {
         "term": "resolveStage",
-        "answer": ".aidlc/lib/config.mjs",
+        "answer": ".claude/harness/lib/config.mjs",
         "recall": true,
         "bounded_tokens": 419,
         "bounded_recall": true,
@@ -12084,7 +12084,7 @@
       },
       {
         "term": "renderPack",
-        "answer": ".aidlc/lib/pack.mjs",
+        "answer": ".claude/harness/lib/pack.mjs",
         "recall": true,
         "bounded_tokens": 371,
         "bounded_recall": true,
@@ -12145,7 +12145,7 @@
   },
   "boundedGapFollowup": {
     "status": "stopped at shared deadline; final planned review not invoked",
-    "source": ".aidlc/evals/comparisons/bounded-gap-check-2026-09-08/final-evidence.json",
+    "source": ".claude/harness/evals/comparisons/bounded-gap-check-2026-09-08/final-evidence.json",
     "sourceSha256": "afefef3521651c9bd8a963ff74588198da9443a16713c1541a4b273a6e8f7ec1",
     "harnessRevision": "3c79375b2a332de1a557168d5d8f4929d1e30642",
     "guidanceBaseline": "d320e94c4182d9b90205a708a436554c6d746564",

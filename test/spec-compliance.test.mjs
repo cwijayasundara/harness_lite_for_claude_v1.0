@@ -17,7 +17,7 @@ import path from 'node:path';
 import {
   promises, rubric, readVote, tally, gradeSpecCompliance, VOTES, MAJORITY,
 } from '../evals/lib/spec-compliance.mjs';
-import { render } from '../.aidlc/lib/artifacts.mjs';
+import { render } from '../.claude/harness/lib/artifacts.mjs';
 import { ROOT } from './_paths.mjs';
 
 // Two sprints, the second reversing a behaviour of the first — the shape sprint 3 of
@@ -25,7 +25,7 @@ import { ROOT } from './_paths.mjs';
 function product() {
   const root = mkdtempSync(path.join(tmpdir(), 'compliance-'));
   const spec = (slug, body, front = {}) => {
-    const dir = path.join(root, '.aidlc/artifacts', slug);
+    const dir = path.join(root, '.claude/harness/artifacts', slug);
     mkdirSync(dir, { recursive: true });
     writeFileSync(path.join(dir, 'intent.md'), `# ${slug}\n`);
     writeFileSync(path.join(dir, 'spec.md'), render({ status: 'approved', by: 'tester', at: '2026-09-13T00:00:00.000Z', ...front }, body));
@@ -45,7 +45,7 @@ test('what the product currently promises, and what it has stopped promising', (
     assert.deepEqual(ids, ['overdue-rule#B2', 'paid-is-never-overdue#B1']);
     assert.deepEqual(state.superseded, [{ by: 'paid-is-never-overdue', id: 'overdue-rule#B1' }]);
     // The superseded spec is never edited — this is the only place the reversal is written down.
-    assert.match(readFileSync(path.join(p.root, '.aidlc/artifacts/overdue-rule/spec.md'), 'utf8'), /### B1/);
+    assert.match(readFileSync(path.join(p.root, '.claude/harness/artifacts/overdue-rule/spec.md'), 'utf8'), /### B1/);
   } finally { p.cleanup(); }
 });
 

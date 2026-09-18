@@ -13,10 +13,10 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { loadConfig, DEFAULT_DELIVER } from '../.aidlc/lib/config.mjs';
-import * as a from '../.aidlc/lib/artifacts.mjs';
-import { deliver, deliverInvoker, readState, statePath, bounds, reviewVerdict, PHASES } from '../.aidlc/lib/deliver.mjs';
-import { read as readLedger } from '../.aidlc/lib/ledger.mjs';
+import { loadConfig, DEFAULT_DELIVER } from '../.claude/harness/lib/config.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
+import { deliver, deliverInvoker, readState, statePath, bounds, reviewVerdict, PHASES } from '../.claude/harness/lib/deliver.mjs';
+import { read as readLedger } from '../.claude/harness/lib/ledger.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 import { A } from './_paths.mjs';
 
@@ -281,7 +281,7 @@ test('a pull request that cannot be opened is recorded, not thrown, and the body
     assert.equal(result.pr, null);
     assert.match(result.pr_unopened, /no git remotes found/);
     assert.deepEqual(result.completed, PHASES);
-    const body = readFileSync(path.join(d.s.work, '.aidlc/artifacts', SLUG, 'pr.md'), 'utf8');
+    const body = readFileSync(path.join(d.s.work, '.claude/harness/artifacts', SLUG, 'pr.md'), 'utf8');
     assert.match(body, new RegExp(`Harness-Change: ${SLUG}`));
     const state = readState(d.cfg, SLUG);
     assert.ok(state.events.some((e) => e.phase === 'pr' && e.event === 'unopened'));
@@ -321,7 +321,7 @@ test('a completed run records cost, cache-read share, turns and wall-clock in th
     assert.equal(row.usd_per_accepted_change, 1.25);
     assert.ok(readLedger(d.cfg.layout).some((r) => r.kind === 'deliver-phase' && r.event === 'model-turn-done' && r.usd === 0.25 && r.usage?.cache_read_input_tokens === 800));
 
-    const review = readFileSync(path.join(d.s.work, '.aidlc/artifacts', SLUG, 'review.md'), 'utf8');
+    const review = readFileSync(path.join(d.s.work, '.claude/harness/artifacts', SLUG, 'review.md'), 'utf8');
     assert.match(review, /## Delivery run/);
     assert.match(review, /USD 1\.2500/);
     assert.match(review, /cache-read share 65%/);

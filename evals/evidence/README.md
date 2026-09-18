@@ -1,8 +1,8 @@
 # Curated development evidence
 
 These files record development of the harness. They are not installed into consumer projects
-and are not executed by hooks or tests. Raw runs remain local under ignored `.aidlc/evals/`;
-the runners still write there, and `harness evals gate` still reads `.aidlc/evals/results/`.
+and are not executed by hooks or tests. Raw runs remain local under ignored `.claude/harness/evals/`;
+the runners still write there, and `harness evals gate` still reads `.claude/harness/evals/results/`.
 
 | Report | Purpose |
 |---|---|
@@ -13,7 +13,7 @@ the runners still write there, and `harness evals gate` still reads `.aidlc/eval
 | `smoke/guidance-comparison.json` | Original bounded guidance comparison |
 | `smoke/initial-sandbox-attempt.json` | Preserved incomplete smoke attempt |
 
-The reports moved byte-for-byte from `.aidlc/evals/` during the scaffold cleanup. Historical
+The reports moved byte-for-byte from `.claude/harness/evals/` during the scaffold cleanup. Historical
 specifications and evidence may still name their original locations; those records were not
 rewritten. Paths inside reports describe the runs as originally executed, not a new invocation.
 

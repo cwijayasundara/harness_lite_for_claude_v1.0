@@ -6,7 +6,7 @@ Harness-Change: ledger-characterize
 | plan | approved | advisory | simulated-test-driver | 2026-09-15T20:39:32.134Z |
 ## Review
 Verdict: **approve**
-Report: `.aidlc/artifacts/ledger-characterize/review.md`
+Report: `.claude/harness/artifacts/ledger-characterize/review.md`
 ## Run
 Ledger invocation: `6d62ed2d`
 Spend: USD 1.1401 (usage estimate, not an invoice) of 3

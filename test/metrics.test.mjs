@@ -13,9 +13,9 @@ import path from 'node:path';
 import {
   firstPassChecks, reworkCycles, planToPr, specChurn, escapedVersusCaught,
   repeatClasses, contributionTrend, deliveredChanges, metrics, render, MIN_SAMPLE,
-} from '../.aidlc/lib/metrics.mjs';
-import { render as renderArtifact } from '../.aidlc/lib/artifacts.mjs';
-import { layout } from '../.aidlc/lib/paths.mjs';
+} from '../.claude/harness/lib/metrics.mjs';
+import { render as renderArtifact } from '../.claude/harness/lib/artifacts.mjs';
+import { layout } from '../.claude/harness/lib/paths.mjs';
 
 function repo() {
   const root = mkdtempSync(path.join(tmpdir(), 'metrics-'));
@@ -128,7 +128,7 @@ test('escaped versus caught counts what got out against what a rule stopped', ()
     assert.equal(escapedVersusCaught(r.cfg, caught).value, 0);
 
     // An incident recorded as a permanent eval is one that got out.
-    const pending = path.join(r.L.aidlc, 'evals', 'pending');
+    const pending = path.join(r.L.harness, 'evals', 'pending');
     mkdirSync(pending, { recursive: true });
     for (const id of ['leak', 'timeout']) writeFileSync(path.join(pending, `${id}.json`), '{}');
     const mixed = escapedVersusCaught(r.cfg, caught);

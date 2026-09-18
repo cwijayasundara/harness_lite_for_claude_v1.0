@@ -78,8 +78,8 @@ export function pruneSessionInventory(source) {
 // Keep the experiment repeatable if the lean banner is retained in production. Restore only
 // these three historical lines, never an old whole module that could undo later guard repairs.
 //
-// a-baseline-measures-what-ships step 9. The payload moved from `.aidlc/hooks/dispatch.mjs` to
-// `.aidlc/lib/session.mjs`, so the anchors moved with it: the ledger import is now `./ledger.mjs`,
+// a-baseline-measures-what-ships step 9. The payload moved from `.claude/harness/hooks/dispatch.mjs` to
+// `.claude/harness/lib/session.mjs`, so the anchors moved with it: the ledger import is now `./ledger.mjs`,
 // there is no `ledger.newRun` to anchor on because run-id rotation stayed in the hook, and the
 // body is indented two spaces rather than eight. Each anchor is the line the inserted line
 // follows in the real source, so restore(prune(x)) still reproduces x byte for byte.
@@ -99,7 +99,7 @@ export function restoreSessionInventory(source) {
 
 export function configureComparison(s, config={}) {
   if(config.prune!==undefined){
-    const file=path.join(s.plugin,'.aidlc/lib/session.mjs');
+    const file=path.join(s.plugin,'.claude/harness/lib/session.mjs');
     const baseline=restoreSessionInventory(readFileSync(file,'utf8'));
     writeFileSync(file,config.prune?pruneSessionInventory(baseline):baseline);
     return;
@@ -111,9 +111,9 @@ export function configureComparison(s, config={}) {
   if(config.graphFirst)return;
   // Experimental isolation only. Both harness arms suppress automatic cached map assistance;
   // the graph arm receives fresh bounded packs in its prompt. No production flags/controls.
-  const graphFile=path.join(s.plugin,'.aidlc/lib/graph.mjs');
+  const graphFile=path.join(s.plugin,'.claude/harness/lib/graph.mjs');
   writeFileSync(graphFile,readFileSync(graphFile,'utf8').replace('export function load(cfg) {','export function load(cfg) { return null;').replace('export function ensure(cfg) {',"export function ensure(cfg) { return {modules:{},version:0};"));
-  const refreshFile=path.join(s.plugin,'.aidlc/lib/refresh.mjs');
+  const refreshFile=path.join(s.plugin,'.claude/harness/lib/refresh.mjs');
   writeFileSync(refreshFile,readFileSync(refreshFile,'utf8').replace('export function refresh(cfg, { force = false } = {}) {',"export function refresh(cfg, { force = false } = {}) { return {skipped:'comparison-controlled'};"));
   rmSync(path.join(s.work,'CODEBASE-MAP.md'),{force:true});
   for(const rel of ['.claude/CLAUDE.md']){const f=path.join(s.work,rel);if(existsSync(f))writeFileSync(f,readFileSync(f,'utf8').split('\n').filter(l=>!/graph|harness pack|CODEBASE-MAP/.test(l)).join('\n'));}

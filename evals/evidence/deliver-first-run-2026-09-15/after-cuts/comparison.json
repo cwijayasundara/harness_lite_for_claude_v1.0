@@ -31,7 +31,7 @@
       "repeat": 0,
       "status": "pass",
       "reason": null,
-      "evidence": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/evals/comparisons/2026-09-15T20-51-07-231Z/driver-native-smoke-0-campaign-ledger",
+      "evidence": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.claude/harness/evals/comparisons/2026-09-15T20-51-07-231Z/driver-native-smoke-0-campaign-ledger",
       "pluginDigest": null,
       "result": {
         "assertions": [
@@ -323,7 +323,7 @@
       "repeat": 0,
       "status": "pass",
       "reason": null,
-      "evidence": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/evals/comparisons/2026-09-15T20-51-07-231Z/driver-harness-driver-smoke-0-campaign-ledger",
+      "evidence": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.claude/harness/evals/comparisons/2026-09-15T20-51-07-231Z/driver-harness-driver-smoke-0-campaign-ledger",
       "pluginDigest": "30b98365bc4482bcbc2b76a3eb54422d8e87b37ec13f029736dbc2b66b597f53",
       "result": {
         "assertions": [

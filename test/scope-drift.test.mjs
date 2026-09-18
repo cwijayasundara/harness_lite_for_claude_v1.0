@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { run } from '../.aidlc/checks/scope-drift.mjs';
-import { parse, render, bodyDigest, selectChange } from '../.aidlc/lib/artifacts.mjs';
+import { run } from '../.claude/harness/checks/scope-drift.mjs';
+import { parse, render, bodyDigest, selectChange } from '../.claude/harness/lib/artifacts.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 import { HUMAN } from './_gates.mjs';
 
-const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts') }, gates: HUMAN });
+const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.claude/harness/artifacts') }, gates: HUMAN });
 
 test('local staged, unstaged, untracked, renamed and deleted paths retain exact scope identity', async () => {
   const s = stage(FIXTURES, 'contract-planned');
@@ -40,7 +40,7 @@ const commit = (root, message) => {
 
 // Simulated approvals followed by an explicit execution selection; timestamps are audit data.
 function approvedPlan(root, slug, files, { commitIt = true, at = '2026-09-02T00:00:00.000Z' } = {}) {
-  const dir = path.join(root, '.aidlc/artifacts', slug);
+  const dir = path.join(root, '.claude/harness/artifacts', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
   const specDraft = render({ status: 'draft' }, `# Spec: ${slug}\n\n### B1\n\nGiven, when, then.\n`);
@@ -102,7 +102,7 @@ test('no current change is a different finding from an unapproved plan', async (
   const s = stage(FIXTURES, 'contract-planned');
   try {
     // Close the fixture's only change: nothing is current.
-    const intent = path.join(s.work, '.aidlc/artifacts/hyphen-titlecase/intent.md');
+    const intent = path.join(s.work, '.claude/harness/artifacts/hyphen-titlecase/intent.md');
     writeFileSync(intent, readFileSync(intent, 'utf8').replace('status: draft', 'status: closed'));
     commit(s.work, 'close hyphen-titlecase');
     writeFileSync(path.join(s.work, 'src/app/text.py'), '# no current change\n');
@@ -112,7 +112,7 @@ test('no current change is a different finding from an unapproved plan', async (
 
     // A newer change with an approved spec and a draft plan is current, and governs nothing.
     approvedPlan(s.work, 'sprint-3', ['src/app/text.py']);
-    const plan = path.join(s.work, '.aidlc/artifacts/sprint-3/plan.md');
+    const plan = path.join(s.work, '.claude/harness/artifacts/sprint-3/plan.md');
     writeFileSync(plan, render({ status: 'draft' }, parse(readFileSync(plan, 'utf8')).body));
     commit(s.work, 'sprint-3 plan back to draft');
     // The commits above swept the earlier edit in; scope-drift judges the working diff.
@@ -141,7 +141,7 @@ test('an uncommitted or stale approval owns nothing', async () => {
 
     // Now widen the plan's body without re-approving. The digest no longer matches, so the plan
     // stops governing — a plan cannot grant itself scope after a human signed it.
-    const plan = path.join(s.work, '.aidlc/artifacts/uncommitted/plan.md');
+    const plan = path.join(s.work, '.claude/harness/artifacts/uncommitted/plan.md');
     writeFileSync(plan, readFileSync(plan, 'utf8').replace('## Files', '## Files\n\n- `src/app/`'));
     commit(s.work, 'widen the plan without re-approving');
 
@@ -158,7 +158,7 @@ test('an uncommitted or stale approval owns nothing', async () => {
 test('a selected draft spec makes every product change a draft-awaits-gate finding', async () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
-    const dir = path.join(s.work, '.aidlc/artifacts/paid-never-overdue');
+    const dir = path.join(s.work, '.claude/harness/artifacts/paid-never-overdue');
     mkdirSync(dir, { recursive: true });
     writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
     writeFileSync(path.join(dir, 'spec.md'), render({ status: 'draft' }, '# Spec\n\n### B1\n\nGiven a paid invoice\nWhen isOverdue is asked\nThen it answers false\n'));
@@ -176,7 +176,7 @@ test('a selected draft spec makes every product change a draft-awaits-gate findi
 test('an edited approved spec makes every product change a draft-awaits-gate finding naming the artifact', async () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
-    const spec = path.join(s.work, '.aidlc/artifacts/hyphen-titlecase/spec.md');
+    const spec = path.join(s.work, '.claude/harness/artifacts/hyphen-titlecase/spec.md');
     writeFileSync(spec, readFileSync(spec, 'utf8') + '\nedited after approval\n');
     commit(s.work, 'edited an approved spec');
     writeFileSync(path.join(s.work, 'src/app/text.py'), '# written under a stale approval\n');

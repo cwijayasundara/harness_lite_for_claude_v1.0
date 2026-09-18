@@ -4,9 +4,9 @@ import { mkdtempSync, rmSync, readFileSync, writeFileSync, appendFileSync } from
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { layout } from '../.aidlc/lib/paths.mjs';
-import { check } from '../.aidlc/lib/runner.mjs';
-import { exportInvocation, report as auditReport } from '../.aidlc/lib/ledger.mjs';
+import { layout } from '../.claude/harness/lib/paths.mjs';
+import { check } from '../.claude/harness/lib/runner.mjs';
+import { exportInvocation, report as auditReport } from '../.claude/harness/lib/ledger.mjs';
 import { seedRuntimeRecord } from './_runtime-fixture.mjs';
 import { BIN } from './_paths.mjs';
 function setup(t) {
@@ -46,10 +46,10 @@ test('malformed, missing, inconsistent and legacy evidence cannot gain attributi
 });
 test('direct consumer check refuses invalid runtime and policy mutation invalidates evidence', async t => {
   const cfg = setup(t);
-  cfg.capabilities.test = "printf altered > .aidlc/instructions.md";
+  cfg.capabilities.test = "printf altered > .claude/harness/instructions.md";
   const r = await check(cfg, { stage: 'trial' });
   assert.equal(r.ok, false); assert.match(r.identity_errors.join(' '), /changed during/);
-  writeFileSync(path.join(cfg.layout.root, '.aidlc/harness-install.json'), '{}');
+  writeFileSync(path.join(cfg.layout.root, '.claude/harness/harness-install.json'), '{}');
   const invalid = await check(cfg, { stage: 'trial' });
   assert.equal(invalid.ok, false); assert.equal(invalid.controls[0].verdict, 'skipped');
   assert.match(invalid.identity_errors.join(' '), /unverified/);

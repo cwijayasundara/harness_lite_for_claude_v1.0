@@ -5,8 +5,8 @@ import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { selectChange, approve, render, file as artifactFile } from '../../.aidlc/lib/artifacts.mjs';
-import { loadConfig } from '../../.aidlc/lib/config.mjs';
+import { selectChange, approve, render, file as artifactFile } from '../../.claude/harness/lib/artifacts.mjs';
+import { loadConfig } from '../../.claude/harness/lib/config.mjs';
 
 // The product's own test command. `calculator` is React + TypeScript on vitest, so this is no
 // longer `node --test`: a product with a real toolchain runs the toolchain's runner, and the
@@ -70,7 +70,7 @@ export function linkDependencies(fixtureDir, root) {
 function seedApprovedContract(work, contract, git) {
   const { slug, outcome, behaviour, files, proof } = contract;
   const cfg = loadConfig(work);
-  const dir = path.join(work, '.aidlc/artifacts', slug);
+  const dir = path.join(work, '.claude/harness/artifacts', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, 'intent.md'), render({ status: 'draft' },
     `# Intent: ${slug}\n\n## Problem\n\n${outcome}\n\n## Outcome\n\n${outcome}\n`));
@@ -111,7 +111,7 @@ export function stage(fixturesDir, name, { product = false, native = false, gate
   const work = path.join(root, 'work');
   const pristine = path.join(root, 'pristine');
   linkDependencies(fx, root);
-  if(product){mkdirSync(path.join(work,'.aidlc'),{recursive:true});for(const rel of ['.gitignore','.aidlc/.gitignore'])cpSync(path.join(base,rel),path.join(work,rel));}
+  if(product){mkdirSync(path.join(work,'.claude/harness'),{recursive:true});for(const rel of ['.gitignore','.claude/harness/.gitignore'])cpSync(path.join(base,rel),path.join(work,rel));}
   else cpSync(base, work, { recursive: true });
   // Never the dependency tree: it is gitignored, so `git` cannot see it, but `cpSync` copies what
   // is on disk. MEASURED: staging went from ~200 ms to 35 s, and `assertProductTree` then walked
@@ -120,9 +120,11 @@ export function stage(fixturesDir, name, { product = false, native = false, gate
   rmSync(path.join(work, 'README.md'), { force: true });
   // Install through the real boundary. Hand-building only the shim omitted the inventory record
   // after Phase 1B, so the budget correctly failed every model task on an unaccounted surface.
-  const realBin = path.join(path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url)))), '.aidlc', 'bin', 'harness');
+  const realBin = path.join(path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url)))), '.claude/harness', 'bin', 'harness');
   if (native) {
-    rmSync(path.join(work, '.aidlc'), {recursive:true, force:true});
+    // The whole .claude tree, not just the harness under it: the native arm has no harness and
+    // no Claude projection, and an empty .claude/ left behind is still a directory it never had.
+    rmSync(path.join(work, '.claude'), {recursive:true, force:true});
     // The native arm's whole steering. It names the same checks the harness arm reads out of the
     // detected `harness.toml`, because an arm that did not know how to run the type checker would
     // be losing to a worse harness rather than to a better one.
@@ -132,7 +134,7 @@ export function stage(fixturesDir, name, { product = false, native = false, gate
   if (installed.status !== 0) throw new Error(`fixture harness install failed: ${installed.stderr || installed.stdout}`);
 
   if (gates) {
-    const config = path.join(work, '.aidlc/harness.toml');
+    const config = path.join(work, '.claude/harness/harness.toml');
     if (existsSync(config)) {
       writeFileSync(config, `${readFileSync(config, 'utf8').trimEnd()}\n\n`
         + `# Pinned by the task under test: it measures what this mode does.\n[gates]\n`
@@ -147,7 +149,7 @@ export function stage(fixturesDir, name, { product = false, native = false, gate
   git('-c', 'commit.gpgsign=false', 'commit', '-qm', 'fixture');
   if (approved) seedApprovedContract(work, approved, git);
   // This existing fixture represents execution of this named change, not backlog inference.
-  if (!native && name === 'contract-planned') selectChange({ layout: { root: work, artifacts: path.join(work, '.aidlc/artifacts') } }, 'hyphen-titlecase');
+  if (!native && name === 'contract-planned') selectChange({ layout: { root: work, artifacts: path.join(work, '.claude/harness/artifacts') } }, 'hyphen-titlecase');
   // The baseline compares source bytes, not repository internals. Copying .git adds mutable
   // object/maintenance state and produced intermittent copy failures on the hosted runner.
   cpSync(work, pristine, { recursive: true, filter: source => path.basename(source) !== '.git' });
@@ -226,8 +228,8 @@ export function stageProduct(s, pluginRoot) {
   s.plugin = path.join(s.root, 'plugin');
   s.home = path.join(s.root, 'session');
   s.data = path.join(s.root, 'data');
-  for (const dir of [s.plugin, s.home, s.data, ...(s.native ? [] : [path.join(s.work, '.aidlc/state'), path.join(s.work, '.aidlc/artifacts')])]) mkdirSync(dir, { recursive: true });
-  for (const rel of ['.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', ...['bin', 'lib', 'checks', 'sensors', 'skills', 'roles', 'templates', 'hooks', 'adapters', 'policies', 'instructions.md'].map(p => `.aidlc/${p}`)]) {
+  for (const dir of [s.plugin, s.home, s.data, ...(s.native ? [] : [path.join(s.work, '.claude/harness/state'), path.join(s.work, '.claude/harness/artifacts')])]) mkdirSync(dir, { recursive: true });
+  for (const rel of ['.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', ...['bin', 'lib', 'checks', 'sensors', 'skills', 'roles', 'templates', 'hooks', 'hooks.json', 'policies', 'instructions.md'].map(p => `.claude/harness/${p}`)]) {
     const target = path.join(s.plugin, rel);
     mkdirSync(path.dirname(target), { recursive: true });
     cpSync(path.join(pluginRoot, rel), target, { recursive: true });

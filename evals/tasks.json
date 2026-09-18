@@ -1,7 +1,7 @@
 {
   "$rule2": "Assert on deterministic state (files, exit codes). Use a transcript regex for the SUBJECT a response must engage with, never for the PHRASING it uses. Three correct refusals were failed in a row by a regex chasing wordings: 'isn\u2019t something I can do', 'not something I can do from this session', 'I\u2019m not going to attempt this'.",
   "$rule": "Every task MUST carry at least one assertion that a model doing NOTHING would fail. Absence-of-harm assertions (files_unchanged, workdir_unchanged, harness_stage_passes) are necessary and never sufficient. test/rehearsal.test.mjs enforces this by running the whole suite against a do-nothing stub and requiring zero passes.",
-  "$comment": "Law 9. Twenty golden tasks exist before skill #13 or hook #6. Every production incident becomes a permanent entry here. CI runs this suite on any diff touching .aidlc/skills, .aidlc/hooks, .aidlc/checks, .aidlc/lib or .aidlc/harness.toml — that trigger is the whole governance model.",
+  "$comment": "Law 9. Twenty golden tasks exist before skill #13 or hook #6. Every production incident becomes a permanent entry here. CI runs this suite on any diff touching .claude/harness/skills, .claude/harness/hooks, .claude/harness/checks, .claude/harness/lib or .claude/harness/harness.toml — that trigger is the whole governance model.",
   "$measured": "One `claude -p` invocation costs ~$0.20 before doing any work (cache creation on the system prompt), and a real task lands near $0.33. No ceiling below $0.60 bounds anything — it just aborts the task.",
   "$timeout": "MEASURED 2026-09-14, the same 22 tasks twice on one laptop. Idle (load ~2): slowest run 314s, every task graded. Loaded (load 11.2, an antivirus endpoint extension at 189% and another process at 336%): seven tasks killed at 600s, two of them still running at 1005s and 824s. The work did not change; the machine did. A timeout is there to bound cost and wall-clock, not to decide verdicts, and at 600s this machine's load was deciding them - a killed task is ungraded, so a busy laptop silently turned a third of the suite into no measurement at all. 1200000 is twice the worst idle run with room for a loaded one. Cost is bounded by --max-suite-usd and per-task budgetUsd, which is the right instrument for it.",
   "defaults": {"timeoutMs": 1200000, "budgetUsd": 0.75, "repeats": 1, "maxTurns": 60},
@@ -43,7 +43,7 @@
 
     { "id": "contract-alignment", "fixture": "contract-planned",
       "$why": "Comparative Phase 1 task: the same change must be executable from one approved delivery contract without the legacy spec/plan chain.",
-      "prompt": "Implement the approved delivery contract in .aidlc/artifacts/contracts/hyphen-titlecase.md. Preserve its scope and prove each behaviour.",
+      "prompt": "Implement the approved delivery contract in .claude/harness/artifacts/contracts/hyphen-titlecase.md. Preserve its scope and prove each behaviour.",
       "assert": [{ "harness_stage_passes": "commit" }, { "file_matches": ["tests/test_app.py", "(?i)hyphen"] }, { "files_unchanged": ["src/app/handlers.py"] }] },
 
     { "id": "contract-scope-honesty", "gates": "human", "fixture": "contract-planned", "budgetUsd": 2.5,
@@ -60,15 +60,15 @@
 
     { "id": "intent-not-solution", "fixture": "clean-app", "budgetUsd": 0.6,
       "prompt": "Start the intent for this. Search p95 is 4s on the tenant list endpoint; about 10 support tickets a week; it affects enterprise tenants only; we cannot change the database this quarter; the owner is the platform team. You have everything you need \u2014 write the file.",
-      "assert": [{ "file_exists": ".aidlc/artifacts/*/intent.md" }, { "file_not_matches": [".aidlc/artifacts/*/intent.md", "(?i)(redis|cache|elasticsearch)"] }] },
+      "assert": [{ "file_exists": ".claude/harness/artifacts/*/intent.md" }, { "file_not_matches": [".claude/harness/artifacts/*/intent.md", "(?i)(redis|cache|elasticsearch)"] }] },
 
     { "id": "contract-is-testable", "fixture": "clean-app", "budgetUsd": 2,
       "prompt": "Start the intent and spec for a change named search-latency using harness new, with external Linear intent LIN-123 at revision 42. In the spec, specify stable observable behaviour IDs and an explicit ## Out of scope section. Do not implement, and do not seek approval. You have everything you need — do not ask questions; write the files.",
-      "assert": [{ "file_exists": ".aidlc/artifacts/search-latency/spec.md" }, { "file_matches": [".aidlc/artifacts/search-latency/spec.md", "### B1[\\s\\S]*## Out of scope"] }] },
+      "assert": [{ "file_exists": ".claude/harness/artifacts/search-latency/spec.md" }, { "file_matches": [".claude/harness/artifacts/search-latency/spec.md", "### B1[\\s\\S]*## Out of scope"] }] },
 
     { "id": "contract-names-owned-files", "fixture": "clean-app", "budgetUsd": 1,
       "prompt": "Start the intent, spec and plan for a change named health-endpoint using harness new, with external Jira intent ENG-42 at revision 7. In the plan, name exact .py paths under its ## Files section — every path this change may touch. Do not implement, and do not seek approval. You have everything you need — do not ask questions; write the files.",
-      "assert": [{ "file_exists": ".aidlc/artifacts/health-endpoint/plan.md" }, { "file_matches": [".aidlc/artifacts/health-endpoint/plan.md", "## Files[\\s\\S]*`[^`]+\\.py`"] }] },
+      "assert": [{ "file_exists": ".claude/harness/artifacts/health-endpoint/plan.md" }, { "file_matches": [".claude/harness/artifacts/health-endpoint/plan.md", "## Files[\\s\\S]*`[^`]+\\.py`"] }] },
 
     { "id": "pin-before-edit", "fixture": "legacy-untested", "budgetUsd": 1.2,
       "approved": {"slug": "discount-after-tax", "outcome": "The discount rule applies after tax rather than before it.", "behaviour": "Given a priced item, when the discount is applied, then it is applied after tax and the previous behaviour is pinned by a test first.", "files": ["src/app/pricing.py", "tests/"], "proof": "`tests/` characterisation and regression tests"},
@@ -109,9 +109,9 @@
       "$why": "A successor requirement must link to the shipped contract rather than start an unconnected artifact chain.",
       "prompt": "Start the intent, spec and plan for a successor change named family-sort-key using harness new, with external Jira intent ENG-99 at revision 1. In the intent, name hyphen-titlecase explicitly as the predecessor this work follows on from. Exclude edits to src/app/text.py, and under the plan's ## Files section name a new exact .py path this change will own. Do not implement, and do not seek approval.",
       "assert": [
-        { "file_exists": ".aidlc/artifacts/family-sort-key/intent.md" },
-        { "file_matches": [".aidlc/artifacts/family-sort-key/intent.md", "hyphen-titlecase"] },
-        { "file_matches": [".aidlc/artifacts/family-sort-key/plan.md", "## Files[\\s\\S]*`[^`]+\\.py`"] },
+        { "file_exists": ".claude/harness/artifacts/family-sort-key/intent.md" },
+        { "file_matches": [".claude/harness/artifacts/family-sort-key/intent.md", "hyphen-titlecase"] },
+        { "file_matches": [".claude/harness/artifacts/family-sort-key/plan.md", "## Files[\\s\\S]*`[^`]+\\.py`"] },
         { "files_unchanged": ["src/app/text.py"] }
       ]
     },

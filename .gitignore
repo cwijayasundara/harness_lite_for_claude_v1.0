@@ -1,8 +1,8 @@
-.aidlc/state/
-examples/*/.aidlc/state/
+.claude/harness/state/
+examples/*/.claude/harness/state/
 examples/*/node_modules/
 examples/*/dist/
-.aidlc/evals/results/
+.claude/harness/evals/results/
 __pycache__/
 *.pyc
 .pytest_cache/
@@ -19,10 +19,10 @@ node_modules/
 .claude/worktrees/
 
 # Private product-trial snapshots and complete transcripts remain local evidence.
-.aidlc/evals/products/
+.claude/harness/evals/products/
 
-.aidlc/evals/comparisons/
+.claude/harness/evals/comparisons/
 
 # Local eval output; curated reports live in evals/evidence/.
-.aidlc/evals/
+.claude/harness/evals/
 examples/*/.claude/state/

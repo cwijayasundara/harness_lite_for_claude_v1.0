@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { A, BIN } from './_paths.mjs';
-import { bodyDigest, render } from '../.aidlc/lib/artifacts.mjs';
+import { bodyDigest, render } from '../.claude/harness/lib/artifacts.mjs';
 
 const run = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
 
@@ -30,8 +30,8 @@ function commit(root, message) {
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', message], { cwd: root });
 }
 
-const specPath = (root, slug) => path.join(root, '.aidlc/artifacts', slug, 'spec.md');
-const planPath = (root, slug) => path.join(root, '.aidlc/artifacts', slug, 'plan.md');
+const specPath = (root, slug) => path.join(root, '.claude/harness/artifacts', slug, 'spec.md');
+const planPath = (root, slug) => path.join(root, '.claude/harness/artifacts', slug, 'plan.md');
 
 // A real, non-scaffold spec: one `### B<n>` per id given, none of it template prose.
 function realSpec(ids) {
@@ -45,7 +45,7 @@ function realPlan(rows) {
   return `---\nstatus: draft\n---\n# Plan: demo\n\n## Approach\n\nA concrete approach, and the alternative not taken.\n\n## Files\n\n- \`demo.txt\`\n\n## Order\n\n1. Write \`demo.txt\`.\n\n## Proof\n\n| Behaviour | Test or evidence |\n|---|---|\n${table}\n`;
 }
 
-// B1. `harness new` writes the scaffold from `.aidlc/templates/`; this is that real output,
+// B1. `harness new` writes the scaffold from `.claude/harness/templates/`; this is that real output,
 // unedited, so the fixture cannot drift from what the checker reads.
 test('approve refuses an unedited spec.md, naming the placeholder it found', () => {
   const root = repo();
@@ -248,7 +248,7 @@ test('check --stage commit passes once the promised test file exists', () => {
 // of the body, and an agent answered it there (F31). It now sits in the frontmatter as a comment
 // the parser ignores, beside the line it is about.
 test('the spec template carries its supersedes reminder in the frontmatter, and parse ignores it', async () => {
-  const { parse } = await import('../.aidlc/lib/artifacts.mjs');
+  const { parse } = await import('../.claude/harness/lib/artifacts.mjs');
   const { readFileSync: read } = await import('node:fs');
   const path = await import('node:path');
   const template = read(path.join(A, 'templates', 'spec.md'), 'utf8');
@@ -262,7 +262,7 @@ test('the spec template carries its supersedes reminder in the frontmatter, and 
 // and reading markers off the whole template file made every spec that mentions `<slug>` in its
 // prose read as an unedited scaffold — including the spec that recorded this.
 test('a placeholder in the template frontmatter is not a body marker', async () => {
-  const { templateMarkers } = await import('../.aidlc/lib/artifacts.mjs');
+  const { templateMarkers } = await import('../.claude/harness/lib/artifacts.mjs');
   const body = '# Spec: x\n\n## Outcome\n\nReal.\n\n## Observable behaviours\n\n### B1\n\nGiven a thing\nWhen `harness approve <slug> spec` runs\nThen it is refused\n';
   assert.deepEqual(templateMarkers('spec', body), []);
 });

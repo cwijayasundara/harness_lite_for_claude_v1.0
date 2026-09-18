@@ -6,8 +6,8 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { A, C, BIN } from './_paths.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
-import { measure, run as budgetRun, RECORD } from '../.aidlc/checks/budget.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
+import { measure, run as budgetRun, RECORD } from '../.claude/harness/checks/budget.mjs';
 
 const LIMITS = { skills: 7, agents: 3, hooks: 4, hook_loc: 600, claude_md_lines: 120 };
 
@@ -25,14 +25,14 @@ function installed() {
 // Through the generated shim, with HARNESS_HOME set — which is exactly how a project's CI runs
 // the sensors on a cold clone, having fetched the harness at the commit in its install record.
 function budgetOf(root, env = {}) {
-  const shim = path.join(root, '.aidlc', 'bin', 'harness');
+  const shim = path.join(root, '.claude/harness', 'bin', 'harness');
   const r = spawnSync('bash', [shim, 'check', '--stage', 'commit'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A, ...env } });
-  const report = JSON.parse(readFileSync(path.join(root, '.aidlc', 'state', 'last-check.json'), 'utf8'));
+  const report = JSON.parse(readFileSync(path.join(root, '.claude/harness', 'state', 'last-check.json'), 'utf8'));
   return { ...report.controls.find((c) => c.control === 'budget'), status: r.status };
 }
 
 test('the harness stays inside its own budget', () => {
-  const m = measure({ layout: { aidlc: A, claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
+  const m = measure({ layout: { harness: A, claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
   for (const [k, max] of Object.entries(LIMITS)) {
     assert.ok(m[k] <= max, `${k} = ${m[k]}, limit ${max}. Delete one before adding another.`);
   }
@@ -58,7 +58,7 @@ test('an installed project measures the harness it was given', () => {
 test('init records what it shipped, and a self-install records nothing', () => {
   const root = installed();
   try {
-    const record = path.join(root, '.aidlc', RECORD);
+    const record = path.join(root, '.claude/harness', RECORD);
     assert.ok(existsSync(record), `${RECORD} was not written`);
     assert.deepEqual(JSON.parse(readFileSync(record, 'utf8')).shipped, { skills: 6, agents: 3 });
     assert.equal(existsSync(path.join(A, RECORD)), false, 'a self-install must not record itself');
@@ -88,11 +88,11 @@ test('a project inherits the harness budget less what the harness did not use', 
 test('a budget that cannot account for a surface is red, not green', async () => {
   const root = installed();
   try {
-    rmSync(path.join(root, '.aidlc', RECORD));
+    rmSync(path.join(root, '.claude/harness', RECORD));
     const b = await budgetRun(loadConfig(root));
     assert.equal(b.verdict, 'fail');
     assert.match(JSON.stringify(b.findings), /skills/, 'the finding names the surface');
-    const shim = path.join(root, '.aidlc', 'bin', 'harness');
+    const shim = path.join(root, '.claude/harness', 'bin', 'harness');
     const doctor = spawnSync('bash', [shim, 'doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A } });
     assert.notEqual(doctor.status, 0);
     assert.match(doctor.stderr, /unverified/, 'missing runtime pin refuses before execution');
@@ -108,9 +108,9 @@ test('the record survives a clone', () => {
   const root = installed();
   try {
     spawnSync('git', ['add', '-A'], { cwd: root });
-    const ignored = spawnSync('git', ['check-ignore', '-q', path.join('.aidlc', RECORD)], { cwd: root });
+    const ignored = spawnSync('git', ['check-ignore', '-q', path.join('.claude/harness', RECORD)], { cwd: root });
     assert.notEqual(ignored.status, 0, `${RECORD} is gitignored and would vanish on a cold clone`);
-    const tracked = spawnSync('git', ['ls-files', path.join('.aidlc', RECORD)], { cwd: root, encoding: 'utf8' });
+    const tracked = spawnSync('git', ['ls-files', path.join('.claude/harness', RECORD)], { cwd: root, encoding: 'utf8' });
     assert.match(tracked.stdout, /harness-install\.json/, 'the record is not staged for commit');
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
@@ -120,9 +120,9 @@ test('the record survives a clone', () => {
 test('re-running init refreshes the recorded inventory', () => {
   const root = installed();
   try {
-    const record = path.join(root, '.aidlc', RECORD);
+    const record = path.join(root, '.claude/harness', RECORD);
     writeFileSync(record, JSON.stringify({ shipped: { skills: 1, agents: 1 } }) + '\n');
-    const legacy = spawnSync('bash', [path.join(root, '.aidlc/bin/harness'), 'doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A } });
+    const legacy = spawnSync('bash', [path.join(root, '.claude/harness/bin/harness'), 'doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A } });
     assert.notEqual(legacy.status, 0, 'a legacy inventory cannot establish runtime identity');
     assert.match(legacy.stderr, /unverified/);
     const again = spawnSync(process.execPath, [BIN, 'init', '--into', root], { cwd: root, encoding: 'utf8' });
@@ -151,7 +151,7 @@ test('the budget reads nothing outside the project', () => {
 // Behaviour 3: the self-install still measures itself, and still measures itself from disk —
 // the recorded half must never apply here, or this repository could stop counting its own.
 test('the self-install measures the harness itself, not a record', () => {
-  const m = measure({ layout: { aidlc: A, claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
+  const m = measure({ layout: { harness: A, claude: C, claudeMd: path.join(C, 'CLAUDE.md') } });
   assert.deepEqual({ skills: m.skills, agents: m.agents, hooks: m.hooks }, { skills: 6, agents: 3, hooks: 4 });
   assert.ok(m.hook_loc > 0, `hook_loc = ${m.hook_loc}`);
 });

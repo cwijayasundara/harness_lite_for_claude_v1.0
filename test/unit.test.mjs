@@ -3,9 +3,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { seedRuntimeRecord } from './_runtime-fixture.mjs';
 import { ROOT } from './_paths.mjs';
-import { parseToml } from '../.aidlc/lib/toml.mjs';
-import { resolveStage, DEFAULT_STAGES } from '../.aidlc/lib/config.mjs';
-import { normalize } from '../.aidlc/lib/normalize.mjs';
+import { parseToml } from '../.claude/harness/lib/toml.mjs';
+import { resolveStage, DEFAULT_STAGES } from '../.claude/harness/lib/config.mjs';
+import { normalize } from '../.claude/harness/lib/normalize.mjs';
 
 test('toml: tables, types, arrays, comments', () => {
   const t = parseToml(`
@@ -88,7 +88,7 @@ test('normalize: a generic tool exiting non-zero produces exactly one', () => {
 test('runner inherits this process PATH instead of a login shell', async () => {
   const { spawnSync } = await import('node:child_process');
   if (spawnSync('python3', ['-c', 'import pytest'], { env: process.env }).status !== 0) return;
-  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const { check } = await import('../.claude/harness/lib/runner.mjs');
   const os = await import('node:os');
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -99,7 +99,7 @@ test('runner inherits this process PATH instead of a login shell', async () => {
     capabilities: { test: 'python3 -c "import pytest"' },
     formats: { test: 'generic' }, stages: { fast: ['test'] },
     budget: { max_findings: 20 },
-    layout: { root, state: path.join(root, '.aidlc/state'), ledger: path.join(root, '.aidlc/state/ledger.jsonl'), lastCheck: path.join(root, '.aidlc/state/last-check.json'), runId: path.join(root, '.aidlc/state/run-id') },
+    layout: { root, state: path.join(root, '.claude/harness/state'), ledger: path.join(root, '.claude/harness/state/ledger.jsonl'), lastCheck: path.join(root, '.claude/harness/state/last-check.json'), runId: path.join(root, '.claude/harness/state/run-id') },
   };
   const r = await check(cfg, { stage: 'fast' });
   assert.equal(r.controls[0].verdict, 'pass', r.controls[0].error || r.controls[0].findings.map((f) => f.message).join(' | '));
@@ -107,7 +107,7 @@ test('runner inherits this process PATH instead of a login shell', async () => {
 });
 
 test('runner: a missing tool is errored, not failed', async () => {
-  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const { check } = await import('../.claude/harness/lib/runner.mjs');
   const os = await import('node:os');
   const fs = await import('node:fs');
   const path = await import('node:path');
@@ -118,7 +118,7 @@ test('runner: a missing tool is errored, not failed', async () => {
     capabilities: { lint: 'definitely-not-a-real-binary-xyz' },
     formats: {}, stages: { fast: ['lint'] },
     budget: { max_findings: 20 },
-    layout: { root, state: path.join(root, '.aidlc/state'), ledger: path.join(root, '.aidlc/state/ledger.jsonl'), lastCheck: path.join(root, '.aidlc/state/last-check.json'), runId: path.join(root, '.aidlc/state/run-id') },
+    layout: { root, state: path.join(root, '.claude/harness/state'), ledger: path.join(root, '.claude/harness/state/ledger.jsonl'), lastCheck: path.join(root, '.claude/harness/state/last-check.json'), runId: path.join(root, '.claude/harness/state/run-id') },
   };
   const r = await check(cfg, { stage: 'fast' });
   assert.equal(r.controls[0].verdict, 'errored');
@@ -131,11 +131,11 @@ test('runner: a missing tool is errored, not failed', async () => {
 });
 
 test('runner: an explicit secrets command overrides the built-in fallback', async () => {
-  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const { check } = await import('../.claude/harness/lib/runner.mjs');
   const fs = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-secrets-'));
   seedRuntimeRecord(root);
-  const state = path.join(root, '.aidlc/state'); fs.mkdirSync(state, { recursive: true });
+  const state = path.join(root, '.claude/harness/state'); fs.mkdirSync(state, { recursive: true });
   const cfg = { capabilities: { secrets: 'echo configured-scanner >&2; exit 1' }, formats: { secrets: 'generic' }, stages: { s: ['secrets'] }, check: { fail_fast: true }, budget: { max_findings: 20 }, layout: { root, state, ledger: path.join(state, 'ledger.jsonl'), lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id') } };
   const report = await check(cfg, { stage: 's' });
   assert.equal(report.ok, false);
@@ -144,7 +144,7 @@ test('runner: an explicit secrets command overrides the built-in fallback', asyn
 });
 
 test('normalize: TAP failures carry file, line and reason', async () => {
-  const { normalize } = await import('../.aidlc/lib/normalize.mjs');
+  const { normalize } = await import('../.claude/harness/lib/normalize.mjs');
   const tap = [
     'TAP version 13',
     '# Subtest: slugify lowercases',
@@ -169,7 +169,7 @@ test('normalize: TAP failures carry file, line and reason', async () => {
 // reporting PASS in 31ms while running nothing at all — bash passes an unmatched glob through
 // literally, node --test emits a well-formed empty report, and exit 0 reads as success.
 test('normalize: a TAP run that executed nothing is a failure, not a pass', async () => {
-  const { normalize } = await import('../.aidlc/lib/normalize.mjs');
+  const { normalize } = await import('../.claude/harness/lib/normalize.mjs');
   const empty = ['TAP version 13', '1..0', '# tests 0', '# pass 0', '# fail 0'].join('\n');
   const out = normalize('tap', empty, '', 0);
   assert.equal(out.length, 1, 'an empty suite must produce exactly one finding');
@@ -179,13 +179,13 @@ test('normalize: a TAP run that executed nothing is a failure, not a pass', asyn
 });
 
 test('normalize: a healthy TAP run is not flagged as empty', async () => {
-  const { normalize } = await import('../.aidlc/lib/normalize.mjs');
+  const { normalize } = await import('../.claude/harness/lib/normalize.mjs');
   const healthy = ['TAP version 13', 'ok 1 - slugify lowercases', '1..1', '# tests 1', '# pass 1', '# fail 0'].join('\n');
   assert.deepEqual(normalize('tap', healthy, '', 0), [], 'a green suite has no findings');
 });
 
 test('normalize: a suite that ran and failed is a test failure, not an empty suite', async () => {
-  const { normalize } = await import('../.aidlc/lib/normalize.mjs');
+  const { normalize } = await import('../.claude/harness/lib/normalize.mjs');
   const failed = ['TAP version 13', 'not ok 1 - adds', '1..1', '# tests 1', '# pass 0', '# fail 1'].join('\n');
   const out = normalize('tap', failed, '', 1);
   assert.equal(out.length, 1);
@@ -193,14 +193,14 @@ test('normalize: a suite that ran and failed is a test failure, not an empty sui
 });
 
 test('check: fail-fast stops at the first failure and records what it skipped', async () => {
-  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const { check } = await import('../.claude/harness/lib/runner.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-ff-'));
   seedRuntimeRecord(root);
   fs.mkdirSync(path.join(root, '.claude', 'state'), { recursive: true });
-  const layout = { root, state: path.join(root, '.aidlc/state'), ledger: path.join(root, '.aidlc/state/ledger.jsonl'), lastCheck: path.join(root, '.aidlc/state/last.json'), runId: path.join(root, '.aidlc/state/run-id') };
+  const layout = { root, state: path.join(root, '.claude/harness/state'), ledger: path.join(root, '.claude/harness/state/ledger.jsonl'), lastCheck: path.join(root, '.claude/harness/state/last.json'), runId: path.join(root, '.claude/harness/state/run-id') };
   const cfg = {
     capabilities: { lint: 'exit 1', typecheck: 'exit 0', test: 'exit 0' },
     formats: {}, stages: { s: ['lint', 'typecheck', 'test'] },
@@ -233,7 +233,7 @@ test('check: fail-fast stops at the first failure and records what it skipped', 
 });
 
 test('baseline: ratchets a rise, tolerates noise, records what has no history', async () => {
-  const { compare, RATCHETED } = await import('../.aidlc/lib/baseline.mjs');
+  const { compare, RATCHETED } = await import('../.claude/harness/lib/baseline.mjs');
   const base = { tolerance: 1.10, claude_md_tokens: 100, session_context_tokens: 50, check_stop_tokens: 20, wiki_index_tokens: 80, pack_tokens_p50: 0 };
   const same = compare(base, { ...base });
   assert.equal(same.ok, true);
@@ -252,13 +252,13 @@ test('baseline: ratchets a rise, tolerates noise, records what has no history', 
 });
 
 test('baseline: every ratcheted metric is actually captured', async () => {
-  const { capture, RATCHETED } = await import('../.aidlc/lib/baseline.mjs');
+  const { capture, RATCHETED } = await import('../.claude/harness/lib/baseline.mjs');
   const { stage } = await import('../evals/lib/stage.mjs');
   const fs = await import('node:fs');
   const path = await import('node:path');
   const s = stage(path.join(ROOT, 'evals', 'fixtures'), 'graph-app');
   try {
-    const state = path.join(s.work, '.aidlc/state');
+    const state = path.join(s.work, '.claude/harness/state');
     fs.mkdirSync(state, { recursive: true });
     const cfg = {
       project: { name: 'graph-app' }, capabilities: {}, formats: {},
@@ -266,7 +266,7 @@ test('baseline: every ratcheted metric is actually captured', async () => {
       budget: { max_findings: 20 }, limits: { skills: 12 },
       graph: { include: ['.', '.claude'], exclude: ['.git', '__pycache__'] },
       layout: { root: s.work, claude: path.join(s.work, '.claude'), claudeMd: path.join(s.work, '.claude/CLAUDE.md'),
-        aidlc: path.join(s.work, '.aidlc'),
+        harness: path.join(s.work, '.claude/harness'),
         state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'), runId: path.join(state, 'run-id') },
     };
     const b = await capture(cfg);
@@ -281,15 +281,15 @@ test('baseline: every ratcheted metric is actually captured', async () => {
 // because capture() rebuilt four of the hook's lines instead of measuring the hook's string.
 // This asserts the two are the same number, which is only possible while they are one function.
 test('baseline: session_context_tokens measures the payload the hook actually emits', async () => {
-  const { capture } = await import('../.aidlc/lib/baseline.mjs');
-  const { estimateTokens } = await import('../.aidlc/lib/pack.mjs');
-  const { sessionContext } = await import('../.aidlc/lib/session.mjs');
+  const { capture } = await import('../.claude/harness/lib/baseline.mjs');
+  const { estimateTokens } = await import('../.claude/harness/lib/pack.mjs');
+  const { sessionContext } = await import('../.claude/harness/lib/session.mjs');
   const { stage } = await import('../evals/lib/stage.mjs');
   const fs = await import('node:fs');
   const path = await import('node:path');
   const s = stage(path.join(ROOT, 'evals', 'fixtures'), 'graph-app');
   try {
-    const state = path.join(s.work, '.aidlc/state');
+    const state = path.join(s.work, '.claude/harness/state');
     fs.mkdirSync(state, { recursive: true });
     const cfg = {
       project: { name: 'graph-app' }, capabilities: {}, formats: {},
@@ -297,7 +297,7 @@ test('baseline: session_context_tokens measures the payload the hook actually em
       budget: { max_findings: 20 }, limits: { skills: 12 },
       graph: { include: ['.', '.claude'], exclude: ['.git', '__pycache__'] },
       layout: { root: s.work, claude: path.join(s.work, '.claude'), claudeMd: path.join(s.work, '.claude/CLAUDE.md'),
-        aidlc: path.join(s.work, '.aidlc'),
+        harness: path.join(s.work, '.claude/harness'),
         state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'), runId: path.join(state, 'run-id') },
     };
     const b = await capture(cfg);
@@ -313,13 +313,13 @@ test('baseline: session_context_tokens measures the payload the hook actually em
 // B2. One function assembles the payload and both callers use it. A second assembly in the hook
 // is the exact defect this change removes, so the test names it rather than trusting review.
 test('baseline: the hook emits sessionContext and holds no second assembly of it', async () => {
-  const { sessionContext } = await import('../.aidlc/lib/session.mjs');
-  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const { sessionContext } = await import('../.claude/harness/lib/session.mjs');
+  const { loadConfig } = await import('../.claude/harness/lib/config.mjs');
   const { execFileSync } = await import('node:child_process');
   const fs = await import('node:fs');
   const path = await import('node:path');
 
-  const emitted = JSON.parse(execFileSync('node', [path.join(ROOT, '.aidlc/bin/harness'), 'hook', 'session-start'],
+  const emitted = JSON.parse(execFileSync('node', [path.join(ROOT, '.claude/harness/bin/harness'), 'hook', 'session-start'],
     { cwd: ROOT, input: '{}', encoding: 'utf8' })).hookSpecificOutput.additionalContext;
   // G11 removed the `ledger:` row count, which was the one part of the payload the act of
   // measuring changed — the hook rotates the run id before assembling, so its counters were
@@ -329,29 +329,29 @@ test('baseline: the hook emits sessionContext and holds no second assembly of it
     'the hook must write exactly what sessionContext assembles');
   assert.doesNotMatch(emitted, /^ledger: /m, 'the row count moved on every check and nothing acted on it');
 
-  const hook = fs.readFileSync(path.join(ROOT, '.aidlc/hooks/dispatch.mjs'), 'utf8');
+  const hook = fs.readFileSync(path.join(ROOT, '.claude/harness/hooks/dispatch.mjs'), 'utf8');
   assert.ok(!hook.includes('`harness · ${'), 'dispatch.mjs assembles the payload a second time');
   assert.ok(!hook.includes('ledger: ${'), 'dispatch.mjs assembles the payload a second time');
 });
 
 // B3 and B4. The ratchet existed and no stage ran it; this is the gate, and what it reports.
 test('baseline: the gate is in commit, grades a rise, and reports a drifted schema', async () => {
-  const { LOCAL_CHECKS } = await import('../.aidlc/lib/runner.mjs');
-  const { run } = await import('../.aidlc/checks/baseline.mjs');
-  const { capture, save } = await import('../.aidlc/lib/baseline.mjs');
+  const { LOCAL_CHECKS } = await import('../.claude/harness/lib/runner.mjs');
+  const { run } = await import('../.claude/harness/checks/baseline.mjs');
+  const { capture, save } = await import('../.claude/harness/lib/baseline.mjs');
   const { stage } = await import('../evals/lib/stage.mjs');
   const fs = await import('node:fs');
   const path = await import('node:path');
 
   // B3: the control is registered and the commit stage names it. Two lists that must agree.
-  const toml = parseToml(fs.readFileSync(path.join(ROOT, '.aidlc/harness.toml'), 'utf8'));
+  const toml = parseToml(fs.readFileSync(path.join(ROOT, '.claude/harness/harness.toml'), 'utf8'));
   assert.ok(toml.stages.commit.includes('baseline'), 'commit must run the ratchet');
   assert.ok('baseline' in LOCAL_CHECKS, 'the runner must be able to resolve it');
 
   const s = stage(path.join(ROOT, 'evals', 'fixtures'), 'graph-app');
   try {
-    const aidlc = path.join(s.work, '.aidlc');
-    const state = path.join(aidlc, 'state');
+    const harness = path.join(s.work, '.claude/harness');
+    const state = path.join(harness, 'state');
     fs.mkdirSync(state, { recursive: true });
     const cfg = {
       project: { name: 'graph-app' }, capabilities: {}, formats: {},
@@ -359,7 +359,7 @@ test('baseline: the gate is in commit, grades a rise, and reports a drifted sche
       budget: { max_findings: 20 }, limits: { skills: 12 },
       graph: { include: ['.', '.claude'], exclude: ['.git', '__pycache__'] },
       layout: { root: s.work, claude: path.join(s.work, '.claude'), claudeMd: path.join(s.work, '.claude/CLAUDE.md'),
-        aidlc, state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'), runId: path.join(state, 'run-id') },
+        harness, state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'), runId: path.join(state, 'run-id') },
     };
 
     // Nothing recorded yet is recorded, not graded.
@@ -398,7 +398,7 @@ test('baseline: the gate is in commit, grades a rise, and reports a drifted sche
 // ENVIRONMENT_SENSITIVE did not reach it: the skip fires when `errored_controls` differ, and a
 // control that FAILS is not a control that ERRORS.
 test('baseline: an ungreen stop stage makes check_stop_tokens incomparable, not a regression', async () => {
-  const { compare } = await import('../.aidlc/lib/baseline.mjs');
+  const { compare } = await import('../.claude/harness/lib/baseline.mjs');
   const green = { tolerance: 1.10, claude_md_tokens: 100, session_context_tokens: 50,
     check_stop_tokens: 12, pack_tokens_p50: 100, errored_controls: [], stop_ok: true };
 
@@ -428,7 +428,7 @@ test('baseline: an ungreen stop stage makes check_stop_tokens incomparable, not 
 });
 
 test('baseline: an incomparable toolchain is not a regression', async () => {
-  const { compare } = await import('../.aidlc/lib/baseline.mjs');
+  const { compare } = await import('../.claude/harness/lib/baseline.mjs');
   const base = { tolerance: 1.10, claude_md_tokens: 100, session_context_tokens: 50, check_stop_tokens: 18, wiki_index_tokens: 80, pack_tokens_p50: 100, errored_controls: [] };
   // Same change, measured on a machine with no ruff: the stage output balloons with
   // "tool not installed" text. That is a fact about the laptop, not about the change.
@@ -448,22 +448,22 @@ test('baseline: an incomparable toolchain is not a regression', async () => {
 // that appends to a counter file proves the invocation count directly, rather than trusting
 // elapsed time.
 test('check: a commit-stage run invokes the test command exactly once', async () => {
-  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const { check } = await import('../.claude/harness/lib/runner.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-once-'));
   seedRuntimeRecord(root);
-  const aidlc = path.join(root, '.aidlc');
-  const state = path.join(aidlc, 'state');
+  const harness = path.join(root, '.claude/harness');
+  const state = path.join(harness, 'state');
   fs.mkdirSync(state, { recursive: true });
   const counter = path.join(root, 'counter');
   fs.writeFileSync(counter, '');
   // A baseline must already be recorded, or the `baseline` control returns before ever calling
   // `capture()` -- the duplicate run only happens on the path this test exists to prove is fixed.
-  fs.writeFileSync(path.join(aidlc, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
+  fs.writeFileSync(path.join(harness, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
   const layout = {
-    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), aidlc,
+    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), harness,
     state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'),
     lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id'),
   };
@@ -486,18 +486,18 @@ test('check: a commit-stage run invokes the test command exactly once', async ()
 // this is what makes reusing `stop`'s in-flight results sound (spec B4). Asserted rather than
 // assumed, because the whole repair's soundness rests on it.
 test('check: a failing suite fails the commit stage before baseline is ever reached', async () => {
-  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const { check } = await import('../.claude/harness/lib/runner.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-failfast-'));
   seedRuntimeRecord(root);
-  const aidlc = path.join(root, '.aidlc');
-  const state = path.join(aidlc, 'state');
+  const harness = path.join(root, '.claude/harness');
+  const state = path.join(harness, 'state');
   fs.mkdirSync(state, { recursive: true });
-  fs.writeFileSync(path.join(aidlc, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
+  fs.writeFileSync(path.join(harness, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
   const layout = {
-    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), aidlc,
+    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), harness,
     state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'),
     lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id'),
   };
@@ -520,20 +520,20 @@ test('check: a failing suite fails the commit stage before baseline is ever reac
 // as a standalone invocation with no run in flight does. There is nothing to borrow, so nothing
 // is borrowed: `capture()` must still run its own stop stage.
 test('baseline: the standalone verb still runs its own stop stage with no run in flight', async () => {
-  const { run: baselineRun } = await import('../.aidlc/checks/baseline.mjs');
+  const { run: baselineRun } = await import('../.claude/harness/checks/baseline.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-standalone-'));
   seedRuntimeRecord(root);
-  const aidlc = path.join(root, '.aidlc');
-  const state = path.join(aidlc, 'state');
+  const harness = path.join(root, '.claude/harness');
+  const state = path.join(harness, 'state');
   fs.mkdirSync(state, { recursive: true });
   const counter = path.join(root, 'counter');
   fs.writeFileSync(counter, '');
-  fs.writeFileSync(path.join(aidlc, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
+  fs.writeFileSync(path.join(harness, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
   const layout = {
-    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), aidlc,
+    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), harness,
     state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'),
     lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id'),
   };
@@ -551,22 +551,22 @@ test('baseline: the standalone verb still runs its own stop stage with no run in
 
 // D2/F04 B2. `stopReportFrom` must answer the same question `check(cfg, { stage: 'stop', all:
 // true })` answers, because that is the call it is standing in for. `render()` writes elapsed ms
-// into the string it measures (.aidlc/lib/runner.mjs render()), so two runs of an identical green
+// into the string it measures (.claude/harness/lib/runner.mjs render()), so two runs of an identical green
 // tree never render identically -- ms is normalised out and is the only field permitted to
 // differ (spec B2).
 test('baseline: the reconstructed stop report matches a freshly computed one, ms aside', async () => {
-  const { check } = await import('../.aidlc/lib/runner.mjs');
-  const { stopReportFrom } = await import('../.aidlc/checks/baseline.mjs');
+  const { check } = await import('../.claude/harness/lib/runner.mjs');
+  const { stopReportFrom } = await import('../.claude/harness/checks/baseline.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-b2-'));
   seedRuntimeRecord(root);
-  const aidlc = path.join(root, '.aidlc');
-  const state = path.join(aidlc, 'state');
+  const harness = path.join(root, '.claude/harness');
+  const state = path.join(harness, 'state');
   fs.mkdirSync(state, { recursive: true });
   const layout = {
-    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), aidlc,
+    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), harness,
     state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'),
     lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id'),
   };
@@ -588,10 +588,10 @@ test('baseline: the reconstructed stop report matches a freshly computed one, ms
 
 // D2/F04 B6. The in-flight results of a commit run are a SUPERSET of `stop` -- they also hold
 // scope-drift, budget, tamper, arch and test_quality -- and a `--base`/`--candidate` run adds a
-// revision line render() would emit (.aidlc/lib/runner.mjs render()). Reusing the commit report
+// revision line render() would emit (.claude/harness/lib/runner.mjs render()). Reusing the commit report
 // wholesale would change `check_stop_tokens` outright, which this behaviour exists to prevent.
 test('baseline: the reconstructed report is stop-shaped -- exact stop verbs, in order, no revision or extra identity errors', async () => {
-  const { stopReportFrom } = await import('../.aidlc/checks/baseline.mjs');
+  const { stopReportFrom } = await import('../.claude/harness/checks/baseline.mjs');
   const cfg = {
     budget: { max_findings: 20 },
     stages: { stop: ['secrets', 'test'], commit: ['stop', 'scope-drift', 'budget', 'baseline'] },
@@ -625,7 +625,7 @@ test('baseline: the reconstructed report is stop-shaped -- exact stop verbs, in 
 // results baseline reuses are a superset carrying `scope-drift` and a revision `stopReportFrom`
 // is never given.
 test('check: a candidate-mode commit run still invokes the suite exactly once', async () => {
-  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const { check } = await import('../.claude/harness/lib/runner.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -634,17 +634,17 @@ test('check: a candidate-mode commit run still invokes the suite exactly once', 
   const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   git('init', '-q');
   seedRuntimeRecord(root);
-  const aidlc = path.join(root, '.aidlc');
-  const state = path.join(aidlc, 'state');
+  const harness = path.join(root, '.claude/harness');
+  const state = path.join(harness, 'state');
   fs.mkdirSync(state, { recursive: true });
   const counter = path.join(root, 'counter');
   fs.writeFileSync(counter, '');
-  fs.writeFileSync(path.join(aidlc, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
+  fs.writeFileSync(path.join(harness, 'baseline.json'), JSON.stringify({ tolerance: 1.10 }) + '\n');
   git('add', '-A');
   git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'seed');
   const head = git('rev-parse', 'HEAD');
   const layout = {
-    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), aidlc,
+    root, claude: path.join(root, '.claude'), claudeMd: path.join(root, '.claude/CLAUDE.md'), harness,
     state, graph: path.join(state, 'graph.json'), ledger: path.join(state, 'ledger.jsonl'),
     lastCheck: path.join(state, 'last.json'), runId: path.join(state, 'run-id'),
   };
@@ -670,7 +670,7 @@ test('check: a candidate-mode commit run still invokes the suite exactly once', 
 // across eight days under one id, which pins every control at `insufficient-data` and leaves
 // `ledger audit` — the query that authorises deleting a control — unable to answer.
 test('a new session rotates the run id, and HARNESS_RUN_ID still pins it', async () => {
-  const { newRun, runId, append, report } = await import('../.aidlc/lib/ledger.mjs');
+  const { newRun, runId, append, report } = await import('../.claude/harness/lib/ledger.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -704,7 +704,7 @@ test('a new session rotates the run id, and HARNESS_RUN_ID still pins it', async
 // Deleting it would remove the reason the limit was never crossed. Meanwhile arch and
 // test_quality, which no stage runs, were told to wait for invocations that cannot arrive.
 test('the audit separates a control that did not fire from one that did not run', async () => {
-  const { audit, wiredControls, KILL } = await import('../.aidlc/lib/ledger.mjs');
+  const { audit, wiredControls, KILL } = await import('../.claude/harness/lib/ledger.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -741,7 +741,7 @@ test('the audit separates a control that did not fire from one that did not run'
 // A control reached only by a hook is wired. The ledger sees it constantly; it is simply not
 // named in [stages], and judging by stages alone condemned the three busiest controls.
 test('a control reached by a hook binding is wired, not unwired', async () => {
-  const { wiredControls } = await import('../.aidlc/lib/ledger.mjs');
+  const { wiredControls } = await import('../.claude/harness/lib/ledger.mjs');
   const wired = wiredControls({ stages: { commit: ['secrets'] } });
   // every-control-fires-or-goes B3/B5: `graph-refresh` is telemetry and is no longer judged;
   // `map-drift` is recorded at Stop and is the hook control in its place.
@@ -751,7 +751,7 @@ test('a control reached by a hook binding is wired, not unwired', async () => {
 });
 
 test('ledger audit turns rows into decisions, and refuses a verdict without evidence', async () => {
-  const { audit, KILL } = await import('../.aidlc/lib/ledger.mjs');
+  const { audit, KILL } = await import('../.claude/harness/lib/ledger.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -794,10 +794,10 @@ test('the ledger records which rule fired, and a human can call a fire wrong', a
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
-  const ledger = await import('../.aidlc/lib/ledger.mjs');
+  const ledger = await import('../.claude/harness/lib/ledger.mjs');
 
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-rule-'));
-  const state = path.join(root, '.aidlc/state');
+  const state = path.join(root, '.claude/harness/state');
   fs.mkdirSync(state, { recursive: true });
   const L = { root, state, ledger: path.join(state, 'ledger.jsonl'), runId: path.join(state, 'run-id') };
   try {
@@ -835,11 +835,11 @@ test('tamper: a raised threshold, a bare suppression and a deleted test are each
   const os = await import('node:os');
   const path = await import('node:path');
   const { execFileSync } = await import('node:child_process');
-  const { run } = await import('../.aidlc/checks/tamper.mjs');
+  const { run } = await import('../.claude/harness/checks/tamper.mjs');
 
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tamper-'));
   const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'ignore' });
-  const cfg = { layout: { root, artifacts: path.join(root, '.aidlc/artifacts'), state: path.join(root, '.aidlc/state') }, guard: {} };
+  const cfg = { layout: { root, artifacts: path.join(root, '.claude/harness/artifacts'), state: path.join(root, '.claude/harness/state') }, guard: {} };
   try {
     git('init', '-q');
     git('config', 'user.email', 'h@example.invalid');
@@ -885,7 +885,7 @@ test('tamper: a raised threshold, a bare suppression and a deleted test are each
 // plants the defect the control's why: describes; the audit checks the file exists and names the
 // control, and only then says `deterrent`. A missing or silent file leaves `never-fired` standing.
 test('a never-fired control with a named, existing proof test reads deterrent; without one, never-fired', async () => {
-  const { audit } = await import('../.aidlc/lib/ledger.mjs');
+  const { audit } = await import('../.claude/harness/lib/ledger.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');
@@ -917,7 +917,7 @@ test('a never-fired control with a named, existing proof test reads deterrent; w
 // retired: listed once on a trailing line, never asked about again. The same name with a row
 // today is `unwired`, because something is still recording it.
 test('telemetry is not classified, and a control nothing reaches ages out as retired', async () => {
-  const { audit, wiredControls } = await import('../.aidlc/lib/ledger.mjs');
+  const { audit, wiredControls } = await import('../.claude/harness/lib/ledger.mjs');
   const fs = await import('node:fs');
   const os = await import('node:os');
   const path = await import('node:path');

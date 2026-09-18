@@ -5,7 +5,7 @@
 > do next, what it costs and which decisions are outstanding live in the final implementation plan.
 
 Prepared 12 September 2026 from [the gap analysis](GAP-ANALYSIS-2026-09-12.md). This is the
-execution handoff. One item is one change slug under `.aidlc/artifacts/<slug>/`, one PR, one
+execution handoff. One item is one change slug under `.claude/harness/artifacts/<slug>/`, one PR, one
 independently verifiable outcome. Items are ordered so every phase ends with a measurement the next
 phase compares against.
 
@@ -81,7 +81,7 @@ with `status: incomplete`, and record `total_cost_usd` when the JSON envelope ar
 export: the candidate tree is filtered to the plan's `## Files`, their importers from the graph, and
 tests naming them; the full tree remains available behind `--full-tree`.
 
-**Start here:** `.aidlc/lib/review.mjs:103-142`, `.aidlc/bin/harness:475`, `test/review.test.mjs`.
+**Start here:** `.claude/harness/lib/review.mjs:103-142`, `.claude/harness/bin/harness:475`, `test/review.test.mjs`.
 
 **Acceptance:** unit tests cover the default calculation, the flag, and the incomplete path with a
 fake invoker. One live run on the 17 KB diff that timed out on 10 September completes and records
@@ -95,11 +95,11 @@ spend under USD 2. The memory note `harness-review-times-out` is retired.
 delete the `retrieval-app` trial. Write completion records for F01, F04, F18 in the old backlog and
 mark it superseded by this plan. Close the defect plan. Fix the golden task count in
 `CONSTITUTION.md` and `evals/README.md`. Remove `PROGRAM.md` references. Set `status: closed` on the
-24 delivered intents. Truncate `.aidlc/state/ledger.jsonl` to the last 30 days and archive the rest
-under `.aidlc/evals/archive/`.
+24 delivered intents. Truncate `.claude/harness/state/ledger.jsonl` to the last 30 days and archive the rest
+under `.claude/harness/evals/archive/`.
 
-**Start here:** `.aidlc/lib/guard.mjs:284`, `.aidlc/hooks/dispatch.mjs:153`,
-`.aidlc/lib/config.mjs:27-35`, `evals/run.mjs:255`, `docs/`.
+**Start here:** `.claude/harness/lib/guard.mjs:284`, `.claude/harness/hooks/dispatch.mjs:153`,
+`.claude/harness/lib/config.mjs:27-35`, `evals/run.mjs:255`, `docs/`.
 
 **Acceptance:** `harness status` lists two open changes (`a-pack-answers-the-question-asked`,
 `autonomous-delivery-loop`); SessionStart payload shrinks and `baseline capture` records it;
@@ -109,10 +109,10 @@ under `.aidlc/evals/archive/`.
 
 **Work:** A `schedule` job in `.github/workflows/harness.yml` running `node evals/run.mjs --live`
 under `CLAUDE_CODE_OAUTH_TOKEN` with `--max-cost-usd 15`, then `harness evals gate`, uploading
-`.aidlc/evals/results/`. Until G23 the gate step is `continue-on-error: true` and Law 9 reads
+`.claude/harness/evals/results/`. Until G23 the gate step is `continue-on-error: true` and Law 9 reads
 "(enforced: nightly, non-blocking until the baseline is green)".
 
-**Start here:** `.github/workflows/harness.yml:113-140`, `.aidlc/lib/eval-gate.mjs`,
+**Start here:** `.github/workflows/harness.yml:113-140`, `.claude/harness/lib/eval-gate.mjs`,
 `docs/CONSTITUTION.md:48`.
 
 **Acceptance:** one nightly run appears in Actions with a graded summary line and a recorded cost.
@@ -151,8 +151,8 @@ fails; `harness status` shows `approval: missing` or `stale` as a row, never as 
 frontmatter, and the PR body lists it. Destructive-command rules, `protected-path`, `prefix-cache`,
 `tamper`, `secrets` and `approve-is-the-humans` are unaffected by gate mode.
 
-**Start here:** `.aidlc/lib/config.mjs:50`, `.aidlc/lib/guard.mjs:50-105`,
-`.aidlc/checks/scope-drift.mjs:71-92`, `.aidlc/lib/artifacts.mjs:668`, `test/guard.test.mjs`,
+**Start here:** `.claude/harness/lib/config.mjs:50`, `.claude/harness/lib/guard.mjs:50-105`,
+`.claude/harness/checks/scope-drift.mjs:71-92`, `.claude/harness/lib/artifacts.mjs:668`, `test/guard.test.mjs`,
 `test/scope-drift.test.mjs`, `test/two-engineer-campaign.test.mjs`.
 
 **Acceptance:** the two-engineer campaign passes in `human` mode unchanged and in `advisory` mode
@@ -167,7 +167,7 @@ records digests and `read()` still reports staleness, but a missing or changed s
 `binding: unbound` or `stale` as information, never an approval refusal. The `## Requirements`
 table is checked only when present. `approve` still requires the artifact to be committed.
 
-**Start here:** `.aidlc/lib/artifacts.mjs:82-143`, `:203-240`, `:402-475`,
+**Start here:** `.claude/harness/lib/artifacts.mjs:82-143`, `:203-240`, `:402-475`,
 `test/gate-content.test.mjs`, `test/requirement-traceability.test.mjs`.
 
 **Acceptance:** an intent with no frontmatter beyond `status` reaches an approved spec and plan;
@@ -183,8 +183,8 @@ per `## Story` or acceptance-criteria group, each carrying `parent`. At PR open 
 writes one comment back to the tracker through the project's configured MCP server, containing the
 PR URL and candidate SHA. No tracker client enters the kernel.
 
-**Start here:** `.aidlc/bin/harness:433`, `.aidlc/lib/artifacts.mjs:185`,
-`.aidlc/skills/intent/SKILL.md`, `test/lifecycle-cli.test.mjs`.
+**Start here:** `.claude/harness/bin/harness:433`, `.claude/harness/lib/artifacts.mjs:185`,
+`.claude/harness/skills/intent/SKILL.md`, `test/lifecycle-cli.test.mjs`.
 
 **Acceptance:** a fixture PRD with three stories yields three child changes with `parent` and
 `depends_on` where the PRD states an order; `harness status` shows the decomposition; the
@@ -198,8 +198,8 @@ playbook's single-source rule is documented in `OPERATING.md`.
 
 ### G09 — `harness deliver <slug>` (absorbs F10)
 
-**Work:** The driver described in `.aidlc/artifacts/autonomous-delivery-loop/intent.md`. Phases,
-each recorded in `.aidlc/state/deliver/<slug>/phases.json` before it starts and after it ends:
+**Work:** The driver described in `.claude/harness/artifacts/autonomous-delivery-loop/intent.md`. Phases,
+each recorded in `.claude/harness/state/deliver/<slug>/phases.json` before it starts and after it ends:
 
 1. `implement`: the `implement` skill on the generator in a forked context, scoped to the plan.
 2. `check-stop`: `harness check --stage stop`; on failure, one repair turn, then stop.
@@ -216,7 +216,7 @@ stops and names the bound. It refuses to start if the plan digest differs from t
 `phases.json`, and refuses to run `approve` or `merge` under any flag. `AIDLC_UNATTENDED` is set
 for every model turn so skills never end on a question.
 
-**Start here:** `.aidlc/bin/harness`, a new `.aidlc/lib/deliver.mjs` (Law 2: control flow in the
+**Start here:** `.claude/harness/bin/harness`, a new `.claude/harness/lib/deliver.mjs` (Law 2: control flow in the
 CLI layer), `evals/lib/campaign.mjs` for the phase-record pattern, `test/lifecycle-cli.test.mjs`.
 
 **Acceptance:** with a fake invoker, the driver runs all seven phases, resumes from phase 4 after
@@ -230,8 +230,8 @@ a simulated kill, refuses on a changed plan digest, and stops on each bound. Liv
 into `implement`. `[effort]` gains `implement = "low"`, `repair = "medium"`, `review = "high"`,
 rendered into the same frontmatter. The second repair attempt runs on `judgment`.
 
-**Start here:** `.aidlc/harness.toml:64`, `.aidlc/lib/config.mjs:57`, `.aidlc/lib/projection.mjs:42`,
-`.aidlc/bin/harness:198-205`, `test/contracts.test.mjs`.
+**Start here:** `.claude/harness/harness.toml:64`, `.claude/harness/lib/config.mjs:57`, `.claude/harness/lib/projection.mjs:42`,
+`.claude/harness/bin/harness:198-205`, `test/contracts.test.mjs`.
 
 **Acceptance:** the existing "generator and evaluator must differ" test extends to "judgment and
 generator must differ"; rendered frontmatter is asserted for all six prompt files; the ledger row
@@ -244,8 +244,8 @@ age, open-change list) sits after every stable line, and drop the row count. The
 `fast` plus `test --changed` only; the driver owns the full suite. `[stages]` gains
 `stop_hook = ["fast", "test_changed"]`.
 
-**Start here:** `.aidlc/lib/session.mjs:30`, `.aidlc/hooks/dispatch.mjs:171`,
-`.aidlc/harness.toml:23`, `test/autogate.test.mjs`, `test/stop-guard.test.mjs`.
+**Start here:** `.claude/harness/lib/session.mjs:30`, `.claude/harness/hooks/dispatch.mjs:171`,
+`.claude/harness/harness.toml:23`, `test/autogate.test.mjs`, `test/stop-guard.test.mjs`.
 
 **Acceptance:** two consecutive SessionStart payloads differ only after the last stable line;
 `baseline capture` records the new `session_context_tokens`; Stop hook wall-clock on this repo
@@ -271,7 +271,7 @@ cache-read share, and wall-clock recorded in the ledger and in the sprint's `rev
 thresholds, `vitest --coverage` or `node --test`), Python (`ruff check`, `mypy`, `pytest --cov`).
 Anything it cannot see stays empty and `skipped`.
 
-**Start here:** `.aidlc/bin/harness:150-243`, `.aidlc/templates/harness.toml`,
+**Start here:** `.claude/harness/bin/harness:150-243`, `.claude/harness/templates/harness.toml`,
 `examples/scratch-ts`, `examples/scratch-py`, `.github/workflows/harness.yml:85-110`.
 
 **Acceptance:** CI's `cost` job gains a TypeScript twin; both examples run every rendered verb;
@@ -281,11 +281,11 @@ Anything it cannot see stays empty and `skipped`.
 
 **Work:** `baseline.capture` records `coverage_lines_pct` per capability format (`lcov`,
 `coverage.py` JSON); `compare` fails on a drop beyond tolerance. Delete
-`.aidlc/sensors/test-quality.mjs`; the `behaviours_have_tests` assertion moves from the eval library
+`.claude/harness/sensors/test-quality.mjs`; the `behaviours_have_tests` assertion moves from the eval library
 into a `proof` check in the commit stage.
 
-**Start here:** `.aidlc/lib/baseline.mjs`, `.aidlc/lib/normalize.mjs`, `evals/lib/campaign.mjs`
-(`behavioursHaveTests`), `.aidlc/harness.toml:26`, `[deterrents]`.
+**Start here:** `.claude/harness/lib/baseline.mjs`, `.claude/harness/lib/normalize.mjs`, `evals/lib/campaign.mjs`
+(`behavioursHaveTests`), `.claude/harness/harness.toml:26`, `[deterrents]`.
 
 **Acceptance:** a planted coverage drop fails the commit stage in `scratch-ts`; a plan with a
 behaviour lacking a proof row fails `proof`; `[deterrents]` names the tests.
@@ -297,7 +297,7 @@ behaviour lacking a proof row fails `proof`; `[deterrents]` names the tests.
 schema. None is in a default stage; `OPERATING.md` describes adding them to `commit` when the
 project is ready.
 
-**Start here:** `.aidlc/lib/normalize.mjs`, `.aidlc/templates/harness.toml`, `docs/OPERATING.md`.
+**Start here:** `.claude/harness/lib/normalize.mjs`, `.claude/harness/templates/harness.toml`, `docs/OPERATING.md`.
 
 **Acceptance:** in `scratch-ts`, a planted surviving mutant and a planted layer violation each
 produce one finding with file and line; the pack-bench and unit jobs are unaffected.
@@ -309,7 +309,7 @@ sensors article ("make a judgment call; suppress with a `why:` if the rule is wr
 `tamper` findings with a `why:` are collected into a `## Suppressions` section of the PR body by
 the driver.
 
-**Start here:** `.aidlc/lib/normalize.mjs`, `.aidlc/checks/tamper.mjs`, `.aidlc/lib/deliver.mjs`.
+**Start here:** `.claude/harness/lib/normalize.mjs`, `.claude/harness/checks/tamper.mjs`, `.claude/harness/lib/deliver.mjs`.
 
 **Acceptance:** the rendered report for each check shows a `fix` line; a PR opened by the driver
 on a diff with one justified suppression lists it.
@@ -317,14 +317,14 @@ on a diff with one justified suppression lists it.
 ### G16 — `design` skill replaces `map`; CLAUDE.md template gains Commands and Verification
 
 **Work:** Fold the five graph questions of `map/SKILL.md` into a short section of
-`instructions.md`. Add `.aidlc/skills/design/SKILL.md`: brainstorm the outcome in short questions,
+`instructions.md`. Add `.claude/harness/skills/design/SKILL.md`: brainstorm the outcome in short questions,
 resolve design branches before writing, and produce the spec's Entities, Approach, Structure and
 Safeguards sections in the REASONS shape. Runs on `judgment`. Skill count stays at seven. The
 project-instructions template gains a `## Commands` block with expected healthy output and a
 `## Verification` block.
 
-**Start here:** `.aidlc/skills/`, `.aidlc/instructions.md`, `.aidlc/templates/project-instructions.md`,
-`.aidlc/templates/spec.md`, `test/skills-context.test.mjs`, `test/contracts.test.mjs`.
+**Start here:** `.claude/harness/skills/`, `.claude/harness/instructions.md`, `.claude/harness/templates/project-instructions.md`,
+`.claude/harness/templates/spec.md`, `test/skills-context.test.mjs`, `test/contracts.test.mjs`.
 
 **Acceptance:** budget check passes at seven; the `clarify-ambiguous` and `intent-not-solution`
 golden tasks pass with the new skill; the spec template renders the four sections.
@@ -338,12 +338,12 @@ violation are each caught; the skill budget is at seven.
 
 **Work:** `docs/OPERATING.md` and `harness init --ci` ship `.github/workflows/harness.yml` for a
 consumer: on PR, `harness check --stage fast --base --candidate`; then `claude -p` on the evaluator
-model with `--output-format json --json-schema .aidlc/schemas/review-findings.schema.json`,
+model with `--output-format json --json-schema .claude/harness/schemas/review-findings.schema.json`,
 `--tools Read,Grep,Glob`, posting one comment per PR with findings deduped against prior comments
 and a `detected_pattern` per finding. Branch protection with code-owner review is documented as
 the merge gate; the harness never approves.
 
-**Start here:** `.aidlc/lib/review.mjs`, a new `.aidlc/schemas/review-findings.schema.json`,
+**Start here:** `.claude/harness/lib/review.mjs`, a new `.claude/harness/schemas/review-findings.schema.json`,
 `docs/OPERATING.md:298`, `evals/fixtures/_base`.
 
 **Acceptance:** the template validates against `gh workflow view`; a test feeds a stored review
@@ -351,13 +351,13 @@ JSON through the dedupe and comment rendering; one live PR on `scratch-ts` recei
 
 ### G18 — Release record replaces the environment variable
 
-**Work:** `productionDenied` reads `.aidlc/state/release.json` (`candidate`, `approved_by`, `at`,
+**Work:** `productionDenied` reads `.claude/harness/state/release.json` (`candidate`, `approved_by`, `at`,
 `expires`) and allows only when the candidate SHA matches HEAD and the record is unexpired. Every
 allow and deny is a ledger row with `reason` and `route` ("run `harness release approve --by`").
 `harness release approve|revoke` is the verb; `approve-is-the-humans` covers it. `CLAUDE.md`
 template gains a one-line rollback command slot.
 
-**Start here:** `.aidlc/lib/guard.mjs:134`, `.aidlc/hooks/dispatch.mjs:49`, `.aidlc/bin/harness`,
+**Start here:** `.claude/harness/lib/guard.mjs:134`, `.claude/harness/hooks/dispatch.mjs:49`, `.claude/harness/bin/harness`,
 `test/block-rules.test.mjs`.
 
 **Acceptance:** `deploy prod` denied without a record and allowed with one, both rows in the
@@ -369,7 +369,7 @@ ledger with reasons; an expired record denies.
 file is committed, and calls `harness new eval <slug>` with the breach as the fixture seed. A test
 drives a 3-sigma breach through G07's relaxed approval into G09's driver with a fake invoker.
 
-**Start here:** `examples/maintain/band-to-intent.mjs`, `.aidlc/bin/harness:433`,
+**Start here:** `examples/maintain/band-to-intent.mjs`, `.claude/harness/bin/harness:433`,
 `test/install.test.mjs:60`.
 
 **Acceptance:** breach → intent → approved spec → driver start, all in one deterministic test.
@@ -425,7 +425,7 @@ verdict is stored with the votes; a seeded product that still documents the old 
 a reason in `evals/README.md`. Then `harness evals gate --update`. Flip G04's
 `continue-on-error` off; Law 9 reads "(enforced: nightly CI)".
 
-**Start here:** `evals/expected.json`, `.aidlc/lib/eval-gate.mjs:145`, the three failing task
+**Start here:** `evals/expected.json`, `.claude/harness/lib/eval-gate.mjs:145`, the three failing task
 fixtures.
 
 **Acceptance:** `expected.json` shows zero `fail` and zero `flaky`; the next nightly run passes
@@ -501,7 +501,7 @@ before phase 6.
 (review rounds), time from plan approval to PR open, spec edits after first plan, escaped versus
 caught defects (from `new eval` incidents), repeat incident class, and eval mean delta trend.
 
-**Start here:** `.aidlc/lib/ledger.mjs:124`, `.aidlc/lib/deliver.mjs` phase records,
+**Start here:** `.claude/harness/lib/ledger.mjs:124`, `.claude/harness/lib/deliver.mjs` phase records,
 `evals/evidence/`.
 
 **Acceptance:** each metric has a unit test over a fixture ledger; `OPERATING.md` weekly section

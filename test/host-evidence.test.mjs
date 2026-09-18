@@ -6,13 +6,13 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { BIN, ROOT } from './_paths.mjs';
-import { RUNTIME_PATHS, executionIdentity, shimVerifierSource } from '../.aidlc/lib/runtime-identity.mjs';
+import { RUNTIME_PATHS, executionIdentity, shimVerifierSource } from '../.claude/harness/lib/runtime-identity.mjs';
 
 const read = rel => readFileSync(path.join(ROOT, rel), 'utf8');
-const REVIEW = read('.aidlc/lib/review.mjs');
-const IDENTITY = read('.aidlc/lib/runtime-identity.mjs');
-const PRODUCT = read('.aidlc/lib/product-context.mjs');
-const HARNESS = read('.aidlc/bin/harness');
+const REVIEW = read('.claude/harness/lib/review.mjs');
+const IDENTITY = read('.claude/harness/lib/runtime-identity.mjs');
+const PRODUCT = read('.claude/harness/lib/product-context.mjs');
+const HARNESS = read('.claude/harness/bin/harness');
 
 test('B1 the host assessment states and the single verified condition are the whole surface', () => {
   const decision = REVIEW.match(/report\.assessment = [\s\S]*?;\n/);
@@ -67,9 +67,9 @@ test('B2 the harness records the host decision and derives no merge authority of
 });
 
 test('B3 runtime, policy and execution identity stay unsigned comparison anchors', () => {
-  assert.deepEqual(RUNTIME_PATHS, ['.aidlc/bin', '.aidlc/lib', '.aidlc/checks', '.aidlc/sensors',
-    '.aidlc/hooks', '.aidlc/adapters', '.aidlc/skills', '.aidlc/roles', '.aidlc/templates',
-    '.aidlc/policies', '.aidlc/instructions.md', '.claude-plugin'],
+  assert.deepEqual(RUNTIME_PATHS, ['.claude/harness/bin', '.claude/harness/lib', '.claude/harness/checks', '.claude/harness/sensors',
+    '.claude/harness/hooks', '.claude/harness/hooks.json', '.claude/harness/skills', '.claude/harness/roles', '.claude/harness/templates',
+    '.claude/harness/policies', '.claude/harness/instructions.md', '.claude-plugin'],
     'identity coverage is a decision, not a growing list');
 
   for (const outcome of [/status: 'mismatch', method: 'unavailable'/,
@@ -114,7 +114,7 @@ test('B5 the guidance and the lean-review row state the limit', () => {
   assert.match(readme, /derives no merge eligibility/i);
   assert.match(readme, /not a signed attestation/);
   assert.match(readme, /not\s+publisher authentication or a security sandbox/);
-  assert.match(read('.aidlc/policies/review.md'), /merge authority is the host's/i);
+  assert.match(read('.claude/harness/policies/review.md'), /merge authority is the host's/i);
 
   const row = read('docs/IMPROVEMENT-PLAN.md').split('\n')
     .find(l => l.startsWith('| Host review and runtime identity |'));
@@ -123,7 +123,7 @@ test('B5 the guidance and the lean-review row state the limit', () => {
   assert.match(row, /unsigned/i);
   assert.match(row, /no (new )?(signing|certification)/i);
 
-  const limits = read('.aidlc/harness.toml');
+  const limits = read('.claude/harness/harness.toml');
   assert.match(limits, /^skills\s*=\s*7$/m);
   assert.match(limits, /^agents\s*=\s*3$/m);
   assert.match(limits, /^hooks\s*=\s*5$/m);

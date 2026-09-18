@@ -4,7 +4,7 @@ import { readFileSync, readdirSync, writeFileSync, chmodSync, mkdirSync } from '
 import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { stage, FIXTURES } from '../evals/lib/stage.mjs';
-import { hostReview, review, reviewTimeoutMs, REVIEW_TIMEOUT } from '../.aidlc/lib/review.mjs';
+import { hostReview, review, reviewTimeoutMs, REVIEW_TIMEOUT } from '../.claude/harness/lib/review.mjs';
 import { BIN } from './_paths.mjs';
 
 function fixture(sha) {
@@ -162,7 +162,7 @@ test('the review export is scoped to the plan, its importers, the tests naming i
   const s = candidateRepo();
   try {
     const plan = { planFiles: ['src/app/text.py', 'tests/test_app.py'],
-      contextPaths: ['.aidlc/artifacts/hyphen-titlecase'],
+      contextPaths: ['.claude/harness/artifacts/hyphen-titlecase'],
       // The import edge the graph supplies. Passed in rather than built so this asserts the
       // scoping rule, not the graph's Python heuristics.
       modules: { 'src/app/handlers.py': { imports: ['src/app/text.py'] } } };
@@ -172,8 +172,8 @@ test('the review export is scoped to the plan, its importers, the tests naming i
 
     const scoped = review({ root: s.work, base: s.base, candidate: s.candidate, model: 'test-evaluator',
       output: 'scoped.md', ...plan, invoke: capture });
-    assert.deepEqual(tree, ['.aidlc/artifacts/hyphen-titlecase/intent.md', '.aidlc/artifacts/hyphen-titlecase/plan.md',
-      '.aidlc/artifacts/hyphen-titlecase/spec.md', 'src/app/handlers.py', 'src/app/text.py', 'tests/test_app.py']);
+    assert.deepEqual(tree, ['.claude/harness/artifacts/hyphen-titlecase/intent.md', '.claude/harness/artifacts/hyphen-titlecase/plan.md',
+      '.claude/harness/artifacts/hyphen-titlecase/spec.md', 'src/app/handlers.py', 'src/app/text.py', 'tests/test_app.py']);
     assert.equal(scoped.export.scope, 'plan');
     assert.equal(scoped.status, 'complete');
     assert.match(readFileSync(path.join(s.work, 'scoped.md'), 'utf8'), /Export: scoped to 6 files/);
@@ -182,7 +182,7 @@ test('the review export is scoped to the plan, its importers, the tests naming i
 
     review({ root: s.work, base: s.base, candidate: s.candidate, model: 'test-evaluator', output: 'full.md',
       ...plan, fullTree: true, invoke: capture });
-    assert.ok(tree.includes('pyproject.toml') && tree.includes('.aidlc/harness.toml'), '--full-tree exports the whole candidate');
+    assert.ok(tree.includes('pyproject.toml') && tree.includes('.claude/harness/harness.toml'), '--full-tree exports the whole candidate');
 
     const unplanned = review({ root: s.work, base: s.base, candidate: s.candidate, model: 'test-evaluator',
       output: 'unplanned.md', planFiles: ['does/not/exist.py'], invoke: capture });

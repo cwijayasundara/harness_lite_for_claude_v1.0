@@ -5,12 +5,12 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { C, BIN } from './_paths.mjs';
-import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, writeTargets } from '../.aidlc/lib/guard.mjs';
-import { layout } from '../.aidlc/lib/paths.mjs';
+import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, writeTargets } from '../.claude/harness/lib/guard.mjs';
+import { layout } from '../.claude/harness/lib/paths.mjs';
 
 // A tree with no release record in it, which is what "unauthorised" looks like on disk.
 const releaseCfg = () => ({ layout: layout(mkdtempSync(path.join(tmpdir(), 'release-guard-'))) });
-import { render, bodyDigest, selectChange } from '../.aidlc/lib/artifacts.mjs';
+import { render, bodyDigest, selectChange } from '../.claude/harness/lib/artifacts.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 import { HUMAN } from './_gates.mjs';
 
@@ -19,18 +19,18 @@ function tmp(prefix) {
   const root = mkdtempSync(path.join(tmpdir(), prefix));
   const layout = {
     root,
-    aidlc: path.join(root, '.aidlc'),
+    harness: path.join(root, '.claude/harness'),
     claude: path.join(root, '.claude'),
-    state: path.join(root, '.aidlc/state'),
+    state: path.join(root, '.claude/harness/state'),
   };
-  mkdirSync(path.join(root, ".aidlc/artifacts/contracts"), { recursive: true });
+  mkdirSync(path.join(root, ".claude/harness/artifacts/contracts"), { recursive: true });
   mkdirSync(layout.state, { recursive: true });
   return { root, layout, cleanup: () => rmSync(root, { recursive: true, force: true }) };
 }
 
 // A simulated approved spec and approved/draft plan, committed and explicitly selected.
 function approvedChange(root, slug, files, specAt, { plan = 'approved' } = {}) {
-  const dir = path.join(root, '.aidlc/artifacts', slug);
+  const dir = path.join(root, '.claude/harness/artifacts', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
   const seal = (body, at) => {
@@ -42,7 +42,7 @@ function approvedChange(root, slug, files, specAt, { plan = 'approved' } = {}) {
   writeFileSync(path.join(dir, 'plan.md'), plan === 'approved' ? seal(planBody, specAt) : render({ status: 'draft' }, planBody));
   spawnSync('git', ['add', '-A'], { cwd: root });
   spawnSync('git', ['-c', 'commit.gpgsign=false', 'commit', '-qm', `${slug} written`], { cwd: root });
-  selectChange({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts') } }, slug);
+  selectChange({ layout: { root, artifacts: path.join(root, '.claude/harness/artifacts') } }, slug);
 }
 
 // Spec behaviour 14. The old check asked whether the command contained `>` *anywhere* and then
@@ -52,12 +52,12 @@ function approvedChange(root, slug, files, specAt, { plan = 'approved' } = {}) {
 // intent describing it, because the prose named a protected path. A guard that blocks reading is
 // one people learn to route around, and a routed-around guard protects nothing.
 test('a command that only reads a protected path is allowed', () => {
-  const paths = ['.claude/settings.json', '.aidlc/harness.toml', 'CLAUDE.md'];
+  const paths = ['.claude/settings.json', '.claude/harness/harness.toml', 'CLAUDE.md'];
   for (const cmd of [
     'head -n 30 .claude/settings.json',
-    'cat .aidlc/harness.toml 2>&1',
-    'grep -n foo .aidlc/harness.toml 2>/dev/null',
-    'cat .aidlc/templates/project-instructions.md 2>&1 | head -5',
+    'cat .claude/harness/harness.toml 2>&1',
+    'grep -n foo .claude/harness/harness.toml 2>/dev/null',
+    'cat .claude/harness/templates/project-instructions.md 2>&1 | head -5',
     'cp ~/.claude/settings.json /tmp/backup.json',
     'node -e "1" > /tmp/out.txt',
   ]) {
@@ -67,38 +67,38 @@ test('a command that only reads a protected path is allowed', () => {
 
 // Spec behaviour 15. Narrowing the guard must not open it. These are the writes it exists for.
 test('a command that writes to a protected path is still denied', () => {
-  const paths = ['.claude/settings.json', '.aidlc/harness.toml', 'CLAUDE.md'];
+  const paths = ['.claude/settings.json', '.claude/harness/harness.toml', 'CLAUDE.md'];
   for (const cmd of [
     'echo x > .claude/settings.json',
-    'echo x >> .aidlc/harness.toml',
-    "sed -i '' s/a/b/ .aidlc/harness.toml",
+    'echo x >> .claude/harness/harness.toml',
+    "sed -i '' s/a/b/ .claude/harness/harness.toml",
     'cat x | tee CLAUDE.md',
     'cp /tmp/other.json .claude/settings.json',
     'mv .claude/settings.json /tmp/',
-    'truncate -s 0 .aidlc/harness.toml',
+    'truncate -s 0 .claude/harness/harness.toml',
   ]) {
     assert.ok(bashTouchesProtected(cmd, paths), `allowed a write to a protected path: ${cmd}`);
   }
 });
 
 // p0 B7 of eval-suite-tells-the-truth. The prompt-prefix guard matched `norm.endsWith('/' + p)`,
-// so every nested copy counted as the prefix: editing `evals/fixtures/_base/.aidlc/harness.toml`
+// so every nested copy counted as the prefix: editing `evals/fixtures/_base/.claude/harness/harness.toml`
 // — a fixture never read into any prompt — was refused as cache invalidation. `norm` is already
 // repo-relative, so identity is the whole test. The control had no unit coverage before this.
 test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
   const f = tmp('prefix-'); try {
     const cfg = { layout: f.layout, guard: {}, gates: HUMAN };
     for (const rel of [
-      'evals/fixtures/_base/.aidlc/harness.toml',
+      'evals/fixtures/_base/.claude/harness/harness.toml',
       'evals/fixtures/clean-app/.claude/CLAUDE.md',
       'examples/scratch-py/.claude/settings.json',
     ]) assert.equal(writeBlocked(rel, cfg), null, `refused a nested copy: ${rel}`);
 
-    // And the repository's own files are still the prefix. `.aidlc/instructions.md` is on that
+    // And the repository's own files are still the prefix. `.claude/harness/instructions.md` is on that
     // list because it is what `.claude/CLAUDE.md` is generated from: editing it and re-running
     // init invalidates the cache exactly as editing the generated file would.
-    // lean-v2 B6 removed `.aidlc/harness.toml` from this list: it is a registry, not prompt text.
-    for (const rel of ['.claude/CLAUDE.md', '.claude/settings.json', '.aidlc/instructions.md']) {
+    // lean-v2 B6 removed `.claude/harness/harness.toml` from this list: it is a registry, not prompt text.
+    for (const rel of ['.claude/CLAUDE.md', '.claude/settings.json', '.claude/harness/instructions.md']) {
       // Matched on the rule's own reason rather than on the clause that used to classify it:
       // the refusal is one sentence now, because two sentences were two things to drop.
       assert.match(String(writeBlocked(rel, cfg)), /prompt cache/, `stopped guarding ${rel}`);
@@ -111,15 +111,15 @@ test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
 // agent read the refusal, named the cache miss it would cause, and forced anyway. The pre-bash
 // hook sees only commands the agent issues, so denying there leaves a human's own shell alone.
 test('the agent cannot force init past the prefix guard, in any spelling', async () => {
-  const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
+  const { dispatch } = await import('../.claude/harness/hooks/dispatch.mjs');
 
   // A temp repo, not this one. Dispatching against the real root wrote every rehearsal into the
   // real ledger: `init-force` reached 120 recorded fires, none of them a person being stopped
   // from anything, and it was the busiest rule on the audit. A ledger that counts its own tests
   // is the "17.7% fired, keep" guess that B9 exists to end.
   const home = mkdtempSync(path.join(tmpdir(), 'dispatch-'));
-  mkdirSync(path.join(home, '.aidlc'), { recursive: true });
-  writeFileSync(path.join(home, '.aidlc/harness.toml'), '[project]\nname = "dispatch-test"\n');
+  mkdirSync(path.join(home, '.claude/harness'), { recursive: true });
+  writeFileSync(path.join(home, '.claude/harness/harness.toml'), '[project]\nname = "dispatch-test"\n');
 
   const ask = async (command) => {
     const chunks = [];
@@ -137,9 +137,9 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
   };
 
   for (const cmd of [
-    'node .aidlc/bin/harness init --force',
-    'bash .aidlc/bin/harness init --into . --force',
-    '.aidlc/bin/harness init --force --into .',
+    'node .claude/harness/bin/harness init --force',
+    'bash .claude/harness/bin/harness init --into . --force',
+    '.claude/harness/bin/harness init --force --into .',
   ]) {
     const out = await ask(cmd);
     assert.match(out, /agent instructions or permissions/, `allowed: ${cmd}`);
@@ -147,7 +147,7 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
   }
 
   // B2: ordinary init stays available, or the install and upgrade paths close.
-  assert.doesNotMatch(await ask('node .aidlc/bin/harness init --into .'), /agent instructions or permissions/);
+  assert.doesNotMatch(await ask('node .claude/harness/bin/harness init --into .'), /agent instructions or permissions/);
 
   // B6: an invocation, not a mention. The first version matched the string anywhere and refused
   // the script writing this contract's own evidence, which quoted the rule it was documenting.
@@ -166,11 +166,11 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
 // — and the second group was invisible, because a control that is absent looks exactly like a
 // control that passed. Every eval fixture was in that group.
 test('require_contract defaults on, and an explicit choice still wins', async () => {
-  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const { loadConfig } = await import('../.claude/harness/lib/config.mjs');
   const write = (body) => {
     const root = mkdtempSync(path.join(tmpdir(), 'cfg-'));
-    mkdirSync(path.join(root, '.aidlc'), { recursive: true });
-    writeFileSync(path.join(root, '.aidlc/harness.toml'), body);
+    mkdirSync(path.join(root, '.claude/harness'), { recursive: true });
+    writeFileSync(path.join(root, '.claude/harness/harness.toml'), body);
     return root;
   };
   const bare = write('[project]\nname = "x"\n');
@@ -186,7 +186,7 @@ test('require_contract defaults on, and an explicit choice still wins', async ()
 
 function contractCfg(f) {
   return {
-    layout: { ...f.layout, artifacts: path.join(f.root, '.aidlc/artifacts') },
+    layout: { ...f.layout, artifacts: path.join(f.root, '.claude/harness/artifacts') },
     guard: { require_contract: true }, gates: HUMAN,
   };
 }
@@ -202,15 +202,15 @@ test('the contract guard does not block a command that writes no product file', 
     const cfg = contractCfg(f);
     for (const cmd of [
       'echo hi 2>/dev/null | head -1',
-      'node .aidlc/bin/harness check --stage stop 2>&1 | tail -30',
+      'node .claude/harness/bin/harness check --stage stop 2>&1 | tail -30',
       'git commit -q -m "fix: x" -m "Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"',
-      'grep -rn contractScopeState .aidlc/lib 2>/dev/null',
+      'grep -rn contractScopeState .claude/harness/lib 2>/dev/null',
       'ls -la > /dev/null',
-      'node .aidlc/bin/harness status >> .aidlc/state/last-check.json',
+      'node .claude/harness/bin/harness status >> .claude/harness/state/last-check.json',
       // The carve-out is about the artifact and state trees, not about how they were spelled.
-      `echo x > ${f.root}/.aidlc/artifacts/intent/foo.md`,
-      `echo x > ${f.root}/.aidlc/state/scratch`,
-      'echo x > ./.aidlc/state/scratch',
+      `echo x > ${f.root}/.claude/harness/artifacts/intent/foo.md`,
+      `echo x > ${f.root}/.claude/harness/state/scratch`,
+      'echo x > ./.claude/harness/state/scratch',
     ]) assert.equal(bashContractBlocked(cmd, cfg), null, `blocked a command that writes no product file: ${cmd}`);
   } finally { f.cleanup(); }
 });
@@ -248,11 +248,11 @@ test('scope guard remains configurable for non-product repositories', () => {
 
 test('require_contract permits only paths owned by a committed approved contract', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
+    const layout = { root: s.work, artifacts: path.join(s.work, '.claude/harness/artifacts'), state: path.join(s.work, '.claude/harness/state') };
     const cfg = { layout, guard: { require_contract: true }, gates: HUMAN };
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
     assert.match(writeBlocked('src/app/handlers.py', cfg), /outside the current change "hyphen-titlecase"/);
-    assert.equal(writeBlocked('.aidlc/artifacts/intent-refs/change.json', cfg), null);
+    assert.equal(writeBlocked('.claude/harness/artifacts/intent-refs/change.json', cfg), null);
   } finally { s.cleanup(); }
 });
 
@@ -262,7 +262,7 @@ test('require_contract permits only paths owned by a committed approved contract
 // is actually being made.
 test('a path named only by an older change\'s plan is refused under the current change', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
+    const layout = { root: s.work, artifacts: path.join(s.work, '.claude/harness/artifacts'), state: path.join(s.work, '.claude/harness/state') };
     const cfg = { layout, guard: { require_contract: true }, gates: HUMAN };
     approvedChange(s.work, 'second-change', ['src/app/second.py'], '2026-09-02T00:00:00.000Z');
 
@@ -278,7 +278,7 @@ test('a path named only by an older change\'s plan is refused under the current 
 // and says what to do next — never that the guard can be switched off (F2).
 test('a current change with no approved plan refuses every product write and names the way forward', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
+    const layout = { root: s.work, artifacts: path.join(s.work, '.claude/harness/artifacts'), state: path.join(s.work, '.claude/harness/state') };
     const cfg = { layout, guard: { require_contract: true }, gates: HUMAN };
     approvedChange(s.work, 'sprint-3', ['src/app/text.py'], '2026-09-02T00:00:00.000Z', { plan: 'draft' });
 
@@ -291,18 +291,18 @@ test('a current change with no approved plan refuses every product write and nam
       assert.doesNotMatch(refusal, /require_contract = false/);
     }
     // Artifacts stay writable: the gate you cannot draft is not a gate.
-    assert.equal(writeBlocked('.aidlc/artifacts/sprint-3/plan.md', cfg), null);
+    assert.equal(writeBlocked('.claude/harness/artifacts/sprint-3/plan.md', cfg), null);
   } finally { s.cleanup(); }
 });
 
 // lean-v2 B6. `[guard].protected_paths` and `require_contract` were two answers to one question,
-// and they disagreed: `dormant-sensors-run-at-commit` named `evals/fixtures/_base/.aidlc/harness.toml`
+// and they disagreed: `dormant-sensors-run-at-commit` named `evals/fixtures/_base/.claude/harness/harness.toml`
 // in its sealed plan, the protected-path rule refused the write anyway, and the suite stayed red
 // until a human typed the line by hand. A protected path is protected from an *unplanned* write.
 // A human sealing a plan that names the exact path is the decision the rule exists to require.
 test('a protected path an approved committed contract names is writable', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
+    const layout = { root: s.work, artifacts: path.join(s.work, '.claude/harness/artifacts'), state: path.join(s.work, '.claude/harness/state') };
     const cfg = { layout, guard: { require_contract: true, protected_paths: ['src/app', 'evals/fixtures'] }, gates: HUMAN };
 
     // Owned by the fixture's committed approved contract, and protected. The plan wins.
@@ -335,15 +335,15 @@ test('a protected path an approved committed contract names is writable', () => 
 // never that they refused for the same reason. B1's own clause is "the refusal is the same
 // message the Write tool returns for that same path" — the two are now compared verbatim.
 test('the bash path and the write path return one verdict for one target', async () => {
-  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const { loadConfig } = await import('../.claude/harness/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
     const cfg = { ...loadConfig(s.work), gates: HUMAN };
     const norm = (t) => path.relative(cfg.layout.root, path.resolve(cfg.layout.root, t));
     const rows = [
       ['owned', 'src/app/text.py'],
       ['unowned', 'src/app/handlers.py'],
-      ['protected', '.aidlc/harness.toml'],
-      ['artifact', '.aidlc/artifacts/hyphen-titlecase/plan.md'],
+      ['protected', '.claude/harness/harness.toml'],
+      ['artifact', '.claude/harness/artifacts/hyphen-titlecase/plan.md'],
       ['/dev/', '/dev/null'],
     ];
     for (const [label, target] of rows) {
@@ -362,7 +362,7 @@ test('the bash path and the write path return one verdict for one target', async
 // repository-relative path the same way, so they cannot disagree about which side of the root a
 // target falls on.
 test('an out-of-tree target is allowed on both paths', async () => {
-  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const { loadConfig } = await import('../.claude/harness/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
     const cfg = { ...loadConfig(s.work), gates: HUMAN };
     const outside = path.join(tmpdir(), 'harness-probe.txt');
@@ -380,7 +380,7 @@ test('an out-of-tree target is allowed on both paths', async () => {
 // owned path first and the unowned path second, so a refusal naming the first target would prove
 // nothing changed — this proves the verdict is per target, not per command.
 test('a command with several write targets is refused for the unowned one, not the first extracted', async () => {
-  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const { loadConfig } = await import('../.claude/harness/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
     const cfg = { ...loadConfig(s.work), gates: HUMAN };
     const refusal = String(bashContractBlocked('cat src/app/text.py > src/app/text.py; echo x > src/app/handlers.py', cfg));
@@ -392,7 +392,7 @@ test('a command with several write targets is refused for the unowned one, not t
 // precisely the blind spot that let D1 live. A selected change's approved plan makes its own
 // paths writable through the shell, exactly as it does through Write and Edit.
 test('a shell redirect to a path the approved plan owns proceeds', async () => {
-  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const { loadConfig } = await import('../.claude/harness/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
     const cfg = { ...loadConfig(s.work), gates: HUMAN };
     assert.equal(bashContractBlocked('echo x > src/app/text.py', cfg), null);
@@ -405,7 +405,7 @@ test('a shell redirect to a path the approved plan owns proceeds', async () => {
 // `path.resolve` were all refused, on a fixture where `hyphen-titlecase` owns `src/app/text.py`.
 // Each row reproduces one false block from the evaluator's table and asserts it is now allowed.
 test('a token writeTargets extracted that cannot be a path is dropped, not refused', async () => {
-  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const { loadConfig } = await import('../.claude/harness/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
     const cfg = { ...loadConfig(s.work), gates: HUMAN };
 
@@ -446,14 +446,14 @@ test('a token writeTargets extracted that cannot be a path is dropped, not refus
 // different rules could not answer that question. Drives the real `dispatch('pre-tool')` hook,
 // the same harness the two tests above at lines 106 and 443 use, and reads the appended row.
 test('a bash refusal names the rule that produced it, in the ledger', async () => {
-  const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
-  const { read } = await import('../.aidlc/lib/ledger.mjs');
+  const { dispatch } = await import('../.claude/harness/hooks/dispatch.mjs');
+  const { read } = await import('../.claude/harness/lib/ledger.mjs');
   const home = mkdtempSync(path.join(tmpdir(), 'dispatch-rule-'));
-  mkdirSync(path.join(home, '.aidlc'), { recursive: true });
+  mkdirSync(path.join(home, '.claude/harness'), { recursive: true });
   // G06: the rule names asserted below are the *blocking* rules, so this repo declares the
   // enforcing gate. Under the advisory default the first command is a `warn` row and the
   // assertion would be reading the protected-path row instead.
-  writeFileSync(path.join(home, '.aidlc/harness.toml'), '[project]\nname = "dispatch-test"\n\n[gates]\nspec = "human"\nplan = "human"\n');
+  writeFileSync(path.join(home, '.claude/harness/harness.toml'), '[project]\nname = "dispatch-test"\n\n[gates]\nspec = "human"\nplan = "human"\n');
 
   const ask = async (command) => {
     const write = process.stdout.write.bind(process.stdout);
@@ -469,9 +469,9 @@ test('a bash refusal names the rule that produced it, in the ledger', async () =
 
   try {
     await ask('echo x > src/app.py');             // unowned: no change is selected in this repo
-    await ask('echo x > .aidlc/harness.toml');     // protected by default
+    await ask('echo x > .claude/harness/harness.toml');     // protected by default
 
-    const rows = read({ ledger: path.join(home, '.aidlc/state/ledger.jsonl') })
+    const rows = read({ ledger: path.join(home, '.claude/harness/state/ledger.jsonl') })
       .filter((r) => r.control === 'bash-guard' && r.verdict === 'fail');
     assert.equal(rows[0]?.rule, 'write-scope', `expected write-scope, got ${rows[0]?.rule}`);
     assert.equal(rows[1]?.rule, 'protected-path', `expected protected-path, got ${rows[1]?.rule}`);
@@ -482,7 +482,7 @@ test('a bash refusal names the rule that produced it, in the ledger', async () =
 
 test('a malformed contract fails closed for product writes', () => {
   const f = tmp('guard-bad-'); try {
-    f.layout.contracts = path.join(f.root, '.aidlc/artifacts/contracts'); mkdirSync(f.layout.contracts, { recursive: true });
+    f.layout.contracts = path.join(f.root, '.claude/harness/artifacts/contracts'); mkdirSync(f.layout.contracts, { recursive: true });
     writeFileSync(path.join(f.layout.contracts, 'change.md'), '# malformed contract\n');
     const refusal = String(writeBlocked('src/app.py', { layout: f.layout, guard: { require_contract: true }, gates: HUMAN }));
     assert.match(refusal, /cannot resolve selection/);
@@ -558,11 +558,11 @@ test('a file nothing can lock is no longer refused for being locked', () => {
 // switch; only its own gates or explicit reselection can restore execution.
 test('a selected draft refuses writes until its gates pass or another change is explicitly selected', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
+    const layout = { root: s.work, artifacts: path.join(s.work, '.claude/harness/artifacts'), state: path.join(s.work, '.claude/harness/state') };
     const cfg = { layout, guard: { require_contract: true }, gates: HUMAN };
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
 
-    const dir = path.join(s.work, '.aidlc/artifacts/paid-never-overdue');
+    const dir = path.join(s.work, '.claude/harness/artifacts/paid-never-overdue');
     mkdirSync(dir, { recursive: true });
     writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
     const body = '# Spec: paid-never-overdue\n\n### B1\n\nGiven a paid invoice\nWhen isOverdue is asked\nThen it answers false\n';
@@ -576,7 +576,7 @@ test('a selected draft refuses writes until its gates pass or another change is 
     assert.match(refusal, /harness approve paid-never-overdue spec/);
     assert.match(refusal, /close/);
     assert.doesNotMatch(refusal, /require_contract = false/);
-    assert.equal(writeBlocked('.aidlc/artifacts/paid-never-overdue/spec.md', cfg), null, 'the draft itself stays writable');
+    assert.equal(writeBlocked('.claude/harness/artifacts/paid-never-overdue/spec.md', cfg), null, 'the draft itself stays writable');
 
     // Closing never borrows another plan; explicitly select the previous work.
     writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: closed\n---\n# Intent\n');
@@ -601,12 +601,12 @@ test('a selected draft refuses writes until its gates pass or another change is 
 // reversal belongs — never the switch.
 test('an edited approved spec refuses every product write until re-approved or restored', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
+    const layout = { root: s.work, artifacts: path.join(s.work, '.claude/harness/artifacts'), state: path.join(s.work, '.claude/harness/state') };
     const cfg = { layout, guard: { require_contract: true }, gates: HUMAN };
     approvedChange(s.work, 'sprint-2', ['src/app/text.py'], '2026-09-02T00:00:00.000Z');
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
 
-    const spec = path.join(s.work, '.aidlc/artifacts/sprint-2/spec.md');
+    const spec = path.join(s.work, '.claude/harness/artifacts/sprint-2/spec.md');
     writeFileSync(spec, readFileSync(spec, 'utf8') + '\n### B8\n\nGiven a paid invoice\nWhen asked\nThen never overdue\n');
     const refusal = String(writeBlocked('src/app/text.py', cfg));
     assert.match(refusal, /sprint-2\/spec\.md was edited after it was approved/);
@@ -614,7 +614,7 @@ test('an edited approved spec refuses every product write until re-approved or r
     assert.match(refusal, /restore the approved text/);
     assert.match(refusal, /supersedes:/);
     assert.doesNotMatch(refusal, /require_contract = false/);
-    assert.equal(writeBlocked('.aidlc/artifacts/sprint-2/spec.md', cfg), null, 'the artifact stays writable');
+    assert.equal(writeBlocked('.claude/harness/artifacts/sprint-2/spec.md', cfg), null, 'the artifact stays writable');
   } finally { s.cleanup(); }
 });
 
@@ -625,10 +625,10 @@ test('an edited approved spec refuses every product write until re-approved or r
 // mechanism `init --force` uses. Under the unattended runner the agent is its own approver on
 // purpose, and the rule stands down.
 test('an agent cannot run harness approve in an attended session; a mention is not an invocation; unattended may', async () => {
-  const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
+  const { dispatch } = await import('../.claude/harness/hooks/dispatch.mjs');
   const home = mkdtempSync(path.join(tmpdir(), 'dispatch-approve-'));
-  mkdirSync(path.join(home, '.aidlc'), { recursive: true });
-  writeFileSync(path.join(home, '.aidlc/harness.toml'), '[project]\nname = "dispatch-test"\n');
+  mkdirSync(path.join(home, '.claude/harness'), { recursive: true });
+  writeFileSync(path.join(home, '.claude/harness/harness.toml'), '[project]\nname = "dispatch-test"\n');
   const ask = async (command) => {
     const chunks = [];
     const write = process.stdout.write.bind(process.stdout);
@@ -646,9 +646,9 @@ test('an agent cannot run harness approve in an attended session; a mention is n
   delete process.env.AIDLC_UNATTENDED;
   try {
     for (const cmd of [
-      'node .aidlc/bin/harness approve my-change spec --by me',
-      'bash .aidlc/bin/harness approve my-change plan --by tester',
-      'cd /tmp && .aidlc/bin/harness approve x spec --by y',
+      'node .claude/harness/bin/harness approve my-change spec --by me',
+      'bash .claude/harness/bin/harness approve my-change plan --by tester',
+      'cd /tmp && .claude/harness/bin/harness approve x spec --by y',
     ]) {
       const out = await ask(cmd);
       assert.match(out, /approval is the human/i, `allowed: ${cmd}`);
@@ -657,13 +657,13 @@ test('an agent cannot run harness approve in an attended session; a mention is n
     for (const cmd of [
       'git commit -m "the owner ran harness approve for this spec"',
       "cat > notes.md <<'EOF'\nrun harness approve x spec\nEOF",
-      'node .aidlc/bin/harness status',
+      'node .claude/harness/bin/harness status',
     ]) {
       const out = await ask(cmd);
       assert.doesNotMatch(out, /approval is the human/i, `refused a mention or an unrelated command: ${cmd}`);
     }
     process.env.AIDLC_UNATTENDED = '1';
-    const unattended = await ask('node .aidlc/bin/harness approve my-change spec');
+    const unattended = await ask('node .claude/harness/bin/harness approve my-change spec');
     assert.match(unattended, /approval is the human/i, 'trial flags do not grant approval authority');
   } finally {
     if (had === undefined) delete process.env.AIDLC_UNATTENDED; else process.env.AIDLC_UNATTENDED = had;
@@ -671,15 +671,15 @@ test('an agent cannot run harness approve in an attended session; a mention is n
   }
 });
 
-// B3. F38: an agent edited `.aidlc/harness.toml` in a task about a health endpoint. The registry
+// B3. F38: an agent edited `.claude/harness/harness.toml` in a task about a health endpoint. The registry
 // is protected by default in every installed repository; a plan that names it still may.
 test('the registry is a protected path by default, and a plan naming it still permits the write', async () => {
-  const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+  const { loadConfig } = await import('../.claude/harness/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
     const cfg = { ...loadConfig(s.work), gates: HUMAN };
-    assert.ok(cfg.guard.protected_paths.includes('.aidlc/harness.toml'), 'protected by default');
-    assert.match(String(writeBlocked('.aidlc/harness.toml', cfg)), /protected_paths/);
-    approvedChange(s.work, 'tune-registry', ['.aidlc/harness.toml'], '2026-09-02T00:00:00.000Z');
-    assert.equal(writeBlocked('.aidlc/harness.toml', { ...loadConfig(s.work), gates: HUMAN }), null, 'a plan naming it wins');
+    assert.ok(cfg.guard.protected_paths.includes('.claude/harness/harness.toml'), 'protected by default');
+    assert.match(String(writeBlocked('.claude/harness/harness.toml', cfg)), /protected_paths/);
+    approvedChange(s.work, 'tune-registry', ['.claude/harness/harness.toml'], '2026-09-02T00:00:00.000Z');
+    assert.equal(writeBlocked('.claude/harness/harness.toml', { ...loadConfig(s.work), gates: HUMAN }), null, 'a plan naming it wins');
   } finally { s.cleanup(); }
 });

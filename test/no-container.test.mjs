@@ -13,13 +13,13 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './_paths.mjs';
 
-const EXECUTABLE = ['evals', 'test', '.aidlc', '.github/workflows'];
+const EXECUTABLE = ['evals', 'test', '.claude/harness', '.github/workflows'];
 const SKIP = /(^|\/)(\.git|node_modules|evidence|comparisons|artifacts|state)(\/|$)/;
 // B1 forbids *invoking or requiring* the runtime, which is what these match: naming it as a
 // command, the helpers that built its arguments, the image identifiers, the opt-in variable and
 // the socket. Prose is deliberately not matched. A comment recording why a variable is stripped,
 // or the slug `the-tests-run-without-docker`, requires nothing — and banning the word outright
-// would have forced an edit to `.aidlc/sensors/architecture.mjs`, whose unrelated docker-compose
+// would have forced an edit to `.claude/harness/sensors/architecture.mjs`, whose unrelated docker-compose
 // example this change does not own. The dependency cannot come back without matching one of
 // these, because it cannot be invoked without being named as a command.
 const FORBIDDEN = [
@@ -40,7 +40,7 @@ function sourceFiles(rel) {
     const next = `${rel}/${entry.name}`;
     if (SKIP.test(next)) continue;
     if (entry.isDirectory()) out.push(...sourceFiles(next));
-    // No extension filter: `.aidlc/bin/harness` carries this project's control flow and has no
+    // No extension filter: `.claude/harness/bin/harness` carries this project's control flow and has no
     // extension, so filtering by suffix left the one file most worth scanning unscanned.
     else if (!/\.(md|png|jpe?g|gif|ico|pdf|zip|gz|lock)$/i.test(entry.name)) out.push(next);
   }
@@ -49,7 +49,7 @@ function sourceFiles(rel) {
 
 test('B1: nothing in the executable surface invokes or requires Docker', () => {
   const offenders = [];
-  for (const rel of [...EXECUTABLE.flatMap(sourceFiles), '.aidlc/harness.toml']) {
+  for (const rel of [...EXECUTABLE.flatMap(sourceFiles), '.claude/harness/harness.toml']) {
     if (rel === 'test/no-container.test.mjs') continue; // names the strings in order to forbid them
     const text = readFileSync(path.join(ROOT, rel), 'utf8');
     for (const pattern of FORBIDDEN) {

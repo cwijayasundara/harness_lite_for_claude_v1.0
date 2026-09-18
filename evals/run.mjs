@@ -14,11 +14,11 @@ import { readdirSync as _rd, statSync as _st } from 'node:fs';
 import { stage, stageProduct } from './lib/stage.mjs';
 import { runProductCampaign } from './lib/campaign.mjs';
 import { gradeComparisonProduct } from './lib/comparison.mjs';
-import { parse } from '../.aidlc/lib/artifacts.mjs';
+import { parse } from '../.claude/harness/lib/artifacts.mjs';
 import { approvalDriver } from './lib/approvals.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
-import { layout } from '../.aidlc/lib/paths.mjs';
-import { requireSubscription } from '../.aidlc/lib/claude-auth.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
+import { layout } from '../.claude/harness/lib/paths.mjs';
+import { requireSubscription } from '../.claude/harness/lib/claude-auth.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PLUGIN_ROOT = path.dirname(HERE);
@@ -243,7 +243,7 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
   return { assertions, usage, timedOut, transcript, incomplete, latencyMs, approvals: approvals.events() };
 }
 
-export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {}, maxSuiteUsd = Infinity, evidenceRoot = path.join(PLUGIN_ROOT, '.aidlc/evals/products'), evaluatorModel = null, concurrency = 1 }) {
+export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {}, maxSuiteUsd = Infinity, evidenceRoot = path.join(PLUGIN_ROOT, '.claude/harness/evals/products'), evaluatorModel = null, concurrency = 1 }) {
   if (!(maxSuiteUsd > 0)) throw new Error('max-suite-usd must be positive');
   let remaining = maxSuiteUsd;
   // Reserve before the call, settle after. Deducting only after a call returns was safe while the
@@ -465,7 +465,7 @@ async function main() {
     // result and a stack trace is not.
     const available=boundary.ok;
     const stamp=new Date().toISOString().replace(/[:.]/g,'-');
-    const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',prune?`prune-${stamp}`:stamp);
+    const evidenceRoot=path.join(PLUGIN_ROOT,'.claude/harness/evals/comparisons',prune?`prune-${stamp}`:stamp);
     const out=await runComparisons({tasks,models,prune,pruneArm:flag('prune-arm'),pair:flag('comparison'),root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),
       maxUsd:Number(flag('max-suite-usd',prune?9:40)),maxMinutes:Number(flag('max-suite-minutes',prune?40:30)),repetitions:Number(flag('repeats',prune?1:3)),
       invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true,boundary})(args),
@@ -489,7 +489,7 @@ async function main() {
   // B12. The model the suite drives, from the one registry that names it.
   let evalModel = null;
   try {
-    const { loadConfig } = await import('../.aidlc/lib/config.mjs');
+    const { loadConfig } = await import('../.claude/harness/lib/config.mjs');
     evalModel = loadConfig(PLUGIN_ROOT).models?.evals ?? null;
   } catch { /* no registry: the CLI default is a defensible fallback */ }
   if(products)evalModel=models.generator;
@@ -503,15 +503,15 @@ async function main() {
     // not have to be sequential. Default 1 — a suite that quietly changed how it runs is a suite
     // whose numbers changed for a reason nobody recorded.
     concurrency: Number(flag('concurrency', flag('j', 1))),
-    harnessBin: path.join(PLUGIN_ROOT, '.aidlc', 'bin', 'harness'),
+    harnessBin: path.join(PLUGIN_ROOT, '.claude/harness', 'bin', 'harness'),
     invoke: args => claudeInvoker({ pluginDir: PLUGIN_ROOT, model: products && args.phase==='review' ? models.evaluator : evalModel, boundary })(args),
     log: (m) => console.log(m),
   });
 
   // Results are harness output about a repo, not part of the eval suite, so they stay under
-  // .aidlc/ where indicators.mjs reads them and where a target repo keeps its own. The
+  // .claude/harness/ where indicators.mjs reads them and where a target repo keeps its own. The
   // suite moved to the repo root; its results did not.
-  const dir = path.join(path.dirname(HERE), '.aidlc', 'evals', products?'products':'results');
+  const dir = path.join(path.dirname(HERE), '.claude/harness', 'evals', products?'products':'results');
   if(products){out.kind='product-campaigns';out.calibration=tasks.some(t=>t.calibration);out.models=models;}
   mkdirSync(dir, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');

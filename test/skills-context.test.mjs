@@ -1,6 +1,6 @@
 // skills-earn-their-context: a skill is shipped because it says something specific to this
 // harness, or because evidence says it earns its context. This file states that ceiling; the
-// per-skill reasoning is in .aidlc/artifacts/skills-earn-their-context/review.md.
+// per-skill reasoning is in .claude/harness/artifacts/skills-earn-their-context/review.md.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -8,17 +8,17 @@ import path from 'node:path';
 import { A, ROOT } from './_paths.mjs';
 
 const read = rel => readFileSync(path.join(ROOT, rel), 'utf8');
-const skill = name => read(`.aidlc/skills/${name}/SKILL.md`);
+const skill = name => read(`.claude/harness/skills/${name}/SKILL.md`);
 const lines = text => text.trimEnd().split('\n').length;
 const README = read('README.md');
 const PLAN = read('docs/IMPROVEMENT-PLAN.md');
-const HARNESS = read('.aidlc/bin/harness');
+const HARNESS = read('.claude/harness/bin/harness');
 
 // The reviewed set, by name rather than by count, so a swap fails as loudly as an addition.
 //
 // G16 swapped `map` for `design`. `map` was a whole skill to say "ask the index before you grep",
 // which is standing advice rather than a procedure anyone invokes — it is five lines of
-// `.aidlc/instructions.md` now. `design` is the gap that left: resolving the branches of a change
+// `.claude/harness/instructions.md` now. `design` is the gap that left: resolving the branches of a change
 // before writing it, rather than rationalising them after. The count did not move and neither did
 // the ceiling.
 const SHIPPED = ['design', 'diagnose', 'implement', 'intent', 'plan', 'spec'];
@@ -30,7 +30,7 @@ test('B1 the shipped skills are the reviewed six, and the ceiling has not moved'
     'a skill was added, removed or renamed: record why in review.md and Law 11 evidence for it');
 
   // Adding one means deleting one. Raising the ceiling instead is the move this row refuses.
-  const toml = read('.aidlc/harness.toml');
+  const toml = read('.claude/harness/harness.toml');
   const limits = Object.fromEntries(
     [...toml.matchAll(/^(skills|agents|hooks)\s*=\s*(\d+)/gm)].map(m => [m[1], Number(m[2])]));
   assert.deepEqual(limits, { skills: 7, agents: 3, hooks: 5 },
@@ -47,7 +47,7 @@ test('B2 diagnose stays trimmed, and change-safely\'s four unduplicated rules li
   assert.doesNotMatch(diagnose, /## Anti-patterns/);
 
   for (const rule of [
-    /bash \.aidlc\/bin\/harness check/,          // the loop is built from this repository's checks
+    /bash \.claude\/harness\/bin\/harness check/,          // the loop is built from this repository's checks
     /control-band breach, run `harness new <slug>`/, // breach -> intent, on the verb that exists
     /one permanent eval reproducing the incident class/,
     /test locks and external evaluation fixtures remain protected/,
@@ -71,7 +71,7 @@ test('B2 diagnose stays trimmed, and change-safely\'s four unduplicated rules li
   assert.match(skill('spec'), /supersedes: <slug>#<behaviour-id>/);
   assert.match(skill('spec'), /extends: <slug>/);
   // The graph guidance `map` carried is standing advice now, in the file every session loads.
-  const instructions = read('.aidlc/instructions.md');
+  const instructions = read('.claude/harness/instructions.md');
   assert.match(instructions, /## Finding your way around/);
   assert.match(instructions, /graph query callers/);
   assert.match(instructions, /A miss means grep, not "it does\s+not exist"/);
@@ -96,7 +96,7 @@ test('B3 every skill and agent the README presents as shipped exists', () => {
   }
   // Replaced by change-safely at 3332615. BUILD-PLAN's account of the original twenty is history.
   assert.doesNotMatch(README, /pure-refactor/);
-  assert.doesNotMatch(read('.aidlc/instructions.md'), /pure-refactor/);
+  assert.doesNotMatch(read('.claude/harness/instructions.md'), /pure-refactor/);
 });
 
 test('B4 the guidance states the entry condition, and there is no way to ship a skill pack', () => {

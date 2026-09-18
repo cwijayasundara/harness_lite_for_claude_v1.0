@@ -13,11 +13,11 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, appendFile
 import { tmpdir } from 'node:os';
 import { spawnSync, execFileSync } from 'node:child_process';
 import path from 'node:path';
-import { loadConfig, gateMode, gateBlocks, DEFAULT_GATES } from '../.aidlc/lib/config.mjs';
-import { writeRefusal, writeBlocked, bashContractRefusal, bashContractBlocked } from '../.aidlc/lib/guard.mjs';
-import { run as scopeDrift } from '../.aidlc/checks/scope-drift.mjs';
-import * as a from '../.aidlc/lib/artifacts.mjs';
-import { read as readLedger } from '../.aidlc/lib/ledger.mjs';
+import { loadConfig, gateMode, gateBlocks, DEFAULT_GATES } from '../.claude/harness/lib/config.mjs';
+import { writeRefusal, writeBlocked, bashContractRefusal, bashContractBlocked } from '../.claude/harness/lib/guard.mjs';
+import { run as scopeDrift } from '../.claude/harness/checks/scope-drift.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
+import { read as readLedger } from '../.claude/harness/lib/ledger.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 import { HUMAN, ADVISORY, AUTO } from './_gates.mjs';
 import { BIN } from './_paths.mjs';
@@ -33,7 +33,7 @@ const UNOWNED = 'src/app/handlers.py';
 
 test('a mode that nobody chose is refused at load, and merge takes exactly one value', () => {
   const root = mkdtempSync(path.join(tmpdir(), 'gates-cfg-'));
-  const toml = path.join(root, '.aidlc/harness.toml');
+  const toml = path.join(root, '.claude/harness/harness.toml');
   mkdirSync(path.dirname(toml), { recursive: true });
   const load = (gates) => { writeFileSync(toml, `[project]\nname = "g"\n${gates}`); return loadConfig(root); };
   try {
@@ -104,10 +104,10 @@ test('advisory relaxes the gates and nothing else', () => {
   try {
     const advisory = modes(s.work, ADVISORY);
 
-    const registry = writeRefusal('.aidlc/harness.toml', advisory);
+    const registry = writeRefusal('.claude/harness/harness.toml', advisory);
     assert.equal(registry.rule, 'protected-path');
     assert.equal(registry.advisory, false, 'a protected path is not a gate');
-    assert.match(String(writeBlocked('.aidlc/harness.toml', advisory)), /protected_paths/);
+    assert.match(String(writeBlocked('.claude/harness/harness.toml', advisory)), /protected_paths/);
 
     const prefix = writeRefusal('.claude/CLAUDE.md', advisory);
     assert.equal(prefix.rule, 'prefix-cache');
@@ -116,13 +116,13 @@ test('advisory relaxes the gates and nothing else', () => {
     // A command that writes to both an out-of-scope path and a protected one denies. Returning
     // whichever hit came first in token order would make the denial depend on the order the
     // shell happened to write its redirections in.
-    const both = bashContractRefusal(`echo x > ${UNOWNED}; echo y > .aidlc/harness.toml`, advisory);
+    const both = bashContractRefusal(`echo x > ${UNOWNED}; echo y > .claude/harness/harness.toml`, advisory);
     assert.equal(both.rule, 'protected-path');
     assert.equal(both.advisory, false);
-    assert.ok(bashContractBlocked(`echo x > ${UNOWNED}; echo y > .aidlc/harness.toml`, advisory));
+    assert.ok(bashContractBlocked(`echo x > ${UNOWNED}; echo y > .claude/harness/harness.toml`, advisory));
 
     // And the reverse order, so this is a property of the verdicts rather than of the string.
-    assert.equal(bashContractRefusal(`echo y > .aidlc/harness.toml; echo x > ${UNOWNED}`, advisory).rule, 'protected-path');
+    assert.equal(bashContractRefusal(`echo y > .claude/harness/harness.toml; echo x > ${UNOWNED}`, advisory).rule, 'protected-path');
   } finally { s.cleanup(); }
 });
 
@@ -160,7 +160,7 @@ test('scope-drift warns under an advisory gate, and an unkept proof still fails'
 // The PR check's half of the acceptance: under advisory the candidate check annotates — real
 // findings, named rule, and a report that does not fail — where under `human` it refuses.
 test('a candidate check annotates under advisory and fails under human', async () => {
-  const { check } = await import('../.aidlc/lib/runner.mjs');
+  const { check } = await import('../.claude/harness/lib/runner.mjs');
   const s = stage(FIXTURES, 'contract-planned');
   try {
     const base = git(s.work, 'rev-parse', 'HEAD');
@@ -184,10 +184,10 @@ test('a candidate check annotates under advisory and fails under human', async (
 });
 
 test('the write hook warns instead of denying, and records a warn row rather than a fail', async () => {
-  const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
+  const { dispatch } = await import('../.claude/harness/hooks/dispatch.mjs');
   const s = stage(FIXTURES, 'contract-planned');
   try {
-    appendFileSync(path.join(s.work, '.aidlc/harness.toml'), '\n[gates]\nspec = "advisory"\nplan = "advisory"\n');
+    appendFileSync(path.join(s.work, '.claude/harness/harness.toml'), '\n[gates]\nspec = "advisory"\nplan = "advisory"\n');
 
     const ask = async (file) => {
       const chunks = [];
@@ -210,7 +210,7 @@ test('the write hook warns instead of denying, and records a warn row rather tha
     assert.match(hook.additionalContext, /hyphen-titlecase/, 'the warning still says what is out of scope');
     assert.match(hook.additionalContext, /recorded, not refused/);
 
-    const rows = readLedger({ ledger: path.join(s.work, '.aidlc/state/ledger.jsonl') })
+    const rows = readLedger({ ledger: path.join(s.work, '.claude/harness/state/ledger.jsonl') })
       .filter((r) => r.control === 'write-guard');
     const fired = rows.filter((r) => r.rule === 'write-scope');
     assert.equal(fired.length, 1);
@@ -223,7 +223,7 @@ test('the write hook warns instead of denying, and records a warn row rather tha
 
 test('status shows a relaxed approval as a row and exits 0; the same state under human is an error and exits 1', () => {
   const s = stage(FIXTURES, 'contract-planned');
-  const toml = path.join(s.work, '.aidlc/harness.toml');
+  const toml = path.join(s.work, '.claude/harness/harness.toml');
   const withGates = (mode) => {
     const text = readFileSync(toml, 'utf8').replace(/\n\[gates\][\s\S]*$/, '');
     writeFileSync(toml, `${text}\n[gates]\nspec = "${mode}"\nplan = "${mode}"\nmerge = "human"\n`);
@@ -305,20 +305,20 @@ test('only an auto gate records a policy approval, and it says so in the frontma
 });
 
 test('the agent still cannot approve through its own shell, in any mode', async () => {
-  const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
+  const { dispatch } = await import('../.claude/harness/hooks/dispatch.mjs');
   const home = mkdtempSync(path.join(tmpdir(), 'gates-approve-'));
-  mkdirSync(path.join(home, '.aidlc'), { recursive: true });
+  mkdirSync(path.join(home, '.claude/harness'), { recursive: true });
   const had = process.env.AIDLC_UNATTENDED;
   delete process.env.AIDLC_UNATTENDED;
   try {
     for (const mode of ['human', 'advisory', 'auto']) {
-      writeFileSync(path.join(home, '.aidlc/harness.toml'), `[project]\nname = "g"\n[gates]\nspec = "${mode}"\nplan = "${mode}"\n`);
+      writeFileSync(path.join(home, '.claude/harness/harness.toml'), `[project]\nname = "g"\n[gates]\nspec = "${mode}"\nplan = "${mode}"\n`);
       const chunks = [];
       const write = process.stdout.write.bind(process.stdout);
       process.stdout.write = (text) => { chunks.push(String(text)); return true; };
       const stdin = process.stdin;
       const { Readable } = await import('node:stream');
-      Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_name: 'Bash', tool_input: { command: 'node .aidlc/bin/harness approve x plan --by me --policy' } })]), configurable: true });
+      Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_name: 'Bash', tool_input: { command: 'node .claude/harness/bin/harness approve x plan --by me --policy' } })]), configurable: true });
       try { await dispatch('pre-tool'); } finally {
         process.stdout.write = write;
         Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
@@ -381,10 +381,10 @@ Write the one file and the one test.
       spawnSync('git', ['config', 'user.email', 'harness@example.invalid'], { cwd: root });
       spawnSync('git', ['config', 'user.name', 'Harness Test'], { cwd: root });
       assert.equal(cli(root, 'init', '--into', root).status, 0);
-      appendFileSync(path.join(root, '.aidlc/harness.toml'), `\n[gates]\nspec = "${mode}"\nplan = "${mode}"\nmerge = "human"\n`);
+      appendFileSync(path.join(root, '.claude/harness/harness.toml'), `\n[gates]\nspec = "${mode}"\nplan = "${mode}"\nmerge = "human"\n`);
 
       assert.equal(cli(root, 'new', 'counted').status, 0);
-      const dir = path.join(root, '.aidlc/artifacts/counted');
+      const dir = path.join(root, '.claude/harness/artifacts/counted');
       writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent: counted\n\nSomething should change.\n');
       writeFileSync(path.join(dir, 'spec.md'), `---\nstatus: draft\n---\n${spec}`);
       writeFileSync(path.join(dir, 'plan.md'), `---\nstatus: draft\n---\n${plan}`);

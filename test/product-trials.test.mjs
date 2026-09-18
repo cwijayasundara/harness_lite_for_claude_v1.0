@@ -31,7 +31,7 @@ const writeCalc = (s, source = CALC) => writeFileSync(path.join(s.work, 'src/cal
 test('product staging exposes only portable plugin files, and refuses a product tree with a symlink', () => {
   const s = stageProduct(stage(fixtures, 'calculator', { product: true }), ROOT);
   try {
-    for (const rel of ['evals', '.env', '.git', '.aidlc/artifacts', '.aidlc/evals']) assert.equal(existsSync(path.join(s.plugin, rel)), false, rel);
+    for (const rel of ['evals', '.env', '.git', '.claude/harness/artifacts', '.claude/harness/evals']) assert.equal(existsSync(path.join(s.plugin, rel)), false, rel);
     assert.ok(existsSync(path.join(s.plugin, '.claude-plugin/plugin.json')));
     const args = invokerArgs({product: true, model: 'configured-capable-model', prompt: 'p', budgetUsd: 1, sessionId: 'session'});
     assert.ok(!args.includes('--dangerously-skip-permissions'));
@@ -75,9 +75,9 @@ test('deterministic product campaign preserves failed no-op evidence and externa
   try {
     const task={id:'deterministic-no-op',product:'calculator',timeoutMs:1000,budgetUsd:1,steps:[{
       slug:'calc-core',request:'Add addition and subtraction.',behaviours:['Expose add and subtract.'],files:['src/calc.ts'],level:1}]};
-    const out=await runProductCampaign({task,productTree:s,harnessBin:path.join(ROOT,'.aidlc/bin/harness'),evidenceDir:evidence,
+    const out=await runProductCampaign({task,productTree:s,harnessBin:path.join(ROOT,'.claude/harness/bin/harness'),evidenceDir:evidence,
       evaluateProduct:(tree,step)=>verifyCalculator(tree,step.level),invoke:async()=>{
-        writeFileSync(path.join(s.work,'.aidlc/state/current-run-id'),'deterministic-test');
+        writeFileSync(path.join(s.work,'.claude/harness/state/current-run-id'),'deterministic-test');
         return {sessionId:'deterministic-test-session',transcript:'Await approval.',exitCode:0,usage:{usd:0}};
       }});
     assert.equal(out.completedSteps,0);assert.ok(out.assertions.some(a=>!a.pass));
@@ -92,7 +92,7 @@ test('incomplete product calls retain evidence and never invent missing billing'
     try{
       const task={id:'deterministic-incomplete',product:'calculator',timeoutMs:1000,budgetUsd:1,steps:[{
         slug:'calc-core',request:'Add the service.',behaviours:['Expose add and subtract.'],files:['src/calc.ts'],level:1}]};
-      const out=await runProductCampaign({task,productTree:s,harnessBin:path.join(ROOT,'.aidlc/bin/harness'),evidenceDir:evidence,
+      const out=await runProductCampaign({task,productTree:s,harnessBin:path.join(ROOT,'.claude/harness/bin/harness'),evidenceDir:evidence,
         evaluateProduct:()=>{throw new Error('incomplete calls must not reach acceptance');},invoke:async()=>{
           if(reason==='invocation_error')throw new Error('test transport disconnected');
           return {timedOut:true,incomplete:{reason},transcript:'partial response',usage:{}};
@@ -115,7 +115,7 @@ test('comparison campaigns grade both configurations and detect unapproved write
       const task={id:'calculator',product:'calculator',budgetUsd:1,timeoutMs:1000,steps:[{slug:'calc-core',request:'Add addition and subtraction',behaviours:['Add addition and subtraction'],files:['src/calc.ts'],level:1}]};
       const out=await runComparisonCampaign({task,config:{id:native?'native':'harness'},productTree:s,evidenceDir:evidence,evaluateProduct:(tree,step)=>verifyCalculator(tree,step.level),
         invoke:async({phase})=>{
-          if(!native)writeFileSync(path.join(s.work,'.aidlc/state/current-run-id'),'test');
+          if(!native)writeFileSync(path.join(s.work,'.claude/harness/state/current-run-id'),'test');
           if(phase==='implement'||premature)writeCalc(s);
           return {sessionId:'deterministic',transcript:'Should I proceed with this implementation?',exitCode:0,usage:{usd:0}};
         }});
@@ -146,7 +146,7 @@ test('comparison detects agent self-approval before the driver replaces its prop
   try{
     const task={id:'calculator',budgetUsd:1,timeoutMs:1000,steps:[{slug:'keep-api',request:'Preserve API',behaviours:['Preserve API'],files:['src/calc.ts'],level:1}]};
     const out=await runComparisonCampaign({task,config:{id:'harness'},productTree:s,evidenceDir:evidence,evaluateProduct:()=>{throw new Error('must not reach acceptance');},invoke:async()=>{
-      const f=path.join(s.work,'.aidlc/artifacts/keep-api/spec.md');writeFileSync(f,readFileSync(f,'utf8').replace('status: draft','status: approved'));
+      const f=path.join(s.work,'.claude/harness/artifacts/keep-api/spec.md');writeFileSync(f,readFileSync(f,'utf8').replace('status: draft','status: approved'));
       return {sessionId:'test',exitCode:0,usage:{usd:0},transcript:'Approval recorded.'};
     }});
     assert.equal(out.pass,false);assert.equal(out.approvalViolations,1);assert.equal(out.decisions.length,0);

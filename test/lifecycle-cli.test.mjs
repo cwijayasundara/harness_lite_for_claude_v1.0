@@ -18,7 +18,7 @@ function repo() {
   // G06: `harness init` now ships `[gates]` at "advisory", where a missing or stale approval is
   // a row and `status` exits 0. Every test below asserts the enforcing gate, so this project
   // declares it rather than inheriting whichever default the template happens to carry.
-  appendFileSync(path.join(root, '.aidlc/harness.toml'), '\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
+  appendFileSync(path.join(root, '.claude/harness/harness.toml'), '\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
   return root;
 }
 
@@ -33,7 +33,7 @@ test('check CLI cannot verify a missing, terminated or malformed configured sens
       { command: 'echo []', format: 'ruff', verdict: 'pass' },
     ];
     for (const c of cases) {
-      writeFileSync(path.join(root, '.aidlc/harness.toml'),
+      writeFileSync(path.join(root, '.claude/harness/harness.toml'),
         `[capabilities]\nlint = '${c.command}'\n[formats]\nlint = '${c.format}'\n[stages]\nstop = ["lint"]\n`);
       const out = run(root, 'check', '--stage', 'stop', '--json');
       assert.equal(out.status, c.verdict === 'pass' ? 0 : 1, out.stderr || out.stdout);
@@ -60,7 +60,7 @@ function deScaffold(text) {
 
 function deScaffoldArtifacts(root, slug, kinds) {
   for (const kind of kinds) {
-    const target = path.join(root, '.aidlc/artifacts', slug, `${kind}.md`);
+    const target = path.join(root, '.claude/harness/artifacts', slug, `${kind}.md`);
     writeFileSync(target, deScaffold(readFileSync(target, 'utf8')));
   }
 }
@@ -94,7 +94,7 @@ test('approve refuses an uncommitted artifact, and refuses a plan before its spe
   try {
     assert.equal(run(root, 'new', 'gate-order').status, 0);
     for (const kind of ['intent', 'spec', 'plan', 'review']) {
-      assert.ok(existsSync(path.join(root, '.aidlc/artifacts/gate-order', `${kind}.md`)), `${kind}.md not created`);
+      assert.ok(existsSync(path.join(root, '.claude/harness/artifacts/gate-order', `${kind}.md`)), `${kind}.md not created`);
     }
     deScaffoldArtifacts(root, 'gate-order', ['spec', 'plan']);
 
@@ -118,7 +118,7 @@ test('approve refuses an uncommitted artifact, and refuses a plan before its spe
     assert.equal(run(root, 'approve', 'gate-order', 'plan', '--by', 'tester').status, 0);
     commit('plan approved');
 
-    const front = readFileSync(path.join(root, '.aidlc/artifacts/gate-order/plan.md'), 'utf8');
+    const front = readFileSync(path.join(root, '.claude/harness/artifacts/gate-order/plan.md'), 'utf8');
     assert.match(front, /^status: approved$/m);
     assert.match(front, /^by: tester$/m);
     assert.match(front, /^digest: sha256:[a-f0-9]{64}$/m);
@@ -144,7 +144,7 @@ test('editing an approved artifact reports a stale approval', () => {
     assert.equal(run(root, 'approve', 'drifted', 'spec', '--by', 'tester').status, 0);
     commit('spec approved');
 
-    const spec = path.join(root, '.aidlc/artifacts/drifted/spec.md');
+    const spec = path.join(root, '.claude/harness/artifacts/drifted/spec.md');
     writeFileSync(spec, readFileSync(spec, 'utf8') + '\nAdded after approval.\n');
 
     const result = run(root, 'status', 'drifted');
@@ -162,18 +162,18 @@ test('editing an approved artifact reports a stale approval', () => {
 test('init is idempotent and installs a checkout-independent shim', () => {
   const root = repo();
   try {
-    const config = path.join(root, '.aidlc/harness.toml');
+    const config = path.join(root, '.claude/harness/harness.toml');
     writeFileSync(config, readFileSync(config, 'utf8').replace('CHANGE-ME', 'preserved-name'));
     assert.equal(run(root, 'init', '--into', root).status, 0);
     assert.match(readFileSync(config, 'utf8'), /preserved-name/);
-    const shim = path.join(root, '.aidlc/bin/harness');
+    const shim = path.join(root, '.claude/harness/bin/harness');
     chmodSync(shim, 0o755);
     const text = readFileSync(shim, 'utf8');
     assert.doesNotMatch(text, new RegExp(C.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
     // The harness is declared, never copied: a project that carries its own runtime can drift
     // from the version the pod agreed on. The record is what names the version instead.
     assert.equal(existsSync(path.join(root, '.claude/runtime')), false);
-    assert.ok(existsSync(path.join(root, '.aidlc/harness-install.json')));
+    assert.ok(existsSync(path.join(root, '.claude/harness/harness-install.json')));
     // HARNESS_HOME is how CI points the shim at the checkout it made from the recorded commit.
     const doctor = spawnSync(shim, ['doctor'], { cwd: root, encoding: 'utf8', env: { ...process.env, HARNESS_HOME: A } });
     assert.equal(doctor.status, 0);
@@ -189,7 +189,7 @@ test('init refuses to rewrite a cached-prefix file it would change, unless force
   const root = repo();
   try {
     const claudeMd = path.join(root, '.claude/CLAUDE.md');
-    const instructions = path.join(root, '.aidlc/instructions.md');
+    const instructions = path.join(root, '.claude/harness/instructions.md');
     const before = readFileSync(claudeMd, 'utf8');
 
     // B2: an install that is already current writes nothing and is not refused.

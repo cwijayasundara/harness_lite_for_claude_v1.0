@@ -11,7 +11,7 @@ against its own taste, and the thing being steered is the same kind of model tha
 the inventing.
 
 Each section needs a `file:` line naming exactly one file, and it must be in the steering set —
-`.aidlc/instructions.md`, `.aidlc/skills/`, `.aidlc/roles/`, `.aidlc/policies/`, and the project
+`.claude/harness/instructions.md`, `.claude/harness/skills/`, `.claude/harness/roles/`, `.claude/harness/policies/`, and the project
 instructions template. Anything else is refused before the run starts: an experiment that could
 edit the runner, the tasks or a fixture could produce its own result.
 
@@ -20,7 +20,7 @@ Add `status: done` when an experiment has been tried, whatever the outcome. The 
 
 ## Name the miss path before the index
 
-file: .aidlc/instructions.md
+file: .claude/harness/instructions.md
 
 The graph section leads with the five questions and mentions grep as the miss path afterwards.
 Measured worry: a model that has been told to ask the index first treats a miss as "it does not
@@ -29,7 +29,7 @@ the tasks that depend on finding things in unfamiliar code move.
 
 ## State the refusal before the remedy
 
-file: .aidlc/skills/implement/SKILL.md
+file: .claude/harness/skills/implement/SKILL.md
 
 The implement skill explains what may change about a test before it says what may not. Try the
 reverse order — the prohibition first, then the legitimate maintenance — and see whether

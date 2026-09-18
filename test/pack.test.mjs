@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { productFixture } from './_product-context-fixture.mjs';
-import { revisionPack, renderRevisionPack } from '../.aidlc/lib/product-context.mjs';
-import { pack } from '../.aidlc/lib/pack.mjs';
-import * as graph from '../.aidlc/lib/graph.mjs';
+import { revisionPack, renderRevisionPack } from '../.claude/harness/lib/product-context.mjs';
+import { pack } from '../.claude/harness/lib/pack.mjs';
+import * as graph from '../.claude/harness/lib/graph.mjs';
 import { rmSync, existsSync } from 'node:fs';
 
 test('revision pack keeps graph/contract snapshots isolated, budgets omissions and reports unsafe coverage', () => {
@@ -25,7 +25,7 @@ test('revision pack keeps graph/contract snapshots isolated, budgets omissions a
     assert(small.tokens <= 30); assert(small.omitted.some(x => x.includes('delivery context')));
     assert.deepEqual(pack(f.cfg, g, 'titlecase'), oldPack);
     assert.throws(() => revisionPack(f.cfg, 'titlecase', { revision: candidate, budget: NaN }), /budget/);
-    f.write('.aidlc/harness.toml', '[graph]\ninclude = ["../"]\n');
+    f.write('.claude/harness/harness.toml', '[graph]\ninclude = ["../"]\n');
     const unsafe = f.commit('Unsafe graph configuration');
     const result = revisionPack(f.cfg, 'titlecase', { revision: unsafe });
     assert.match(result.unavailable, /unsafe graph include/);

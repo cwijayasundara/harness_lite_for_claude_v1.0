@@ -34,7 +34,7 @@ The two research documents are committed at `9ee37dc` and are the bound source f
 
 Suggested slug: `a-shell-redirect-is-a-write`.
 
-**The defect.** `.aidlc/lib/guard.mjs` answers "may this file change?" twice, and the two answers
+**The defect.** `.claude/harness/lib/guard.mjs` answers "may this file change?" twice, and the two answers
 disagree. `writeRefusal`, which the Write and Edit tools go through, tests the target against the
 selected change's `## Files` with `matchesDeclared`. `bashContractBlocked`, which shell commands
 go through, does not test the target at all:
@@ -52,7 +52,7 @@ non-empty `## Files` makes every path in the repository writable through a shell
 
 | Target | Through Bash | Through Write/Edit |
 |---|---|---|
-| `.aidlc/lib/graph.mjs` | allowed | refused |
+| `.claude/harness/lib/graph.mjs` | allowed | refused |
 | `test/guard.test.mjs` | allowed | refused |
 | `evals/fixtures/clean-app/src/app/text.py` | allowed by this rule | refused |
 | `docs/DEFECT-REPAIR-PLAN.md` | allowed | refused |
@@ -95,10 +95,10 @@ committed change, so detection is not traded for prevention.
 
 Suggested slug: `a-check-runs-the-suite-once`. Backlog F04.
 
-**The defect.** `[stages]` in `.aidlc/harness.toml` defines
+**The defect.** `[stages]` in `.claude/harness/harness.toml` defines
 `commit = ["stop", "scope-drift", "budget", "tamper", "arch", "test_quality", "baseline"]`, so
 `stop` — which is `secrets` plus the full `node --test` suite — has already run by the time
-`baseline` starts. `.aidlc/checks/baseline.mjs` then calls `baseline.capture(cfg)`, and
+`baseline` starts. `.claude/harness/checks/baseline.mjs` then calls `baseline.capture(cfg)`, and
 `capture()` runs it again:
 
 ```js

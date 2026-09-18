@@ -2,7 +2,7 @@
   "kind": "g24-pilot-first-sprint-once-per-arm",
   "recorded_at": "2026-09-16T10:55:18.680Z",
   "harnessRevision": "860844576e0022986b55bd71315529b0d7b67c0c",
-  "evidenceRoot": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.aidlc/evals/comparisons/2026-09-16T10-51-24-499Z",
+  "evidenceRoot": "/Users/chamindawijayasundara/Documents/rnd_2026/claude_scaffold_research/claude_harness_lean_v1/.claude/harness/evals/comparisons/2026-09-16T10-51-24-499Z",
   "repetitions": 0,
   "maxUsd": 4,
   "maxMinutes": 25,

@@ -20,12 +20,12 @@ and the hook behaviour all read from it. If two files can disagree about the sam
 one. Never write a test asserting that two prose files agree.
 
 ### Law 4 — The ledger is control #1
-`.aidlc/state/ledger.jsonl` exists before the second control does. Every check invocation
+`.claude/harness/state/ledger.jsonl` exists before the second control does. Every check invocation
 appends a row — no sampling, no opt-in telemetry stack, no configuration. A control that
 errors is recorded as `errored`, never silently as a pass.
 
 ### Law 5 — Hard budgets, enforced by a test *(enforced: `test/budget.test.mjs`)*
-The numbers live in `[limits]` of `.aidlc/harness.toml` and are stated nowhere else, so no
+The numbers live in `[limits]` of `.claude/harness/harness.toml` and are stated nowhere else, so no
 document can disagree with the test.
 The build fails when exceeded. You cannot argue with a red test; you must delete something.
 Raising a limit requires a `why:` line and a ledger query showing the existing ones fire.

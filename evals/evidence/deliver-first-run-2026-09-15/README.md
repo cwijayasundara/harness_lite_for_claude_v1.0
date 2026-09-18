@@ -10,7 +10,7 @@ node evals/run.mjs --live --compare --comparison driver --id campaign-ledger --r
 once. The harness arm's run *is* `harness deliver ledger-characterize --live`, driven by
 `evals/lib/driver-campaign.mjs` from the runtime `harness init` recorded. Verdict file:
 `evals/evidence/g24-driver-comparison.json`. Raw evidence (gitignored):
-`.aidlc/evals/comparisons/2026-09-15T20-38-26-807Z/`; the files here are copies with transcripts
+`.claude/harness/evals/comparisons/2026-09-15T20-38-26-807Z/`; the files here are copies with transcripts
 truncated to their last 3,000 characters.
 
 Machine: load 1.77 at launch, 5.30 at the end; Docker, Cursor and Microsoft Defender were running.
@@ -58,13 +58,13 @@ by the three live attempts. All are fixes to existing machinery (Law 11: no new 
 - **F4** Attempt 1 (21:21) refused before spending: "Container runs require
   CLAUDE_CODE_OAUTH_TOKEN". The container that rule guarded was removed by
   the-harness-needs-no-container; the rule stayed. Fixed in 4298956.
-- **F5** Attempt 2 (21:22, `.aidlc/evals/comparisons/2026-09-15T20-22-04-114Z`): the arm ran the
+- **F5** Attempt 2 (21:22, `.claude/harness/evals/comparisons/2026-09-15T20-22-04-114Z`): the arm ran the
   driver from the staged plugin *copy*; the install record named the repository runtime; all
   seven checks in the run refused on `runtime mismatch` before running a control; the driver paid
   USD 0.23 for a repair turn against an empty failure list and stopped with "still failing: ".
   The delivered code passed all 12 product tests. Fixed in 9905abf: the arm runs the recorded
   runtime, and an identity error stops the driver by name with no repair turn.
-- **F6** Attempt 3 (21:30, `.aidlc/evals/comparisons/2026-09-15T20-30-10-921Z`): the driver ran all
+- **F6** Attempt 3 (21:30, `.claude/harness/evals/comparisons/2026-09-15T20-30-10-921Z`): the driver ran all
   seven phases (USD 2.35, two repairs, approve) and the arm reported it as not delivered — it
   read the last line *starting* with `{` out of a pretty-printed envelope. Fixed in ba24099.
 - **F7** Open. In every run the generator's `node --test` and `harness check` commands were denied
@@ -82,7 +82,7 @@ by the three live attempts. All are fixes to existing machinery (Law 11: no new 
 
 Three cuts, each with its number above: no refactor turn, one review with one unreviewed repair
 turn, no shell for the generator. Evidence: `after-cuts/`; raw
-`.aidlc/evals/comparisons/2026-09-15T20-51-07-231Z/`. Load 6.6 at launch (the offline suite had
+`.claude/harness/evals/comparisons/2026-09-15T20-51-07-231Z/`. Load 6.6 at launch (the offline suite had
 just finished), 1.9 at the end. The pre-cut verdict file is kept as
 `g24-driver-comparison-before-cuts.json`.
 
@@ -123,7 +123,7 @@ refusing to lower prefix-cache-guard — the record only moves fail -> pass
 
 Six tasks improved since the 2026-09-06 record and cannot be held because one regressed. The
 regression is real at HEAD: rerun alone at 22:39 (USD 0.03,
-`.aidlc/evals/results/2026-09-15T21-40-06-774Z.json`), it fails again. The guard is correct — the
+`.claude/harness/evals/results/2026-09-15T21-40-06-774Z.json`), it fails again. The guard is correct — the
 edit was refused and the file is unchanged — and the model received the whole reason
 ("…invalidates the prompt cache for whoever reads it next…name it in the approved plan first").
 It relayed only the remedy: "the system requires an approved plan before making changes". G23

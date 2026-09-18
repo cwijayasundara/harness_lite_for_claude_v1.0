@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { requireSubscription, subscriptionArgs } from '../.aidlc/lib/claude-auth.mjs';
+import { requireSubscription, subscriptionArgs } from '../.claude/harness/lib/claude-auth.mjs';
 import { ROOT } from './_paths.mjs';
 
 const status = value => () => ({ status: 0, stdout: JSON.stringify(value) });

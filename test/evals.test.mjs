@@ -10,8 +10,8 @@ import { A, ROOT } from './_paths.mjs';
 import { evaluate, expand, KNOWN, toRegExp } from '../evals/lib/assertions.mjs';
 import { stage } from '../evals/lib/stage.mjs';
 import { tmpdir } from 'node:os';
-import { writeBlocked } from '../.aidlc/lib/guard.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
+import { writeBlocked } from '../.claude/harness/lib/guard.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
 import { claudeAuthenticated, loadTasks, validate, runSuite, promptCount } from '../evals/run.mjs';
 
 const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
@@ -55,7 +55,7 @@ test('validate rejects the four ways a task wastes money', () => {
 test('glob expands one segment at a time', () => {
   const s = stage(FIXTURES, 'contract-planned');
   try {
-    assert.deepEqual(expand(s.work, '.aidlc/artifacts/hyphen-titlecase/*.md'), ['.aidlc/artifacts/hyphen-titlecase/intent.md', '.aidlc/artifacts/hyphen-titlecase/plan.md', '.aidlc/artifacts/hyphen-titlecase/spec.md']);
+    assert.deepEqual(expand(s.work, '.claude/harness/artifacts/hyphen-titlecase/*.md'), ['.claude/harness/artifacts/hyphen-titlecase/intent.md', '.claude/harness/artifacts/hyphen-titlecase/plan.md', '.claude/harness/artifacts/hyphen-titlecase/spec.md']);
     assert.deepEqual(expand(s.work, 'tests/*.py'), ['tests/test_app.py']);
     assert.deepEqual(expand(s.work, 'nothing/*.md'), []);
   } finally { s.cleanup(); }
@@ -66,7 +66,7 @@ test('staging yields a git repo plus an untouched pristine copy', () => {
   try {
     assert.ok(existsSync(path.join(s.work, '.git')));
     assert.equal(existsSync(path.join(s.pristine, '.git')), false, 'source baseline does not copy mutable Git metadata');
-    assert.ok(existsSync(path.join(s.work, '.aidlc/harness.toml')), 'base was overlaid');
+    assert.ok(existsSync(path.join(s.work, '.claude/harness/harness.toml')), 'base was overlaid');
     assert.ok(existsSync(path.join(s.work, 'src/app/handlers.py')), 'fixture was overlaid');
     const ctx = { work: s.work, pristine: s.pristine, transcript: '' };
     assert.deepEqual(evaluate(ctx, [{ workdir_unchanged: true }]), [{ name: 'workdir_unchanged', pass: true, detail: '' }]);
@@ -77,10 +77,10 @@ test('file assertions catch a collateral edit, and ignore harness state', () => 
   const s = stage(FIXTURES, 'buggy-calc');
   try {
     writeFileSync(path.join(s.work, 'src/app/add.py'), '# vandalised\n');
-    mkdirSync(path.join(s.work, '.aidlc/state'), { recursive: true });
-    appendFileSync(path.join(s.work, '.aidlc/state/ledger.jsonl'), '{}\n');
+    mkdirSync(path.join(s.work, '.claude/harness/state'), { recursive: true });
+    appendFileSync(path.join(s.work, '.claude/harness/state/ledger.jsonl'), '{}\n');
     const ctx = { work: s.work, pristine: s.pristine, transcript: '' };
-    const [collateral, dirty] = evaluate(ctx, [{ files_unchanged: ['src/app/add.py'] }, { files_unchanged: ['.aidlc/state'] }]);
+    const [collateral, dirty] = evaluate(ctx, [{ files_unchanged: ['src/app/add.py'] }, { files_unchanged: ['.claude/harness/state'] }]);
     assert.equal(collateral.pass, false);
     assert.match(collateral.detail, /src\/app\/add\.py/);
     assert.equal(dirty.pass, true, 'ledger writes are not a collateral edit');
@@ -184,7 +184,7 @@ test('sensor-consulted accepts the check output as evidence, and still fails a m
   // What the model actually produced on 2026-09-02: it ran the check and pasted the output.
   assert.equal(await graded('Done.\n\n```\nPASS  fmt         17ms\nPASS  lint        14ms\nPASS  test        935ms\n```'), 'pass');
   // Typing the command still counts.
-  assert.equal(await graded('I ran `bash .aidlc/bin/harness check --stage stop` and it was green.'), 'pass');
+  assert.equal(await graded('I ran `bash .claude/harness/bin/harness check --stage stop` and it was green.'), 'pass');
   // B4: neither the command nor its output is still a failure.
   assert.equal(await graded('Added the health endpoint. Looks good to me.'), 'fail');
 });
@@ -203,14 +203,14 @@ test('the _base fixture is governed by the same agent-gating settings the templa
   // require_contract from the default; a text comparison would fail it for being right.
   const effective = (file) => {
     const root = mkdtempSync(path.join(tmpdir(), 'parity-'));
-    mkdirSync(path.join(root, '.aidlc'), { recursive: true });
-    writeFileSync(path.join(root, '.aidlc/harness.toml'), readFileSync(file, 'utf8'));
+    mkdirSync(path.join(root, '.claude/harness'), { recursive: true });
+    writeFileSync(path.join(root, '.claude/harness/harness.toml'), readFileSync(file, 'utf8'));
     const cfg = loadConfig(root);
     rmSync(root, { recursive: true, force: true });
     return { commit: cfg.stages.commit, require_contract: cfg.guard.require_contract };
   };
-  const fixture = effective(path.join(FIXTURES, '_base/.aidlc/harness.toml'));
-  const template = effective(path.join(ROOT, '.aidlc/templates/harness.toml'));
+  const fixture = effective(path.join(FIXTURES, '_base/.claude/harness/harness.toml'));
+  const template = effective(path.join(ROOT, '.claude/harness/templates/harness.toml'));
   assert.deepEqual(fixture.commit, template.commit, 'fixture and template must run the same commit stage');
   assert.equal(fixture.require_contract, template.require_contract,
     'the eval fixture and the installed template must agree on require_contract, or the suite grades a harness nobody runs');
@@ -222,7 +222,7 @@ test('a fixture governed like an install refuses an unowned product write', () =
   const s = stage(FIXTURES, 'contract-planned');
   try {
     const cfg = {
-      layout: { root: s.work, claude: path.join(s.work, '.claude'), state: path.join(s.work, '.aidlc/state'), artifacts: path.join(s.work, '.aidlc/artifacts') },
+      layout: { root: s.work, claude: path.join(s.work, '.claude'), state: path.join(s.work, '.claude/harness/state'), artifacts: path.join(s.work, '.claude/harness/artifacts') },
       guard: { require_contract: true, protected_paths: [] }, gates: HUMAN,
     };
     // hyphen-titlecase owns src/app/text.py and tests/test_app.py, and nothing else.
@@ -281,8 +281,8 @@ test('validate accepts a multi-step task and rejects a step without a prompt', (
   const ok = [{
     id: 'chain', fixture: 'clean-app', timeoutMs: 1, budgetUsd: 1,
     steps: [
-      { prompt: 'write intent', assert: [{ file_exists: '.aidlc/artifacts/intent/*.md' }] },
-      { prompt: 'write contract', assert: [{ file_exists: '.aidlc/artifacts/contracts/*.md' }] },
+      { prompt: 'write intent', assert: [{ file_exists: '.claude/harness/artifacts/intent/*.md' }] },
+      { prompt: 'write contract', assert: [{ file_exists: '.claude/harness/artifacts/contracts/*.md' }] },
     ],
   }];
   assert.deepEqual(validate(ok, FIXTURES), []);

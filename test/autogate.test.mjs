@@ -33,7 +33,7 @@ function repo() {
   // G06: `harness init` now ships `[gates]` at "advisory", where a missing or stale approval is
   // a row and `status` exits 0. Every test below asserts the enforcing gate, so this project
   // declares it rather than inheriting whichever default the template happens to carry.
-  appendFileSync(path.join(root, '.aidlc/harness.toml'), '\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
+  appendFileSync(path.join(root, '.claude/harness/harness.toml'), '\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
   return root;
 }
 
@@ -58,7 +58,7 @@ function deScaffold(text) {
 
 function deScaffoldArtifacts(root, slug, kinds) {
   for (const kind of kinds) {
-    const target = path.join(root, '.aidlc/artifacts', slug, `${kind}.md`);
+    const target = path.join(root, '.claude/harness/artifacts', slug, `${kind}.md`);
     writeFileSync(target, deScaffold(readFileSync(target, 'utf8')));
   }
 }
@@ -99,7 +99,7 @@ test('B3: off by default, and a harness.toml asking for auto-approval changes no
     assert.equal(run(root, process.env, 'new', 'no-backdoor').status, 0);
     deScaffoldArtifacts(root, 'no-backdoor', ['spec']);
     // Plant the switch an agent inside the copy could write for itself.
-    const toml = path.join(root, '.aidlc/harness.toml');
+    const toml = path.join(root, '.claude/harness/harness.toml');
     writeFileSync(toml, `${readFileSync(toml, 'utf8')}\n[unattended]\nenabled = true\napprover = "cwijayasundara"\n`);
     commit(root, 'draft no-backdoor, plus a harness.toml asking to be auto-approved');
 
@@ -112,7 +112,7 @@ test('B3: off by default, and a harness.toml asking for auto-approval changes no
     // copy had no say over the identity, because it was never consulted.
     const withApprover = run(root, attended(), 'approve', 'no-backdoor', 'spec', '--by', 'tester');
     assert.equal(withApprover.status, 0, withApprover.stderr);
-    const front = readFileSync(path.join(root, '.aidlc/artifacts/no-backdoor/spec.md'), 'utf8');
+    const front = readFileSync(path.join(root, '.claude/harness/artifacts/no-backdoor/spec.md'), 'utf8');
     assert.match(front, /^by: tester$/m);
     assert.doesNotMatch(front, /unattended-eval-run/);
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -140,12 +140,12 @@ test('B5: uncommitted, plan-before-spec, digest and stale-approval all still hol
 
     const spec = run(root, unattended, 'approve', 'still-gated', 'spec', '--by', 'simulated-test-driver');
     assert.equal(spec.status, 0, spec.stderr);
-    const digest = /^digest: (sha256:[a-f0-9]{64})$/m.exec(readFileSync(path.join(root, '.aidlc/artifacts/still-gated/spec.md'), 'utf8'));
+    const digest = /^digest: (sha256:[a-f0-9]{64})$/m.exec(readFileSync(path.join(root, '.claude/harness/artifacts/still-gated/spec.md'), 'utf8'));
     assert.ok(digest, 'the body digest is still written');
     commit(root, 'spec approved');
 
     // stale-approval still fires.
-    const specFile = path.join(root, '.aidlc/artifacts/still-gated/spec.md');
+    const specFile = path.join(root, '.claude/harness/artifacts/still-gated/spec.md');
     writeFileSync(specFile, readFileSync(specFile, 'utf8') + '\nAdded after approval.\n');
     const status = run(root, unattended, 'status', 'still-gated');
     assert.equal(status.status, 1, status.stdout);

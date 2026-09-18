@@ -31,7 +31,7 @@ export const BOUNDARIES = ['ci-runner', 'local'];
 export const ALLOWED = [
   'Read', 'Grep', 'Glob', 'Write', 'Edit',
   'Bash(node:*)',
-  'Bash(.aidlc/bin/harness:*)',
+  'Bash(.claude/harness/bin/harness:*)',
   'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(git status:*)', 'Bash(git diff:*)',
   'Bash(git log:*)', 'Bash(git rev-parse:*)', 'Bash(git show:*)',
   'Bash(ls:*)', 'Bash(cat:*)', 'Bash(mkdir:*)',

@@ -10,7 +10,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { A, ROOT } from './_paths.mjs';
-import { build, query, fingerprint } from '../.aidlc/lib/graph.mjs';
+import { build, query, fingerprint } from '../.claude/harness/lib/graph.mjs';
 import { stage } from '../evals/lib/stage.mjs';
 
 const FIXTURES = path.join(ROOT, 'evals', 'fixtures');
@@ -124,27 +124,27 @@ test('B1 — the harness does not index its own output, and a project exclude st
       mkdirSync(path.join(s.work, path.dirname(rel)), { recursive: true });
       writeFileSync(path.join(s.work, rel), body);
     };
-    write('.aidlc/evals/comparisons/run-1/product/src/ledger.mjs', 'export function addCustomer() {}\n');
-    write('.aidlc/evals/products/run-2/src/ledger.mjs', 'export function addCustomer() {}\n');
-    write('.claude/worktrees/agent-1/.aidlc/lib/graph.mjs', 'export function build() {}\n');
+    write('.claude/harness/evals/comparisons/run-1/product/src/ledger.mjs', 'export function addCustomer() {}\n');
+    write('.claude/harness/evals/products/run-2/src/ledger.mjs', 'export function addCustomer() {}\n');
+    write('.claude/worktrees/agent-1/.claude/harness/lib/graph.mjs', 'export function build() {}\n');
     // Hand-written reproduction scripts under artifacts are source and stay.
-    write('.aidlc/artifacts/some-change/reproduce.mjs', 'export function reproduce() {}\n');
+    write('.claude/harness/artifacts/some-change/reproduce.mjs', 'export function reproduce() {}\n');
     // A project's own exclusion is honoured alongside the harness's, not replaced by it.
     write('vendor/thing.mjs', 'export function vendored() {}\n');
 
     const g = build({ graph: { include: ['.', '.claude'], exclude: ['vendor'] }, layout: { root: s.work } });
     const mods = Object.keys(g.modules);
 
-    for (const gone of ['.aidlc/evals/', '.claude/worktrees/']) {
+    for (const gone of ['.claude/harness/evals/', '.claude/worktrees/']) {
       assert.equal(mods.filter((m) => m.startsWith(gone)).length, 0, `${gone} is not indexed as source`);
     }
-    assert.ok(mods.includes('.aidlc/artifacts/some-change/reproduce.mjs'), 'artifact scripts are source');
+    assert.ok(mods.includes('.claude/harness/artifacts/some-change/reproduce.mjs'), 'artifact scripts are source');
     assert.equal(mods.filter((m) => m.startsWith('vendor/')).length, 0, "a project's own exclude still applies");
     assert.ok(mods.includes('src/app/service.py'), 'real source is still indexed');
 
     // The ambiguity the audit reports is a real collision, not one file copied into run records.
     const a = query(g, 'audit');
-    assert.ok(!a.ambiguous.some((r) => r.modules.some((m) => m.startsWith('.aidlc/evals/'))),
+    assert.ok(!a.ambiguous.some((r) => r.modules.some((m) => m.startsWith('.claude/harness/evals/'))),
       'recorded run copies no longer manufacture ambiguity');
   } finally { s.cleanup(); }
 });
@@ -157,10 +157,10 @@ test('B1 — the harness does not index its own output, and a project exclude st
 // deliberately, and checks status, so a refused commit reports itself instead of surfacing later
 // as an assertion about production code.
 test('B3 — a commit with no working-tree change moves the fingerprint and refresh does not report clean', async () => {
-  const { refresh } = await import('../.aidlc/lib/refresh.mjs');
+  const { refresh } = await import('../.claude/harness/lib/refresh.mjs');
   const s = stage(FIXTURES, 'graph-app');
   try {
-    const state = path.join(s.work, '.aidlc', 'state');
+    const state = path.join(s.work, '.claude/harness', 'state');
     mkdirSync(state, { recursive: true });
     const cfg = { graph: { include: ['.'], exclude: [] },
       layout: { root: s.work, state, graph: path.join(state, 'graph.json'),
@@ -228,10 +228,10 @@ test('B2 — no git and no commit both reach the empty component, and a commit c
 // B3. Not new code so much as three existing properties that must survive the two changes above,
 // because between them they are what stops a stale index from ever being a confident wrong answer.
 test('B3 — a stale index is a miss, and a rank never outlives the modules it ranks', async () => {
-  const { save, load } = await import('../.aidlc/lib/graph.mjs');
+  const { save, load } = await import('../.claude/harness/lib/graph.mjs');
   const s = stage(FIXTURES, 'graph-app');
   try {
-    const state = path.join(s.work, '.aidlc', 'state');
+    const state = path.join(s.work, '.claude/harness', 'state');
     mkdirSync(state, { recursive: true });
     const cfg = { graph: { include: ['.'], exclude: [] },
       layout: { root: s.work, state, graph: path.join(state, 'graph.json') } };
@@ -367,16 +367,16 @@ test('B4 — no git at all still builds, with no co-edit edges and no recorded h
 // B4. The safeguard that stops 451 removed modules becoming confident "not found" answers. The
 // plan booked it and nothing asserted it.
 test('B4 — a symbol in an excluded path is a miss that names search, not an absence', async () => {
-  const { pack, renderPack } = await import('../.aidlc/lib/pack.mjs');
+  const { pack, renderPack } = await import('../.claude/harness/lib/pack.mjs');
   const s = stage(FIXTURES, 'graph-app');
   try {
-    mkdirSync(path.join(s.work, '.aidlc', 'evals', 'comparisons', 'run-1'), { recursive: true });
-    writeFileSync(path.join(s.work, '.aidlc/evals/comparisons/run-1/ledger.mjs'),
+    mkdirSync(path.join(s.work, '.claude/harness', 'evals', 'comparisons', 'run-1'), { recursive: true });
+    writeFileSync(path.join(s.work, '.claude/harness/evals/comparisons/run-1/ledger.mjs'),
       'export function onlyInAnExcludedPath() { return 1; }\n');
     const cfg = { graph: { include: ['.', '.claude'], exclude: [] }, layout: { root: s.work } };
     const g = build(cfg);
 
-    assert.equal(Object.keys(g.modules).some((m) => m.startsWith('.aidlc/evals/')), false,
+    assert.equal(Object.keys(g.modules).some((m) => m.startsWith('.claude/harness/evals/')), false,
       'the excluded path is not indexed, which is the premise of this test');
 
     const rendered = renderPack(pack(cfg, g, 'onlyInAnExcludedPath', { budget: 1200 }));
@@ -391,7 +391,7 @@ test('B4 — a symbol in an excluded path is a miss that names search, not an ab
 test('B6 — an incremental rebuild applies the same exclusions as a full one', () => {
   const s = stage(FIXTURES, 'graph-app');
   try {
-    const rel = '.aidlc/evals/comparisons/run-1/ledger.mjs';
+    const rel = '.claude/harness/evals/comparisons/run-1/ledger.mjs';
     mkdirSync(path.join(s.work, path.dirname(rel)), { recursive: true });
     writeFileSync(path.join(s.work, rel), 'export function shouldNotBeIndexed() { return 1; }\n');
     const cfg = { graph: { include: ['.', '.claude'], exclude: [] }, layout: { root: s.work } };
@@ -466,7 +466,7 @@ test('a missing graph is a miss, not a crash — the agent falls back and says s
 });
 
 test('pack: a budget is a budget, and what does not fit is named', async () => {
-  const { pack } = await import('../.aidlc/lib/pack.mjs');
+  const { pack } = await import('../.claude/harness/lib/pack.mjs');
   const s = stage(FIXTURES, 'graph-app');
   try {
     const cfg = { ...CFG, layout: { root: s.work } };
@@ -485,7 +485,7 @@ test('pack: a budget is a budget, and what does not fit is named', async () => {
 });
 
 test('pack: a miss tells the caller to grep instead of implying absence', async () => {
-  const { pack, renderPack } = await import('../.aidlc/lib/pack.mjs');
+  const { pack, renderPack } = await import('../.claude/harness/lib/pack.mjs');
   const s = stage(FIXTURES, 'graph-app');
   try {
     const cfg = { ...CFG, layout: { root: s.work } };
@@ -496,11 +496,11 @@ test('pack: a miss tells the caller to grep instead of implying absence', async 
 });
 
 test('refresh: builds on a cold clone rather than returning quietly', async () => {
-  const { refresh } = await import('../.aidlc/lib/refresh.mjs');
+  const { refresh } = await import('../.claude/harness/lib/refresh.mjs');
   const { existsSync: ex, mkdirSync: mk, appendFileSync: af } = await import('node:fs');
   const s = stage(FIXTURES, 'graph-app');
   try {
-    const state = path.join(s.work, '.aidlc/state');
+    const state = path.join(s.work, '.claude/harness/state');
     mk(state, { recursive: true });
     const cfg = { ...CFG, layout: {
       root: s.work, state, graph: path.join(state, 'graph.json'),
@@ -532,11 +532,11 @@ test('the pack benchmark meets Phase 3 exit criterion', async () => {
 });
 
 test('the refresh lock releases by truncation, because unlink is not always available', async () => {
-  const { refresh } = await import('../.aidlc/lib/refresh.mjs');
+  const { refresh } = await import('../.claude/harness/lib/refresh.mjs');
   const { mkdirSync: mk, writeFileSync: wf, statSync: st } = await import('node:fs');
   const s = stage(FIXTURES, 'graph-app');
   try {
-    const state = path.join(s.work, '.aidlc/state');
+    const state = path.join(s.work, '.claude/harness/state');
     mk(state, { recursive: true });
     const cfg = { ...CFG, layout: {
       root: s.work, state, graph: path.join(state, 'graph.json'),
@@ -569,12 +569,12 @@ test('an empty whole-graph answer is an answer; an empty symbol answer is a miss
 // ever used it, because nothing said it existed and nothing kept it current: `graph-refresh`
 // recorded 57 invocations and zero fires, which is what a control that can only pass looks like.
 test('map: one budgeted page, and drift is a verdict rather than a marker file', async () => {
-  const codemap = await import('../.aidlc/lib/map.mjs');
-  const graph = await import('../.aidlc/lib/graph.mjs');
+  const codemap = await import('../.claude/harness/lib/map.mjs');
+  const graph = await import('../.claude/harness/lib/graph.mjs');
   const fs = await import('node:fs');
   const s = stage(FIXTURES, 'graph-app');
   try {
-    const cfg = { ...CFG, layout: { root: s.work, state: path.join(s.work, '.aidlc/state') } };
+    const cfg = { ...CFG, layout: { root: s.work, state: path.join(s.work, '.claude/harness/state') } };
     const g = graph.build(cfg);
 
     const body = codemap.render(g);

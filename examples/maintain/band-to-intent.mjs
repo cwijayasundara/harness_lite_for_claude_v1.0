@@ -53,7 +53,7 @@ if (!breach) { console.log('PASS  all control bands within range'); process.exit
 if (breach.tier === 2) { console.log(`WATCH  ${breach.metric} at 2σ — diagnose read-only, no intent written`); process.exit(0); }
 
 const slug = `${breach.metric}-breach`.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 63);
-const dir = path.join('.aidlc', 'artifacts', slug);
+const dir = path.join('.claude/harness', 'artifacts', slug);
 const file = path.join(dir, 'intent.md');
 if (existsSync(file)) { console.log(`OPEN  ${file} already exists`); process.exit(0); }
 
@@ -82,11 +82,11 @@ The metric is back inside its band, and the cause is named in a test.
 `);
 // The incident becomes a permanent eval in the same step that proposes the work, because the
 // step after an incident is the one nobody comes back to. `harness new eval` writes the seed under
-// `.aidlc/evals/pending/`; promoting it into the suite stays a human's decision.
+// `.claude/harness/evals/pending/`; promoting it into the suite stays a human's decision.
 // The project's own shim, which is an executable and not a node script — running it with `node`
 // is how the first attempt at this failed. `HARNESS_BIN` is the seam a test uses to point at the
 // harness under test instead of the installed one.
-const harnessBin = process.env.HARNESS_BIN ?? (existsSync('.aidlc/bin/harness') ? '.aidlc/bin/harness' : null);
+const harnessBin = process.env.HARNESS_BIN ?? (existsSync('.claude/harness/bin/harness') ? '.claude/harness/bin/harness' : null);
 let seed = null;
 if (harnessBin) {
   const made = harnessBin.endsWith('.mjs') || process.env.HARNESS_BIN

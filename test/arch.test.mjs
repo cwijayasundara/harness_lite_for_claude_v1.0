@@ -25,8 +25,8 @@ const run = (root) => spawnSync(process.execPath, [SENSOR], { cwd: root, encodin
 
 test('a lower layer importing a higher one is a failing verdict that names both', () => {
   const root = kernel({
-    '.aidlc/lib/config.mjs': "import { writeBlocked } from './guard.mjs';\nexport const x = writeBlocked;\n",
-    '.aidlc/lib/guard.mjs': 'export const writeBlocked = () => null;\n',
+    '.claude/harness/lib/config.mjs': "import { writeBlocked } from './guard.mjs';\nexport const x = writeBlocked;\n",
+    '.claude/harness/lib/guard.mjs': 'export const writeBlocked = () => null;\n',
   });
   try {
     const r = run(root);
@@ -37,7 +37,7 @@ test('a lower layer importing a higher one is a failing verdict that names both'
 
 test('a kernel module importing a provider projection is a failing verdict', () => {
   const root = kernel({
-    '.aidlc/lib/runner.mjs': "import { jira } from '../providers/jira.mjs';\nexport const r = jira;\n",
+    '.claude/harness/lib/runner.mjs': "import { jira } from '../providers/jira.mjs';\nexport const r = jira;\n",
   });
   try {
     const r = run(root);
@@ -48,9 +48,9 @@ test('a kernel module importing a provider projection is a failing verdict', () 
 
 test('dependencies that point down are clean, and the real kernel is', () => {
   const root = kernel({
-    '.aidlc/lib/guard.mjs': "import { layout } from './paths.mjs';\nimport { governingPlans } from './artifacts.mjs';\nexport const g = [layout, governingPlans];\n",
-    '.aidlc/lib/paths.mjs': 'export const layout = () => ({});\n',
-    '.aidlc/lib/artifacts.mjs': 'export const governingPlans = () => [];\n',
+    '.claude/harness/lib/guard.mjs': "import { layout } from './paths.mjs';\nimport { governingPlans } from './artifacts.mjs';\nexport const g = [layout, governingPlans];\n",
+    '.claude/harness/lib/paths.mjs': 'export const layout = () => ({});\n',
+    '.claude/harness/lib/artifacts.mjs': 'export const governingPlans = () => [];\n',
   });
   try {
     assert.equal(run(root).status, 0, run(root).stderr);

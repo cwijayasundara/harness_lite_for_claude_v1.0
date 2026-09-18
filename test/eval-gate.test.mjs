@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { gate, update, readRecord, writeRecord, loadResults, render, RECORD_SCHEMA } from '../.aidlc/lib/eval-gate.mjs';
+import { gate, update, readRecord, writeRecord, loadResults, render, RECORD_SCHEMA } from '../.claude/harness/lib/eval-gate.mjs';
 
 const record = (tasks) => ({ schema: RECORD_SCHEMA, recorded_at: '2026-09-01T00:00:00.000Z', source: 'r.json', commit: null, tasks });
 const norm = (v) => (typeof v === 'string' ? { verdict: v } : v);

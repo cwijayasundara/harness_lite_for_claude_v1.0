@@ -12,10 +12,10 @@ import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
-import * as a from '../.aidlc/lib/artifacts.mjs';
-import * as intake from '../.aidlc/lib/intake.mjs';
-import { coordination } from '../.aidlc/lib/coordination.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
+import * as intake from '../.claude/harness/lib/intake.mjs';
+import { coordination } from '../.claude/harness/lib/coordination.mjs';
 import { BIN } from './_paths.mjs';
 
 const run = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });

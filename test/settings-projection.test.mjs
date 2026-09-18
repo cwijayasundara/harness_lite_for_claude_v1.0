@@ -4,7 +4,7 @@
 // stage's secret scanner landed, and both lines of that defence are about the *tree*: the file is
 // untrackable, and a tracked file carrying `sk-ant-` fails `secrets`. Neither is about the agent.
 // Nothing stopped a session reading `.env` and putting the key in its own transcript, and this
-// repository exports transcripts as evidence under `evals/evidence/` and `.aidlc/evals/`. A
+// repository exports transcripts as evidence under `evals/evidence/` and `.claude/harness/evals/`. A
 // scanner reading the tree cannot see that, because the key never entered the tree.
 //
 // Denied rather than guarded: a hook refusal is a round trip that spends a turn and can be
@@ -18,10 +18,10 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { SECRET_PATHS, renderClaudePermissions } from '../.aidlc/lib/projection.mjs';
+import { SECRET_PATHS, renderClaudePermissions } from '../.claude/harness/lib/projection.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const ALLOW = ['Edit(.aidlc/artifacts/**)'];
+const ALLOW = ['Edit(.claude/harness/artifacts/**)'];
 
 test('every secret path is denied to all three file tools', () => {
   const { deny } = renderClaudePermissions(ALLOW, '');
@@ -56,7 +56,7 @@ test('negations that name nothing in the secret list are ignored', () => {
 });
 
 // Law 3: the shipped file is the projection, or the two can disagree. Same shape as the hooks
-// assertion in contracts.test.mjs, which compares adapters/claude/hooks.json to its renderer.
+// assertion in contracts.test.mjs, which compares hooks.json to its renderer.
 test('this repository ships the current projection', () => {
   const settings = JSON.parse(readFileSync(path.join(ROOT, '.claude/settings.json'), 'utf8'));
   const ignore = readFileSync(path.join(ROOT, '.gitignore'), 'utf8');

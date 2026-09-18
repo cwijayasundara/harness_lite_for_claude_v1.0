@@ -20,7 +20,7 @@ import { ROOT } from './_paths.mjs';
 test('an assertion becomes the grader that expresses it, or it stays with run.mjs', () => {
   const emitted = caseFor({
     id: 'sample-task', prompt: 'Do the thing.',
-    assert: [{ transcript_matches: 'because' }, { file_exists: '.aidlc/artifacts/*/intent.md' },
+    assert: [{ transcript_matches: 'because' }, { file_exists: '.claude/harness/artifacts/*/intent.md' },
       { transcript_order: ['Glob', 'Read'] }, { fixture_tests_pass: true }],
   });
   assert.equal(emitted.dir, 'sample-task');

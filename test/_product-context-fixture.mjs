@@ -3,10 +3,10 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import * as a from '../.aidlc/lib/artifacts.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
 import { A } from './_paths.mjs';
-import { traceEvidence } from '../.aidlc/lib/trace.mjs';
+import { traceEvidence } from '../.claude/harness/lib/trace.mjs';
 
 export function productFixture(existingRoot = null) {
   const root = existingRoot ?? mkdtempSync(path.join(tmpdir(), 'product-context-test-'));
@@ -15,8 +15,8 @@ export function productFixture(existingRoot = null) {
   const commit = message => { git('add', '-A'); git('-c', 'commit.gpgsign=false', 'commit', '--allow-empty', '-qm', message); return git('rev-parse', 'HEAD'); };
   if (!existingRoot) {
     git('init', '-q'); git('config', 'user.name', 'Simulated reviewer'); git('config', 'user.email', 'simulated@example.invalid');
-    write('.aidlc/harness.toml', '[project]\nname = "context-fixture"\n');
-    write('.gitignore', '.aidlc/state/\n__pycache__/\n.pytest_cache/\n');
+    write('.claude/harness/harness.toml', '[project]\nname = "context-fixture"\n');
+    write('.gitignore', '.claude/harness/state/\n__pycache__/\n.pytest_cache/\n');
   }
   write('requirements.md', '# Name display\n\n## Acceptance criteria\n\n| Criterion ID | Criterion |\n|---|---|\n| names | Render mary-jane watson as Mary-Jane Watson; preserve space-separated names. |\n');
   const source = commit('Simulated original requirement');
@@ -40,7 +40,7 @@ export function productFixture(existingRoot = null) {
       ok: controls.every(c => ['pass', 'skipped'].includes(c.verdict)), changed_files: [], controls };
   }
   function record(change, { candidate = git('rev-parse', 'HEAD'), merge = candidate, controls, checkReport, hostEdit, recordEdit } = {}) {
-    const directory = `.aidlc/artifacts/${change.slug}`;
+    const directory = `.claude/harness/artifacts/${change.slug}`;
     const checks = `${directory}/candidate-check.json`, host_review = `${directory}/host-review.json`;
     const number = ++pr;
     const observed = '2026-09-08T12:00:00.000Z';

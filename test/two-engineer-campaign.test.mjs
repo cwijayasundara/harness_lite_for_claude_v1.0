@@ -7,13 +7,13 @@ import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { stage, FIXTURES } from '../evals/lib/stage.mjs';
-import { loadConfig } from '../.aidlc/lib/config.mjs';
-import * as a from '../.aidlc/lib/artifacts.mjs';
-import { writeBlocked } from '../.aidlc/lib/guard.mjs';
-import { coordination } from '../.aidlc/lib/coordination.mjs';
-import { productContext } from '../.aidlc/lib/product-context.mjs';
-import { exportInvocation } from '../.aidlc/lib/ledger.mjs';
-import { check } from '../.aidlc/lib/runner.mjs';
+import { loadConfig } from '../.claude/harness/lib/config.mjs';
+import * as a from '../.claude/harness/lib/artifacts.mjs';
+import { writeBlocked } from '../.claude/harness/lib/guard.mjs';
+import { coordination } from '../.claude/harness/lib/coordination.mjs';
+import { productContext } from '../.claude/harness/lib/product-context.mjs';
+import { exportInvocation } from '../.claude/harness/lib/ledger.mjs';
+import { check } from '../.claude/harness/lib/runner.mjs';
 import { BIN, A } from './_paths.mjs';
 
 const hash = value => createHash('sha256').update(value).digest('hex');
@@ -48,7 +48,7 @@ function prepare(root, input) {
   return base;
 }
 function record(root, slug, report, number) {
-  const dir = `.aidlc/artifacts/${slug}`;
+  const dir = `.claude/harness/artifacts/${slug}`;
   const revision = report.revision;
   const host = { version: 1, repository: 'simulation/ledger', pr: number, candidate: revision.candidate,
     provenance: 'simulated-transport', verified: false, assessment: 'policy-unavailable',
@@ -148,7 +148,7 @@ test('two engineers evolve a shared product through isolated work, reversal, int
     // G06: this campaign is the `human` arm. It asserts refusals — a scope violation rejected at
     // the guard and again at the check — so it declares the enforcing gate rather than inheriting
     // the advisory default. The advisory arm is the test below.
-    write(root, '.aidlc/harness.toml', '[project]\nname = "two-engineer-product"\n[capabilities]\ntest = "env -u NODE_TEST_CONTEXT node --test --test-reporter=tap tests/*.test.mjs"\n[formats]\ntest = "tap"\n[stages]\nstop = ["test"]\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
+    write(root, '.claude/harness/harness.toml', '[project]\nname = "two-engineer-product"\n[capabilities]\ntest = "env -u NODE_TEST_CONTEXT node --test --test-reporter=tap tests/*.test.mjs"\n[formats]\ntest = "tap"\n[stages]\nstop = ["test"]\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
     const requirements = '# Partial payments\n\n## Acceptance criteria\n\n| Criterion ID | Criterion |\n|---|---|\n| shared | Credit payment amount minus fee. |\n| portal | Show outstanding invoice balance using the shared credit rule. |\n| report | Report outstanding invoice balance using the shared credit rule. |\n| integration | Portal and report agree for payments with nonzero fees. |\n';
     write(root, 'requirements.md', requirements); const source = commit(root, 'Simulated product initiative');
     const sharedBase = prepare(root, { slug: 'shared-credit', criterion: 'shared', source, files: ['src/payment-contract.mjs', 'tests/shared.test.mjs'], behaviour: 'Given a payment with a fee, when credited, then subtract the fee from its invoice credit.' });
@@ -172,8 +172,8 @@ test('two engineers evolve a shared product through isolated work, reversal, int
     }
     // A newly shared unrelated draft also declares an overlap; neither grants nor steals scope.
     a.create(config(root), 'future-notifications', path.join(A, 'templates'));
-    write(root, '.aidlc/artifacts/future-notifications/intent.md', '---\nstatus: draft\n---\n# Future reminder emails\n');
-    write(root, '.aidlc/artifacts/future-notifications/plan.md', '---\nstatus: draft\n---\n# Future plan\n\n## Files\n\n- `src/portal.mjs`\n');
+    write(root, '.claude/harness/artifacts/future-notifications/intent.md', '---\nstatus: draft\n---\n# Future reminder emails\n');
+    write(root, '.claude/harness/artifacts/future-notifications/plan.md', '---\nstatus: draft\n---\n# Future plan\n\n## Files\n\n- `src/portal.mjs`\n');
     commit(root, 'Publish unrelated backlog draft');
     for (const e of engineers) {
       merge(e.root, 'integration');

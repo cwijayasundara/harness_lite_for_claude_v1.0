@@ -1,17 +1,17 @@
 // ledger-evidence-not-reporting: the ledger records what fired, how often, and how often a human
 // called a fire wrong. It does not measure benefit, and it is not a place to publish from.
 // The investigation this states the limit for is in
-// .aidlc/artifacts/ledger-evidence-not-reporting/review.md.
+// .claude/harness/artifacts/ledger-evidence-not-reporting/review.md.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './_paths.mjs';
-import { KILL } from '../.aidlc/lib/ledger.mjs';
+import { KILL } from '../.claude/harness/lib/ledger.mjs';
 
 const read = rel => readFileSync(path.join(ROOT, rel), 'utf8');
-const LEDGER = read('.aidlc/lib/ledger.mjs');
-const HARNESS = read('.aidlc/bin/harness');
+const LEDGER = read('.claude/harness/lib/ledger.mjs');
+const HARNESS = read('.claude/harness/bin/harness');
 const README = read('README.md');
 const PLAN = read('docs/IMPROVEMENT-PLAN.md');
 
