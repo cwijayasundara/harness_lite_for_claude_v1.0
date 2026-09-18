@@ -188,7 +188,11 @@ selected as current while it runs.
 
 ## Acceptance criteria
 
-1. `git grep '\.aidlc' -- . ':!.claude/harness/artifacts'` returns zero matches.
+1. `git grep '\.aidlc' -- . ':!.claude/harness/artifacts' ':!docs/superpowers' ':!test/layout.test.mjs'`
+   returns zero matches. Three paths are exempt and keep their references: the historical
+   artifacts, the design records under `docs/superpowers/` which describe this move and must
+   keep naming its source path, and `test/layout.test.mjs` which holds `.aidlc` as its literal
+   search pattern.
 2. `git grep -c '\.aidlc' -- .claude/harness/artifacts` is unchanged at 6,371
    occurrences across 238 files.
 3. `git log --follow` traverses the rename for a sampled moved file.

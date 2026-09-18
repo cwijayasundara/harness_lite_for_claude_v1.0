@@ -13,7 +13,10 @@
 ## Global Constraints
 
 - **Test parity target: 624 tests, 623 pass, 1 skipped, 0 fail** (measured 2026-09-18, ~84s).
-- **Never rewrite `.claude/harness/artifacts/`.** Every `git ls-files` used for rewriting must carry the pathspec `':!.claude/harness/artifacts'`. Its 6,371 `.aidlc` occurrences across 238 files are a historical record and must end unchanged.
+- **Never rewrite three paths.** Every `git ls-files` used for rewriting must carry the pathspec `':!.claude/harness/artifacts' ':!docs/superpowers' ':!test/layout.test.mjs'`.
+  - `.claude/harness/artifacts/` — 6,371 occurrences across 238 files; a historical record, must end unchanged.
+  - `docs/superpowers/` — 2 files, 84 occurrences; the spec and this plan describe the move and must keep naming its source path.
+  - `test/layout.test.mjs` — holds `.aidlc` as its literal search pattern; rewriting it makes the guard search for the wrong string and pass vacuously.
 - **Do not rename the `AIDLC_UNATTENDED` environment variable** (`lib/deliver.mjs:227`). It is not a path. This change is a relocation only.
 - **Do not hand-edit generated files:** root `CLAUDE.md`, `.claude/settings.json`, `CODEBASE-MAP.md`, `.claude/harness/hooks.json`, consumer `bin/harness` shims, consumer `harness-install.json`. Regenerate them (Task 4, Task 5).
 - **Do not run the harness delivery workflow.** The project instruction forbids `harness new`, creating `artifacts/`, or resuming AIDLC stages here. `harness doctor`, `harness map`, `harness init` and `harness check` are verification and regeneration, and are permitted.
@@ -80,7 +83,7 @@ const grep = (...pathspec) => {
 };
 
 test('no tracked file outside artifacts references .aidlc', () => {
-  assert.deepEqual(grep('.', ':!.claude/harness/artifacts'), []);
+  assert.deepEqual(grep('.', ':!.claude/harness/artifacts', ':!docs/superpowers', ':!test/layout.test.mjs'), []);
 });
 
 test('the harness lives at .claude/harness and .aidlc is gone', () => {
@@ -120,7 +123,7 @@ git rm -r --cached -q .claude/harness/adapters && rm -rf .claude/harness/adapter
 - [ ] **Step 5: Rewrite every reference except the artifacts**
 
 ```bash
-git ls-files -z -- . ':!.claude/harness/artifacts' \
+git ls-files -z -- . ':!.claude/harness/artifacts' ':!docs/superpowers' ':!test/layout.test.mjs' \
   | xargs -0 perl -pi -e 's{\.aidlc}{.claude/harness}g'
 ```
 
@@ -271,7 +274,7 @@ Expected: the five that pointed at `${{ github.workspace }}/.aidlc` now read `${
 - [ ] **Step 3: Confirm no stale references remain**
 
 ```bash
-git grep -c '\.aidlc' -- docs evals README.md .github
+git grep -c '\.aidlc' -- docs evals README.md .github ':!docs/superpowers'
 ```
 
 Expected: no output (exit 1, no matches).
@@ -459,7 +462,7 @@ EOF
 - [ ] **Step 2: Acceptance criteria 1 and 2**
 
 ```bash
-git grep -c '\.aidlc' -- . ':!.claude/harness/artifacts' || echo "criterion 1: zero — pass"
+git grep -c '\.aidlc' -- . ':!.claude/harness/artifacts' ':!docs/superpowers' ':!test/layout.test.mjs' || echo "criterion 1: zero — pass"
 echo "artifact files: $(git grep -l '\.aidlc' -- .claude/harness/artifacts | wc -l) (expect 238)"
 echo "artifact occurrences: $(git grep -o '\.aidlc' -- .claude/harness/artifacts | wc -l) (expect 6371)"
 ```
