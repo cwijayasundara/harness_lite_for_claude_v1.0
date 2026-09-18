@@ -199,19 +199,21 @@ The environment is disposable local staging; no real production deployment is cl
 
 ## Phase 7 — Package and roll out
 
-- [ ] P7.1 Publish semantic plugin version 0.2.0 from an immutable source commit. The version and
-      reproducible package are ready; external publication remains pending a clean commit/tag/push.
+- [x] P7.1 Publish semantic plugin version 0.2.0 from immutable source commit `d9526a3`, tagged
+      and pushed as `v0.2.0`.
 - [x] P7.2 Separate the runtime package from research history, fixtures and evidence.
 - [x] P7.3 Verify clean install, upgrade, downgrade and uninstall against immutable package commits.
 - [x] P7.4 Publish supported Claude Code/Node compatibility in `docs/COMPATIBILITY.md`.
-- [ ] P7.5 Start the cohort-first rollout after the immutable `0.2.0` release is published. The cohort, admission, halt, and rollback policy is defined and locally rehearsed in `release/rollout.json`.
+- [x] P7.5 Open the maintainer cohort for `0.2.0`, capped at two projects, with admission, halt,
+      rollback, and minimum healthy-period criteria in `release/rollout.json`. Enrollment begins at
+      zero; opening the cohort does not claim an unobserved deployment.
 - [x] P7.6 Record the initial control-telemetry review and monthly retain/revise/delete cadence.
 
 Packaging and rollout evidence lives in `release/package.mjs`, `release/rollout.json`,
 `release/telemetry-review.json`, `docs/COMPATIBILITY.md`, and `test/release-package.test.mjs`.
 The runtime package is its own minimal Git repository so exact consumer pins remain verifiable.
-P7.1 cannot honestly close while this multi-phase working tree is uncommitted and unpublished;
-local package generation is not marketplace publication.
+The immutable runtime release is published at `v0.2.0`; the maintainer cohort is open and records
+zero initial enrollments so rollout evidence cannot be confused with unobserved adoption.
 
 ## Scorecard
 
