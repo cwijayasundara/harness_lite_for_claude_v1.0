@@ -4,6 +4,8 @@
 # Live model trials are explicit manual subscription runs; PR checks require no model credentials.
 name: harness
 on:
+  schedule:
+    - cron: '17 3 * * *'   # nightly, off the hour: every runner in the world is busy at :00
   push:
   pull_request:
   workflow_dispatch:
@@ -76,6 +78,21 @@ jobs:
       # Phase 3's exit criterion, re-checked on every push. If the graph stops earning its
       # place, that is a finding, not a nuisance.
       - run: node evals/bench/pack-bench.mjs
+      # why: the Stop hook regenerates CODEBASE-MAP.md on drift, and this repository is the one
+      # place that hook never runs — harness.toml disables Claude activation here so the suite
+      # is not rewritten by the hooks it is changing. The map rotted accordingly: MEASURED
+      # 2026-09-18, the committed file described 112 modules against a tree holding 145, having
+      # last been regenerated on 2026-09-13. A map that has quietly stopped describing the tree
+      # is worse than none (dispatch.mjs, B11), so CI runs the generator the hook would have run
+      # and fails on a diff. Self-exemption is why the hook is absent; it is not a reason for the
+      # guarantee to be absent too.
+      - name: The map still describes the tree
+        run: |
+          node .aidlc/bin/harness map
+          git diff --exit-code -- CODEBASE-MAP.md || {
+            echo "::error file=CODEBASE-MAP.md::stale — run '.aidlc/bin/harness map' and commit the result"
+            exit 1
+          }
 
   cost:
     # Law 4's sibling: a token regression fails the build exactly like a failing test.
@@ -88,7 +105,7 @@ jobs:
       # Dependencies belong to the Python example, not the zero-dependency harness.
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: python -m pip install pytest==8.4.2 pytest-json-report==1.5.0 ruff==0.12.12
+      - run: python -m pip install pytest==8.4.2 pytest-json-report==1.5.0 pytest-cov==7.0.0 ruff==0.12.12 mypy==1.19.1
       # Deliberate migration of this disposable CI example to the candidate runtime.
       # The historical example record remains intact in source control.
       - run: node .aidlc/bin/harness init --into examples/scratch-py
@@ -109,6 +126,82 @@ jobs:
         working-directory: examples/scratch-py
         env:
           HARNESS_HOME: ${{ github.workspace }}/.aidlc
+
+      # G12. The TypeScript twin. The two examples exist to prove Law 6 — that a language is a
+      # table of commands and not a plugin — and a claim with only one language behind it is half
+      # a claim. Both run every verb `harness init` detected for them, from the same registry the
+      # detector wrote.
+      - run: npm ci
+        working-directory: examples/scratch-ts
+      - run: node .aidlc/bin/harness init --into examples/scratch-ts
+      - run: .aidlc/bin/harness doctor
+        working-directory: examples/scratch-ts
+        env:
+          HARNESS_HOME: ${{ github.workspace }}
+      - run: .aidlc/bin/harness check --stage stop --all
+        working-directory: examples/scratch-ts
+        env:
+          HARNESS_HOME: ${{ github.workspace }}/.aidlc
+      - run: .aidlc/bin/harness check --stage drift --all
+        working-directory: examples/scratch-ts
+        env:
+          HARNESS_HOME: ${{ github.workspace }}/.aidlc
+      # The Python example's own drift stage, now that coverage and deps are configured for it.
+      - run: .aidlc/bin/harness check --stage drift --all
+        working-directory: examples/scratch-py
+        env:
+          HARNESS_HOME: ${{ github.workspace }}/.aidlc
+
+  # G04/G20. The nightly live suite. The runner is the boundary: an ephemeral virtual machine that
+  # is destroyed when the job ends, which is the only OS-level boundary this harness has. The gate
+  # is non-blocking until G23's baseline is green — a gate that fails every night is a gate people
+  # stop reading — and the results are uploaded either way, because the point is the measurement.
+  nightly:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    timeout-minutes: 90
+    env:
+      HAS_SUBSCRIPTION_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - if: env.HAS_SUBSCRIPTION_TOKEN != 'true'
+        run: |
+          echo "::error::CLAUDE_CODE_OAUTH_TOKEN is required for the nightly live suite. API billing is disabled."
+          exit 1
+      - run: npm install --global @anthropic-ai/claude-code@2.1.263
+      - name: golden suite
+        run: node evals/run.mjs --live --max-suite-usd 15
+        env: { CLAUDE_CODE_OAUTH_TOKEN: '${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}' }
+      # G21. The same golden tasks in the layout `claude plugin eval` reads, scored by its own
+      # free graders. Two independent gradings of one behaviour disagreeing is a finding, which is
+      # the whole reason for running both. `--ablation with-without` is what produces the
+      # contribution delta: the same case with the plugin and without it.
+      - name: golden tasks in the plugin-eval layout
+        continue-on-error: true   # G23 flips this with the gate below
+        run: |
+          node evals/generate-cases.mjs --check
+          claude plugin eval . --trust-plugin --eval-dir evals/cases \
+            --json evals/evidence/plugin-eval.json --no-publish \
+            --ablation with-without --allow-tools Write Edit \
+            --threshold 0.8 --model "$EVAL_MODEL" --judge-model "$EVAL_MODEL" --max-cost-usd 10
+          node evals/contribution.mjs evals/evidence/plugin-eval.json
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: '${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}'
+          EVAL_MODEL: claude-haiku-4-5-20251001
+
+      - name: grade against the recorded baseline
+        continue-on-error: true   # G23 flips this once expected.json has no fail and no flaky
+        run: node .aidlc/bin/harness evals gate
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-eval-results
+          path: |
+            .aidlc/evals/results/
+            evals/evidence/
 
   # Explicit subscription usage only. Ordinary PRs never invoke a model.
   evals:

@@ -1,0 +1,333 @@
+{
+ "schemaVersion": "1.0",
+ "files": {
+  "src/slug.ts": {
+   "mutants": [
+    {
+     "id": "12",
+     "mutatorName": "MethodExpression",
+     "status": "Killed",
+     "replacement": "value.trim().toUpperCase()",
+     "location": {
+      "end": {
+       "column": 19,
+       "line": 11
+      },
+      "start": {
+       "column": 10,
+       "line": 9
+      }
+     }
+    },
+    {
+     "id": "4",
+     "mutatorName": "BlockStatement",
+     "status": "Killed",
+     "replacement": "{}",
+     "location": {
+      "end": {
+       "column": 2,
+       "line": 14
+      },
+      "start": {
+       "column": 48,
+       "line": 5
+      }
+     }
+    },
+    {
+     "id": "7",
+     "mutatorName": "EqualityOperator",
+     "status": "Killed",
+     "replacement": "value.trim() !== \"\"",
+     "location": {
+      "end": {
+       "column": 26,
+       "line": 6
+      },
+      "start": {
+       "column": 7,
+       "line": 6
+      }
+     }
+    },
+    {
+     "id": "10",
+     "mutatorName": "BlockStatement",
+     "status": "Killed",
+     "replacement": "{}",
+     "location": {
+      "end": {
+       "column": 4,
+       "line": 8
+      },
+      "start": {
+       "column": 28,
+       "line": 6
+      }
+     }
+    },
+    {
+     "id": "13",
+     "mutatorName": "MethodExpression",
+     "status": "Killed",
+     "replacement": "value",
+     "location": {
+      "end": {
+       "column": 12,
+       "line": 10
+      },
+      "start": {
+       "column": 10,
+       "line": 9
+      }
+     }
+    },
+    {
+     "id": "9",
+     "mutatorName": "StringLiteral",
+     "status": "Killed",
+     "replacement": "\"Stryker was here!\"",
+     "location": {
+      "end": {
+       "column": 26,
+       "line": 6
+      },
+      "start": {
+       "column": 24,
+       "line": 6
+      }
+     }
+    },
+    {
+     "id": "3",
+     "mutatorName": "Regex",
+     "status": "Killed",
+     "replacement": "/[\\S_]+/g",
+     "location": {
+      "end": {
+       "column": 29,
+       "line": 3
+      },
+      "start": {
+       "column": 20,
+       "line": 3
+      }
+     }
+    },
+    {
+     "id": "11",
+     "mutatorName": "StringLiteral",
+     "status": "Killed",
+     "replacement": "\"\"",
+     "location": {
+      "end": {
+       "column": 46,
+       "line": 7
+      },
+      "start": {
+       "column": 21,
+       "line": 7
+      }
+     }
+    },
+    {
+     "id": "6",
+     "mutatorName": "ConditionalExpression",
+     "status": "Killed",
+     "replacement": "false",
+     "location": {
+      "end": {
+       "column": 26,
+       "line": 6
+      },
+      "start": {
+       "column": 7,
+       "line": 6
+      }
+     }
+    },
+    {
+     "id": "5",
+     "mutatorName": "ConditionalExpression",
+     "status": "Killed",
+     "replacement": "true",
+     "location": {
+      "end": {
+       "column": 26,
+       "line": 6
+      },
+      "start": {
+       "column": 7,
+       "line": 6
+      }
+     }
+    },
+    {
+     "id": "2",
+     "mutatorName": "Regex",
+     "status": "Killed",
+     "replacement": "/[^\\s_]+/g",
+     "location": {
+      "end": {
+       "column": 29,
+       "line": 3
+      },
+      "start": {
+       "column": 20,
+       "line": 3
+      }
+     }
+    },
+    {
+     "id": "1",
+     "mutatorName": "Regex",
+     "status": "Survived",
+     "replacement": "/[\\s_]/g",
+     "location": {
+      "end": {
+       "column": 29,
+       "line": 3
+      },
+      "start": {
+       "column": 20,
+       "line": 3
+      }
+     }
+    },
+    {
+     "id": "8",
+     "mutatorName": "MethodExpression",
+     "status": "Killed",
+     "replacement": "value",
+     "location": {
+      "end": {
+       "column": 19,
+       "line": 6
+      },
+      "start": {
+       "column": 7,
+       "line": 6
+      }
+     }
+    },
+    {
+     "id": "14",
+     "mutatorName": "StringLiteral",
+     "status": "Killed",
+     "replacement": "\"\"",
+     "location": {
+      "end": {
+       "column": 29,
+       "line": 12
+      },
+      "start": {
+       "column": 26,
+       "line": 12
+      }
+     }
+    },
+    {
+     "id": "18",
+     "mutatorName": "BlockStatement",
+     "status": "Killed",
+     "replacement": "{}",
+     "location": {
+      "end": {
+       "column": 2,
+       "line": 18
+      },
+      "start": {
+       "column": 63,
+       "line": 16
+      }
+     }
+    },
+    {
+     "id": "17",
+     "mutatorName": "StringLiteral",
+     "status": "Killed",
+     "replacement": "\"\"",
+     "location": {
+      "end": {
+       "column": 53,
+       "line": 16
+      },
+      "start": {
+       "column": 49,
+       "line": 16
+      }
+     }
+    },
+    {
+     "id": "15",
+     "mutatorName": "Regex",
+     "status": "Killed",
+     "replacement": "/[a-z0-9-]/g",
+     "location": {
+      "end": {
+       "column": 27,
+       "line": 13
+      },
+      "start": {
+       "column": 14,
+       "line": 13
+      }
+     }
+    },
+    {
+     "id": "16",
+     "mutatorName": "StringLiteral",
+     "status": "Survived",
+     "replacement": "\"Stryker was here!\"",
+     "location": {
+      "end": {
+       "column": 31,
+       "line": 13
+      },
+      "start": {
+       "column": 29,
+       "line": 13
+      }
+     }
+    },
+    {
+     "id": "19",
+     "mutatorName": "StringLiteral",
+     "status": "Killed",
+     "replacement": "``",
+     "location": {
+      "end": {
+       "column": 39,
+       "line": 17
+      },
+      "start": {
+       "column": 10,
+       "line": 17
+      }
+     }
+    }
+   ]
+  },
+  "src/http/handler.ts": {
+   "mutants": [
+    {
+     "id": "0",
+     "mutatorName": "BlockStatement",
+     "status": "Survived",
+     "replacement": "{}",
+     "location": {
+      "end": {
+       "column": 2,
+       "line": 6
+      },
+      "start": {
+       "column": 47,
+       "line": 4
+      }
+     }
+    }
+   ]
+  }
+ }
+}

@@ -45,15 +45,41 @@ into delivery; the remaining three are delivery gates. Everything else is adviso
 pauses inside the build loop destroy the parallelism that makes agents worth running; gates
 belong at the edges, not in the middle.
 
-### Law 9 — Evals before controls *(enforced: CI)*
-Twenty golden tasks with deterministic assertions and per-task budgets exist before the next
+Gates are recorded at the edges; in advisory mode they inform the merge decision rather than
+block the build loop. `[gates]` in `harness.toml` sets the mode per gate — `human` refuses,
+`advisory` reports the same judgment and lets the loop continue, `auto` lets the driver record
+the approval with a digest of the policy that gave it. `merge` takes one value: the harness never
+approves its own merge, and the rules that are not gates — destructive commands, protected paths,
+the prompt prefix, `tamper`, `secrets`, `approve-is-the-humans` — are unaffected by any mode.
+
+### Law 9 — Evals before controls *(enforced: nightly, non-blocking until the baseline is green)*
+24 golden tasks with deterministic assertions and per-task budgets exist before the next
 skill or hook. Every production incident becomes a permanent eval. The suite runs on any diff
 touching the harness's own configuration.
+
+A task may also exist to price a control that does not exist yet. `right-symbol-same-name` and
+`local-convention-holds` (2026-09-18) measure two recommendations from Anthropic's large-codebase
+guidance — run a language server, and layer CLAUDE.md into subdirectories — neither of which this
+harness implements. That is this law doing its job rather than an exception to it: the cheap thing
+is the task that says whether the expensive thing is needed, and Law 11 will not take a blog post
+as the defect. If they pass, the recommendations are declined on evidence and the tasks stay as
+the record of why.
+
+The enforcement clause says exactly what CI does and no more. The nightly job runs the live suite
+and grades it against `evals/expected.json`; the gate step is `continue-on-error` while that record
+still holds failing or flaky tasks, because a gate that fails every night is a gate people stop
+reading. It becomes blocking when the record is green — which is a measurement, not an edit.
 
 ### Law 10 — Every control carries its defect
 A `why:` naming the incident or eval it prevents. No why, or no firings in 50 sessions with
 zero true positives — it goes at the next audit. Record the defect that motivated a control in
 the file itself; future readers cannot infer it and will delete the wrong thing.
+
+A major model release is the second audit trigger, alongside the 50-session count. A control
+written to compensate for what a model could not do is the first thing a newer model makes
+dead weight, and the ledger cannot report that on its own: the rule keeps firing, and every
+fire looks like a save until someone checks whether the model still needed saving. Run
+`harness ledger audit` after a release and re-read the `why:` of anything it lists.
 
 ### Law 11 — A control's defect comes from outside this repository
 A new control enters the harness only with a failing eval, or a defect recorded while building a

@@ -1,83 +1,157 @@
 // Staging: _base, then the fixture on top, then a pristine snapshot to diff against.
 // The work copy is a real git repo, because scope-drift and the commit stage read the diff.
-import { cpSync, mkdtempSync, existsSync, rmSync, mkdirSync, chmodSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdtempSync, existsSync, rmSync, mkdirSync, chmodSync, readdirSync, readFileSync, writeFileSync, symlinkSync } from 'node:fs';
 import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { selectChange } from '../../.aidlc/lib/artifacts.mjs';
+import { selectChange, approve, render, file as artifactFile } from '../../.aidlc/lib/artifacts.mjs';
+import { loadConfig } from '../../.aidlc/lib/config.mjs';
 
-// `--test-timeout` bounds a test that hangs; it does not bound a test that FAILS while leaving a
-// listening socket open, because the failure is instant and it is the file's process that then
-// refuses to exit. Without `--test-force-exit` such a seeded defect converts a reported failure
-// into an outer invocation timeout, which is the one outcome the leaked-server trial forbids.
-export const PRODUCT_TEST_ARGS = ['--test', '--test-timeout=10000'];
-export const PRODUCT_TEST_COMMAND = `node ${PRODUCT_TEST_ARGS.join(' ')}`;
-// Process mode only, and deliberately NOT added to the shared constant above: the spec's Design
-// says the container path is unchanged in behaviour, and PRODUCT_TEST_ARGS is what the container
-// path runs. A container gets a fresh PID namespace and `--rm`, so a leaked socket dies with it;
-// a host child does not, and `--test-timeout` does not help — it bounds a test that HANGS, while
-// this one FAILS instantly and it is the file's process that then refuses to exit. Measured
-// before this flag existed: the seeded leaked-server case returned ETIMEDOUT after 25,009ms
-// instead of the failure it was supposed to report.
-export const productTestArgs = [...PRODUCT_TEST_ARGS, '--test-force-exit'];
-export const productTestCommand = `node ${productTestArgs.join(' ')}`;
+// The product's own test command. `calculator` is React + TypeScript on vitest, so this is no
+// longer `node --test`: a product with a real toolchain runs the toolchain's runner, and the
+// three `--test-force-exit` paragraphs that used to live here went with the HTTP service product
+// they were written for — vitest tears its own environment down.
+export const PRODUCT_TEST_COMMAND = 'npx vitest run';
+
+// Not `execNode`: the runner is a bin in the linked `node_modules`, not a Node entry point.
+export function runProductTests(cwd, { timeout = 180000 } = {}) {
+  return spawnSync('npx', ['vitest', 'run'], { cwd, encoding: 'utf8', timeout, killSignal: 'SIGKILL', env: productEnv() });
+}
 
 export const FIXTURES = path.join(path.dirname(path.dirname(fileURLToPath(import.meta.url))), 'fixtures');
 
-export function stage(fixturesDir, name, { product = false, native = false } = {}) {
+// G23. `gates` is the task's, not the fixture's. G06 made `[gates]` a policy defaulting to
+// `advisory`, where an out-of-scope write is a warning rather than a refusal — so the two tasks
+// that measure a REFUSAL silently started measuring a warning, and neither could pass again.
+// `clean-app` serves both kinds of task, so pinning the mode per fixture is not available: a task
+// that asserts a refusal has to say which mode it means, exactly as `test/_gates.mjs` makes the
+// unit tests say it.
+// A fixture with a real toolchain (the calculator is React + TypeScript + vitest + eslint +
+// prettier) needs its dependencies, and copying 132 MB of `node_modules` into every staged trial —
+// two arms, three repetitions, three intents — would cost more than the model calls do. One
+// symlink at the staged ROOT instead: Node's resolution walks up from `work/` and finds it, the
+// tree never enters `work/` so no diff, scope check or baseline can see it, and the agent's writes
+// land in `work/` rather than in the fixture everyone else stages from.
+//
+// Not installed here on purpose. An install inside a measured trial is network, minutes and a
+// lockfile resolution that could differ between the two arms being compared.
+export function linkDependencies(fixtureDir, root) {
+  // Absolute: a relative target resolves against the SYMLINK's directory, which is a tmpdir, so
+  // `evals/fixtures/calculator/node_modules` dangled silently and every verb fell back to npx's
+  // registry path.
+  const modules = path.resolve(fixtureDir, 'node_modules');
+  if (!existsSync(path.join(fixtureDir, 'package.json'))) return null;
+  if (!existsSync(modules)) {
+    throw new Error(`${path.basename(fixtureDir)} declares dependencies but has no node_modules — `
+      + `run: npm ci --prefix ${path.relative(process.cwd(), fixtureDir) || fixtureDir}`);
+  }
+  const link = path.join(root, 'node_modules');
+  symlinkSync(modules, link, 'dir');
+  return link;
+}
+
+// M1.C F15. MEASURED 2026-09-16, the first full run since `f6feb3a` made fixtures actually install
+// the harness steering: six of the seven non-green tasks failed the same way. The agent wrote
+// intent/spec/plan and stopped for approval — exactly what the harness tells it to do — and never
+// reached the behaviour the task grades. `sensor-consulted` never ran a check, `pure-refactor`
+// never extracted the function, `pin-before-edit` never wrote a characterisation test. The tasks
+// were written against fixtures that loaded no harness at all, so each grades work that only
+// happens AFTER an approval the suite never supplied. The suite was measuring the gate six times.
+//
+// A task that presupposes an approved contract now says so, and gets one. Single-turn stays
+// single-turn: no second model call, no `steps` in a golden task (`test/campaign.test.mjs` keeps
+// campaigns in products.json, and that invariant is not weakened to make this work).
+//
+// Through the harness's own `approve()` rather than a hand-written `status: approved`, because the
+// preconditions are the point — committed before approved, no scaffold placeholder left, a Proof
+// row per behaviour, the spec before the plan. A seeded contract that could not survive the real
+// gate would be a fixture asserting something this harness would refuse.
+function seedApprovedContract(work, contract, git) {
+  const { slug, outcome, behaviour, files, proof } = contract;
+  const cfg = loadConfig(work);
+  const dir = path.join(work, '.aidlc/artifacts', slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, 'intent.md'), render({ status: 'draft' },
+    `# Intent: ${slug}\n\n## Problem\n\n${outcome}\n\n## Outcome\n\n${outcome}\n`));
+  writeFileSync(artifactFile(cfg, slug, 'spec'), render({ status: 'draft' },
+    `# Spec: ${slug}\n\n## Outcome\n\n${outcome}\n\n`
+    + `## Requirements\n\n| Source criterion | Behaviour IDs |\n|---|---|\n| local:${slug} | B1 |\n\n`
+    + `## Observable behaviours\n\n### B1\n\n${behaviour}\n\n`
+    + `## Design\n\n${outcome}\n\n`
+    + `## Out of scope\n\nEverything outside ${files.join(', ')}.\n\n`
+    + `## Safeguards\n\nPreserve existing public behaviour and the passing tests.\n`));
+  writeFileSync(artifactFile(cfg, slug, 'plan'), render({ status: 'draft' },
+    `# Plan\n\n## Approach\n\n${outcome}\n\n`
+    + `## Files\n\n${files.map((f) => '- `' + f + '`').join('\n')}\n\n`
+    + `## Order\n\n1. Make the change and run the project's checks.\n\n`
+    + `## Proof\n\n| Behaviour | Test or evidence |\n|---|---|\n| B1 | ${proof} |\n`));
+  // Committed before approved, which `approve()` enforces and which is the honest order anyway.
+  git('add', '-A');
+  git('-c', 'commit.gpgsign=false', 'commit', '-qm', `contract: ${slug}`);
+  for (const kind of ['spec', 'plan']) {
+    approve(cfg, slug, kind, { by: 'seeded-test-fixture' });
+    git('add', '-A');
+    git('-c', 'commit.gpgsign=false', 'commit', '-qm', `approve ${slug}/${kind}`);
+  }
+}
+
+export function stage(fixturesDir, name, { product = false, native = false, gates = null, approved = null } = {}) {
   const base = path.join(fixturesDir, '_base');
   const fx = path.join(fixturesDir, name);
   if (!existsSync(fx)) throw new Error(`no fixture "${name}" in ${fixturesDir}`);
   const root = mkdtempSync(path.join(tmpdir(), `eval-${name}-`));
+  // A staged fixture is a few hundred files that exist for a minute and are then deleted, and it
+  // is created twenty-two times a run. MEASURED 2026-09-13: Spotlight's `mds_stores` hit 172% CPU
+  // indexing that churn while a suite ran, and the whole machine went to load 12. `.metadata_never_index`
+  // at the root of a directory is the documented way to tell Spotlight not to, it needs no
+  // permissions, and nothing here is ever searched for. The antivirus half of the same storm needs
+  // an operator exclusion — see evals/README.md.
+  writeFileSync(path.join(root, '.metadata_never_index'), '');
   const work = path.join(root, 'work');
   const pristine = path.join(root, 'pristine');
+  linkDependencies(fx, root);
   if(product){mkdirSync(path.join(work,'.aidlc'),{recursive:true});for(const rel of ['.gitignore','.aidlc/.gitignore'])cpSync(path.join(base,rel),path.join(work,rel));}
   else cpSync(base, work, { recursive: true });
-  cpSync(fx, work, { recursive: true });
+  // Never the dependency tree: it is gitignored, so `git` cannot see it, but `cpSync` copies what
+  // is on disk. MEASURED: staging went from ~200 ms to 35 s, and `assertProductTree` then walked
+  // 10,000 files looking for symlinks. `linkDependencies` put it at the staged root instead.
+  cpSync(fx, work, { recursive: true, filter: (src) => path.basename(src) !== 'node_modules' });
   rmSync(path.join(work, 'README.md'), { force: true });
-  // Failed generated HTTP tests may leak listening servers. Bound the existing check inside
-  // disposable product trials so a seeded defect cannot consume an entire planning turn.
-  if(product){
-    const config=path.join(work,'.aidlc/harness.toml');
-    if(existsSync(config))writeFileSync(config,readFileSync(config,'utf8').replace(/(^test\s*=\s*")node --test(?=[" ])/m,`$1${productTestCommand}`));
-  }
   // Install through the real boundary. Hand-building only the shim omitted the inventory record
   // after Phase 1B, so the budget correctly failed every model task on an unaccounted surface.
   const realBin = path.join(path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url)))), '.aidlc', 'bin', 'harness');
   if (native) {
     rmSync(path.join(work, '.aidlc'), {recursive:true, force:true});
-    writeFileSync(path.join(work, 'CLAUDE.md'), `Use existing code patterns and meaningful regression tests. Run ${PRODUCT_TEST_COMMAND}. Use rg and bounded source reads for navigation. Preserve public compatibility except explicit requirement changes. Ask about consequential ambiguity; routine implementation choices are yours. Follow the external driver’s current approval decision. No dependencies or remote deployment.\n`);
+    // The native arm's whole steering. It names the same checks the harness arm reads out of the
+    // detected `harness.toml`, because an arm that did not know how to run the type checker would
+    // be losing to a worse harness rather than to a better one.
+    writeFileSync(path.join(work, 'CLAUDE.md'), `Use existing code patterns and meaningful regression tests. Checks: ${PRODUCT_TEST_COMMAND}, npx tsc --noEmit, npx eslint ., npx prettier --check . — all four must pass before you report done. Use rg and bounded source reads for navigation. Preserve public compatibility except explicit requirement changes. Ask about consequential ambiguity; routine implementation choices are yours. Follow the external driver’s current approval decision. Add no new dependencies, and do not deploy.\n`);
   }
   const installed = native ? {status:0} : spawnSync(process.execPath, [realBin, 'init', '--into', work], { cwd: work, encoding: 'utf8' });
   if (installed.status !== 0) throw new Error(`fixture harness install failed: ${installed.stderr || installed.stdout}`);
 
+  if (gates) {
+    const config = path.join(work, '.aidlc/harness.toml');
+    if (existsSync(config)) {
+      writeFileSync(config, `${readFileSync(config, 'utf8').trimEnd()}\n\n`
+        + `# Pinned by the task under test: it measures what this mode does.\n[gates]\n`
+        + `spec  = "${gates}"\nplan  = "${gates}"\nmerge = "human"\n`);
+    }
+  }
   const git = (...a) => spawnSync('git', a, { cwd: work, encoding: 'utf8' });
   git('init', '-q');
   git('config', 'user.email', 'eval@harness');
   git('config', 'user.name', 'eval');
   git('add', '-A');
   git('-c', 'commit.gpgsign=false', 'commit', '-qm', 'fixture');
+  if (approved) seedApprovedContract(work, approved, git);
   // This existing fixture represents execution of this named change, not backlog inference.
   if (!native && name === 'contract-planned') selectChange({ layout: { root: work, artifacts: path.join(work, '.aidlc/artifacts') } }, 'hyphen-titlecase');
   // The baseline compares source bytes, not repository internals. Copying .git adds mutable
   // object/maintenance state and produced intermittent copy failures on the hosted runner.
   cpSync(work, pristine, { recursive: true, filter: source => path.basename(source) !== '.git' });
   return { root, work, pristine, native, harnessBin: realBin, cleanup: () => rmSync(root, { recursive: true, force: true }) };
-}
-
-// A host child process — never a productTree, and never called one. It inherits the cleanup
-// discipline of the container runtime this harness used to run product trials in: a
-// timed-out or errored run's whole process group is killed, not just the direct child, so a
-// script that itself forked children cannot leak one. Ports are claimed the same way a real
-// server binds one — by asking the OS for port 0 and reading back what it assigned, never by
-// picking a constant.
-export function claimPort() {
-  const probe = "const s=require('net').createServer();s.listen(0,()=>{process.stdout.write(String(s.address().port));s.close(()=>process.exit(0));});";
-  const r = spawnSync(process.execPath, ['-e', probe], { encoding: 'utf8', timeout: 5000 });
-  const port = Number((r.stdout || '').trim());
-  if (!port) throw new Error(`failed to claim an ephemeral port: ${r.stderr || r.stdout || r.error?.message}`);
-  return port;
 }
 
 // `node --test` marks its children with NODE_TEST_CONTEXT so they report over IPC instead of
@@ -88,7 +162,7 @@ export function claimPort() {
 // appeared only once trials ran as host processes. It must be cleared deliberately: inheriting
 // the parent environment is exactly what makes it unsafe.
 const PRODUCT_ENV_STRIP = ['NODE_TEST_CONTEXT', 'NODE_TEST_WORKER_ID'];
-function productEnv(env) {
+export function productEnv(env) {
   const merged = { ...process.env, ...env };
   for (const key of PRODUCT_ENV_STRIP) delete merged[key];
   return merged;
@@ -109,12 +183,6 @@ export function execNode(cwd, nodeArgs, { input, timeout = 15000, env } = {}) {
   // the orphan reap is B4, and B4 is about the timeout.
   if ((r.error || r.signal) && r.pid) killProcessGroup(r.pid);
   return r;
-}
-
-export function spawnDetachedProcess(cwd, nodeArgs, env = {}) {
-  const child = spawn(process.execPath, nodeArgs, { cwd, detached: true, stdio: 'ignore', env: productEnv(env) });
-  child.unref();
-  return child;
 }
 
 // `spawn({detached:true})` makes a session leader, so -pid names a real group. spawnSync does NOT,

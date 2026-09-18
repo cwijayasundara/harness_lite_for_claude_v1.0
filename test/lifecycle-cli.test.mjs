@@ -1,7 +1,7 @@
 import { traceFixture } from './_trace-fixture.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, appendFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -15,6 +15,10 @@ function repo() {
   spawnSync('git', ['config', 'user.email', 'harness@example.invalid'], { cwd: root });
   spawnSync('git', ['config', 'user.name', 'Harness Test'], { cwd: root });
   assert.equal(run(root, 'init', '--into', root).status, 0);
+  // G06: `harness init` now ships `[gates]` at "advisory", where a missing or stale approval is
+  // a row and `status` exits 0. Every test below asserts the enforcing gate, so this project
+  // declares it rather than inheriting whichever default the template happens to carry.
+  appendFileSync(path.join(root, '.aidlc/harness.toml'), '\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
   return root;
 }
 
@@ -45,16 +49,13 @@ test('check CLI cannot verify a missing, terminated or malformed configured sens
 // placeholder is swapped for the shortest fixture-shaped text that clears it — nothing here reads
 // as a real spec or plan on purpose.
 function deScaffold(text) {
+  // G16 changed the spec template's placeholders (the Design section became Entities, Approach,
+  // Structure and Safeguards), and a helper that listed them one by one went stale the moment it
+  // did. Every scaffold placeholder is an angle-bracketed span, so replace the shape rather than
+  // the instances: this helper's job is to clear the scaffold, not to know what it said.
   return text
-    .replace('<The observable result, in the language of the affected user.>', 'Fixture content — this file exists to test approval state, not this text.')
-    .replace('Given ...\nWhen ...\nThen ...', 'Given this fixture exists\nWhen it is approved\nThen the approval succeeds')
-    .replace('<Consequential architecture, interfaces, state and failure paths. Omit if not needed.>', 'No consequential design decisions in this approval-state fixture.')
-    .replace('<Explicit boundaries. What a reader might reasonably expect and will not get.>', 'Nothing — this is a fixture.')
-    .replace('<Security, privacy, compatibility, performance and operational invariants this must not break.>', 'None — this is a fixture.')
-    .replace('<The approach and why it fits. Discuss alternatives only when a meaningful tradeoff exists.>', 'Fixture content — no real approach; this file exists to test approval state.')
-    .replace(/<Every path this change may touch, in backticks, one per line\. `scope-drift` and the write guard\nread this section and nothing else: a path not named here cannot be written\.>/, 'Fixture content — no real files section needed here.')
-    .replace('<Ordered step naming an exact path.>', 'Fixture content — no real steps needed here.')
-    .replace('<named test or runtime evidence>', 'manual check: fixture only');
+    .replace(/<[^<>]*>/gs, 'Fixture content — this file exists to test approval state, not this text.')
+    .replace('Given ...\nWhen ...\nThen ...', 'Given this fixture exists\nWhen it is approved\nThen the approval succeeds');
 }
 
 function deScaffoldArtifacts(root, slug, kinds) {

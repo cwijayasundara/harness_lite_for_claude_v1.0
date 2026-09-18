@@ -260,12 +260,26 @@ test('B3 — a stale index is a miss, and a rank never outlives the modules it r
 // and the fixture exists because of it: a lookup that stops at the first match answers the wrong
 // question. Resolution uses the resolved import edges already computed, and no type inference.
 test('B3 — a reference resolves to the definition its call site reaches, or says it cannot', () => {
-  const s = stage(FIXTURES, 'retrieval-app');
+  // Built here rather than staged. `retrieval-app` existed to hold this ambiguity and was deleted
+  // with the other product fixtures on 2026-09-16; four modules is the whole premise, and a test
+  // that writes its own premise cannot be broken by a fixture changing for another reason.
+  const root = mkdtempSync(path.join(tmpdir(), 'graph-ambiguous-'));
+  const s = { work: root, cleanup: () => rmSync(root, { recursive: true, force: true }) };
   try {
     const invoices = 'src/billing/invoices.mjs';
     const summary = 'src/reporting/summary.mjs';
+    const write = (rel, text) => {
+      mkdirSync(path.join(root, path.dirname(rel)), { recursive: true });
+      writeFileSync(path.join(root, rel), text);
+    };
+    // Two modules export `format`, and they are not the same one: a lookup that stops at its first
+    // match answers the wrong question.
+    write(invoices, 'export function format(cents) {\n  return `$${(cents / 100).toFixed(2)}`;\n}\n');
+    write('src/reporting/aggregate.mjs', 'export function rollup(entries) {\n  return entries;\n}\n');
+    write(summary, "import { rollup } from './aggregate.mjs';\n\nexport function format(row) {\n  return `${row.period}\\t${row.count}`;\n}\n\nexport function render(rows) {\n  return rollup(rows).map(format).join('\\n');\n}\n");
+    write('src/index.mjs', "import { format } from './billing/invoices.mjs';\nimport { format as row, render } from './reporting/summary.mjs';\nimport { rollup } from './reporting/aggregate.mjs';\n\nexport { format, row, render, rollup };\n");
     // A module that imports exactly one of the two definers.
-    writeFileSync(path.join(s.work, 'src', 'billing', 'receipt.mjs'),
+    write('src/billing/receipt.mjs',
       "import { format } from './invoices.mjs';\n\nexport function receiptLine(cents) {\n  return format(cents);\n}\n");
     const g = graphOf(s.work);
 

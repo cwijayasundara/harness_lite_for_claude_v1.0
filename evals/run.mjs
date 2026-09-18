@@ -9,10 +9,11 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, rmSync } fr
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { evaluate, KNOWN, toRegExp, verifyLedger, verifyService, ledgerDescriptionExplainsPaidRule } from './lib/assertions.mjs';
+import { evaluate, KNOWN, toRegExp } from './lib/assertions.mjs';
 import { readdirSync as _rd, statSync as _st } from 'node:fs';
 import { stage, stageProduct } from './lib/stage.mjs';
 import { runProductCampaign } from './lib/campaign.mjs';
+import { gradeComparisonProduct } from './lib/comparison.mjs';
 import { parse } from '../.aidlc/lib/artifacts.mjs';
 import { approvalDriver } from './lib/approvals.mjs';
 import { loadConfig } from '../.aidlc/lib/config.mjs';
@@ -67,7 +68,14 @@ function unattendedApprovals(work) {
 export function loadTasks(file = path.join(HERE, 'tasks.json')) {
   const raw = JSON.parse(readFileSync(file, 'utf8'));
   const d = raw.defaults ?? {};
-  return raw.tasks.map((t) => ({ timeoutMs: d.timeoutMs, budgetUsd: d.budgetUsd, repeats: d.repeats ?? 1, ...t }));
+  // G23. `maxTurns` is an eval budget, and it needs to be one. `subscriptionArgs` puts
+  // `--max-turns 30` on any subscription call that did not set one — a sane default for an
+  // interactive turn, and not a considered budget for a task that writes an artifact chain and
+  // runs a stage. MEASURED on 2026-09-13: five of twenty-two golden tasks stopped at exactly 31
+  // turns and were recorded `ungraded: max_turns`, which is a measurement that did not happen
+  // wearing the shape of one that did. The real bound on a task is its `budgetUsd`; the turn cap
+  // exists to stop a runaway, not to end the work.
+  return raw.tasks.map((t) => ({ timeoutMs: d.timeoutMs, budgetUsd: d.budgetUsd, repeats: d.repeats ?? 1, maxTurns: d.maxTurns ?? null, gates: d.gates ?? null, ...t }));
 }
 
 // --dry runs this and nothing else. A task that cannot be validated statically is a task that
@@ -115,7 +123,7 @@ export function validate(tasks, fixturesDir) {
     if (ids.has(t.id)) problems.push(`${at}: duplicate id`);
     ids.add(t.id);
     if (t.product) {
-      if (!['ledger','service','reporting'].includes(t.product)) problems.push(`${at}: unknown product`);
+      if (t.product !== 'calculator') problems.push(`${at}: unknown product`);
       if (!t.steps?.length) problems.push(`${at}: product steps are empty`);
       for (const step of t.steps ?? []) {
         if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(step.slug ?? '') || !step.request || !step.behaviours?.length || !step.files?.length || !(step.level > 0)) problems.push(`${at}: invalid product step`);
@@ -171,9 +179,12 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
     // A run that never produced model output cannot be graded. Grading it anyway is how budget
     // exhaustion got reported as model failure twice on 2026-09-02.
     const stalled = out.incomplete ?? ungradable(out);
-    if (stalled) return { assertions: [], usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: '', incomplete: stalled };
+    // `latencyMs` travels with the stalled case too, and that is the case it exists for: a task
+    // the timeout killed reports no cost and no tokens, so the only fact a run leaves behind is
+    // how long it was allowed to take. Without it, "raise the timeout" is a guess.
+    if (stalled) return { assertions: [], usage: out.usage ?? {}, timedOut: !!out.timedOut, latencyMs: out.latencyMs ?? null, transcript: '', incomplete: stalled };
     const ctx = { work: s.work, pristine: s.pristine, transcript: out.transcript ?? '', harness: harnessBin, usage: out.usage ?? {}, baseline: baseline[t.id] };
-    return { assertions: evaluate(ctx, t.assert), usage: out.usage ?? {}, timedOut: !!out.timedOut, transcript: out.transcript ?? '', incomplete: null };
+    return { assertions: evaluate(ctx, t.assert), usage: out.usage ?? {}, timedOut: !!out.timedOut, latencyMs: out.latencyMs ?? null, transcript: out.transcript ?? '', incomplete: null };
   }
 
   const approvals = approvalDriver(loadConfig(s.work));
@@ -182,6 +193,9 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
   let timedOut = false;
   let transcript = '';
   let incomplete = null;
+  // A stepped task's latency is the sum of its steps: one number to compare against one timeout,
+  // which is what the timeout actually bounds.
+  let latencyMs = 0;
   // The working copy as it stood before each step, so a step's assertions can read the diff the
   // step itself made rather than everything since the fixture (`diff_owned_by_current_change`).
   const previous = path.join(s.root, 'previous');
@@ -202,6 +216,7 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
         output_tokens: (usage.output_tokens ?? 0) + (out.usage?.output_tokens ?? 0),
       };
       timedOut = timedOut || !!out.timedOut;
+      latencyMs += out.latencyMs ?? 0;
       // A step that ran out of budget stops the task, and the task is ungraded rather than failed.
       const stalled = out.incomplete ?? ungradable(out);
       if (stalled) { incomplete = { ...stalled, step: idx }; break; }
@@ -225,52 +240,52 @@ async function runAttempt(t, invoke, s, harnessBin, baseline) {
       work: s.work, pristine: s.pristine, transcript, harness: harnessBin, usage, baseline: baseline[t.id],
     }, t.assert));
   }
-  return { assertions, usage, timedOut, transcript, incomplete, approvals: approvals.events() };
+  return { assertions, usage, timedOut, transcript, incomplete, latencyMs, approvals: approvals.events() };
 }
 
-export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {}, maxSuiteUsd = Infinity, evidenceRoot = path.join(PLUGIN_ROOT, '.aidlc/evals/products'), evaluatorModel = null }) {
+export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baseline = {}, log = () => {}, maxSuiteUsd = Infinity, evidenceRoot = path.join(PLUGIN_ROOT, '.aidlc/evals/products'), evaluatorModel = null, concurrency = 1 }) {
   if (!(maxSuiteUsd > 0)) throw new Error('max-suite-usd must be positive');
   let remaining = maxSuiteUsd;
+  // Reserve before the call, settle after. Deducting only after a call returns was safe while the
+  // suite ran one task at a time; with several in flight, each would see the same `remaining` and
+  // the suite could overspend by up to the concurrency. Reserving first bounds the overrun to
+  // zero, and the settle gives back whatever the call did not use.
   const boundedInvoke = async args => {
     if (remaining <= 0) return { incomplete: { reason: 'suite_budget_exhausted' }, usage: {usd:0}, transcript: '' };
     const allowance = Math.min(args.budgetUsd, remaining);
+    remaining = Math.max(0, remaining - allowance);
     let out;
     try { out = await invoke({ ...args, budgetUsd: allowance }); }
-    catch(error) { remaining=Math.max(0,remaining-allowance);throw error; }
+    catch (error) { throw error; }   // the reservation stands: a throw may still have spent
     const reported = out.usage?.usd;
-    // Reserve the whole allowance if the CLI omits billing. Never treat missing usage as free.
-    remaining = Math.max(0, remaining - (Number.isFinite(reported) && reported >= 0 ? reported : allowance));
+    // Give back only what a reported cost says was unused. The CLI omitting billing keeps the
+    // whole reservation — never treat missing usage as free.
+    if (Number.isFinite(reported) && reported >= 0) remaining += Math.max(0, allowance - reported);
     return out;
   };
-  const results = [];
-  for (const t of tasks) {
+  const runTask = async (t) => {
     const runs = [];
     for (let i = 0; i < (t.repeats ?? 1); i++) {
-      const s = stage(fixturesDir, t.fixture, {product:!!t.product});
+      // M1.C F15. `approved` seeds the contract a task's work presupposes, so a single-turn task
+      // can reach the behaviour it grades instead of stopping at the gate. See evals/lib/stage.mjs.
+      const s = stage(fixturesDir, t.fixture, {product:!!t.product, gates:t.gates ?? null, approved:t.approved ?? null});
       const trialDir = t.product ? path.join(evidenceRoot, `${new Date().toISOString().replace(/[:.]/g,'-')}-${t.id}-${i+1}`) : null;
       if(t.product) stageProduct(s,PLUGIN_ROOT);
       try {
         const out = t.product ? await runProductCampaign({task:t,invoke:boundedInvoke,productTree:s,harnessBin,evaluatorModel,evidenceDir:trialDir,log,
-          evaluateProduct:async (productTree,step)=> {
-            const checked=t.product==='ledger'?verifyLedger(productTree,step.level):verifyService(productTree,step.level);
-            if(t.product==='ledger' && step.level===4) {
-              if(!existsSync(path.join(productTree.work,'src/store.mjs')))throw new Error('storage extraction is missing');
-            }
-            if(t.product==='ledger' && step.level===5) {
-              const doc=readFileSync(path.join(productTree.work,'docs/PRODUCT.md'),'utf8');
-              if(!/partial|payment/i.test(doc)||!ledgerDescriptionExplainsPaidRule(doc))throw new Error('current product description misses payment or paid-invoice behaviour');
-              if(/overdue[^\n]*regardless of[^\n]*pa(id|yment)/i.test(doc))throw new Error('product description states superseded overdue rule');
-              if(existsSync(path.join(productTree.work,'src/store.mjs')))throw new Error('external rename was incorrectly undone');
-            }
-            return checked;
-          }}) : await runAttempt(t, boundedInvoke, s, harnessBin, baseline);
+          // One product, one grader, one branch. This used to dispatch three by name and get it
+          // wrong: `retrieval-app` declared `product: "reporting"`, had no branch here, and fell
+          // through to the SERVICE verifier — a trial graded by assertions about a different
+          // product, with the ledger's level-4 and level-5 special cases inlined beside it.
+          evaluateProduct:async (productTree,step)=>gradeComparisonProduct(productTree,step,t.product),
+        }) : await runAttempt(t, boundedInvoke, s, harnessBin, baseline);
         // An ungraded run is not a passing run, and an empty assertion list is not a pass
         // either — "An empty suite is not a pass" (6496934) applies to a single attempt too.
         const pass = !out.incomplete && out.assertions.length > 0 && out.assertions.every((a) => a.pass);
         runs.push({
           ...(t.product ? {evidence:trialDir,completedSteps:out.completedSteps,totalSteps:out.totalSteps,calibration:!!t.calibration,billingComplete:out.billingComplete,candidateRevision:out.candidateRevision,phases:out.phases} : {}),
           attempt: i + 1, pass, incomplete: out.incomplete ?? null, assertions: out.assertions,
-          usage: out.usage ?? {}, timedOut: !!out.timedOut, approvals: out.approvals ?? [],
+          usage: out.usage ?? {}, timedOut: !!out.timedOut, latencyMs: out.latencyMs ?? null, approvals: out.approvals ?? [],
           // Without the transcript, a failure can only be triaged by paying for the task again.
           // Kept for failures only, and capped, so the results file stays readable.
           // The tail, not the head: the end of a run is where it says why it stopped (F29).
@@ -295,7 +310,7 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
     }
     const passed = runs.filter((r) => r.pass).length;
     const ungraded = runs.filter((r) => r.incomplete).length;
-    results.push({
+    return {
       id: t.id, fixture: t.fixture, repeats: runs.length, passed,
       // A 2-of-3 is a different finding from a 3-of-3 and must never be rounded to "green".
       // A run nobody could grade is a third thing again: not green, and not the model's fault.
@@ -305,8 +320,30 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
       ...(t.product?{reportedUsd:runs.reduce((n,r)=>n+(r.usage.reportedUsd??r.usage.usd??0),0),billingComplete:runs.every(r=>r.billingComplete!==false)}:{}),
       unattended: [...new Set(runs.flatMap((r) => r.unattended ?? []))],
       runs,
-    });
-  }
+    };
+  };
+
+  // A bounded pool. Tasks are independent — each stages its own fixture in its own temp tree and
+  // claims its own port — so the only shared thing is the suite budget, which the reservation
+  // above makes safe. Results keep task order however the runs finish, because a results file
+  // whose order depends on which task happened to be slow is a file nobody can diff.
+  //
+  // This was inert when first written: `claudeInvoker` used `spawnSync`, which blocks the whole
+  // Node process for the length of a model call, so four lanes awaited one at a time and a
+  // 22-task run took the same ~7 minutes per task it took sequentially. The invoker spawns
+  // asynchronously now, and `test/invoker.test.mjs` measures the overlap rather than assuming it —
+  // nothing measured it the first time, which is exactly why the mistake shipped.
+  const results = new Array(tasks.length);
+  const lanes = Math.max(1, Math.min(Number(concurrency) || 1, 8));
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(lanes, tasks.length) }, async () => {
+    for (;;) {
+      const index = next++;
+      if (index >= tasks.length) return;
+      results[index] = await runTask(tasks[index]);
+    }
+  }));
+
   const summary = {
     total: results.length,
     pass: results.filter((r) => r.verdict === 'pass').length,
@@ -339,16 +376,32 @@ async function main() {
   const comparisons=argv.includes('--compare')||prune;
   if(argv.includes('--comparison')){
     if(!argv.includes('--compare'))throw new Error('--comparison requires --compare');
-    if(!['native','graph','generation','retrieval'].includes(flag('comparison')))throw new Error('--comparison requires native, graph, generation or retrieval');
+    if(!['native','graph','generation','retrieval','driver'].includes(flag('comparison')))throw new Error('--comparison requires native, graph, generation, retrieval or driver');
   }
   if(flag('prune-arm') && !prune)throw new Error('--prune-arm requires --prune');
   const products=argv.includes('--products')||comparisons;
   if(comparisons && flag('through'))throw new Error('--compare calibrates first changes itself; --through would truncate paired campaigns');
   let tasks = loadTasks(products ? path.join(HERE,'products.json') : undefined);
   if(products && flag('through')) tasks=tasks.map(t=>({...t,calibration:true,steps:t.steps.slice(0,Number(flag('through')))}));
-  if (flag('id')) tasks = tasks.filter((t) => t.id === flag('id'));
+  // G23. A comma-separated list, so diagnosing the failing half of the baseline is one run with
+  // one ledger entry and one results file rather than ten of each.
+  if (flag('id')) {
+    const wanted = String(flag('id')).split(',').map((s) => s.trim()).filter(Boolean);
+    const unknown = wanted.filter((id) => !tasks.some((t) => t.id === id));
+    if (unknown.length) throw new Error(`no such task: ${unknown.join(', ')}`);
+    tasks = tasks.filter((t) => wanted.includes(t.id));
+  }
   // Calibration and triage: override repeats without editing tasks.json.
   if (flag('repeats')) tasks = tasks.map((t) => ({ ...t, repeats: Number(flag('repeats')) }));
+  // The timeout is an instrument, not a control: a task it kills produces no verdict at all. When
+  // a run comes back full of `timed_out`, the question is how long the work actually takes, and
+  // that cannot be answered by the setting that truncated it. Raise it to measure, then set the
+  // default in tasks.json from what was measured.
+  if (flag('timeout-ms')) {
+    const ms = Number(flag('timeout-ms'));
+    if (!(ms > 0)) { console.error('--timeout-ms must be positive'); return 2; }
+    tasks = tasks.map((t) => ({ ...t, timeoutMs: ms }));
+  }
   if (!tasks.length) { console.error('no tasks matched'); return 2; }
 
   if (!(Number(flag('max-suite-usd', Infinity)) > 0)) { console.error('--max-suite-usd must be positive'); return 2; }
@@ -357,7 +410,7 @@ async function main() {
   if (argv.includes('--dry') && comparisons) {
     const {comparisonPairs}=await import('./lib/comparison.mjs');
     const pairs=comparisonPairs(loadConfig(PLUGIN_ROOT).models,{prune,pruneArm:flag('prune-arm'),pair:flag('comparison')}), repeats=Number(flag('repeats',prune?1:3)), budget=Number(flag('max-suite-usd',prune?9:40)),minutes=Number(flag('max-suite-minutes',prune?40:30));
-    if(!Number.isInteger(repeats)||repeats<1||!Number.isFinite(budget)||budget<=0||!Number.isFinite(minutes)||minutes<=0)throw new Error('comparison repeats must be a positive integer and budget/time limits finite and positive');
+    if(!Number.isInteger(repeats)||repeats<0||!Number.isFinite(budget)||budget<=0||!Number.isFinite(minutes)||minutes<=0)throw new Error('comparison repeats must be a non-negative integer (0 = calibration only) and budget/time limits finite and positive');
     console.log(JSON.stringify({pairs,products:tasks.map(t=>t.id),smokes:pairs.reduce((n,p)=>n+p.arms.length,0)*tasks.length,pairedAttempts:pairs.reduce((n,p)=>n+p.arms.length,0)*tasks.length*repeats,maxUsd:budget,maxMinutes:minutes},null,2));return 0;
   }
   if (argv.includes('--dry')) {
@@ -370,26 +423,63 @@ async function main() {
     console.error('No model calls made. Live subscription trials require --live; use --dry for offline validation.');
     return 2;
   }
+  // M1.A. A live run measures wall-clock latency and enforces wall-clock deadlines, and a laptop on
+  // battery does not stay awake to be measured. MEASURED 2026-09-16: two of the four G24 calculator
+  // pilots measured nothing because the machine entered Maintenance Sleep mid-turn while the
+  // suite's deadline kept running, and a third of a turn recorded as a 16x load slowdown was 91.6%
+  // asleep. `evals/lib/awake.mjs` carries the evidence and the exact correlation.
+  //
+  // Taken before the first model call: nothing should be spent into a machine that is about to
+  // sleep through the answer. The assertion can still fail — a closed lid, no `caffeinate` — so the
+  // run reads the power log on the way out and marks a contaminated number rather than printing it
+  // as a measurement.
+  const { keepAwake, hostSleeps, sleepBanner, awakeBanner } = await import('./lib/awake.mjs');
+  const awake = keepAwake();
+  const liveStartedAt = Date.now();
+  console.log(awakeBanner(awake));
+  const reportHostSleep = () => {
+    awake.release();
+    const banner = sleepBanner(hostSleeps({ sinceMs: liveStartedAt }));
+    if (banner) console.log(`\n${banner}`);
+  };
+
   const authentication = requireSubscription({ product: products, cwd: PLUGIN_ROOT });
   console.log(`authentication: ${authentication}; API billing disabled; repository .env not loaded`);
 
+  // G20. The boundary a live product trial will run in, resolved once and printed before anything
+  // is spent. `--boundary local` is the operator accepting the CLI permission boundary on a
+  // fixture whose code they wrote; `--sandbox` is accepted as the spelling the plan used. A run
+  // that asks for nothing gets nothing: a trial that silently picked a weaker boundary than the
+  // operator believed is the failure this exists to prevent.
+  const {resolveBoundary, boundaryBanner}=await import('./lib/boundary.mjs');
+  const boundary=resolveBoundary({requested: flag('boundary') ?? flag('sandbox')});
+  if (products || comparisons) console.log(boundaryBanner(boundary));
+
   if (comparisons) {
-    const {runComparisons}=await import('./lib/comparison.mjs');
+    const {runComparisons,g24Verdict}=await import('./lib/comparison.mjs');
     const {claudeInvoker}=await import('./lib/invoker.mjs');
     const models=loadConfig(PLUGIN_ROOT).models;
-    // A comparison arm runs a real coding agent against a seeded product — a live product trial,
-    // which `evals/lib/invoker.mjs` now refuses because there is no boundary to run it in. This
-    // records that as the explicit unmeasured result `credentials_or_isolation_unavailable`, the
-    // same one an unreachable daemon used to produce, rather than attempting the run and throwing.
-    // Being authenticated is no longer sufficient, so it is not asked.
-    const available=false;
+    // G20. A comparison arm runs a real coding agent against a seeded product — a live product
+    // trial, which needs a boundary. With one, the arms run; without one, every attempt is the
+    // explicit unmeasured result rather than a throw, because "we could not measure this" is a
+    // result and a stack trace is not.
+    const available=boundary.ok;
     const stamp=new Date().toISOString().replace(/[:.]/g,'-');
     const evidenceRoot=path.join(PLUGIN_ROOT,'.aidlc/evals/comparisons',prune?`prune-${stamp}`:stamp);
     const out=await runComparisons({tasks,models,prune,pruneArm:flag('prune-arm'),pair:flag('comparison'),root:PLUGIN_ROOT,fixturesDir,evidenceRoot,available,shouldStop:()=>!!flag('stop-file')&&existsSync(flag('stop-file')),
       maxUsd:Number(flag('max-suite-usd',prune?9:40)),maxMinutes:Number(flag('max-suite-minutes',prune?40:30)),repetitions:Number(flag('repeats',prune?1:3)),
-      invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true})(args),
+      invokeFactory:config=>args=>claudeInvoker({pluginDir:PLUGIN_ROOT,model:args.phase==='review'?models.evaluator:config.model,native:!!config.native,comparison:true,boundary})(args),
       log:console.log});
+    // G24. The verdict lives in its own file, never over the earlier comparison-summary.json —
+    // that record holds the cancelled item-4 matrix and is evidence of its own.
+    if(flag('comparison')==='driver'){
+      const verdict=g24Verdict(out.summary,{repetitions:out.repetitions});
+      const file=path.join(PLUGIN_ROOT,'evals/evidence/g24-driver-comparison.json');
+      writeFileSync(file,JSON.stringify({kind:out.repetitions?'g24-native-comparison-with-driver':'g24-pilot-first-sprint-once-per-arm',recorded_at:new Date().toISOString(),harnessRevision:out.harnessRevision,evidenceRoot,repetitions:out.repetitions,maxUsd:out.maxUsd,maxMinutes:out.maxMinutes,summary:out.summary,calibrations:out.calibrations,verdict},null,2)+'\n');
+      console.log(JSON.stringify({evidenceRoot,verdictFile:file,verdict},null,2));
+    }
     console.log(JSON.stringify({evidenceRoot,summary:out.summary,calibrations:out.calibrations},null,2));
+    reportHostSleep();
     return out.attempts.every(a=>a.status==='pass')?0:1;
   }
 
@@ -408,8 +498,13 @@ async function main() {
   const baseline = existsSync(baselineFile) ? JSON.parse(readFileSync(baselineFile, 'utf8')) : {};
   const out = await runSuite({
     tasks, fixturesDir, baseline, maxSuiteUsd: Number(flag('max-suite-usd', products?20:Infinity)), evaluatorModel:models.evaluator,
+    // MEASURED 2026-09-13: 22 golden tasks took 1h38m for 12 of them, one at a time, because each
+    // is a full agent run against a staged fixture. They share nothing but the budget, so they do
+    // not have to be sequential. Default 1 — a suite that quietly changed how it runs is a suite
+    // whose numbers changed for a reason nobody recorded.
+    concurrency: Number(flag('concurrency', flag('j', 1))),
     harnessBin: path.join(PLUGIN_ROOT, '.aidlc', 'bin', 'harness'),
-    invoke: args => claudeInvoker({ pluginDir: PLUGIN_ROOT, model: products && args.phase==='review' ? models.evaluator : evalModel })(args),
+    invoke: args => claudeInvoker({ pluginDir: PLUGIN_ROOT, model: products && args.phase==='review' ? models.evaluator : evalModel, boundary })(args),
     log: (m) => console.log(m),
   });
 
@@ -435,6 +530,7 @@ async function main() {
       for (const a of run.assertions.filter((a) => !a.pass)) console.log(`    ${a.name}: ${a.detail}`);
     }
   }
+  reportHostSleep();
   // Flaky is not green. A suite that rounds 2-of-3 up is a suite that stops detecting drift.
   // Inconclusive is not green either — it is a question the suite failed to ask.
   return out.summary.fail || out.summary.flaky || out.summary.inconclusive ? 1 : 0;

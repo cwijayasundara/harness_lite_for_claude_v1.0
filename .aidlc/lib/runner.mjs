@@ -7,13 +7,14 @@
 
 import { executionIdentity, runtimeIdentity, policyIdentity } from './runtime-identity.mjs';
 import { spawnSync } from 'node:child_process';
-import { writeFileSync, mkdirSync, existsSync, readFileSync, rmSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { resolveStage } from './config.mjs';
 import { normalize, testExecution } from './normalize.mjs';
 import { traceEvidence } from './trace.mjs';
 import * as ledger from './ledger.mjs';
 import * as artifacts from './artifacts.mjs';
+import * as graph from './graph.mjs';
 import { candidateBoundary, validateCheckout, changedFiles } from './diff.mjs';
 
 // a-block-names-its-rule B1. The checks already tag their findings and the report already prints
@@ -31,6 +32,7 @@ export const LOCAL_CHECKS = {
   budget: () => import('../checks/budget.mjs'),
   tamper: () => import('../checks/tamper.mjs'),
   baseline: () => import('../checks/baseline.mjs'),
+  proof: () => import('../checks/proof.mjs'),
 };
 
 function interpolate(cmd, files, reportPath) {
@@ -44,9 +46,48 @@ function interpolate(cmd, files, reportPath) {
   return cmd.replace(/\{files\}|\{report\}/g, placeholder => placeholder === '{files}' ? list : quote(reportPath));
 }
 
+// G11. Which tests a turn's changes could have broken. Two sources, both already in the tree: a
+// changed file that is itself a test, and a test whose path carries the changed file's stem or
+// which the graph shows importing it. It is deliberately generous — a test run that misses the
+// one test that mattered is worse than a test run that is a second slower — and deliberately not
+// the whole suite, which is the driver's job once per iteration rather than the hook's every turn.
+const TEST_PATH = /(^|\/)tests?\//;
+const TEST_FILE = /(\.|_|^)(test|spec)\.[^/]+$|(^|\/)test_[^/]+$/;
+export function changedTests(cfg, files) {
+  const isTest = (f) => TEST_FILE.test(f) || TEST_PATH.test(f);
+  const selected = new Set(files.filter(isTest));
+  const others = files.filter((f) => !isTest(f));
+  if (!others.length) return [...selected].sort();
+  const stems = others.map((f) => path.basename(f).replace(/\.[^.]+$/, '')).filter(Boolean);
+  let modules = {};
+  try { modules = graph.load(cfg)?.modules ?? {}; } catch { /* no index: stems alone still answer */ }
+  const candidates = new Set([...Object.keys(modules), ...listTests(cfg.layout.root)]);
+  for (const candidate of candidates) {
+    if (!isTest(candidate) || !existsSync(path.join(cfg.layout.root, candidate))) continue;
+    if (stems.some((stem) => path.basename(candidate).includes(stem))) { selected.add(candidate); continue; }
+    if ((modules[candidate]?.imports ?? []).some((i) => others.includes(i))) selected.add(candidate);
+  }
+  return [...selected].sort();
+}
+
+// The tree's own test files, for a repository with no graph built yet. One level of directories,
+// because a test suite that hides deeper than that is not one this shortcut can find cheaply.
+function listTests(root) {
+  const out = [];
+  for (const dir of ['test', 'tests', '__tests__']) {
+    const full = path.join(root, dir);
+    if (!existsSync(full)) continue;
+    for (const entry of readdirSync(full, { withFileTypes: true })) {
+      if (entry.isFile()) out.push(`${dir}/${entry.name}`);
+    }
+  }
+  return out;
+}
+
 export async function runOne(cfg, verb, files, results) {
   const started = Date.now();
   const base = { control: verb, verdict: 'skipped', ms: 0, findings: [], command: '' };
+
 
   // `secrets` has a zero-config built-in fallback, but an explicitly configured scanner wins.
   // Meta-checks such as scope-drift and budget are always local.
@@ -66,6 +107,14 @@ export async function runOne(cfg, verb, files, results) {
     return { ...base, ms: Date.now() - started, note: `no "${verb}" command in harness.toml` };
   }
 
+  // G11. The narrowed test run, after the capability check so an unconfigured project is told
+  // that rather than told its changes name no test. Nothing to narrow to is `skipped` as well:
+  // not a pass, not a failure, and never a silent fall back to the full suite.
+  if (verb === 'test_changed') {
+    files = changedTests(cfg, files);
+    if (!files.length) return { ...base, ms: Date.now() - started, note: 'no test names anything this turn changed' };
+  }
+
   const reportPath = path.join(cfg.layout.state, `${verb}-report.json`);
   const full = interpolate(cmd, files, reportPath);
   try {
@@ -73,7 +122,15 @@ export async function runOne(cfg, verb, files, results) {
     if (existsSync(reportPath)) rmSync(reportPath, { force: true });
     // `-c` inherits PATH. `-lc` replaces it with the login profile and then grades
     // whichever python3 that profile happens to put first, not the change.
-    const r = spawnSync('bash', ['-c', full], { cwd: cfg.layout.root, encoding: 'utf8', timeout: 180000, maxBuffer: 32 * 1024 * 1024 });
+    //
+    // G13: minus node's private test-runner context. `NODE_TEST_CONTEXT` tells a `node --test`
+    // process that it is a subtest of a parent runner, so it reports to that parent instead of
+    // through its own reporter — MEASURED: a coverage command run this way exited 0 and wrote no
+    // lcov file at all, so the verb "passed" having produced nothing. Any project whose test or
+    // coverage command is node's runner hits this whenever `harness check` is itself invoked
+    // from a test, which is how this repository exercises its own stages.
+    const { NODE_TEST_CONTEXT, ...env } = process.env;
+    const r = spawnSync('bash', ['-c', full], { cwd: cfg.layout.root, env, encoding: 'utf8', timeout: 180000, maxBuffer: 32 * 1024 * 1024 });
     if (r.error) return { ...base, verdict: 'errored', ms: Date.now() - started, command: full, error: r.error.message };
     if (r.signal) return { ...base, verdict: 'errored', ms: Date.now() - started, command: full, error: `terminated by ${r.signal}` };
     const fmt = cfg.formats[verb] ?? 'generic';
@@ -110,10 +167,17 @@ export function buildReport(cfg, { stage, provenance, identityErrors, evidence, 
     trace,
     // why: an unavailable configured sensor previously returned exit 0 from `check`.
     // Unconfigured capabilities stay skipped; an attempted check must actually succeed.
-    ok: identityErrors.length === 0 && results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped'),
+    // G06: `warn` is a fourth verdict, and the only one that reports a real finding without
+    // failing the stage. It exists because an advisory gate has to be *visible* — a relaxed gate
+    // that recorded `pass` would be indistinguishable from a gate that was satisfied, and the
+    // whole claim of advisory mode is that the judgment still reaches the merge decision.
+    ok: identityErrors.length === 0 && results.every((r) => r.verdict === 'pass' || r.verdict === 'skipped' || r.verdict === 'warn'),
     changed_files: files,
     controls: results.map((r) => ({
       control: r.control, verdict: r.verdict, ms: r.ms,
+      // G15. Justified suppressions ride with the control that found them, so the driver can put
+      // them on the pull request without re-reading the diff.
+      ...(r.suppressions?.length ? { suppressions: r.suppressions } : {}),
       ...(r.command ? { command: r.command } : {}),
       ...(r.execution ? { execution: r.execution } : {}),
       findings: (r.findings ?? []).slice(0, cap),
@@ -191,7 +255,7 @@ export async function check(cfg, { stage = 'fast', files = [], write = true, all
       const rule = ruleOf(r.findings);
       ledger.append({ provenance,
         stage, control: r.control, verdict: r.verdict, ms: r.ms,
-        ...(r.verdict === 'fail' && rule ? { rule } : {}),
+        ...((r.verdict === 'fail' || r.verdict === 'warn') && rule ? { rule } : {}),
         findings: (r.findings ?? []).length, changed_files: files.length,
         ...(evidence ? { revision: evidence } : {}),
         ...(r.error ? { error: String(r.error).slice(0, 400) } : {}),
@@ -215,7 +279,7 @@ export function render(report, layoutPaths) {
   for (const error of report.identity_errors ?? []) lines.push('ERR   identity    ' + error);
   if (report.revision) lines.push(`candidate ${report.revision.candidate} from ${report.revision.base} — change ${report.revision.change ?? '(unselected)'}`);
   for (const c of report.controls) {
-    const mark = { pass: 'PASS', fail: 'FAIL', skipped: 'SKIP', errored: 'ERR ' }[c.verdict];
+    const mark = { pass: 'PASS', fail: 'FAIL', warn: 'WARN', skipped: 'SKIP', errored: 'ERR ' }[c.verdict];
     lines.push(`${mark}  ${c.control.padEnd(11)} ${c.ms}ms${c.note ? '  (' + c.note + ')' : ''}${c.error ? '  ' + c.error : ''}`);
     for (const f of c.findings ?? []) {
       lines.push(`      ${f.file}${f.line ? ':' + f.line : ''}  ${f.rule}  ${f.message}${f.fix ? '  -> ' + f.fix : ''}`);

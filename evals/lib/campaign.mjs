@@ -9,8 +9,9 @@ import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { loadConfig } from '../../.aidlc/lib/config.mjs';
 import { approvalDriver } from './approvals.mjs';
-import { assertProductTree, productTestArgs, productTestCommand, execNode } from './stage.mjs';
+import { assertProductTree, runProductTests, PRODUCT_TEST_COMMAND, execNode } from './stage.mjs';
 import { behavioursOf, proofRowsOf, testRowIn, promiseSpecs, currentChange, currentLine, selectChange, render, parse, ownedFiles } from '../../.aidlc/lib/artifacts.mjs';
+import { gradeSpecCompliance } from './spec-compliance.mjs';
 
 // Driver updates use atomic replacement so each new run sees the new file identity.
 const writeFileSync=(file,text)=>{const temp=`${file}.driver-tmp-${process.pid}`;writeRaw(temp,text);renameSync(temp,file);};
@@ -66,51 +67,10 @@ export function unseenRequirements(dir, needles) {
 // alongside `behavioursOf`/`proofRowsOf`, so B7's commit-time check and this file share one
 // definition of "names a resolvable path" instead of two copies drifting apart.
 
-// B6, amended: a spec that has quietly become fiction is checkable without a model only for the
-// mechanical part — a behaviour with no Proof row at all, or a row that names a test file that
-// no longer exists or no longer contains the identifier it explicitly claimed. The plan skill
-// permits a row to name runtime evidence instead of a test ("manual check is only honest when
-// the thing genuinely cannot be automated"), and this change's own plan does exactly that for
-// five behaviours — such a row is reported unverifiable, never a violation. A behaviour retired
-// on purpose is retired by removing it from spec.md, so it is simply absent from the loop below.
-//
-// `checked` counts every behaviour actually iterated below — violation, unverifiable or clean —
-// so a caller can tell "nothing to check" (an empty repository, or nobody approved a spec yet)
-// apart from "checked and clean" (`ok: true, checked: 0` vs `ok: true, checked: 3`). An empty
-// suite is not a pass, and neither is an empty artifact chain.
-export function behavioursHaveTests(dir) {
-  const violations = [];
-  const unverifiable = [];
-  let checked = 0;
-  const artifactsRoot = path.join(dir, '.aidlc', 'artifacts');
-  if (!existsSync(artifactsRoot)) return { ok: true, violations, unverifiable, checked };
-  // B2 (the-suite-measures-this-harness): reads `promiseSpecs()` — approved, or `migrated_from`
-  // present — rather than `status: approved` alone. Twenty-three specs carry `migrated_from` and
-  // no approval, because `lean-v2` deliberately invented none; they are promises the code must
-  // keep all the same, and this check's reach goes from three specs to all of them. Expect it to
-  // report far more than before — that is the point, not a regression to tune away.
-  const cfg = { layout: { root: dir, artifacts: artifactsRoot } };
-  for (const spec of promiseSpecs(cfg)) {
-    const planPath = path.join(artifactsRoot, spec.slug, 'plan.md');
-    if (!existsSync(planPath)) continue;
-    const behaviours = behavioursOf(spec.body);
-    if (!behaviours.length) continue;
-    const proof = proofRowsOf(readFileSync(planPath, 'utf8'));
-    for (const b of behaviours) {
-      checked++;
-      const evidence = proof.get(b);
-      if (evidence === undefined) { violations.push(`${spec.slug} ${b}: plan.md's Proof table names no row`); continue; }
-      const row = testRowIn(evidence);
-      if (!row) { unverifiable.push(`${spec.slug} ${b}`); continue; }
-      const testFile = path.join(dir, row.file);
-      if (!existsSync(testFile)) { violations.push(`${spec.slug} ${b}: proof file "${row.file}" does not exist`); continue; }
-      if (row.identifier && !readFileSync(testFile, 'utf8').includes(row.identifier)) {
-        violations.push(`${spec.slug} ${b}: "${row.file}" no longer contains "${row.identifier}"`);
-      }
-    }
-  }
-  return { ok: violations.length === 0, violations, unverifiable, checked };
-}
+// G13. `behavioursHaveTests` moved into `.aidlc/checks/proof.mjs`, where it runs as a commit-stage
+// control rather than only inside a graded eval — the one place its answer changed nothing. This
+// re-export keeps the campaign assertion and its tests pointed at that one implementation.
+export { proofRows as behavioursHaveTests } from '../../.aidlc/checks/proof.mjs';
 
 // a-diff-belongs-to-one-change B7. F26: sprint 3's plan was refused at the gate, and the sprint
 // wrote `isOverdue` anyway because sprint 2's approved plan owned `src/ledger.mjs`. The guard
@@ -180,7 +140,7 @@ export function prepareProductChange(s, step) {
   writeFileSync(path.join(dir,'plan.md'),render({status:'draft'},`# ${step.slug}\n\n## Approach\nUse existing patterns and small behavioural slices. Run public regression tests and the external driver's runtime proof.\n\n## Files\n${step.files.map(f=>'`'+f+'`').join('\n')}\n\n## Order\n1. Inspect existing code and reproduce the required change.\n2. Implement and add regression coverage.\n\n## Proof\n| Behaviour | Evidence |\n|---|---|\n${step.behaviours.map((_,i)=>`| B${i+1} | External driver runtime acceptance and public regression suite |`).join('\n')}\n`));
 }
 
-export function runProductCheck(s, timeoutMs=60000) {
+export function runProductCheck(s, timeoutMs=180000) {
   return execNode(s.work, [s.harnessBin, 'check', '--stage', 'stop'], { timeout: timeoutMs, env: { HARNESS_HOME: path.dirname(path.dirname(s.harnessBin)) } });
 }
 
@@ -286,7 +246,17 @@ export async function runProductCampaign({task:t, invoke, evaluateProduct, produ
       const ownership=diffOwnedByCurrentChange(s.work,before);assert.ok(ownership.ok,ownership.violations.join('\n'));
       let verification;
       for(let attempt=0;attempt<3;attempt++){
-        try{const publicOutput=driverChecks();verification=await evaluateProduct(s,step);event('product-proof',{slug:step.slug,publicOutput,...verification});break;}
+        try{const publicOutput=driverChecks();verification=await evaluateProduct(s,step);event('product-proof',{slug:step.slug,publicOutput,...verification});
+          // G22. Recorded beside the deterministic proof, never instead of it. The endpoint check
+          // says the product behaves; this says the product still promises what it promised and no
+          // longer promises what a later sprint reversed — which is the half an endpoint cannot
+          // see, because the endpoint can be right while the README is wrong.
+          if(evaluatorModel){
+            const compliance=await gradeSpecCompliance({root:s.work,invoke,model:evaluatorModel,sprint:i+1});
+            result.assertions.push({name:'spec-compliance',pass:compliance.verdict!=='fail',detail:`${compliance.verdict} (${compliance.pass} pass, ${compliance.fail} fail)`,compliance});
+            event('spec-compliance',{slug:step.slug,verdict:compliance.verdict,pass:compliance.pass,fail:compliance.fail,votes:compliance.votes});
+          }
+          break;}
         catch(error){event('product-proof-failed',{slug:step.slug,attempt:attempt+1,detail:error.message});if(attempt===2)throw error;
           await call(`The external driver found a failure for the currently approved ${step.slug}: ${error.message}\nDiagnose and repair only approved files; preserve the stated requirements and tests. Driver will re-run private acceptance and public tests. Do not modify artifacts.`,'implement');approvals.assertImplementation(step.slug);}
       }
@@ -362,7 +332,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
     return out;
   };
   const publicCheck=()=>{
-    const out=execNode(s.work,productTestArgs,{timeout:60000});
+    const out=runProductTests(s.work);
     assert.equal(out.status,0,`public tests failed: ${out.stdout}${out.stderr}`);return out.stdout;
   };
   const review=async(base,step,seeded=false)=>{
@@ -398,7 +368,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
       if(cfg)prepareProductChange(s,step);
       const initial=(step.initialBehaviours??step.behaviours).join('\n');
       const scope=`Approved implementation scope when permission arrives: ${step.files.join(', ')}. Preserve other files and existing public behaviour. No dependencies or deployment.`;
-      await call(`Current proposal: ${step.request}\n${initial}\n${scope}\nInspect relevant source and propose your approach. If reproducing a failure, use ${productTestCommand} so leaked test resources cannot stall the turn. Request approval and stop before implementation. The external driver supplies simulated decisions. ${cfg?`Read .aidlc/artifacts/${step.slug}/{intent,spec,plan}.md.`:''}`);
+      await call(`Current proposal: ${step.request}\n${initial}\n${scope}\nInspect relevant source and propose your approach. If reproducing a failure, use ${PRODUCT_TEST_COMMAND} so leaked test resources cannot stall the turn. Request approval and stop before implementation. The external driver supplies simulated decisions. ${cfg?`Read .aidlc/artifacts/${step.slug}/{intent,spec,plan}.md.`:''}`);
       // The completed planning turn and unchanged source/approval metadata prove the pause.
       // Natural requests such as 'Should I proceed?' must not fail a keyword test.
       event('planning-paused',{slug:step.slug,sessionId});
@@ -417,7 +387,10 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
       if(cfg)approvals.assertImplementation(step.slug);
       const authorized=sourceDigest();
       if(step.missingTool){const out=spawnSync('missing-product-tool',[],{encoding:'utf8',timeout:15000});assert.ok(out.status!==0||out.error,'an absent tool must not report success');event('missing-tool-reproduced');}
-      if(step.characterize){await call(`Simulated approval: write only tests/ledger.test.mjs to characterize addCustomer, addInvoice and listInvoices including unknown-customer errors. Keep source unchanged. Run ${productTestCommand}.`,'characterize');publicCheck();event('characterization-passed');}
+      // The step says what to pin; this said `tests/ledger.test.mjs` and named three ledger
+      // functions, so the branch only ever worked for one product. `characterize` is a list of
+      // what has no test yet, and the files it may write are the step's own.
+      if(step.characterize){await call(`Simulated approval: write only ${step.files.filter(f=>/test/.test(f)).join(', ')||step.files.join(', ')} to characterize the behaviour that exists today: ${[].concat(step.characterize).join('; ')}. Keep source unchanged. Run ${PRODUCT_TEST_COMMAND}.`,'characterize');publicCheck();event('characterization-passed');}
       let context='';
       if(config.graph){
         const {build}=await import('../../.aidlc/lib/graph.mjs');const {pack,renderPack}=await import('../../.aidlc/lib/pack.mjs');
@@ -438,7 +411,7 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
       const retrieval=config.graphFirst
         ?'Locate code with `.aidlc/bin/harness graph query callers <symbol>`, `calls <symbol>` and `.aidlc/bin/harness pack <symbol>` first; rg and bounded reads are the miss path.'
         :'Use rg and bounded reads as needed.';
-      const instruction=`Simulated approval: implement ${step.request}\n${step.behaviours.join('\n')}\n${scope}\nAdd meaningful tests and run ${productTestCommand}. ${retrieval} Do not modify approval artifacts. ${step.missingTool?'missing-product-tool is unavailable; use Node and do not install a replacement.':''}\n${context}`;
+      const instruction=`Simulated approval: implement ${step.request}\n${step.behaviours.join('\n')}\n${scope}\nAdd meaningful tests and run ${PRODUCT_TEST_COMMAND}. ${retrieval} Do not modify approval artifacts. ${step.missingTool?'missing-product-tool is unavailable; use Node and do not install a replacement.':''}\n${context}`;
       await call(instruction,'implement');
       const validateScope=()=>{
         const previous=new Map(authorized),current=new Map(sourceDigest());

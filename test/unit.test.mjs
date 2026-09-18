@@ -55,7 +55,10 @@ test('normalize: ruff json becomes the one finding schema', () => {
     { filename: 'a.py', location: { row: 3 }, code: 'F401', message: 'unused import', fix: { message: 'remove it' } },
   ]), '', 1);
   assert.equal(out.length, 1);
-  assert.deepEqual(out[0], { file: 'a.py', line: 3, rule: 'F401', message: 'unused import', fix: 'remove it' });
+  // G15: the tool's own advice, plus how to apply it. A finding that only says what is wrong
+  // makes the reader go and research what to do about it.
+  assert.deepEqual(out[0], { file: 'a.py', line: 3, rule: 'F401', message: 'unused import',
+    fix: 'remove it — rerun with --fix to apply it' });
 });
 
 test('normalize: eslint json flattens per-file messages', () => {
@@ -318,14 +321,13 @@ test('baseline: the hook emits sessionContext and holds no second assembly of it
 
   const emitted = JSON.parse(execFileSync('node', [path.join(ROOT, '.aidlc/bin/harness'), 'hook', 'session-start'],
     { cwd: ROOT, input: '{}', encoding: 'utf8' })).hookSpecificOutput.additionalContext;
-  // The hook rotates the run id before assembling, so the `ledger:` counters it reports are one
-  // run behind the ones an in-process call reports afterwards. That counter is the only part of
-  // the payload the act of measuring changes, so it is normalised on both sides rather than
-  // raced against; every other line must match exactly, which is what B2 is about.
-  const norm = (s) => s.replace(/^ledger: .*$/m, 'ledger: <counts>');
-  assert.equal(norm(emitted), norm(sessionContext(loadConfig(ROOT))),
+  // G11 removed the `ledger:` row count, which was the one part of the payload the act of
+  // measuring changed — the hook rotates the run id before assembling, so its counters were
+  // always one run behind an in-process call's. With it gone there is nothing left to normalise
+  // and the two sides must match byte for byte, which is a stronger statement of the same B2.
+  assert.equal(emitted, sessionContext(loadConfig(ROOT)),
     'the hook must write exactly what sessionContext assembles');
-  assert.match(emitted, /^ledger: \d+ rows over \d+ runs \(30d\)$/m, 'the ledger line is still emitted');
+  assert.doesNotMatch(emitted, /^ledger: /m, 'the row count moved on every check and nothing acted on it');
 
   const hook = fs.readFileSync(path.join(ROOT, '.aidlc/hooks/dispatch.mjs'), 'utf8');
   assert.ok(!hook.includes('`harness · ${'), 'dispatch.mjs assembles the payload a second time');
@@ -944,23 +946,9 @@ test('telemetry is not classified, and a control nothing reaches ages out as ret
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-// B2, test_quality: the sensor's why: is a test directory that executes nothing. Plant it.
-test('test-presence fails a directory with no test(...) text', async () => {
-  const fs = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
-  const { spawnSync } = await import('node:child_process');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-tq-'));
-  fs.mkdirSync(path.join(root, 'test'));
-  fs.writeFileSync(path.join(root, 'test/empty.test.mjs'), '// a file named like a test that asserts nothing\n');
-  const sensor = new URL('../.aidlc/sensors/test-quality.mjs', import.meta.url).pathname;
-  const planted = spawnSync(process.execPath, [sensor], { cwd: root, encoding: 'utf8' });
-  assert.notEqual(planted.status, 0, 'a test directory that executes nothing must be red');
-  assert.match(planted.stderr, /test-presence: no/);
-  fs.writeFileSync(path.join(root, 'test/real.test.mjs'), "import { test } from 'node:test';\ntest('x', () => {});\n");
-  assert.equal(spawnSync(process.execPath, [sensor], { cwd: root, encoding: 'utf8' }).status, 0);
-  fs.rmSync(root, { recursive: true, force: true });
-});
+// G13 deleted `test_quality` and the presence sensor behind it. What replaced it — the coverage
+// ratchet and the `proof` check — is planted and graded in test/coverage-and-proof.test.mjs,
+// which is what `[deterrents]` now names.
 
 // close-the-harness B5. Three golden tasks start an intent and expect files; the intent skill
 // interviews first, as it should when a person is there. The one task that says it has

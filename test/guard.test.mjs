@@ -5,9 +5,14 @@ import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { C, BIN } from './_paths.mjs';
-import { writeBlocked, productionDenied, lockTests, clearLock, bashTouchesProtected, bashContractBlocked, writeTargets } from '../.aidlc/lib/guard.mjs';
+import { writeBlocked, productionDenied, bashTouchesProtected, bashContractBlocked, writeTargets } from '../.aidlc/lib/guard.mjs';
+import { layout } from '../.aidlc/lib/paths.mjs';
+
+// A tree with no release record in it, which is what "unauthorised" looks like on disk.
+const releaseCfg = () => ({ layout: layout(mkdtempSync(path.join(tmpdir(), 'release-guard-'))) });
 import { render, bodyDigest, selectChange } from '../.aidlc/lib/artifacts.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
+import { HUMAN } from './_gates.mjs';
 
 
 function tmp(prefix) {
@@ -82,7 +87,7 @@ test('a command that writes to a protected path is still denied', () => {
 // repo-relative, so identity is the whole test. The control had no unit coverage before this.
 test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
   const f = tmp('prefix-'); try {
-    const cfg = { layout: f.layout, guard: {} };
+    const cfg = { layout: f.layout, guard: {}, gates: HUMAN };
     for (const rel of [
       'evals/fixtures/_base/.aidlc/harness.toml',
       'evals/fixtures/clean-app/.claude/CLAUDE.md',
@@ -94,7 +99,9 @@ test('a nested copy of a prompt-prefix file is not the prompt prefix', () => {
     // init invalidates the cache exactly as editing the generated file would.
     // lean-v2 B6 removed `.aidlc/harness.toml` from this list: it is a registry, not prompt text.
     for (const rel of ['.claude/CLAUDE.md', '.claude/settings.json', '.aidlc/instructions.md']) {
-      assert.match(String(writeBlocked(rel, cfg)), /agent instructions or permissions/, `stopped guarding ${rel}`);
+      // Matched on the rule's own reason rather than on the clause that used to classify it:
+      // the refusal is one sentence now, because two sentences were two things to drop.
+      assert.match(String(writeBlocked(rel, cfg)), /prompt cache/, `stopped guarding ${rel}`);
     }
   } finally { f.cleanup(); }
 });
@@ -121,8 +128,8 @@ test('the agent cannot force init past the prefix guard, in any spelling', async
     const stdin = process.stdin;
     // dispatch reads the tool call from stdin as JSON.
     const { Readable } = await import('node:stream');
-    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_input: { command } })]), configurable: true });
-    try { await dispatch('pre-bash'); } finally {
+    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_name: 'Bash', tool_input: { command } })]), configurable: true });
+    try { await dispatch('pre-tool'); } finally {
       process.stdout.write = write;
       Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
     }
@@ -180,7 +187,7 @@ test('require_contract defaults on, and an explicit choice still wins', async ()
 function contractCfg(f) {
   return {
     layout: { ...f.layout, artifacts: path.join(f.root, '.aidlc/artifacts') },
-    guard: { require_contract: true },
+    guard: { require_contract: true }, gates: HUMAN,
   };
 }
 
@@ -235,14 +242,14 @@ test('the contract guard still blocks an unowned write to a product file, and na
 
 test('scope guard remains configurable for non-product repositories', () => {
   const f = tmp('guard-off-'); try {
-    assert.equal(writeBlocked('src/app.py', { layout: f.layout, guard: {} }), null);
+    assert.equal(writeBlocked('src/app.py', { layout: f.layout, guard: {}, gates: HUMAN }), null);
   } finally { f.cleanup(); }
 });
 
 test('require_contract permits only paths owned by a committed approved contract', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
     const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
-    const cfg = { layout, guard: { require_contract: true } };
+    const cfg = { layout, guard: { require_contract: true }, gates: HUMAN };
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
     assert.match(writeBlocked('src/app/handlers.py', cfg), /outside the current change "hyphen-titlecase"/);
     assert.equal(writeBlocked('.aidlc/artifacts/intent-refs/change.json', cfg), null);
@@ -256,7 +263,7 @@ test('require_contract permits only paths owned by a committed approved contract
 test('a path named only by an older change\'s plan is refused under the current change', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
     const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
-    const cfg = { layout, guard: { require_contract: true } };
+    const cfg = { layout, guard: { require_contract: true }, gates: HUMAN };
     approvedChange(s.work, 'second-change', ['src/app/second.py'], '2026-09-02T00:00:00.000Z');
 
     assert.equal(writeBlocked('src/app/second.py', cfg), null, 'refused a path the current plan owns');
@@ -272,7 +279,7 @@ test('a path named only by an older change\'s plan is refused under the current 
 test('a current change with no approved plan refuses every product write and names the way forward', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
     const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
-    const cfg = { layout, guard: { require_contract: true } };
+    const cfg = { layout, guard: { require_contract: true }, gates: HUMAN };
     approvedChange(s.work, 'sprint-3', ['src/app/text.py'], '2026-09-02T00:00:00.000Z', { plan: 'draft' });
 
     for (const rel of ['src/app/text.py', 'src/app/handlers.py']) {
@@ -296,7 +303,7 @@ test('a current change with no approved plan refuses every product write and nam
 test('a protected path an approved committed contract names is writable', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
     const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
-    const cfg = { layout, guard: { require_contract: true, protected_paths: ['src/app', 'evals/fixtures'] } };
+    const cfg = { layout, guard: { require_contract: true, protected_paths: ['src/app', 'evals/fixtures'] }, gates: HUMAN };
 
     // Owned by the fixture's committed approved contract, and protected. The plan wins.
     assert.equal(writeBlocked('src/app/text.py', cfg), null, 'refused a path the approved plan owns');
@@ -309,7 +316,7 @@ test('a protected path an approved committed contract names is writable', () => 
 
     // With nothing protected, the same path is refused by the ownership rule instead. Both rules
     // still refuse it; ownership is what either of them yields to.
-    const unprotected = { layout, guard: { require_contract: true } };
+    const unprotected = { layout, guard: { require_contract: true }, gates: HUMAN };
     assert.match(String(writeBlocked('src/app/handlers.py', unprotected)), /outside the current change/);
     assert.equal(writeBlocked('src/app/text.py', unprotected), null);
   } finally { s.cleanup(); }
@@ -330,7 +337,7 @@ test('a protected path an approved committed contract names is writable', () => 
 test('the bash path and the write path return one verdict for one target', async () => {
   const { loadConfig } = await import('../.aidlc/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const cfg = loadConfig(s.work);
+    const cfg = { ...loadConfig(s.work), gates: HUMAN };
     const norm = (t) => path.relative(cfg.layout.root, path.resolve(cfg.layout.root, t));
     const rows = [
       ['owned', 'src/app/text.py'],
@@ -357,7 +364,7 @@ test('the bash path and the write path return one verdict for one target', async
 test('an out-of-tree target is allowed on both paths', async () => {
   const { loadConfig } = await import('../.aidlc/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const cfg = loadConfig(s.work);
+    const cfg = { ...loadConfig(s.work), gates: HUMAN };
     const outside = path.join(tmpdir(), 'harness-probe.txt');
 
     assert.equal(bashContractBlocked(`echo x > ${outside}`, cfg), null, 'refused an absolute out-of-tree target');
@@ -375,7 +382,7 @@ test('an out-of-tree target is allowed on both paths', async () => {
 test('a command with several write targets is refused for the unowned one, not the first extracted', async () => {
   const { loadConfig } = await import('../.aidlc/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const cfg = loadConfig(s.work);
+    const cfg = { ...loadConfig(s.work), gates: HUMAN };
     const refusal = String(bashContractBlocked('cat src/app/text.py > src/app/text.py; echo x > src/app/handlers.py', cfg));
     assert.match(refusal, /^src\/app\/handlers\.py /, `refusal did not name the unowned target: ${refusal}`);
   } finally { s.cleanup(); }
@@ -387,7 +394,7 @@ test('a command with several write targets is refused for the unowned one, not t
 test('a shell redirect to a path the approved plan owns proceeds', async () => {
   const { loadConfig } = await import('../.aidlc/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const cfg = loadConfig(s.work);
+    const cfg = { ...loadConfig(s.work), gates: HUMAN };
     assert.equal(bashContractBlocked('echo x > src/app/text.py', cfg), null);
   } finally { s.cleanup(); }
 });
@@ -400,7 +407,7 @@ test('a shell redirect to a path the approved plan owns proceeds', async () => {
 test('a token writeTargets extracted that cannot be a path is dropped, not refused', async () => {
   const { loadConfig } = await import('../.aidlc/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const cfg = loadConfig(s.work);
+    const cfg = { ...loadConfig(s.work), gates: HUMAN };
 
     // p0-unblock-the-loop's own defect class: a read-only command is never refused because a
     // word inside it looks like a write verb. `sed` here is data inside a quoted grep pattern
@@ -436,22 +443,25 @@ test('a token writeTargets extracted that cannot be a path is dropped, not refus
 
 // B5. A bash refusal names the rule that actually produced it, so `harness ledger audit` can
 // tell a caught mistake from a false block — a single `contract-scope` label across four
-// different rules could not answer that question. Drives the real `dispatch('pre-bash')` hook,
+// different rules could not answer that question. Drives the real `dispatch('pre-tool')` hook,
 // the same harness the two tests above at lines 106 and 443 use, and reads the appended row.
 test('a bash refusal names the rule that produced it, in the ledger', async () => {
   const { dispatch } = await import('../.aidlc/hooks/dispatch.mjs');
   const { read } = await import('../.aidlc/lib/ledger.mjs');
   const home = mkdtempSync(path.join(tmpdir(), 'dispatch-rule-'));
   mkdirSync(path.join(home, '.aidlc'), { recursive: true });
-  writeFileSync(path.join(home, '.aidlc/harness.toml'), '[project]\nname = "dispatch-test"\n');
+  // G06: the rule names asserted below are the *blocking* rules, so this repo declares the
+  // enforcing gate. Under the advisory default the first command is a `warn` row and the
+  // assertion would be reading the protected-path row instead.
+  writeFileSync(path.join(home, '.aidlc/harness.toml'), '[project]\nname = "dispatch-test"\n\n[gates]\nspec = "human"\nplan = "human"\n');
 
   const ask = async (command) => {
     const write = process.stdout.write.bind(process.stdout);
     process.stdout.write = () => true;
     const stdin = process.stdin;
     const { Readable } = await import('node:stream');
-    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_input: { command } })]), configurable: true });
-    try { await dispatch('pre-bash'); } finally {
+    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_name: 'Bash', tool_input: { command } })]), configurable: true });
+    try { await dispatch('pre-tool'); } finally {
       process.stdout.write = write;
       Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
     }
@@ -474,18 +484,22 @@ test('a malformed contract fails closed for product writes', () => {
   const f = tmp('guard-bad-'); try {
     f.layout.contracts = path.join(f.root, '.aidlc/artifacts/contracts'); mkdirSync(f.layout.contracts, { recursive: true });
     writeFileSync(path.join(f.layout.contracts, 'change.md'), '# malformed contract\n');
-    const refusal = String(writeBlocked('src/app.py', { layout: f.layout, guard: { require_contract: true } }));
+    const refusal = String(writeBlocked('src/app.py', { layout: f.layout, guard: { require_contract: true }, gates: HUMAN }));
     assert.match(refusal, /cannot resolve selection/);
     assert.doesNotMatch(refusal, /require_contract = false/);
   } finally { f.cleanup(); }
 });
 
-test('a release to a live environment without an approval identifier is denied', () => {
-  assert.match(productionDenied('deploy --env production', {}), /needs an authorization/);
-  assert.equal(productionDenied('deploy --env production', { HARNESS_RELEASE_APPROVAL: 'CAB-1' }), null);
-  assert.equal(productionDenied('make test', {}), null);
-  assert.match(productionDenied('kubectl apply -f prod/app.yaml', {}), /needs an authorization/);
-  assert.match(productionDenied('cd infra && helm upgrade prod ./chart', {}), /needs an authorization/);
+// G18: the authorisation is a record naming a candidate, a person and an expiry, not an
+// environment variable that says only "yes". The full behaviour is in test/release-record.test.mjs;
+// this is the guard's half — which commands are releases at all.
+test('a release to a live environment without a current record is denied', () => {
+  const cfg = releaseCfg();
+  assert.match(productionDenied('deploy --env production', cfg), /needs a current release record/);
+  assert.match(productionDenied('deploy --env production', cfg), /harness release approve --by/);
+  assert.equal(productionDenied('make test', cfg), null);
+  assert.match(productionDenied('kubectl apply -f prod/app.yaml', cfg), /needs a current release record/);
+  assert.match(productionDenied('cd infra && helm upgrade prod ./chart', cfg), /needs a current release record/);
 });
 
 // lean-v2 B9. The rule fired four times in one session against commands that only named it: a
@@ -495,12 +509,13 @@ test('a release to a live environment without an approval identifier is denied',
 // ledger carried a rule id nothing could tell these apart from a real catch.
 test('naming a rule is not invoking it', () => {
   const heredoc = "cat > note.md <<'EOF'\nwe removed the deploy port and its production rollback\nEOF";
-  assert.equal(productionDenied(heredoc, {}), null, 'refused a heredoc body that only described a release');
-  assert.equal(productionDenied('git commit -m "delete the deploy port and production receipts"', {}), null);
+  const cfg = releaseCfg();
+  assert.equal(productionDenied(heredoc, cfg), null, 'refused a heredoc body that only described a release');
+  assert.equal(productionDenied('git commit -m "delete the deploy port and production receipts"', cfg), null);
 
   // And an invocation in either shape is still refused.
-  assert.ok(productionDenied('terraform apply -var env=production', {}));
-  assert.ok(productionDenied('echo start; deploy --target production', {}));
+  assert.ok(productionDenied('terraform apply -var env=production', cfg));
+  assert.ok(productionDenied('echo start; deploy --target production', cfg));
 
   // Heredoc bodies are not write destinations either: the file after `>` is, and nothing inside.
   assert.deepEqual(writeTargets("cat > real.txt <<'EOF'\nnot > a-target.txt\nEOF"), ['real.txt']);
@@ -521,14 +536,18 @@ test('a redirection is a redirection, not every angle bracket', () => {
   assert.deepEqual(writeTargets('cmd 2>&1 | tail'), []);
 });
 
-test('lock tests writes a lock the write guard honors, and clear removes it', () => {
+// G03 deleted the test-lock mechanism. `lockTests`/`clearLock` were exported and called by
+// nothing but this test; the reader in `writeBlocked` guarded a file the CLI had no verb to write;
+// and its refusal named `harness lock clear`, a command that does not exist. Zero fires in 10,397
+// ledger rows. Law 10's subtractive half is what a control with no invocations and no way to be
+// invoked is for.
+test('a file nothing can lock is no longer refused for being locked', () => {
   const f = tmp('guard-lock-'); try {
-    const cfg = { layout: f.layout, guard: {} };
-    lockTests(cfg, { patterns: ['tests/test_calc.py'], why: 'bug fix in progress' });
-    assert.match(writeBlocked('tests/test_calc.py', cfg), /test-locked/);
-    assert.equal(writeBlocked('src/calc.py', cfg), null);
-    clearLock(cfg);
-    assert.equal(existsSync(path.join(f.layout.state, 'test-lock.json')), false);
+    const cfg = { layout: f.layout, guard: {}, gates: HUMAN };
+    mkdirSync(f.layout.state, { recursive: true });
+    // Even with the file the deleted writer used to produce, nothing reads it any more.
+    writeFileSync(path.join(f.layout.state, 'test-lock.json'),
+      JSON.stringify({ patterns: ['tests/test_calc.py'], why: 'a bug fix is in progress' }));
     assert.equal(writeBlocked('tests/test_calc.py', cfg), null);
   } finally { f.cleanup(); }
 });
@@ -540,7 +559,7 @@ test('lock tests writes a lock the write guard honors, and clear removes it', ()
 test('a selected draft refuses writes until its gates pass or another change is explicitly selected', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
     const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
-    const cfg = { layout, guard: { require_contract: true } };
+    const cfg = { layout, guard: { require_contract: true }, gates: HUMAN };
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
 
     const dir = path.join(s.work, '.aidlc/artifacts/paid-never-overdue');
@@ -583,7 +602,7 @@ test('a selected draft refuses writes until its gates pass or another change is 
 test('an edited approved spec refuses every product write until re-approved or restored', () => {
   const s = stage(FIXTURES, 'contract-planned'); try {
     const layout = { root: s.work, artifacts: path.join(s.work, '.aidlc/artifacts'), state: path.join(s.work, '.aidlc/state') };
-    const cfg = { layout, guard: { require_contract: true } };
+    const cfg = { layout, guard: { require_contract: true }, gates: HUMAN };
     approvedChange(s.work, 'sprint-2', ['src/app/text.py'], '2026-09-02T00:00:00.000Z');
     assert.equal(writeBlocked('src/app/text.py', cfg), null);
 
@@ -616,8 +635,8 @@ test('an agent cannot run harness approve in an attended session; a mention is n
     process.stdout.write = (s) => { chunks.push(String(s)); return true; };
     const stdin = process.stdin;
     const { Readable } = await import('node:stream');
-    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_input: { command } })]), configurable: true });
-    try { await dispatch('pre-bash'); } finally {
+    Object.defineProperty(process, 'stdin', { value: Readable.from([JSON.stringify({ cwd: home, tool_name: 'Bash', tool_input: { command } })]), configurable: true });
+    try { await dispatch('pre-tool'); } finally {
       process.stdout.write = write;
       Object.defineProperty(process, 'stdin', { value: stdin, configurable: true });
     }
@@ -657,10 +676,10 @@ test('an agent cannot run harness approve in an attended session; a mention is n
 test('the registry is a protected path by default, and a plan naming it still permits the write', async () => {
   const { loadConfig } = await import('../.aidlc/lib/config.mjs');
   const s = stage(FIXTURES, 'contract-planned'); try {
-    const cfg = loadConfig(s.work);
+    const cfg = { ...loadConfig(s.work), gates: HUMAN };
     assert.ok(cfg.guard.protected_paths.includes('.aidlc/harness.toml'), 'protected by default');
     assert.match(String(writeBlocked('.aidlc/harness.toml', cfg)), /protected_paths/);
     approvedChange(s.work, 'tune-registry', ['.aidlc/harness.toml'], '2026-09-02T00:00:00.000Z');
-    assert.equal(writeBlocked('.aidlc/harness.toml', loadConfig(s.work)), null, 'a plan naming it wins');
+    assert.equal(writeBlocked('.aidlc/harness.toml', { ...loadConfig(s.work), gates: HUMAN }), null, 'a plan naming it wins');
   } finally { s.cleanup(); }
 });

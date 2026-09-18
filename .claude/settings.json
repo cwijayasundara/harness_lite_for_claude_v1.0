@@ -8,6 +8,14 @@
       "Bash(.aidlc/bin/harness:*)",
       "Bash(node .aidlc/bin/harness:*)",
       "Write(.aidlc/artifacts/**)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Edit(.env)",
+      "Write(.env)",
+      "Read(.env.*)",
+      "Edit(.env.*)",
+      "Write(.env.*)"
     ]
   }
 }

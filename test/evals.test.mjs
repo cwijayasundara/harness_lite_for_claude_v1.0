@@ -1,6 +1,7 @@
 // The grading half of the eval suite, exercised with a fake invoker: no model, no key, no
 // spend. If this file is green, a green eval run means what it says.
 import { test } from 'node:test';
+import { HUMAN } from './_gates.mjs';
 import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, existsSync, appendFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
@@ -32,7 +33,7 @@ test('authentication follows Claude CLI status, including keychain-backed logins
   assert.equal(claudeAuthenticated({}, loggedIn), true);
   assert.equal(claudeAuthenticated({}, loggedOut), false);
   assert.equal(claudeAuthenticated({ ANTHROPIC_API_KEY: 'ci-token' }, loggedOut), false);
-  assert.equal(claudeAuthenticated({}, loggedIn,{product:true}),false,'isolated products cannot use the host keychain');
+  assert.equal(claudeAuthenticated({}, loggedIn,{product:true}),true,'no container: a product trial uses the same login every live call does');
   assert.equal(claudeAuthenticated({CLAUDE_CODE_OAUTH_TOKEN:'ci-token'},loggedOut,{product:true}),true);
 });
 
@@ -146,6 +147,30 @@ test('runSuite records an exhausted run as inconclusive, and inconclusive is not
   assert.equal(out.results[0].runs[0].incomplete.reason, 'budget_exhausted');
 });
 
+// MEASURED 2026-09-14: a live run came back 8 pass, 1 fail, 12 ungraded — nine tasks killed at the
+// 600s timeout and three more starved of budget behind them. Nothing in the results file said how
+// long any of them had been allowed to run, so "raise the timeout" would have been a guess, and
+// the reservation `runSuite` never got back made one timeout problem look like two.
+test('a run records how long it took, and a timed-out one records it too', async () => {
+  const task = { id: 'slow', fixture: 'clean-app', prompt: 'x', repeats: 1, timeoutMs: 1000, budgetUsd: 0.6,
+    assert: [{ transcript_matches: 'done' }] };
+  const graded = await runSuite({
+    tasks: [task], fixturesDir: FIXTURES, harnessBin: HARNESS,
+    invoke: () => ({ transcript: 'done', usage: { usd: 0.1 }, latencyMs: 421000 }),
+  });
+  assert.equal(graded.results[0].runs[0].latencyMs, 421000);
+
+  // The case it exists for. A killed run reports no cost and no tokens, so its duration is the
+  // only fact it leaves behind — and it is the one fact that says what the timeout should be.
+  const killed = await runSuite({
+    tasks: [task], fixturesDir: FIXTURES, harnessBin: HARNESS,
+    invoke: () => ({ transcript: '', usage: {}, timedOut: true, latencyMs: 600000 }),
+  });
+  assert.equal(killed.results[0].verdict, 'inconclusive');
+  assert.equal(killed.results[0].runs[0].incomplete.reason, 'timed_out');
+  assert.equal(killed.results[0].runs[0].latencyMs, 600000, 'the one number a killed run can still report');
+});
+
 // B3/B4. The assertion must measure that the sensor was consulted, not that the command was
 // typed. Narrowing what counts as evidence must not widen what counts as a pass.
 test('sensor-consulted accepts the check output as evidence, and still fails a model that skips it', async () => {
@@ -198,7 +223,7 @@ test('a fixture governed like an install refuses an unowned product write', () =
   try {
     const cfg = {
       layout: { root: s.work, claude: path.join(s.work, '.claude'), state: path.join(s.work, '.aidlc/state'), artifacts: path.join(s.work, '.aidlc/artifacts') },
-      guard: { require_contract: true, protected_paths: [] },
+      guard: { require_contract: true, protected_paths: [] }, gates: HUMAN,
     };
     // hyphen-titlecase owns src/app/text.py and tests/test_app.py, and nothing else.
     assert.equal(writeBlocked('src/app/text.py', cfg), null, 'an owned path stays writable');

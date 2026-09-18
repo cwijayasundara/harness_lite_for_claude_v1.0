@@ -6,8 +6,9 @@ import path from 'node:path';
 import { run } from '../.aidlc/checks/scope-drift.mjs';
 import { parse, render, bodyDigest, selectChange } from '../.aidlc/lib/artifacts.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
+import { HUMAN } from './_gates.mjs';
 
-const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts') } });
+const cfg = (root) => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts') }, gates: HUMAN });
 
 test('local staged, unstaged, untracked, renamed and deleted paths retain exact scope identity', async () => {
   const s = stage(FIXTURES, 'contract-planned');

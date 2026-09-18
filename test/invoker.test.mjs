@@ -21,10 +21,10 @@ function withStub(body, script) {
   return { dir, argvLog, restore: () => { process.env.PATH = previous; rmSync(dir, { recursive: true, force: true }); } };
 }
 
-test('invoker: builds the argv the CLI expects and extracts usage from its JSON', () => {
+test('invoker: builds the argv the CLI expects and extracts usage from its JSON', async () => {
   const stub = withStub(`echo '{"result":"I fixed the divide bug.","total_cost_usd":0.0234,"usage":{"output_tokens":871}}'`);
   try {
-    const out = claudeInvoker({ pluginDir: '/plugins/lean' })({
+    const out = await claudeInvoker({ pluginDir: '/plugins/lean' })({
       prompt: 'Fix the divide bug.', cwd: stub.dir, timeoutMs: 30000, budgetUsd: 0.75,
     });
     const argv = readFileSync(stub.argvLog, 'utf8').split('\n').filter(Boolean);
@@ -51,10 +51,10 @@ test('invoker: builds the argv the CLI expects and extracts usage from its JSON'
 // token counts and every transcript assertion failed — while the behavioural assertions on the
 // same two tasks passed, because the work had been done. Budget exhaustion was reported as
 // model failure. Same law as the ENOENT branch: a grader that could not finish is not a verdict.
-test('invoker: a run that exhausts its budget is incomplete, not a transcript', () => {
+test('invoker: a run that exhausts its budget is incomplete, not a transcript', async () => {
   const stub = withStub(`echo '{"type":"result","subtype":"error_max_budget_usd","is_error":true,"terminal_reason":"budget_exhausted","errors":["Reached maximum budget ($0.6)"],"num_turns":7,"total_cost_usd":0.6}'`);
   try {
-    const out = claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000, budgetUsd: 0.6 });
+    const out = await claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000, budgetUsd: 0.6 });
     assert.ok(out.incomplete, 'an exhausted run must be flagged incomplete');
     assert.equal(out.incomplete.reason, 'budget_exhausted');
     assert.match(out.incomplete.detail, /Reached maximum budget/);
@@ -65,47 +65,49 @@ test('invoker: a run that exhausts its budget is incomplete, not a transcript', 
   } finally { stub.restore(); }
 });
 
-test('invoker: a normal run is not flagged incomplete', () => {
+test('invoker: a normal run is not flagged incomplete', async () => {
   const stub = withStub(`echo '{"type":"result","is_error":false,"result":"done","total_cost_usd":0.01}'`);
   try {
-    const out = claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000 });
+    const out = await claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000 });
     assert.equal(out.incomplete, null);
     assert.match(out.transcript, /done/);
   } finally { stub.restore(); }
 });
 
-test('invoker: the budget flag is omitted rather than sent as zero', () => {
+test('invoker: the budget flag is omitted rather than sent as zero', async () => {
   const stub = withStub(`echo '{"result":"ok"}'`);
   try {
-    claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000 });
+    // Awaited because the invoker spawns asynchronously now: reading the stub's argv log without
+    // waiting reads a file the child has not written yet.
+    await claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000 });
     const argv = readFileSync(stub.argvLog, 'utf8');
     assert.doesNotMatch(argv, /--max-budget-usd/);
     assert.doesNotMatch(argv, /--plugin-dir/);
   } finally { stub.restore(); }
 });
 
-test('invoker: non-JSON output is still graded, not discarded', () => {
+test('invoker: non-JSON output is still graded, not discarded', async () => {
   const stub = withStub(`echo 'plain text, no envelope'; exit 0`);
   try {
-    const out = claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000 });
+    const out = await claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000 });
     assert.match(out.transcript, /plain text, no envelope/);
     assert.deepEqual(out.usage, {});
   } finally { stub.restore(); }
 });
 
-test('invoker: a non-zero exit is reported, with stderr kept in the transcript', () => {
+test('invoker: a non-zero exit is reported, with stderr kept in the transcript', async () => {
   const stub = withStub(`echo 'boom' >&2; exit 3`);
   try {
-    const out = claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000 });
+    const out = await claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 5000 });
     assert.equal(out.exitCode, 3);
     assert.match(out.transcript, /boom/);
   } finally { stub.restore(); }
 });
 
-test('invoker: a hang is reported as timedOut, not as a silent pass', () => {
+test('invoker: a hang is reported as timedOut, not as a silent pass', async () => {
   const stub = withStub(`sleep 5`);
   try {
-    const out = claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 300 });
+    const out = await claudeInvoker({})({ prompt: 'p', cwd: stub.dir, timeoutMs: 300 });
     assert.equal(out.timedOut, true);
   } finally { stub.restore(); }
 });
@@ -115,7 +117,7 @@ test('invoker: a missing CLI is a broken harness, not twenty failed tasks', asyn
   const previous = process.env.PATH;
   process.env.PATH = dir;                       // nothing on PATH at all
   try {
-    const out = claudeInvoker({})({ prompt: 'p', cwd: dir, timeoutMs: 5000 });
+    const out = await claudeInvoker({})({ prompt: 'p', cwd: dir, timeoutMs: 5000 });
     assert.equal(out.notInstalled, true);
     assert.match(out.error, /not on PATH/);
 
@@ -147,7 +149,7 @@ test('the real claude CLI is present for explicitly requested subscription trial
 // conflicting API key before the `product` branch is reached, so it is asserted here on the
 // invocation path that still exists. Keeping it on a product invocation would have made it pass
 // for the wrong reason — the boundary refusal fires first and would mask a broken billing guard.
-test('invoker: a conflicting API key refuses before any invocation, on the path that still runs', () => {
+test('invoker: a conflicting API key refuses before any invocation, on the path that still runs', async () => {
   const previous = { ...process.env };
   try {
     delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
@@ -161,7 +163,7 @@ test('invoker: a conflicting API key refuses before any invocation, on the path 
   }
 });
 
-test('invoker: a product trial refuses because there is no boundary, not because of billing', () => {
+test('invoker: a product trial refuses because there is no boundary, not because of billing', async () => {
   const previous = { ...process.env };
   try {
     delete process.env.ANTHROPIC_API_KEY;
@@ -174,4 +176,33 @@ test('invoker: a product trial refuses because there is no boundary, not because
     for (const key of Object.keys(process.env)) if (!(key in previous)) delete process.env[key];
     for (const [key, value] of Object.entries(previous)) process.env[key] = value;
   }
+});
+
+// G23. The invoker spawns asynchronously, so `runSuite`'s pool actually overlaps.
+//
+// It used `spawnSync`, which blocks the whole Node process for the length of a model call — so
+// four concurrent lanes awaited one at a time and a 22-task suite ran exactly as slowly as it did
+// sequentially. That mistake shipped once because nothing measured overlap; this measures it.
+test('invoker: two calls overlap in time rather than blocking the event loop', async () => {
+  const stub = withStub('sleep 1; echo \'{"result":"ok"}\'');
+  try {
+    const invoke = claudeInvoker({});
+    const started = Date.now();
+    // The event loop must stay live while a call is in flight: if it does not, this timer cannot
+    // fire until the spawn returns, which is exactly the defect.
+    let tickedDuringCall = false;
+    const ticker = setTimeout(() => { tickedDuringCall = true; }, 200);
+    const both = await Promise.all([
+      invoke({ prompt: 'a', cwd: stub.dir, timeoutMs: 20000 }),
+      invoke({ prompt: 'b', cwd: stub.dir, timeoutMs: 20000 }),
+    ]);
+    clearTimeout(ticker);
+    const elapsed = Date.now() - started;
+
+    assert.equal(both.length, 2);
+    for (const out of both) assert.equal(out.exitCode, 0, JSON.stringify(out).slice(0, 200));
+    assert.ok(tickedDuringCall, 'the event loop was blocked for the whole call — this is spawnSync behaviour');
+    // Two one-second calls, overlapped, finish in well under two seconds. Sequential would be 2s+.
+    assert.ok(elapsed < 1800, `two overlapping 1s calls took ${elapsed}ms, which is sequential`);
+  } finally { stub.restore(); }
 });

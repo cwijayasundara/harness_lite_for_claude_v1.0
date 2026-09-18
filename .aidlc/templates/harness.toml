@@ -12,11 +12,23 @@ fmt       = ""
 lint      = ""
 typecheck = ""
 test      = ""   # e.g. "python3 -m pytest -q --json-report --json-report-file={report}"
-test_quality = "" # mutation, test-diff, or project policy that catches weakened tests
+test_changed = ""  # the same runner narrowed to {files}, e.g. "python3 -m pytest -q {files}"
 coverage  = ""
 arch      = ""
 secrets   = ""          # empty = use the harness's built-in scanner
 deps      = ""
+
+# G14. Opt-in, and in no stage by default: each is slower or noisier than a commit-stage control
+# should be until a project has decided it is worth the wait. Add one to `commit` when it is.
+#   mutation — the mutation-testing-elements JSON report, which Stryker writes natively. Stryker
+#              names its own output path in stryker.config.json, so hand it over on stdout:
+#              "npx stryker run --incremental --reporters json > /dev/null && cat reports/mutation.json"
+#              Python: "mutmut run" followed by an export in that same schema.
+#   sast     — "semgrep --config auto --json"
+#   layers   — "npx depcruise src --output-type json" or, for Python, "lint-imports"
+mutation  = ""
+sast      = ""
+layers    = ""
 
 # How to parse each verb's stdout into the one finding schema.
 # Known: ruff · eslint · mypy · tsc · pytest · generic
@@ -29,9 +41,16 @@ test      = "generic"
 
 # Which verbs run when. A stage may reference another stage; one level of indirection.
 [stages]
-fast   = ["fmt", "lint", "typecheck"]
+# `secrets` runs in `fast`, not only at commit: the built-in scanner reads the changed files and
+# costs milliseconds, and a credential is cheapest to remove in the turn that wrote it. Waiting for
+# the commit stage means the post-write hook — the one thing that reports back inside the turn —
+# never looks.
+fast   = ["fmt", "lint", "typecheck", "secrets"]
 stop   = ["fast", "test"]
-commit = ["stop", "secrets", "scope-drift", "budget", "tamper", "arch", "test_quality"]
+# G11. What the Stop hook runs at the end of a turn. The full suite belongs to `harness deliver`,
+# once per iteration, not to every turn.
+stop_hook = ["fast", "test_changed"]
+commit = ["stop", "scope-drift", "budget", "tamper", "arch", "proof"]
 drift  = ["coverage", "deps"]
 
 # Release-grade sensor ownership. Profiles select the project commands that are actually live;
@@ -40,7 +59,7 @@ drift  = ["coverage", "deps"]
 behaviour = ["test", "coverage"]
 architecture = ["arch"]
 hardening = ["secrets", "deps"]
-qa = ["test_quality", "fmt", "lint", "typecheck"]
+qa = ["fmt", "lint", "typecheck"]
 required_profiles = ["behaviour", "architecture", "hardening", "qa"]
 latency_budget_ms = 120000
 
@@ -52,6 +71,21 @@ fail_fast = true
 [graph]
 include = [".", ".aidlc"]       # dotdirs ARE indexed. The harness must be visible to itself.
 exclude = ["node_modules", ".venv", "dist", "build", "target", ".git", "__pycache__"]
+
+# G06. A gate is a policy, not a constant: `human` refuses, `advisory` reports and lets the loop
+# continue, `auto` lets the driver record the approval with a digest of this setting. `merge`
+# takes one value — the harness never approves its own merge.
+[gates]
+spec  = "advisory"   # human | advisory | auto
+plan  = "advisory"
+merge = "human"      # the only permitted value
+
+# G09. `harness deliver <slug> --live` drives the six phases between the plan approval and the
+# merge decision. The bounds are the whole safety story of an unattended loop: it stops and names
+# the one it hit rather than exceeding it, and what it leaves behind is resumable.
+[deliver]
+max_minutes = 60   # wall-clock for one run; a resumed run gets its own
+max_usd     = 10   # usage estimate, clamped before every model call
 
 [budget]
 subagent_context_soft = 140000
@@ -69,6 +103,16 @@ review_diff_max_bytes = 200000  # refuse to imply a complete AI review beyond th
 generator = "claude-sonnet-5"
 evaluator = "claude-opus-5"
 evals     = "claude-haiku-4-5-20251001"
+# G10. The model that decides rather than types: intent, spec, plan, design, and the evaluator.
+judgment  = "claude-opus-5"
+
+# G10. Effort per kind of work, rendered into the same frontmatter as the model and passed to the
+# driver's own turns. Typing under an approved plan is the cheap band; judging is the expensive
+# one; a repair sits between, because it is re-reading a verdict rather than writing one.
+[effort]
+implement = "low"
+repair    = "medium"
+review    = "high"
 
 [limits]
 skills          = 7

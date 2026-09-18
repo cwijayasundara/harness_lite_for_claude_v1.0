@@ -9,6 +9,16 @@ src = ["src"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+# G12. Declared here so `harness init` can see them: detection reads a project's own manifests,
+# never the machine it happens to run on.
+[dependency-groups]
+dev = ["pytest", "pytest-json-report", "pytest-cov", "ruff", "mypy"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src", "tests"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]

@@ -11,9 +11,10 @@ import { findRepoRoot, PREFIX_CACHE_PATHS } from '../lib/paths.mjs';
 import { check, render } from '../lib/runner.mjs';
 import * as ledger from '../lib/ledger.mjs';
 import { refresh } from '../lib/refresh.mjs';
+import { changedFiles } from '../lib/diff.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
-import { writeRefusal, productionDenied, bashTouchesProtected, bashContractRefusal, commandText } from '../lib/guard.mjs';
+import { writeRefusal, releaseDecision, bashTouchesProtected, bashContractRefusal, commandText, readRefusal, bashReadRefusal } from '../lib/guard.mjs';
 import { invocation, sessionContext } from '../lib/session.mjs';
 
 const readStdin = () => new Promise((res) => {
@@ -26,6 +27,18 @@ const readStdin = () => new Promise((res) => {
 const deny = (reason) => {
   process.stdout.write(JSON.stringify({
     hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason },
+  }));
+  return 0;
+};
+
+// G06. An advisory gate reports the same judgment and lets the call through. The wording says
+// which gate is relaxed, because a warning that reads like a denial teaches the model to stop
+// anyway — the point of advisory mode is that the loop continues and the merge decision, not the
+// hook, weighs what it says.
+const warn = (reason) => {
+  process.stdout.write(JSON.stringify({
+    hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext:
+      `harness (advisory gate): ${reason}\nThis is recorded, not refused — the write proceeds and the merge decision reads it.` },
   }));
   return 0;
 };
@@ -46,7 +59,10 @@ const DESTRUCTIVE = [
 // edit — every gate this harness has is a tool call away unless the one command that opens them
 // is the human's. Same mechanism as `init-force`: this hook sees only the agent's commands, a
 // human's shell runs no hook. This regex is a workflow reminder, not authentication.
-const APPROVE_IS_THE_HUMANS = [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+approve\b/, 'approval is the human\'s gate, not the agent\'s', 'approve-is-the-humans'];
+// G18 widened it to `harness release approve`, which is the same kind of decision one stage
+// further on: an authorisation to put a named commit in front of real users. If the agent could
+// type it, the record would be worth exactly what the environment variable was worth.
+const APPROVE_IS_THE_HUMANS = [/(^|[|;&]\s*)(node\s+|bash\s+|sh\s+)?\S*harness\s+(release\s+)?approve\b/, 'approval is the human\'s gate, not the agent\'s', 'approve-is-the-humans'];
 
 
 // The pre-tool guards, as functions rather than case bodies: one hook binding now covers every
@@ -57,7 +73,10 @@ function preWrite(input, cfg) {
         if (!file) return 0;
         const rel = path.relative(cfg.layout.root, path.resolve(cfg.layout.root, file));
         const hit = writeRefusal(rel, cfg);
-        if (hit) { ledger.append({ stage: 'pre-write', control: 'write-guard', rule: hit.rule, verdict: 'fail', ms: 0, findings: 1 }, cfg.layout); return deny(hit.message); }
+        // G06: an advisory fire is a `warn` row, not a `fail` one. `harness ledger audit` counts
+        // fires to tell a deterrent from a corpse, and a warning that recorded itself as a
+        // denial would inflate exactly the number that decides whether a control stays.
+        if (hit) { ledger.append({ stage: 'pre-write', control: 'write-guard', rule: hit.rule, verdict: hit.advisory ? 'warn' : 'fail', ms: 0, findings: 1 }, cfg.layout); return hit.advisory ? warn(hit.message) : deny(hit.message); }
         ledger.append({ stage: 'pre-write', control: 'write-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
   return 0;
 }
@@ -85,18 +104,55 @@ function preBash(input, cfg) {
         for (const [re, why, rule] of rules) {
           if (re.test(scannable)) return fired(rule ?? 'destructive', `${why}. If this is genuinely required, ask the human to run it.`);
         }
-        const prod = productionDenied(cmd, process.env);
-        if (prod) return fired('release-authorization', prod);
+        // G18. A release decision is recorded whichever way it goes. An allow that leaves no
+        // trace is indistinguishable from a control that never ran, and "who deployed what, under
+        // whose authorisation, and when did it expire" is the question an incident asks first.
+        const decision = releaseDecision(cmd, cfg);
+        if (decision) {
+          ledger.append({ stage: 'pre-bash', control: 'release-authorization',
+            verdict: decision.allowed ? 'pass' : 'fail', ms: 0, findings: decision.allowed ? 0 : 1,
+            rule: decision.allowed ? null : 'release-authorization',
+            candidate: decision.candidate, reason: decision.reason,
+            ...(decision.route ? { route: decision.route } : {}),
+            ...(decision.record?.approved_by ? { approved_by: decision.record.approved_by } : {}),
+          }, cfg.layout);
+          // `deny`, not `fired`: the row above is the record, with the candidate, the reason and
+          // the route on it. `fired` would append a second, thinner row for the same event.
+          if (!decision.allowed) {
+            return deny(`A release to a live environment needs a current release record: ${decision.reason}. ${decision.route}`);
+          }
+        }
         // D1 (a-shell-redirect-is-a-write) B5: the rule id is `hit.rule` — `write-scope`,
         // `protected-path`, `prefix-cache` or `test-lock` — not the single `contract-scope`
         // label every one of those used to be flattened into, which left `harness ledger audit`
         // unable to tell a caught mistake from a false block.
         const hit = bashContractRefusal(cmd, cfg);
+        if (hit && hit.advisory) {
+          ledger.append({ stage: 'pre-bash', control: 'bash-guard', rule: hit.rule, verdict: 'warn', ms: 0, findings: 1 }, cfg.layout);
+          return warn(hit.message);
+        }
         if (hit) return fired(hit.rule, hit.message);
         const p = bashTouchesProtected(cmd, PREFIX_CACHE_PATHS);
         if (p) return fired('prompt-prefix', `this command writes to ${p} through the shell, which bypasses the write guard. Instruction and permission changes require the approved scope.`);
         ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
+        // cat/head/tail is the way round the Read hook. Recorded as `read-gate`, not
+        // `bash-guard`: one control across both surfaces, or the audit sees two halves that each
+        // look too quiet to keep. The row above stands — every bash-guard rule did pass.
+        const big = bashReadRefusal(cmd, cfg);
+        ledger.append({ stage: 'pre-bash', control: 'read-gate', rule: big?.rule ?? null,
+          verdict: big ? 'fail' : 'pass', ms: 0, findings: big ? 1 : 0 }, cfg.layout);
+        if (big) return deny(big.message);
   return 0;
+}
+
+// The read gate. The judgment is `readRefusal`'s, in lib/guard.mjs with the other refusals and
+// the tests that plant their defects; this is the row it writes and the denial it returns.
+function preRead(input, cfg) {
+  const file = input.tool_input?.file_path ?? input.tool_input?.path ?? '';
+  const hit = readRefusal(file, cfg, input.tool_input ?? {});
+  ledger.append({ stage: 'pre-read', control: 'read-gate', rule: hit?.rule ?? null,
+    verdict: hit ? 'fail' : 'pass', ms: 0, findings: hit ? 1 : 0 }, cfg.layout);
+  return hit ? deny(hit.message) : 0;
 }
 
 // B11. A bare symbol searched with Grep or Glob is a question the index has already answered at
@@ -146,13 +202,11 @@ export async function dispatch(event) {
       case 'pre-tool': {
         const tool = input.tool_name ?? '';
         if (tool === 'Bash') return preBash(input, cfg);
+        if (tool === 'Read') return preRead(input, cfg);
         if (tool === 'Grep' || tool === 'Glob') return preSearch(input, cfg);
         return preWrite(input, cfg);
       }
 
-      case 'pre-write': return preWrite(input, cfg);
-
-      case 'pre-bash': return preBash(input, cfg);
 
       case 'post-write': {
         const file = input.tool_input?.file_path ?? input.tool_input?.path ?? '';
@@ -177,9 +231,14 @@ export async function dispatch(event) {
         // The external test driver supplies the next decision; a Stop hook cannot approve it.
 
         const r = refresh(cfg);
-        const report = await check(cfg, { stage: 'stop', files: [] });
+        // G11. The hook runs `stop_hook` — fast, plus the tests that name what this turn touched.
+        // It used to run `stop`, the whole suite, at the end of every turn: seconds paid over and
+        // over for an answer that had not changed. The full suite is `harness deliver`'s, once per
+        // iteration, and `harness check --stage stop` stays one command away for a human.
+        const stage = cfg.stages?.stop_hook ? 'stop_hook' : 'stop';
+        const report = await check(cfg, { stage, files: changedFiles(cfg) });
         const notes = [];
-        if (!report.ok) notes.push('stage "stop" has findings — run: .aidlc/bin/harness check --stage stop');
+        if (!report.ok) notes.push(`stage "${stage}" has findings — run: .aidlc/bin/harness check --stage stop`);
         if (r.error) notes.push(`graph refresh failed (${r.error}) — treat the index as stale`);
 
         // B11. The map is a guide, and a guide that has quietly stopped describing the tree is

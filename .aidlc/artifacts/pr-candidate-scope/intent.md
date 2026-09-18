@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Intent: pr-candidate-scope
 

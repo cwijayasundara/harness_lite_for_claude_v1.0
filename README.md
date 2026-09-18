@@ -232,7 +232,8 @@ Once installed, hooks fire on their own:
 Claude repairs failures itself and pastes the evidence. It should never ask you to run a check.
 
 Claude also picks skills on its own from ordinary requests — "fix this bug" pulls in `diagnose`,
-unfamiliar code pulls in `map` and the `explorer` subagent. You don't invoke them by name.
+"how should this be shaped" pulls in `design`, and unfamiliar code pulls in the `explorer`
+subagent. You don't invoke them by name.
 
 ---
 

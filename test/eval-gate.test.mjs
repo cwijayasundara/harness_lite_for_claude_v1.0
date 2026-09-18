@@ -124,6 +124,27 @@ test('newer partial runs cannot displace the newest complete result', () => {
   } finally { f.cleanup(); }
 });
 
+// MEASURED 2026-09-14: `harness evals gate` graded a run from 2026-09-04 while a complete run from
+// that morning sat beside it in the same directory. Without the record's ids, "a full run" means
+// "has more ids than anything else on disk", so one historical run that also carried two product
+// tasks outranked every golden run after it, permanently. The CLI now reads the record first and
+// asks for the ids it expects.
+test('a bigger old run does not outrank the newest run that graded what the record expects', () => {
+  const f = tmp(); try {
+    mkdirSync(f.dir);
+    for (const [name, pairs] of [
+      ['01.json', { a: 'pass', b: 'pass', extra1: 'pass', extra2: 'pass' }],
+      ['02.json', { a: 'pass', b: 'fail' }],
+    ]) writeFileSync(path.join(f.dir, name), JSON.stringify(results(pairs)));
+
+    // What the record actually asks about.
+    assert.equal(loadResults(f.dir, new Set(['a', 'b'])).source, '02.json');
+    // What happens without it: the stale run wins on size alone, and the gate reports a verdict
+    // about a tree nobody has had for ten days.
+    assert.equal(loadResults(f.dir).source, '01.json');
+  } finally { f.cleanup(); }
+});
+
 test('no regression does not hide existing failures or incomplete evaluation', () => {
   const r = gate(results({ a: 'pass', b: 'fail', c: 'flaky', d: 'inconclusive' }),
     record({ a: 'pass', b: 'fail', c: 'flaky', d: 'fail' }));

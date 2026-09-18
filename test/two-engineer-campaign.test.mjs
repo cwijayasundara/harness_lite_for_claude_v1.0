@@ -108,27 +108,47 @@ async function concurrent(root, engineers) {
       const released = Date.now(); writeFileSync(path.join(rendezvous, 'release'), String(released));
       return { arrivals, released, both_executing_before_release: true };
     })();
-    const bound = new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('concurrent check timeout')), 30000); });
+    // The bound exists so a rendezvous that never happens fails instead of hanging — it is an
+    // instrument, not a control, and at 30 s it was letting the laptop decide. MEASURED
+    // 2026-09-16: this campaign runs in 20.7 s on a quiet machine and 46.7 s while the rest of the
+    // suite is draining, because the `calculator` fixture replaced zero-dep `node --test` product
+    // checks with real prettier/eslint/tsc/vitest processes. Same lesson as 8bb4f3b.
+    const bound = new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error('concurrent check timeout')), 120000); });
     const [reports, overlap] = await Promise.race([Promise.all([completed, ready]), bound]);
     return { reports, overlap };
   } finally { cancelled = true; clearTimeout(timeout); for (const child of children) if (child.exitCode === null) child.kill('SIGKILL'); }
 }
 
-test('two engineers evolve a shared product through isolated work, reversal, integration failure and refactor', { timeout: 90000 }, async t => {
+// The outer bound stays above the rendezvous bound inside it, so the failure that arrives names
+// the rendezvous rather than the whole campaign.
+test('two engineers evolve a shared product through isolated work, reversal, integration failure and refactor', { timeout: 240000 }, async t => {
   const started = Date.now();
-  const s = stage(FIXTURES, 'campaign-ledger', { product: true });
+  const s = stage(FIXTURES, 'calculator', { product: true });
   const root = s.work;
   const evidence = { version: 1, simulation: 'two scripted engineers on one host', approvals: 'simulated', host_reviews: 'simulated',
     model_calls: 0, human_review_minutes: null, production_lead_time: null, checks: [], failures: [], integrations: [] };
   try {
     const evaluator = path.join(s.root, 'evaluator.mjs');
-    writeFileSync(evaluator, `import assert from 'node:assert/strict';\nimport { pathToFileURL } from 'node:url';\nconst root = process.argv[2];\nconst { portalBalance } = await import(pathToFileURL(root + '/src/portal.mjs'));\nconst { reportBalance } = await import(pathToFileURL(root + '/src/report.mjs'));\nconst { addCustomer, addInvoice, listInvoices } = await import(pathToFileURL(root + '/src/ledger.mjs'));\nconst id = addCustomer('Acme'); addInvoice(id, 10000, '2026-10-01');\nconst invoice = listInvoices(id)[0];\nassert.equal(invoice.amountCents, 10000);\nconst payments = [{ amountCents: 5000, feeCents: 500 }];\nassert.equal(portalBalance(invoice, payments), 5000);\nassert.equal(reportBalance(invoice, payments), 5000, 'shared fee semantics must agree across consumers');\nconsole.log('integration assertions passed');\n`);
+    writeFileSync(evaluator, `import assert from 'node:assert/strict';\nimport { pathToFileURL } from 'node:url';\nconst root = process.argv[2];\nconst { portalBalance } = await import(pathToFileURL(root + '/src/portal.mjs'));\nconst { reportBalance } = await import(pathToFileURL(root + '/src/report.mjs'));\nconst { addCustomer, addInvoice, listInvoices } = await import(pathToFileURL(root + '/src/invoices.mjs'));\nconst id = addCustomer('Acme'); addInvoice(id, 10000, '2026-10-01');\nconst invoice = listInvoices(id)[0];\nassert.equal(invoice.amountCents, 10000);\nconst payments = [{ amountCents: 5000, feeCents: 500 }];\nassert.equal(portalBalance(invoice, payments), 5000);\nassert.equal(reportBalance(invoice, payments), 5000, 'shared fee semantics must agree across consumers');\nconsole.log('integration assertions passed');\n`);
     const evaluatorDigest = hash(readFileSync(evaluator));
     const evaluate = () => spawnSync(process.execPath, [evaluator, root], { encoding: 'utf8', timeout: 10000 });
-    const initial = ['src/ledger.mjs', 'src/fees.mjs', 'tests/smoke.test.mjs'].map(file => [file, readFileSync(path.join(root, file), 'utf8')]);
-    const fixtureHashes = initial.map(([file]) => [file, hash(readFileSync(path.join(FIXTURES, 'campaign-ledger', file)))]);
+
+    // The brownfield this campaign evolves. It used to be `campaign-ledger`'s own source; that
+    // fixture was deleted on 2026-09-16 and what this test needs from it was three small files and
+    // a deliberate out-of-scope probe target. Writing them here makes the campaign say what it
+    // depends on instead of inheriting it, and the fixture check below still proves the campaign
+    // never wrote back into `evals/fixtures/`.
+    write(root, 'src/invoices.mjs', "const invoices = new Map();\nlet next = 1;\n\nexport function addCustomer(name) {\n  return name;\n}\n\nexport function addInvoice(customerId, amountCents, dueDate) {\n  const id = next++;\n  invoices.set(id, { id, customerId, amountCents, dueDate });\n  return id;\n}\n\nexport function listInvoices(customerId) {\n  return [...invoices.values()].filter((invoice) => invoice.customerId === customerId);\n}\n");
+    write(root, 'src/fees.mjs', "export function lateFeeCents(amountCents) {\n  return Math.round(amountCents * 0.05);\n}\n");
+    write(root, 'tests/smoke.test.mjs', "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { addCustomer, addInvoice, listInvoices } from '../src/invoices.mjs';\n\ntest('an invoice is listed for its customer', () => {\n  const id = addCustomer('Smoke');\n  addInvoice(id, 100, '2026-01-01');\n  assert.equal(listInvoices(id).length, 1);\n});\n");
+    const initial = ['src/invoices.mjs', 'src/fees.mjs', 'tests/smoke.test.mjs'].map(file => [file, readFileSync(path.join(root, file), 'utf8')]);
+    const fixtureFiles = ['src/App.tsx', 'package.json', 'NOTES.md'];
+    const fixtureHashes = fixtureFiles.map(file => [file, hash(readFileSync(path.join(FIXTURES, 'calculator', file)))]);
     git(root, 'branch', '-m', 'integration');
-    write(root, '.aidlc/harness.toml', '[project]\nname = "two-engineer-ledger"\n[capabilities]\ntest = "env -u NODE_TEST_CONTEXT node --test --test-reporter=tap tests/*.test.mjs"\n[formats]\ntest = "tap"\n[stages]\nstop = ["test"]\n');
+    // G06: this campaign is the `human` arm. It asserts refusals — a scope violation rejected at
+    // the guard and again at the check — so it declares the enforcing gate rather than inheriting
+    // the advisory default. The advisory arm is the test below.
+    write(root, '.aidlc/harness.toml', '[project]\nname = "two-engineer-product"\n[capabilities]\ntest = "env -u NODE_TEST_CONTEXT node --test --test-reporter=tap tests/*.test.mjs"\n[formats]\ntest = "tap"\n[stages]\nstop = ["test"]\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
     const requirements = '# Partial payments\n\n## Acceptance criteria\n\n| Criterion ID | Criterion |\n|---|---|\n| shared | Credit payment amount minus fee. |\n| portal | Show outstanding invoice balance using the shared credit rule. |\n| report | Report outstanding invoice balance using the shared credit rule. |\n| integration | Portal and report agree for payments with nonzero fees. |\n';
     write(root, 'requirements.md', requirements); const source = commit(root, 'Simulated product initiative');
     const sharedBase = prepare(root, { slug: 'shared-credit', criterion: 'shared', source, files: ['src/payment-contract.mjs', 'tests/shared.test.mjs'], behaviour: 'Given a payment with a fee, when credited, then subtract the fee from its invoice credit.' });
@@ -245,7 +265,7 @@ test('two engineers evolve a shared product through isolated work, reversal, int
     assert.equal(view.behaviours.find(b => b.id === 'shared-credit#B1').state, 'historical');
     for (const id of ['gross-credit#B1', 'portal#B1', 'report#B1', 'portal-refactor#B1']) assert.equal(view.behaviours.find(b => b.id === id).state, 'effective', JSON.stringify(view.findings));
     for (const [file, bytes] of initial) assert.equal(readFileSync(path.join(root, file), 'utf8'), bytes, 'legacy product behavior/source preserved');
-    for (const [file, digest] of fixtureHashes) assert.equal(hash(readFileSync(path.join(FIXTURES, 'campaign-ledger', file))), digest, 'source fixtures unchanged');
+    for (const [file, digest] of fixtureHashes) assert.equal(hash(readFileSync(path.join(FIXTURES, 'calculator', file))), digest, 'source fixtures unchanged');
     evidence.final = { revision: git(root, 'rev-parse', 'HEAD'), evaluator_digest: evaluatorDigest, integration: 'passed', unchanged_evaluator: true, refactor_assertions_preserved: true,
       behaviours: view.behaviours.map(b => ({ id: b.id, state: b.state, execution: b.execution })), parent_acceptance: 'not claimed', source_fixtures_unchanged: true };
     evidence.elapsed_ms = Date.now() - started;

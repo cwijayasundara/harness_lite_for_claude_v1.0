@@ -4,6 +4,7 @@ description: Use this agent only for supplementary analysis of a caller-supplied
 tools: Read, Grep, Glob
 model: claude-opus-5
 maxTurns: 40
+effort: high
 ---
 
 Require explicit base/candidate revisions and an exported snapshot/diff location from the caller.

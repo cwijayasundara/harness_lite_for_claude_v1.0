@@ -8,7 +8,7 @@ import { traceFixture } from './_trace-fixture.mjs';
 // so several tests here prove the working copy has no say over it at all.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync, appendFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
@@ -30,6 +30,10 @@ function repo() {
   spawnSync('git', ['config', 'user.email', 'harness@example.invalid'], { cwd: root });
   spawnSync('git', ['config', 'user.name', 'Harness Test'], { cwd: root });
   assert.equal(run(root, process.env, 'init', '--into', root).status, 0);
+  // G06: `harness init` now ships `[gates]` at "advisory", where a missing or stale approval is
+  // a row and `status` exits 0. Every test below asserts the enforcing gate, so this project
+  // declares it rather than inheriting whichever default the template happens to carry.
+  appendFileSync(path.join(root, '.aidlc/harness.toml'), '\n[gates]\nspec = "human"\nplan = "human"\nmerge = "human"\n');
   return root;
 }
 
@@ -44,16 +48,12 @@ const commit = (root, m) => {
 // *mechanism* — it must go on doing exactly that, so each placeholder is swapped for the shortest
 // fixture-shaped text that clears it. Nothing here reads as a real spec or plan on purpose.
 function deScaffold(text) {
+  // G16 changed the spec template's placeholders, and a helper that listed them one by one went
+  // stale the moment it did. Every scaffold placeholder is an angle-bracketed span, so replace
+  // the shape rather than the instances.
   return text
-    .replace('<The observable result, in the language of the affected user.>', 'Fixture content — this file exists to test the unattended mechanism, not this text.')
-    .replace('Given ...\nWhen ...\nThen ...', 'Given this fixture exists\nWhen it is approved\nThen the approval succeeds')
-    .replace('<Consequential architecture, interfaces, state and failure paths. Omit if not needed.>', 'No consequential design decisions in this approval-state fixture.')
-    .replace('<Explicit boundaries. What a reader might reasonably expect and will not get.>', 'Nothing — this is a fixture.')
-    .replace('<Security, privacy, compatibility, performance and operational invariants this must not break.>', 'None — this is a fixture.')
-    .replace('<The approach and why it fits. Discuss alternatives only when a meaningful tradeoff exists.>', 'Fixture content — no real approach; this file exists to test the unattended mechanism.')
-    .replace(/<Every path this change may touch, in backticks, one per line\. `scope-drift` and the write guard\nread this section and nothing else: a path not named here cannot be written\.>/, 'Fixture content — no real files section needed here.')
-    .replace('<Ordered step naming an exact path.>', 'Fixture content — no real steps needed here.')
-    .replace('<named test or runtime evidence>', 'manual check: fixture only');
+    .replace(/<[^<>]*>/gs, 'Fixture content — this file exists to test the unattended mechanism, not this text.')
+    .replace('Given ...\nWhen ...\nThen ...', 'Given this fixture exists\nWhen it is approved\nThen the approval succeeds');
 }
 
 function deScaffoldArtifacts(root, slug, kinds) {
@@ -186,7 +186,9 @@ test('B7: the results JSON of a fake-invoker run lists the auto-approved artifac
 // campaign step by `task.steps`, which only a campaign task carries. A fake `claude` on PATH
 // dumps its own env so the real code path — not a fake invoker standing in for it — actually
 // runs; no model, no spend.
-test('invoker strips former bypass flags from campaigns and single-prompt tasks', () => {
+// Awaited throughout: the invoker spawns asynchronously now, so reading the stub's env log
+// without waiting reads a file the child has not written yet.
+test('invoker strips former bypass flags from campaigns and single-prompt tasks', async () => {
   const dir = mkdtempSync(path.join(tmpdir(), 'stub-claude-'));
   const envLog = path.join(dir, 'env.txt');
   writeFileSync(path.join(dir, 'claude'), `#!/usr/bin/env bash\nif [ "$1" = auth ]; then echo '{"loggedIn":true,"authMethod":"claude.ai","apiProvider":"firstParty"}'; exit 0; fi\nenv > ${JSON.stringify(envLog)}\necho '{"result":"done","total_cost_usd":0}'\n`);
@@ -197,11 +199,11 @@ test('invoker strips former bypass flags from campaigns and single-prompt tasks'
     const invoke = claudeInvoker({});
 
     // A single-prompt golden task: `task` carries no `steps`.
-    invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'golden-task', prompt: 'x' } });
+    await invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'golden-task', prompt: 'x' } });
     assert.doesNotMatch(readFileSync(envLog, 'utf8'), /^AIDLC_UNATTENDED=/m, 'a single-prompt task must run exactly as it does for a real, attended repository');
 
     // A campaign step: `task.steps` is present, as `evals/run.mjs` builds it.
-    invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'campaign', steps: [{ prompt: 'x' }] }, step: 0 });
+    await invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'campaign', steps: [{ prompt: 'x' }] }, step: 0 });
     assert.doesNotMatch(readFileSync(envLog, 'utf8'), /^AIDLC_(UNATTENDED|EVAL)=/m);
 
     // review `419c0a4` (Blocking 2): the runner must not merely not-add the variable — it must
@@ -210,7 +212,7 @@ test('invoker strips former bypass flags from campaigns and single-prompt tasks'
     const previousUnattended = process.env.AIDLC_UNATTENDED;
     process.env.AIDLC_UNATTENDED = '1';
     try {
-      invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'golden-task', prompt: 'x' } });
+      await invoke({ prompt: 'x', cwd: dir, timeoutMs: 5000, budgetUsd: 1, task: { id: 'golden-task', prompt: 'x' } });
       assert.doesNotMatch(readFileSync(envLog, 'utf8'), /^AIDLC_UNATTENDED=/m, 'inherited from the parent shell, a single-prompt task must still run attended');
     } finally {
       if (previousUnattended === undefined) delete process.env.AIDLC_UNATTENDED;

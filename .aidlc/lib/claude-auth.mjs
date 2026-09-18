@@ -11,7 +11,12 @@ export function requireSubscription({ env = process.env, cwd, product = false, r
   const conflicts = API_ENV.filter(key => env[key]);
   if (conflicts.length) throw new Error(`API billing is disabled. Unset conflicting variables: ${conflicts.join(', ')}. Use your Claude Code subscription login or CLAUDE_CODE_OAUTH_TOKEN.`);
   if (env.CLAUDE_CODE_OAUTH_TOKEN) return 'subscription-token';
-  if (product) throw new Error('Container runs require CLAUDE_CODE_OAUTH_TOKEN from claude setup-token; API keys are disabled.');
+  // `product` once meant "inside a container that cannot see the host keychain", and refused
+  // without a setup token. MEASURED 2026-09-15: the-harness-needs-no-container removed the
+  // container and left the refusal, so the first live product trial on a logged-in laptop stopped
+  // at "Container runs require CLAUDE_CODE_OAUTH_TOKEN" before spending anything. A product trial
+  // now authenticates the way every other live call does; the token path stays for CI.
+  void product;
   const status = run('claude', ['auth', 'status'], { env, cwd, encoding: 'utf8', timeout: 15000 });
   if (status.error?.code === 'ENOENT') throw status.error;
   let auth;

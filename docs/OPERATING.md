@@ -23,14 +23,27 @@ firing where the work happens.
 
 ```
 .aidlc/bin/harness ledger              # what fired, how often, how slow
+.aidlc/bin/harness metrics             # first-pass checks, rework, lead time, escaped defects
 .aidlc/bin/harness baseline check      # did the token surface grow
 .aidlc/bin/harness status              # artifact progress, gates, current change
 ```
 
+`metrics` is the playbook's own numbers, each from evidence the harness already writes —
+the ledger, the artifact chain, the driver's phase records, the eval evidence. Nothing is
+instrumented specially for it, because a metric that needs its own collection measures whether the
+collection is running.
+
+Read the `unmeasured` lines first. A metric says so, and says why, when the evidence behind it is
+too thin to carry it: a rate over three events is an anecdote with a decimal point, and a number
+closes the question a gap would have invited. Early on most of them will read that way, and that is
+the report working.
+
+The two worth acting on weekly are **repeat classes** — the same rule firing over and over is
+either a control doing its job or a guidance gap nobody closed — and **escaped versus caught**,
+which is the one number that says whether the controls are where the defects actually are.
+
 `status` reports where each open change sits in the chain, whether its approvals still bind,
-and which change currently owns product writes. It measures no elapsed time: the playbook's
-leading indicators were part of lean-v2's unreachable-kernel cut and are parked as a candidate
-below. Close a change that will not enter Design by setting `status: closed` in its `intent.md`
+and which change currently owns product writes. Close a change that will not enter Design by setting `status: closed` in its `intent.md`
 and committing it.
 
 Two questions:
@@ -124,11 +137,248 @@ product processes over API and HTTP transports; they are never imported beside u
 modules. Each runtime starts from a fresh source snapshot. Those properties are about keeping
 grading honest, not about containment, and they are not a security boundary.
 
+## What a session is told, and what a turn ends with
+
+The SessionStart payload is two halves. Everything down to the `contract:` line is identical from
+one session to the next in a repository nobody has touched — the project, the check command, the
+budget, the map's hubs, the scope rule — and everything after it moves: a stale graph, a noisy
+control, which change is selected, what has been superseded. A prompt prefix is cached only while
+it stays byte-identical, so a volatile line above the boundary re-sends every line below it. Add a
+line to the stable half deliberately; add one to the volatile half freely.
+
+The Stop hook runs `stop_hook` — `fast`, plus the tests that name what the turn touched — and not
+the whole suite. `[capabilities].test_changed` is the narrowed command (`{files}` is substituted
+with the selected tests); unset, it is `skipped` like any other capability a project has not
+configured, and never a silent fall back to the full run. The full suite belongs to
+`harness deliver`, once per iteration, and `harness check --stage stop` stays one command away.
+
+## Every finding says what to do, and every suppression reaches the merge
+
+A finding carries `file`, `line`, `rule`, `message` and `fix`. The `fix` is one sentence written
+for the model rather than for a changelog: it names the judgment to make, and where the rule might
+be wrong it says so — "make a judgment call on this line; fix it, or suppress it with a `why:` on
+the same line if the rule does not apply here". A finding with no fix line is one the reader has to
+go and research before acting, which is how an accurate control still gets ignored. Every
+normaliser fills it; a tool that supplies its own advice (ruff's autofix message, mypy's hint) says
+that instead of the generic sentence.
+
+`tamper` refuses a suppression with no `why:` and permits one that has it. Permitting it silently
+would mean nobody ever reads the reason, so the reasoned ones are collected and `harness deliver`
+lists them under `## Suppressions` on the pull request, with the file, the line and the reason —
+in front of the person who can disagree with one before it merges rather than after.
+
+## Opt-in verbs: mutation, SAST, layering
+
+Three verbs the harness knows how to read and will not run for you. Each is slower or noisier than
+a commit-stage control should be until a project has decided it is worth the wait, so all three
+ship empty and none is in a default stage. What the harness supplies is the part a project cannot:
+one finding schema, so a surviving mutant, a semgrep hit and a broken layer rule reach the model in
+the same shape as a lint error.
+
+| verb | command | format |
+|---|---|---|
+| `mutation` | `npx stryker run --incremental --reporters json > /dev/null && cat reports/mutation.json` | `mutation` |
+| `sast` | `semgrep --config auto --json` | `semgrep` |
+| `layers` | `npx depcruise src --output-type json` | `depcruise` |
+| `layers` (Python) | `lint-imports` | `import-linter` |
+
+`mutation` reads the mutation-testing-elements JSON schema — what Stryker writes natively and what
+the other emitters in that ecosystem target. One schema rather than one parser per tool: a
+mutation tool that cannot emit it should write that schema, which is a smaller ask than a parser
+this repository has no way to test. A surviving mutant is a finding with a file and a line; a
+`NoCoverage` mutant is a different finding saying no test executed the line at all; a killed
+mutant is not a finding, because the suite did its job.
+
+`layers` reasons about modules, not lines, so its findings carry a file and line 0. That is
+reported rather than invented: a rule about "this module may not import that one" has no line to
+point at.
+
+Add one to `commit` when the project is ready for it — that is a decision about how long a commit
+may take, and it belongs to the project. `examples/scratch-ts` is the worked example: `layers`
+runs in its `drift` stage, and `mutation` is configured and reachable from no stage at all.
+
+## Coverage ratchets, and every behaviour names its proof
+
+`test_quality` is gone. It counted `test(` occurrences in files whose names looked like tests —
+it could not tell a suite from a file of comments, and across roughly ninety recorded runs it
+never fired. Two smaller and truer controls replace it.
+
+**The coverage ratchet.** `harness baseline capture` runs the project's `coverage` verb and records
+`coverage_lines_pct` from whatever it wrote — `lcov` (node, vitest, most JavaScript toolchains) or
+`coverage.py` JSON (`pytest --cov`). `harness baseline check`, and the `baseline` control in the
+commit stage, fail when it drops by more than `coverage_drop_pct` (default 1.0) percentage points.
+It is graded in points rather than as a ratio because a 1.10 ratio would let nine points go
+unnoticed. A project with no coverage verb, or a coverage run that failed, records `null` and is
+reported unmeasured — the repair for "we cannot see it" is to configure it, never to fail a build
+that says nothing about the change.
+
+**The proof check.** `proof` reads every promise spec and every plan's `## Proof` table: a
+behaviour with no row, or a row naming a test file that no longer exists or no longer contains the
+identifier it claimed, is a violation. A row that names runtime evidence instead of a test is
+reported unverifiable, never a violation — the plan skill permits it, and a manual check is
+honest when the thing genuinely cannot be automated. A behaviour retired on purpose is retired by
+removing it from `spec.md`. This check used to live in the eval library, where it ran only inside
+a graded eval; it is a property of a repository at commit time, and that is where it runs now.
+
+## The registry fills itself where it can
+
+`harness init` reads the project's own manifests — `package.json`, `tsconfig.json`, an eslint
+config, `pyproject.toml`, `requirements.txt`, `go.mod` — and writes the capability verbs it can see
+the tooling for. It reads what the project *declares*, never what happens to be on the machine, so
+two installs of one repository produce the same registry and a laptop with `mypy` on PATH does not
+configure a check CI cannot run. `harness init --detect` prints what it sees and exits.
+
+What it cannot see stays empty, and an empty verb is `skipped` — never `failed`. Detection fills an
+empty verb and never overwrites a configured one: a hand-written command is a decision, and
+re-running `init` must not undo it. A verb emptied deliberately stays empty; `--redetect` fills it
+again, and `--no-detect` skips detection entirely.
+
+For TypeScript it writes `tsc --noEmit`, `eslint`, `prettier` when declared, the project's test
+runner (`vitest` if declared, otherwise `tsc` plus `node --test`), node's built-in coverage in lcov
+form, and `npm outdated`. For Python: `ruff format`/`ruff check`, `mypy`, `pytest`, `pytest --cov`,
+and `pip list --outdated`. A Go module is recognised and reported; the harness ships no Go verb set
+yet, and a stack it cannot fill is named rather than guessed at.
+
+The `lint` verb assumes the project's eslint config carries the three complexity rules the harness
+documents, at these thresholds: `complexity` 10, `max-lines-per-function` 60, `max-params` 4. They
+are errors, not warnings — `harness check` grades a verb by its exit code, and a rule that only
+warns is a rule the loop never has to answer for. The harness does not write them into anyone's
+eslint config; that file belongs to the project. `examples/scratch-ts/eslint.config.js` is the
+worked example.
+
+Two verbs the detector never fills: `arch`, which has no generic tool (a project adds a layering
+command — see the opt-in verbs), and `secrets`, which needs no command because the harness's own
+scanner runs when it is empty.
+
+## One harness per machine
+
+An agent is selected by name. Two installed plugins that both define `evaluator` are two different
+sets of instructions answering to one name, and nothing in a run records which one answered — so a
+campaign can obtain its "independent review" from a reviewer belonging to a different harness
+entirely, and every number that run produces is about something nobody meant to measure.
+
+`harness doctor` reports it. On a clean machine it says so; on one with a clash it names the agent,
+the plugin, the marketplace and the version, and gives the uninstall command. It reports and
+refuses nothing: which plugins an operator keeps installed is their decision, and this repository
+does not legislate for the rest of their machine. What it must not do is let the clash stay
+invisible.
+
+MEASURED 2026-09-13 on the machine this was developed on: `harness-eng-v2@harness-eng-v2` v2.0.0
+defines a bare `evaluator` and collides. `harness@harness-local` v0.3.1 — the one the completion
+plan named as the problem — turned out to be namespaced already (`harness-evaluator`,
+`harness-generator`) and collides with nothing. That is the reason this is a check rather than a
+one-off uninstall: the plan's guess about which plugin was at fault was wrong, and a person
+repeating that guess would have removed the harmless one and kept the clash.
+
+The other half is the eval invoker's `--setting-sources project,local`: what the suite measures
+must not depend on whose laptop runs it, so a run sees the fixture's own `.claude/` and the harness
+plugin, and nothing from `~`.
+
+## Live product trials, and what their boundary is worth
+
+A product trial turns a real coding agent loose on a seeded fixture with Write, Edit and Bash. It
+needs a boundary, and the harness knows two:
+
+- **`ci-runner`** — an ephemeral virtual machine, destroyed when the job ends. This is OS-level and
+  it is the only one here that is. It is established from the environment (`GITHUB_ACTIONS` with a
+  run id), never assumed: `CI=true` on a laptop is a variable somebody exported.
+- **`local`** — the CLI permission system. `--permission-mode manual` with
+  `--permission-prompts none` means anything not on the explicit tool allowlist is denied outright;
+  file tools reach the staged tree and nothing above it; every MCP server is off; the operator's
+  own settings are not loaded. Pass `--boundary local` (`--sandbox local` is accepted as the same
+  thing) to choose it.
+
+**The local boundary is policy, not isolation.** It constrains a cooperating agent through the CLI
+it is running under. It does not contain a program that has already escaped, and an allowed command
+can still do whatever that command can do — `node` opens sockets, `git` reaches the network. Use it
+on fixtures whose code you wrote. It is not a place to run something you do not trust. Every run
+prints which boundary it has and, for the local one, that sentence.
+
+A run that asks for no boundary gets none: the trial refuses rather than falling through to running
+an agent on the operator's machine, and an unknown boundary name is refused rather than
+approximated. Comparison arms behave the same way, except that "no boundary" is recorded as the
+explicit unmeasured result rather than thrown — not being able to measure something is a result.
+
+The nightly job (`schedule:` in `.github/workflows/harness.yml`) runs the live suite on the runner
+under `--max-suite-usd`, grades it against `evals/expected.json`, and uploads the results. The gate
+step is `continue-on-error` until the recorded baseline has no failing and no flaky task: a gate
+that fails every night is a gate people stop reading.
+
+## A consumer's CI: checks are the gate, the review is advice
+
+`harness init --ci` writes `.github/workflows/harness.yml` into the project. On every pull request
+it runs `harness check --stage fast` over the candidate diff — that is the gate; it fails the build
+and branch protection can require it — and then asks the evaluator model for an independent review
+and posts one comment.
+
+The comment is advice, and stays advice. The harness posts a comment and nothing else: no pull
+request review, no approval, no status check. A machine that could satisfy a review requirement
+would not be a review requirement. **Configure the merge gate in branch protection**: require the
+workflow's check, require a review from CODEOWNERS, and do not grant the workflow token permission
+to approve. The workflow asks for `contents: read` and `pull-requests: write` and needs nothing
+more.
+
+The review returns structured findings against `.aidlc/schemas/review-findings.schema.json`, so the
+CLI validates the shape before the harness sees it. Each finding carries a `detected_pattern` — a
+short slug naming the recurring class it belongs to — and findings are deduped against what the
+harness has already said on that pull request, by file, pattern and title rather than by line: a
+defect that moved down the file is the same defect, and re-posting it on every push is how a bot
+teaches people to stop reading it. Nothing is stored for this; the pull request already remembers
+what was said on it.
+
+A clean review posts one record that it ran and then stays quiet. An incomplete review (a timeout)
+posts nothing: a partial review rendered as a comment reads exactly like a complete one that found
+less. A missing `CLAUDE_CODE_OAUTH_TOKEN` skips the review and says so in the job log — the checks
+still gate the pull request, and an absent credential must never look like a clean review.
+
+## The delivery engine: `harness deliver`
+
+`harness deliver <slug> --live` drives the seven phases between the plan approval and the merge
+decision, so a human stops relaying one command's output into the next:
+
+1. `implement` — the `implement` skill on the generator, scoped to the plan's `## Files`.
+2. `check-stop` — `harness check --stage stop`. One repair turn on failure, then stop.
+3. `refactor` — one generator turn under green checks, no behaviour change.
+4. `review` — `harness review` with the scoped export.
+5. `repair` — at most `max_repairs` turns on Blocking and Important findings, each confirmed by a
+   fresh review. The second attempt escalates to the judgment model.
+6. `check-commit` — `harness check --stage commit`.
+7. `pr` — `gh pr create` with the `Harness-Change:` line, the approval rows, the review verdict,
+   the export scope and the ledger invocation id.
+
+Each phase is recorded in `.aidlc/state/deliver/<slug>/phases.json` before it starts and after it
+ends, so an interrupted run resumes from the phase that had not completed rather than paying for
+the ones that had. `harness deliver <slug> --status` prints that record. If the approved plan's
+digest moved while the run was stopped, the driver refuses to resume: the authority it was
+executing under is gone, and a fresh run against the new plan is the way forward.
+
+`[deliver]` in `harness.toml` bounds it — `max_minutes`, `max_usd`, `max_repairs`. The driver
+stops and names the bound rather than exceeding it; a bound is not a verdict on the change, and
+the state it leaves is resumable. An unreported model cost reserves its full remaining allowance
+rather than counting as free. `--dry` prints the phases, the models and the bounds and spends
+nothing; without `--live` the driver refuses to start.
+
+What the driver cannot do is as important as what it does. It grants no gate: under
+`[gates] = "human"` it refuses to start without the approval, under `advisory` it carries the gap
+onto the pull request, and only under `auto` does it record the approval that setting already
+gave — as `approved_by: policy` with a digest, never as a person. It does not write
+`status: approved` into a review artifact, so a delivered change's next step is still `implement`
+and not `merge`. And it does not merge: the third gate is the human's, against branch protection.
+
 ## Independent review
 
 Run `harness review --base <commit> --candidate <commit> --out <review.md>`. The command uses the
 configured evaluator model, resolves explicit commits, exports a fresh candidate snapshot and
-diff, disables customizations/MCP/hooks, and exposes only Read/Grep/Glob. The parent saves the
+diff, disables customizations/MCP/hooks, and exposes only Read/Grep/Glob.
+
+The snapshot is scoped to the change: the current change's approved `## Files`, the modules the
+graph shows importing them, the tests naming them, and the change's own artifact directory. The
+diff is never scoped. `--full-tree` exports everything instead; a change with no approved plan
+selected falls back to the full tree on its own. The wall-clock allowance is derived from the
+diff — 300 s plus 2 s per KB, capped at 900 s — and `--timeout <ms>` overrides it. A review that
+outlives its allowance is not thrown away: the findings the CLI streamed are written with
+`Status: incomplete` and the reported spend, the command exits 1, and the caller decides whether
+to re-run with a longer allowance. Reported cost is a usage estimate, not an invoice. The parent saves the
 returned findings; CLI errors or missing output do not become a review. Run `harness check`
 separately in the candidate checkout and preserve its results alongside the review. The evaluator
 cannot run or modify tests through its tool set. It can still miss defects; its opinion does not
@@ -137,8 +387,7 @@ replace executable product acceptance.
 Local `by`, `at` and `digest` fields are audit metadata, not authenticated human identity. New
 plan approvals bind the spec body digest; older unbound records remain historical/local guidance
 and cannot satisfy the external driver. Do not claim that committing a digest authenticates its
-author. Similarly, the repository's legacy `test_quality` capability checks only text presence,
-not assertion quality. Steering-file guards protect deliberate instruction/permission changes;
+author. Steering-file guards protect deliberate instruction/permission changes;
 editing root CLAUDE.md does not invalidate an already loaded prompt mid-session. Reload it.
 
 ## When something goes wrong in production
@@ -160,6 +409,105 @@ and when an approved plan declares no files under `## Files`. A v2 approval also
 inputs: an uncommitted or edited `intent.md` invalidates the spec's binding, so saying approved
 in a file nobody committed does not pass a gate. Use `--json` for CI or a weekly report. Flow
 targets are a parked candidate below, not a thing this harness measures today.
+
+## Story intake: one document is the single source
+
+`harness new --from <path.md | https-url> [--split] [--revision <id>]` turns a PRD or a tracker
+story into a change, or into a decomposed set of them.
+
+The kernel reads a path or takes a URL string. It has no tracker client, no credential and no
+network call, and it must not acquire one. To intake from a tracker, the agent reads the issue
+through the project's own MCP server, writes what it read to a file in the repository, commits
+it, and passes that path — so the document a change was decomposed from is a committed artifact a
+reviewer can read, at a revision the approval binds to. At PR open the driver (G09) writes one
+comment back to the tracker through that same MCP server, carrying the PR URL and the candidate
+SHA.
+
+**The single-source rule.** The document is the inventory; the changes are the work. Keep the
+complete acceptance criteria in the source document and nowhere else — not copied into a parent
+change, not maintained as a second registry. Each child change names the same `parent` initiative
+and the same `source`/`source_revision`, and that triple is what groups them: `coordination()`
+reads the source at that exact commit to report which criteria no child has mapped. Two copies of
+an inventory disagree the first time one is edited, and then nothing can say which is current.
+
+`--split` decomposes on `## Story` sections, or failing that on an `## Acceptance criteria` table
+whose Criterion IDs carry a `<group>:` prefix. A document with neither is one change; asking for
+`--split` anyway is refused rather than guessed at. A story may state its order with a
+`Depends on: <other story>` line, which becomes `depends_on` on that change's plan; a name that
+matches no sibling is reported as `UNRESOLVED` rather than dropped.
+
+## Provenance is optional, and binding once declared
+
+An intent may name where its requirements came from:
+
+```yaml
+source: requirements.md
+source_revision: <exact commit>
+```
+
+Both or neither. With them, the spec approval records `source_kind`, the resolved revision and a
+digest of the document, and `read()` reports a stale approval if the declaration later changes —
+the binding pins a revision, so later edits to the file itself do not invalidate it. Without
+them the approval records `source_kind: unbound` and `harness status` prints `binding: spec
+unbound`, which is a fact about the change rather than a defect in it.
+
+This used to be mandatory. It cost more than it bought: a control-band breach, a PRD paragraph
+and an incident report are all legitimate origins, and none is a committed blob at a revision
+anybody can name in advance — `examples/maintain/band-to-intent.mjs` writes `status: draft` and
+nothing else, so the maintain edge could not reach its own first gate. The `## Requirements`
+table follows the same rule: validated when present, not demanded when absent, because a table
+invented to satisfy a checker records nothing.
+
+Unchanged: `approve` still refuses an uncommitted artifact, a half-declaration (`source` without
+`source_revision`, or a path that does not resolve to a committed file) is still refused, and a
+present Requirements table must still cover every numbered behaviour exactly once.
+
+## A gate is a policy, not a constant
+
+`[gates]` in `harness.toml` sets each gate's mode. The default, for a project that says nothing,
+is `advisory` for `spec` and `plan`:
+
+```toml
+[gates]
+spec  = "advisory"   # human | advisory | auto
+plan  = "advisory"
+merge = "human"      # the only permitted value
+```
+
+**`human`** is the enforcing gate. A product write outside the approved plan's `## Files`, or
+before the spec is approved, is refused at the Write and Bash hooks; `scope-drift` fails the
+commit stage; `harness status` prints `ERROR` and exits 1.
+
+**`advisory`** reports the identical judgment and lets the loop continue. The hook emits an
+`additionalContext` warning instead of a denial and records a `warn` row rather than a `fail`;
+`scope-drift` returns `warn`, so the findings are on the report with their file and rule while
+`ok` stays true and the PR check annotates rather than fails; `harness status` prints
+`ADVISORY` rows and exits 0. Nothing is hidden — the merge decision reads what the gate said.
+
+**`auto`** is for the driver. It records the approval itself, writing `approved_by: policy` and a
+`policy_digest` covering the gate's configured mode, so an approval justified only by "the
+configuration said so" says what the configuration was. `harness approve <slug> <kind> --policy`
+is refused in any other mode, and the `approve-is-the-humans` hook rule still refuses the agent's
+own shell in every mode — the driver reaches this through the library, never through Bash.
+
+Relaxing a gate relaxes exactly the gate. Destructive-command rules, `protected-path`,
+`prefix-cache`, `tamper`, `secrets` and `approve-is-the-humans` are unaffected by any mode, and
+`unkept-proof` — an approved plan naming a test that does not exist — still fails, because that
+is a broken promise inside a gate that was already given rather than a gate still waiting for an
+answer.
+
+Choose `human` when the repository's merge protection is the only other reader of these
+decisions. Choose `advisory` when a code-owner review on the PR is what actually gates the merge
+and the in-loop refusals are costing more than they catch. Measure it: `harness ledger audit`
+separates a caught mistake from a false block by rule, and a `warn` row is what a relaxed gate
+leaves behind.
+
+Run that audit on two triggers, not one. The 50-session count in Law 10 catches a control that
+never fires. A major model release catches the opposite and more expensive case: a control that
+fires constantly and is no longer needed, because it was written to steer around a limitation
+the new model does not have. The ledger reports the firings either way and cannot tell you which
+kind you are looking at — that judgment is the read of the `why:`, and a release is when it is
+most likely to have gone stale.
 
 ## A gate reads content too
 
@@ -257,7 +605,15 @@ spec or plan of an open change that has been edited since: its `stale-approval` 
 gate and no product file changes until it is re-approved or restored
 (`an-edited-approval-awaits-its-gate`, from the sprint that appended behaviours to the previous
 sprint's approved spec and was then governed by the sprint before that). This is the default.
-Shell releases to a live environment without `HARNESS_RELEASE_APPROVAL` are denied by the bash hook.
+Shell releases to a live environment are denied by the bash hook unless a current release record
+authorises HEAD. `harness release approve --by <identity> [--minutes 60]` writes it,
+`harness release revoke` ends it, `harness release status` reads it. The record names a candidate
+commit, an approver and an expiry, so an authorisation for one revision cannot be spent on another
+— which the environment variable it replaced could not even describe. Every decision, allow or
+deny, is a ledger row carrying the candidate, the reason and the route to an authorisation: an
+allow that leaves no trace is indistinguishable from a control that never ran. `approved_by` is an
+audit label a human typed, not authentication, and the agent's own shell cannot run the approve
+command.
 
 Auto-accept of edits is allowed only after a plan is approved, the blast radius is owned, and
 tests exist. It is not a harness mode.

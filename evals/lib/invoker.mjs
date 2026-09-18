@@ -1,20 +1,28 @@
 // The real invoker. It is injected rather than imported by the runner, so the runner and the
 // assertion engine are unit-testable with no model, no key and no spend.
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { requireSubscription, subscriptionArgs } from '../../.aidlc/lib/claude-auth.mjs';
+import { resolveBoundary, boundaryArgs } from './boundary.mjs';
 
 // Comparison models are explicit; unavailable models are never substituted.
-export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null, product = false, sessionId = null, review = false, native = false, comparison = false }) {
+export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd = null, product = false, sessionId = null, review = false, native = false, comparison = false, boundary = null, maxTurns = null }) {
   if (product && review) return ['-p', prompt, '--model', model, '--tools', 'Read,Grep,Glob',
     '--safe-mode', '--permission-mode', 'dontAsk', '--setting-sources', '', '--strict-mcp-config',
     '--mcp-config', '{"mcpServers":{}}', '--settings', '{"disableAllHooks":true}',
     '--no-session-persistence', '--output-format', 'json', '--max-budget-usd', String(budgetUsd)];
+  // G20. Permission, settings and MCP flags belong to the boundary when there is one: two places
+  // setting `--permission-mode` is two answers to "what may this run do", and the CLI would take
+  // whichever came last rather than whichever was meant.
   if (product) return [
     '-p', prompt, '--model', model, '--tools', comparison ? 'Read,Grep,Glob,Write,Edit,Bash' : 'Read,Grep,Glob,Write,Edit',
-    ...(comparison ? ['--allowedTools','Bash'] : []),
-    '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
-    '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
-    '--output-format', 'json', ...(native ? [] : ['--plugin-dir','/plugin']),
+    ...(boundary ? [] : [
+      ...(comparison ? ['--allowedTools', 'Bash'] : []),
+      '--setting-sources', 'project', '--permission-mode', 'acceptEdits',
+      '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
+    ]),
+    // `/plugin` was the container mount. With no container the staged plugin lives wherever
+    // stageProduct put it, and a product trial that still asked for /plugin loaded nothing.
+    '--output-format', 'json', ...(native ? [] : ['--plugin-dir', pluginDir ?? '/plugin']),
     '--max-budget-usd', String(budgetUsd), ...(sessionId ? ['--resume', sessionId] : []),
   ];
   return [
@@ -35,6 +43,10 @@ export function invokerArgs({ prompt, model = null, pluginDir = null, budgetUsd 
       // fails with an empty transcript. That empty transcript is the tell.
       '--allow-dangerously-skip-permissions', '--dangerously-skip-permissions',
       '--output-format', 'json',
+      // G23. `subscriptionArgs` adds `--max-turns 30` when nothing else set one, and a task that
+      // legitimately needs more was graded `ungraded: max_turns` rather than passed or failed —
+      // which is a measurement that did not happen, wearing the shape of one that did.
+      ...(maxTurns ? ['--max-turns', String(maxTurns)] : []),
       ...(pluginDir ? ['--plugin-dir', pluginDir] : []),
       ...(budgetUsd ? ['--max-budget-usd', String(budgetUsd)] : []),
   ];
@@ -48,35 +60,90 @@ export function invokerEnv({ pluginDir = null, base = {} }) {
   return env;
 }
 
-export function claudeInvoker({ pluginDir, model = null, native = false, comparison = false }) {
+
+// G23. The model call, asynchronously, with `spawnSync`'s result shape so nothing downstream had
+// to change. It was synchronous, which meant the whole Node process blocked for the length of a
+// model call — so `runSuite`'s concurrency pool awaited one task at a time and four lanes ran
+// exactly as fast as one. MEASURED: a 22-task suite took the same ~7 minutes per task either way.
+//
+// `spawnSync` is kept for `requireSubscription`'s own `claude auth status` probe: that is a fast,
+// local call whose result the synchronous preamble needs before it decides anything.
+export function runClaude(args, { cwd, env, timeoutMs, maxBuffer = 64 * 1024 * 1024, bin = 'claude' }) {
+  return new Promise((resolve) => {
+    let child;
+    // stdin is /dev/null, not an open pipe nobody writes to. MEASURED 2026-09-16, the G24 pilot
+    // rerun: the native arm's implement turn returned one line — "Warning: no stdin data received
+    // in 3s, proceeding without it. […] redirect stdin explicitly: < /dev/null to skip" — then
+    // produced nothing for 7.6 minutes and was SIGKILLed on its deadline, `usage: {}`, billing
+    // incomplete, and the comparison it was half of had no cost number at all. Nothing here ever
+    // writes to the child's stdin; `spawnSync` closes it for you and this did not.
+    try { child = spawn(bin, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] }); }
+    catch (error) { resolve({ error, status: null, signal: null, stdout: '', stderr: '' }); return; }
+
+    let stdout = '';
+    let stderr = '';
+    let timedOut = false;
+    let settled = false;
+    // The tail, not the head: the end of a run is where it says why it stopped, and that is what
+    // every reader of this output slices. Capping from the front would throw away the answer.
+    const append = (current, chunk) => {
+      const next = current + chunk;
+      return next.length > maxBuffer ? next.slice(next.length - maxBuffer) : next;
+    };
+    const timer = timeoutMs > 0 ? setTimeout(() => { timedOut = true; child.kill('SIGKILL'); }, timeoutMs) : null;
+    const finish = (extra) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve({ stdout, stderr, status: null, signal: null, ...extra });
+    };
+
+    child.stdout?.on('data', (d) => { stdout = append(stdout, String(d)); });
+    child.stderr?.on('data', (d) => { stderr = append(stderr, String(d)); });
+    child.on('error', (error) => finish({ error }));
+    child.on('close', (status, signal) => finish({
+      status, signal,
+      // The same shape `spawnSync` reports for a timeout, so the caller's one check still works.
+      ...(timedOut ? { error: Object.assign(new Error('spawnSync claude ETIMEDOUT'), { code: 'ETIMEDOUT' }) } : {}),
+    }));
+  });
+}
+
+export function claudeInvoker({ pluginDir, model = null, native = false, comparison = false, boundary = null }) {
   return function invoke({ prompt, cwd, timeoutMs, budgetUsd, task, sandbox = null, phase = 'plan', sessionId = null }) {
-    // B4. A `sandbox` argument is what a live product trial passes: a real coding agent with
-    // Write, Edit and Bash, turned loose on a seeded product. It used to run inside a container
-    // — --read-only, --cap-drop=ALL, --network none, --security-opt=no-new-privileges, an
-    // unprivileged uid. That container is gone, and nothing replaced it.
+    // G20. A `sandbox` argument is what a live product trial passes: a real coding agent with
+    // Write, Edit and Bash, turned loose on a seeded product. It used to run in a container;
+    // `the-harness-needs-no-container` removed that and replaced it with nothing, so this refused
+    // every trial and the live half of the suite went dark.
     //
-    // So this refuses. Falling through to the `claude` arm below would be a one-word change and
-    // would run that agent directly on the operator's machine, with their files, their
-    // credentials in the environment and their network — converting "we removed a dependency"
-    // into "we removed the boundary and said nothing". Restoring live trials means restoring a
-    // boundary first, not deleting these four lines.
-    if (sandbox) {
-      throw new Error('a live product trial has no boundary to run in: container isolation was removed by the-harness-needs-no-container, and this harness will not execute a coding agent with Bash directly on the host. Restore an OS-level boundary before running live product trials.');
+    // It refuses without a boundary, not on principle. `evals/lib/boundary.mjs` names the two
+    // that exist and is exact about what each is worth: an ephemeral CI runner is OS-level, and
+    // the local one is the CLI's permission system — an explicit allowlist with everything else
+    // denied, which constrains a cooperating agent and is not isolation. Falling through with
+    // neither would run that agent directly on the operator's machine, with their files, their
+    // credentials and their network.
+    //
+    // Synchronous on purpose: the refusal lands before any invocation setup, so there is no await
+    // to race and nothing to clean up if a caller ignores the result.
+    const trial = Boolean(sandbox);
+    if (trial && !boundary?.ok) {
+      throw new Error(`a live product trial has no boundary to run in: ${boundary?.why ?? resolveBoundary().why}`);
     }
-    // Past the refusal above, `sandbox` is always null: this is the harness's own invocation —
-    // the evaluator and the golden suite — which has always run `claude` directly and is not what
-    // this change is about. `product` is therefore false, and the container naming, credential
-    // forwarding and container cleanup that only a sandboxed run needed are gone with it.
-    const args = subscriptionArgs(invokerArgs({ prompt, model, pluginDir, budgetUsd, product: false, sessionId, review: phase === 'review', native, comparison }));
+    const args = subscriptionArgs([
+      ...invokerArgs({ prompt, model, pluginDir: trial ? sandbox.plugin ?? pluginDir : pluginDir, budgetUsd, product: trial, sessionId, review: phase === 'review', native, comparison, boundary: trial ? boundary : null, maxTurns: task?.maxTurns ?? null }),
+      ...(trial ? boundaryArgs(boundary, { workdir: sandbox.work ?? cwd }) : []),
+    ]);
     const started = Date.now();
     const env = invokerEnv({ task, pluginDir, base: process.env });
-    try { requireSubscription({ env, cwd, product: false }); }
+    try { requireSubscription({ env, cwd, product: trial }); }
     catch (error) {
       if (error.code === 'ENOENT') return { notInstalled: true, transcript: '', usage: {}, exitCode: -1, error: 'the `claude` CLI is not on PATH' };
       throw error;
     }
-    const r = spawnSync('claude', args, { cwd, env, encoding: 'utf8', timeout: timeoutMs,
-      killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024 });
+    // Returns a promise from here on. The refusals above stay synchronous on purpose: three tests
+    // assert a throw rather than a rejection, and a boundary refusal that arrived a tick later
+    // would be a refusal something could already have raced past.
+    return runClaude(args, { cwd, env, timeoutMs }).then((r) => {
     // A missing CLI is not a failed task — it is a broken harness, and twenty tasks failing
     // with empty transcripts is the least useful way to say so. Same lesson as exit 127 in the
     // check runner: never let an absent tool masquerade as a verdict.
@@ -116,7 +183,8 @@ export function claudeInvoker({ pluginDir, model = null, native = false, compari
         transcript = '';
       }
     } catch { /* not JSON: grade the raw transcript, which is still honest */ }
-    if (sandbox && !incomplete && (timedOut || r.status !== 0 || !session)) incomplete = { reason: timedOut ? 'timed_out' : 'cli_incomplete', detail: raw.slice(-2000) };
+    if (trial && !incomplete && (timedOut || r.status !== 0 || !session)) incomplete = { reason: timedOut ? 'timed_out' : 'cli_incomplete', detail: raw.slice(-2000) };
     return { latencyMs:Date.now()-started, requestedModel:model, transcript, usage, exitCode: r.status ?? -1, timedOut, incomplete, sessionId: session, modelUsage, turns, permissionDenials };
+    });
   };
 }

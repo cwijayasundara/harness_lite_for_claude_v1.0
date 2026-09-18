@@ -11,6 +11,10 @@ lint = "ruff"
 test = "generic"
 
 [stages]
-fast   = ["fmt", "lint"]
+# `secrets` runs in `fast`, not only at commit: the built-in scanner reads the changed files and
+# costs milliseconds, and a credential is cheapest to remove in the turn that wrote it. Waiting for
+# the commit stage means the post-write hook — the one thing that reports back inside the turn —
+# never looks.
+fast   = ["fmt", "lint", "secrets"]
 stop   = ["fast", "test"]
-commit = ["stop", "secrets", "scope-drift", "budget", "tamper", "arch", "test_quality"]
+commit = ["stop", "scope-drift", "budget", "tamper", "arch", "proof"]

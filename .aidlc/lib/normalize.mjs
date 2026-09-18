@@ -6,8 +6,16 @@
 //
 //   { file, line, rule, message, fix }
 
+// G15. Every finding carries a `fix` — one sentence, written for the model rather than for a
+// changelog. The rule the sensors article states: say what judgment to make, and say that a
+// suppression with a `why:` is a legitimate answer when the rule is wrong here. A finding with no
+// fix line is a finding the reader has to go and research before they can act, which is how a
+// control that fires accurately still gets ignored.
+const GENERIC_FIX = 'make a judgment call on this line; fix it, or suppress it with a `why:` on the same line if the rule does not apply here';
+
 const asFinding = (f) => ({
-  file: f.file ?? '', line: f.line ?? 0, rule: f.rule ?? '', message: f.message ?? '', fix: f.fix ?? '',
+  file: f.file ?? '', line: f.line ?? 0, rule: f.rule ?? '', message: f.message ?? '',
+  fix: (f.fix ?? '').trim() || GENERIC_FIX,
 });
 
 // Observations, not assertion-quality judgments. Do not infer execution from file presence
@@ -33,7 +41,8 @@ const FORMATS = {
   ruff(stdout) {
     return JSON.parse(stdout || '[]').map((d) => asFinding({
       file: d.filename, line: d.location?.row, rule: d.code,
-      message: d.message, fix: d.fix?.message ?? '',
+      message: d.message,
+      fix: d.fix?.message ? `${d.fix.message} — rerun with --fix to apply it` : GENERIC_FIX,
     }));
   },
 
@@ -42,7 +51,8 @@ const FORMATS = {
     const out = [];
     for (const file of JSON.parse(stdout || '[]')) {
       for (const m of file.messages ?? []) {
-        out.push(asFinding({ file: file.filePath, line: m.line, rule: m.ruleId, message: m.message, fix: m.fix ? 'autofixable: rerun with --fix' : '' }));
+        out.push(asFinding({ file: file.filePath, line: m.line, rule: m.ruleId, message: m.message,
+          fix: m.fix ? 'autofixable: rerun with --fix' : GENERIC_FIX }));
       }
     }
     return out;
@@ -51,14 +61,16 @@ const FORMATS = {
   // mypy --output json  (one JSON object per line)
   mypy(stdout) {
     return (stdout || '').split('\n').filter(Boolean).map((l) => JSON.parse(l)).map((d) => asFinding({
-      file: d.file, line: d.line, rule: d.code ?? 'mypy', message: d.message, fix: d.hint ?? '',
+      file: d.file, line: d.line, rule: d.code ?? 'mypy', message: d.message,
+      fix: d.hint || 'make the types say what the code means; a cast or an ignore needs a `why:` on the same line',
     }));
   },
 
   // tsc --pretty false   (text: file(line,col): error TSxxxx: msg)
   tsc(stdout) {
     return (stdout || '').split('\n').map((l) => l.match(/^(.+?)\((\d+),\d+\): error (TS\d+): (.*)$/))
-      .filter(Boolean).map((m) => asFinding({ file: m[1], line: Number(m[2]), rule: m[3], message: m[4] }));
+      .filter(Boolean).map((m) => asFinding({ file: m[1], line: Number(m[2]), rule: m[3], message: m[4],
+        fix: 'make the types say what the code means; a `@ts-expect-error` needs a `why:` on the same line' }));
   },
 
   // pytest --json-report --json-report-file=-
@@ -107,6 +119,71 @@ const FORMATS = {
     return out;
   },
 
+  // G14. Mutation testing, in the mutation-testing-elements JSON schema — what Stryker writes and
+  // what every other emitter in that ecosystem targets. A surviving mutant is the finding: the
+  // suite ran, the code changed, and nothing noticed. `NoCoverage` is reported too and says
+  // something different in the same breath — no test even executed that line.
+  //
+  // Deliberately one schema rather than one parser per tool: a mutation tool that cannot emit it
+  // writes `{report}` in it, which is a smaller ask than a parser this repository cannot test.
+  mutation(stdout) {
+    const report = JSON.parse(stdout || '{}');
+    const out = [];
+    for (const [file, entry] of Object.entries(report.files ?? {})) {
+      for (const m of entry.mutants ?? []) {
+        if (!['Survived', 'NoCoverage'].includes(m.status)) continue;
+        out.push(asFinding({
+          file, line: m.location?.start?.line ?? 0, rule: `mutation/${m.status === 'NoCoverage' ? 'no-coverage' : 'survived'}`,
+          message: `${m.mutatorName ?? 'mutant'} survived${m.replacement ? `: the code still passes with \`${m.replacement}\`` : ''}`,
+          fix: m.status === 'NoCoverage'
+            ? 'no test executes this line — add one that does, or delete the line'
+            : 'a test asserted the behaviour around this line but not the behaviour of it: strengthen the assertion, or suppress with a `why:` if the mutant is equivalent',
+        }));
+      }
+    }
+    return out;
+  },
+
+  // semgrep --json
+  semgrep(stdout) {
+    const report = JSON.parse(stdout || '{}');
+    return (report.results ?? []).map((r) => asFinding({
+      file: r.path, line: r.start?.line ?? 0, rule: r.check_id,
+      message: r.extra?.message ?? r.check_id,
+      fix: r.extra?.fix ? `suggested: ${r.extra.fix}` : 'make a judgment call on this path; suppress with a `why:` if the rule does not apply here',
+    }));
+  },
+
+  // depcruise --output-type json. Dependency-cruiser reasons about modules, not lines, so a
+  // violation carries a file and no line — reported as 0 rather than invented, because a rule
+  // about "this module may not import that one" has no line to point at.
+  depcruise(stdout) {
+    const report = JSON.parse(stdout || '{}');
+    return (report.summary?.violations ?? []).map((v) => asFinding({
+      file: v.from, line: 0, rule: `layers/${v.rule?.name ?? 'violation'}`,
+      message: `${v.from} → ${v.to}${v.rule?.comment ? `: ${v.rule.comment}` : ''}`,
+      fix: 'move the dependency to a layer that may hold it, or invert it; suppress with a `why:` only if the declared layering is what is wrong',
+    }));
+  },
+
+  // import-linter (Python). Text: the contract name, then the illegal chains beneath it.
+  'import-linter'(stdout) {
+    const out = [];
+    let contract = 'layers';
+    for (const raw of (stdout || '').split('\n')) {
+      const broken = raw.match(/^(.+?)\s+BROKEN\s*$/);
+      if (broken) { contract = broken[1].trim(); continue; }
+      const chain = raw.match(/^\s*[-*]?\s*([\w.]+)\s*(?:->|→)\s*([\w.]+)\s*$/);
+      if (!chain) continue;
+      out.push(asFinding({
+        file: `${chain[1].replaceAll('.', '/')}.py`, line: 0, rule: `layers/${contract}`,
+        message: `${chain[1]} → ${chain[2]} breaks the "${contract}" contract`,
+        fix: 'move the dependency to a layer that may hold it, or invert it; suppress with a `why:` only if the declared layering is what is wrong',
+      }));
+    }
+    return out;
+  },
+
   // node --test / vitest / jest --json  -> just surface the tail on failure
   generic() { return []; },
 };
@@ -121,7 +198,13 @@ export function normalize(format, stdout, stderr, code) {
   // The process exit code cannot establish what an unreadable report says.
   if (findings.length === 0 && (code !== 0 || parseError)) {
     const tail = (stderr || stdout || '').trim().split('\n').slice(-12).join('\n');
-    findings = [asFinding({ rule: parseError ? 'harness/unparseable-output' : 'exit-nonzero', message: parseError ? `Cannot parse ${format} report: ${parseError}${tail ? `\n${tail}` : ''}` : tail || `exited ${code}` })];
+    findings = [asFinding({
+      rule: parseError ? 'harness/unparseable-output' : 'exit-nonzero',
+      message: parseError ? `Cannot parse ${format} report: ${parseError}${tail ? `\n${tail}` : ''}` : tail || `exited ${code}`,
+      fix: parseError
+        ? `the command produced output this harness cannot read as ${format}: check the [formats] entry and the flags in [capabilities], and remember that an exit code cannot establish what an unreadable report says`
+        : 'read the output above and fix what the tool reported; if the command itself is wrong, correct it in harness.toml rather than working around it',
+    })];
   }
   return findings;
 }

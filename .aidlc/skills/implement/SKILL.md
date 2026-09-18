@@ -3,6 +3,7 @@ name: implement
 description: Executes an approved plan in small behavioural slices with focused regression proof and runtime verification. Use whenever code is about to be written for .aidlc/artifacts/<slug>/plan.md or someone asks to build an approved change.
 context: fork
 model: claude-sonnet-5
+effort: low
 ---
 
 # Implement the approved plan
@@ -23,6 +24,11 @@ For each behaviour, choose the smallest useful proof from the plan:
 1. Reproduce a defect or demonstrate the new behaviour is missing before fixing it. Check that
    a failing test fails for the intended reason. Reuse existing tests when they already prove
    preserved behaviour; a documentation edit or pure refactor needs no invented red test.
+   **Untested code is the exception that needs a test first.** Before changing behaviour that no
+   test covers, pin what it does today in a characterisation test and watch it pass. Not to prove
+   the old behaviour is right — to know what you changed. Without it, "the tests pass" afterwards
+   means only that nothing was watching, and a rule that silently did something else before your
+   edit leaves with no record that it ever existed.
 2. Implement the slice using existing abstractions, with the least complexity that meets the spec.
 3. Run the focused proof and `harness check --stage fast --changed`; resolve failures.
 4. Refactor with checks green. Exercise the affected runtime path, including relevant edge cases

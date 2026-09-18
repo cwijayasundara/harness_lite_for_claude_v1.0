@@ -24,12 +24,30 @@ Then ...
 
 ## Design
 
-<Consequential architecture, interfaces, state and failure paths. Omit if not needed.>
+Written by the `design` skill before the behaviours above, not rationalised after them. Every
+claim names its evidence — a file, a symbol, a measurement, or a person's answer.
+
+### Entities
+
+<The nouns, what each one owns, and which one owns the decision this change is about. A design
+that splits one noun across two owners is the defect being designed in.>
+
+### Approach
+
+<The path chosen, the path rejected, and what the choice costs. An unnamed branch is one a
+reviewer will re-litigate at the gate.>
+
+### Structure
+
+<Where the code goes and which existing seam it uses.>
+
+### Safeguards
+
+<What must not break, stated so a check or a test could observe it.>
 
 ## Out of scope
 
 <Explicit boundaries. What a reader might reasonably expect and will not get.>
 
-## Safeguards
-
-<Security, privacy, compatibility, performance and operational invariants this must not break.>
+<Security, privacy, compatibility, performance and operational invariants live in the Safeguards
+section of ## Design above.>

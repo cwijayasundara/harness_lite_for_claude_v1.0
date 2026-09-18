@@ -1,17 +1,64 @@
 # Evals
 
-Twenty golden tasks are the Law 9 floor. The suite grows only when a new task measures a
+24 golden tasks are the Law 9 floor. The suite grows only when a new task measures a
 defect the floor missed. `successor-contract-links-first` proves that a successor contract links
 to the shipped design instead of opening an unconnected artifact chain. Contract tasks also cover
 owned scope, testability, evidence, and refusal of work outside the approved boundary.
 
-Two product campaigns live in `products.json`, separate from golden tasks. See
-`docs/OPERATING.md`, "Automated product campaigns", for boundaries and evidence semantics.
+One product campaign lives in `products.json`, separate from golden tasks: `calculator`, a
+React + TypeScript application delivered in three intents across two sprints (`calc-core`,
+`calc-ui`, then `calc-ops`). It replaced `campaign-ledger`, `campaign-service` and `retrieval-app`
+on 2026-09-16 — three headless Node products that between them could never fill `fmt`, `lint`,
+`typecheck` or `coverage`, never exercise a UI, and never make an E2E defect expressible at all.
+See `docs/OPERATING.md`, "Automated product campaigns", for boundaries and evidence semantics.
+
+The fixture's dependencies are not committed and are not installed per run. Create them once with
+`npm ci --prefix evals/fixtures/calculator`; staging links the tree at the staged root, one level
+above the product, so a trial costs no network and the 132 MB never enters a diff, a baseline or a
+scope check. The runner refuses by name with that command when it is missing.
 
 This directory is development tooling for the harness, not part of a consumer scaffold.
 Normal application edit/stop hooks run configured project checks, not these model campaigns.
 Runners write raw output to ignored `.aidlc/evals/`. Curated reports live in
 [`evidence/`](evidence/README.md); older artifact records retain the reports' original paths.
+
+## What the gate holds, and what it does not yet
+
+`evals/expected.json` is the recorded verdict per task, and `harness evals gate` compares the
+newest run against it. A recorded pass that now fails is a regression and blocks; a recorded
+failure that now passes is an improvement and does not.
+
+As recorded: **12 pass, 8 fail, 2 flaky.** The nightly gate step is therefore `continue-on-error` —
+a gate that fails every night is a gate people stop reading. Making it blocking is one measurement
+away and cannot be done by editing this file: each failing task needs a live run to say why it
+fails, and then either its steering is fixed or the task is retired here with the reason. Marking
+a task green without a run that says so is the one move this whole suite exists to make expensive.
+
+When the record has no `fail` and no `flaky`, drop `continue-on-error` from the gate step in
+`.github/workflows/harness.yml` and amend Law 9's enforcement clause to match.
+
+## Running this on a machine with real-time scanning
+
+A suite run stages a fixture tree per task — a few hundred short-lived files, twenty-two times —
+and on a Mac that is enough to make both Spotlight and an antivirus storm. MEASURED 2026-09-13:
+`mds_stores` at 172% CPU and Microsoft Defender at 348%, machine load 12, and a 22-task run
+averaging seven minutes a task when the work itself takes one or two.
+
+Spotlight is handled in the harness: `stage()` writes `.metadata_never_index` at the root of every
+staged tree, which is the documented way to opt a directory out and needs no permissions.
+
+The antivirus half needs an operator decision, because it is a change to the machine's security
+posture and only the operator can weigh it:
+
+```
+sudo mdatp exclusion folder add --path ~/.local/share/claude   # the CLI binary each task launches
+sudo mdatp exclusion folder add --path "$TMPDIR"               # the staged trees — broader; read below
+```
+
+The first is one trusted vendor binary you already run constantly, and it is scanned on every one
+of the twenty-two launches. The second covers the staged trees themselves and is the bigger win,
+but `$TMPDIR` is also where anything else on the machine would drop a payload — that is a real
+trade and it is yours to make, not the harness's.
 
 ## Running
 
@@ -64,7 +111,7 @@ is a property of where files sit and not a boundary of any kind.
 node evals/run.mjs --live --compare --max-suite-usd 40
 ```
 
-This extends the existing runner. It runs these experiments **sequentially**, using both products:
+This extends the existing runner. It runs these experiments **sequentially**, over the one product:
 
 1. Native Claude Code versus the harness, both using `[models].generator`.
 2. The harness without versus with fresh bounded graph context, using that same generator.
@@ -125,8 +172,8 @@ leaves pending attempts visible. Do not reuse an existing stop file for a new ru
 Comparisons default to a **30-minute suite time limit** (`--max-suite-minutes`). Each model call
 receives the remaining time, and no new call starts after the deadline. Private verification and
 cleanup may finish after it. Remaining scheduled trials are explicitly unmeasured. A complete
-three-pair, two-product matrix is an extended benchmark; use `--dry` to inspect its 48 campaign
-attempts and set a longer time limit deliberately when that run is affordable.
+three-pair matrix is an extended benchmark; use `--dry` to inspect its scheduled campaign attempts
+and set a longer time limit deliberately when that run is affordable.
 
 Approval pauses are verified through completed planning turns with unchanged product source
 and approval metadata, followed by an external decision. They do not require a magic word in
@@ -137,8 +184,8 @@ Git history before repair, so their exact source remains replayable.
 ## Outcome-based pruning (item 5)
 
 `node evals/run.mjs --prune --dry` previews the session-inventory experiment.
-`node evals/run.mjs --live --prune` runs four first-change calibrations and one paired repetition
-of both complete products, capped by default at USD 9 and 40 minutes. Existing `--repeats`,
+`node evals/run.mjs --live --prune` runs the first-change calibrations and one paired repetition
+of the complete product, capped by default at USD 9 and 40 minutes. Existing `--repeats`,
 `--max-suite-usd`, `--max-suite-minutes` and `--stop-file` options apply. Evidence is saved in
 `.aidlc/evals/comparisons/prune-<timestamp>/comparison.json` and per-attempt directories.
 
@@ -162,8 +209,9 @@ baseline: the lean arm showed higher observed cost and latency, with identical c
 recovery results in this single pair. Prior failed, unmeasured and unbilled attempts remain in
 `evals/evidence/pruning-summary.json`. This is a bounded decision, not a general reliability claim.
 Documentation phrase checks are supporting heuristics; private API assertions establish overdue
-behavior. Disposable product checks use `node --test --test-timeout=10000`, so a failed generated
-test that leaks a server can return findings before the model invocation expires. Fixtures and
+behavior. Disposable product checks ran `node --test --test-timeout=10000` so a failed generated test that
+leaked a server could still return findings; with the HTTP service product deleted the product
+runner is `npx vitest run`, which tears its own environment down. Fixtures and
 production configuration are unchanged. The full validation command took about 30 minutes;
 `--prune-arm` and `--id` support focused reruns when only one campaign remains.
 

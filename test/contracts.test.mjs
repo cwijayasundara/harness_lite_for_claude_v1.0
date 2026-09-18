@@ -6,6 +6,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { A, C, ROOT } from './_paths.mjs';
+import { HARNESS_OUTPUT } from '../.aidlc/lib/graph.mjs';
 
 
 function frontmatter(file) {
@@ -21,9 +22,18 @@ function frontmatter(file) {
 
 // Every harness.toml in the tree, discovered rather than listed. Two tests ask questions of this
 // set and neither may answer for a file someone forgot to add.
+// G13. Harness output is not a registry. `.aidlc/evals/` holds the recorded output of past runs —
+// a comparison from September carries whole staged product trees, registries and all — and
+// `.claude/worktrees/` holds working copies of other revisions. Grading either would mean a
+// control renamed today retroactively invalidates a measurement taken before it existed, and the
+// only way back to green would be editing the evidence. The exclusion list is the graph's own
+// `HARNESS_OUTPUT`, so there is one answer to "what did this harness produce" and not two.
+const archived = (rel) => HARNESS_OUTPUT.some((dir) => rel === dir || rel.startsWith(`${dir}/`));
+
 function discoverConfigs() {
   const configs = [];
   const walk = (dir) => {
+    if (archived(path.relative(ROOT, dir).split(path.sep).join('/'))) return;
     for (const e of readdirSync(dir, { withFileTypes: true })) {
       if (e.name === '.git' || e.name === 'node_modules') continue;
       const p = path.join(dir, e.name);
@@ -296,24 +306,50 @@ test('no document states a budget number of its own', () => {
 // could make the checks pass. This test is what stops the two ids quietly becoming one.
 test('the generator and the evaluator are different models, and only one of them can write', async () => {
   const { parseToml } = await import('../.aidlc/lib/toml.mjs');
-  const models = parseToml(readFileSync(path.join(A, 'harness.toml'), 'utf8')).models ?? {};
-  for (const role of ['generator', 'evaluator', 'evals']) {
+  const { EFFORT_LEVELS } = await import('../.aidlc/lib/config.mjs');
+  const registry = parseToml(readFileSync(path.join(A, 'harness.toml'), 'utf8'));
+  const models = registry.models ?? {};
+  const effort = registry.effort ?? {};
+  for (const role of ['generator', 'evaluator', 'evals', 'judgment']) {
     assert.ok(models[role], `[models] must name a ${role}`);
   }
   assert.notEqual(models.generator, models.evaluator,
     'one model doing both jobs is not a separation of duties, whatever the config says');
+  // G10. `judgment` is the model that decides rather than types. If it were the generator, the
+  // model writing the code would also be writing the spec it is judged against — the same
+  // collapse the generator/evaluator split exists to prevent, one stage earlier.
+  assert.notEqual(models.judgment, models.generator,
+    'the model that decides must not be the model that types');
+  for (const band of ['implement', 'repair', 'review']) {
+    assert.ok(EFFORT_LEVELS.includes(effort[band]), `[effort].${band} must be one of ${EFFORT_LEVELS.join(', ')}`);
+  }
 
   // The template ships the same three roles, or a generated project gets one model doing
   // everything while this repository's own board says otherwise.
-  const template = parseToml(readFileSync(path.join(A, 'templates/harness.toml'), 'utf8')).models ?? {};
-  assert.notEqual(template.generator, template.evaluator, 'the installed template must split them too');
+  const template = parseToml(readFileSync(path.join(A, 'templates/harness.toml'), 'utf8'));
+  assert.notEqual(template.models?.generator, template.models?.evaluator, 'the installed template must split them too');
+  assert.notEqual(template.models?.judgment, template.models?.generator, 'the installed template must split these too');
+  assert.deepEqual(template.effort, registry.effort, 'a generated project gets the same effort bands');
 
   const implement = frontmatter(path.join(A, 'skills/implement/SKILL.md'));
   assert.equal(implement.model, models.generator, 'the implement skill must run on the generator');
   assert.equal(implement.context, 'fork', 'the generator needs its own context, per the Fusion result');
 
+  // G10. The rendered half of the registry: every prompt file that carries a model carries the
+  // one `harness init` renders into it, and the effort band that goes with the work it does.
+  // A hand-edited id here is a second place the registry is stated, which is what Law 3 forbids.
+  assert.equal(implement.effort, effort.implement, 'typing under an approved plan is the cheap band');
+  for (const name of ['intent', 'spec', 'plan', 'design', 'map']) {
+    const file = path.join(A, 'skills', name, 'SKILL.md');
+    if (!existsSync(file)) continue;   // `design` arrives with G16 and replaces `map`
+    const skill = frontmatter(file);
+    assert.equal(skill.model, models.judgment, `the ${name} skill must run on the judgment model`);
+    assert.equal(skill.effort, effort.review, `the ${name} skill must judge at the judging band`);
+  }
+
   const evaluator = frontmatter(path.join(A, 'roles/evaluator.md'));
-  assert.equal(evaluator.model, models.evaluator, 'the evaluator must run on the evaluator model');
+  assert.equal(evaluator.model, models.judgment, 'the evaluator must run on the judgment model');
+  assert.equal(evaluator.effort, effort.review);
   assert.equal(evaluator.isolation, undefined, 'explicit snapshots replace the default-branch worktree');
   const tools = evaluator.tools.split(',').map((t) => t.trim());
   assert.ok(!tools.includes('Bash'), 'checks run outside the evaluator');

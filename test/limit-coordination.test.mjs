@@ -58,20 +58,21 @@ test('B4 steering prefers tracker links and git show/git grep over a local deliv
     claude: renderClaudeInstructions(read('.aidlc/instructions.md')),
     intent: read('.aidlc/skills/intent/SKILL.md'),
     plan: read('.aidlc/skills/plan/SKILL.md'),
-    map: read('.aidlc/skills/map/SKILL.md'),
+
     review: read('.aidlc/policies/review.md'),
     readme: read('README.md'),
     template: read('.aidlc/templates/intent.md'),
   };
-  for (const name of ['instructions', 'claude', 'map', 'review', 'readme']) {
+  for (const name of ['instructions', 'claude', 'review', 'readme']) {
     assert.match(surfaces[name], /git show/, name);
     assert.match(surfaces[name], /git grep/, name);
   }
   for (const name of ['intent', 'plan', 'readme', 'template']) {
     assert.match(surfaces[name], /tracker/, name);
   }
-  assert.match(surfaces.map, /only when delivery records already\s+exist/);
-  assert.doesNotMatch(surfaces.map, /pack <symbol-or-path> --revision/);
+  // G16: the revision-specific guidance is in the instructions now, not in a skill.
+  assert.match(surfaces.instructions, /only when delivery records already\s+exist/);
+  assert.doesNotMatch(surfaces.instructions, /pack <symbol-or-path> --revision/);
   assert.match(surfaces.readme, /not a delivery platform|not an assignment/i);
   const row = read('docs/IMPROVEMENT-PLAN.md').split('\n')
     .find(l => l.startsWith('| Coordination and revision-specific product context |'));

@@ -51,8 +51,16 @@ test('B2 the harness records the host decision and derives no merge authority of
   assert.doesNotMatch(REVIEW, /\bmutation\b/, 'host evidence is read-only');
 
   const verbs = [...HARNESS.matchAll(/^ {4}case '([a-z-]+)':/gm)].map(m => m[1]);
-  assert.deepEqual(verbs.sort(), ['approve', 'baseline', 'check', 'doctor', 'evals', 'graph', 'hook',
-    'init', 'ledger', 'map', 'new', 'pack', 'review', 'status'],
+  // G09 added `deliver`, which drives the build loop and stops at a pull request. It belongs in
+  // this list precisely because it is the verb with the most reach: it opens a PR and it still
+  // signs nothing, certifies nothing and merges nothing.
+  // G18 added `release`, whose whole content is that a human authorised a named commit for a
+  // while. It records an authorisation; it issues none, signs none and merges nothing.
+  // G25 added `metrics`, which reads evidence and prints rates. It writes nothing, publishes
+  // nothing, and attaches no score to any row — `ledger-evidence-not-reporting` froze the ledger's
+  // own surface against a reporting service, which is why this is a verb of its own instead.
+  assert.deepEqual(verbs.sort(), ['approve', 'baseline', 'check', 'deliver', 'doctor', 'evals', 'graph', 'hook',
+    'init', 'ledger', 'map', 'metrics', 'new', 'pack', 'release', 'review', 'status'],
     'no verb signs, attests, certifies, merges or pushes');
   const help = execFileSync(process.execPath, [BIN], { encoding: 'utf8' });
   assert.doesNotMatch(help, /\bsign\b|\battest\b|\bcertif|\bmerge\b|\bpush\b/i);

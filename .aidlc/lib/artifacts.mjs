@@ -17,6 +17,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { gateBlocks, gateMode } from './config.mjs';
 
 export const KINDS = ['intent', 'spec', 'plan', 'review'];
 export const GATED = ['spec', 'plan'];
@@ -79,6 +80,10 @@ const commitId = (cfg, ref) => gitRead(cfg, 'rev-parse', '--verify', '--end-of-o
 const safeSourcePath = value => typeof value === 'string' && value && !path.isAbsolute(value)
   && !value.split('/').some(p => !p || p === '.' || p === '..') && !/[\\\x00-\x1f:]/.test(value);
 
+// Present at all, as opposed to well-formed. `requirementRows` answers the second question and
+// throws about it; this answers the first so a caller can tell "no table" from "a broken table".
+export const hasRequirements = (body) => /^## Requirements\s*$/m.test(body);
+
 export function requirementRows(body) {
   if ((body.match(/^## Requirements\s*$/gm) ?? []).length !== 1) throw new Error('Requirements must have exactly one table section');
   const section = body.match(/^## Requirements\s*$([\s\S]*?)(?=^## |(?![\s\S]))/m)?.[1] ?? '';
@@ -99,8 +104,24 @@ export function requirementRows(body) {
   return rows;
 }
 
+// G07. Provenance is optional. An intent that names where its requirements came from is bound to
+// that source and stays bound — the digests below, and `read()`'s staleness check, are unchanged
+// for every intent that has one. An intent that names nothing is `unbound`: a fact recorded in
+// the frontmatter and shown by `harness status`, not a reason to refuse an approval.
+//
+// The requirement existed because provenance is worth having. It cost more than that: a breach
+// band, a PRD paragraph and an incident report are all legitimate origins for a change, and none
+// of them is a committed blob in this repository at a revision anybody can name in advance.
+// `band-to-intent.mjs` could not produce an approvable intent, which is the maintain edge failing
+// closed on a field rather than on a judgment.
+//
+// Half a declaration is still a mistake, and it is named as one: a `source` with no
+// `source_revision` is a reference nobody can resolve, and it stops here rather than being
+// silently recorded as unbound.
+const UNBOUND = { source_kind: 'unbound' };
 function sourceBinding(cfg, intent, pinnedRevision) {
   const { source, source_revision } = strictParse(intent.text).front;
+  if (!source && !source_revision) return UNBOUND;
   if (!source || !source_revision || /[<>\x00-\x1f]/.test(source + source_revision)) throw new Error('intent requires source and source_revision plain scalar references');
   if (/^https:\/\//.test(source)) {
     const url = new URL(source);
@@ -123,17 +144,29 @@ function intentInputDigest(text) {
   return hash(render(Object.fromEntries(Object.entries(inputs).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)), body));
 }
 
+// G07: a spec whose intent declared no source is `unbound`, and a plan may be approved against
+// it. `legacy/unbound` is a different thing and still cannot carry a plan — it is an approval
+// from before this binding existed, never verified at all, where `unbound` is a v2 approval that
+// verified everything there was to verify.
+const BINDS_A_PLAN = new Set(['v2', 'unbound']);
+
 function bindingInputs(cfg, slug, kind, body) {
   if (kind === 'plan') {
     const spec = read(cfg, slug, 'spec');
-    if (spec?.state !== 'approved' || spec.binding !== 'v2') throw new Error('re-approve the spec with trace inputs before approving the plan');
+    if (spec?.state !== 'approved' || !BINDS_A_PLAN.has(spec.binding)) throw new Error('re-approve the spec with trace inputs before approving the plan');
     return { spec_digest: bodyDigest(spec.text), spec_approval_digest: spec.front.approval_digest };
   }
   const intent = read(cfg, slug, 'intent');
-  if (!intent || !isCommitted(cfg.layout.root, intent.file)) throw new Error('commit intent.md with source and source_revision before approving the spec');
+  // The intent itself is still required and still committed: it is the root of the chain, not
+  // provenance about the chain. What it has to *say* is now up to the project.
+  if (!intent || !isCommitted(cfg.layout.root, intent.file)) throw new Error('commit intent.md before approving the spec');
   coordinationDeclarations('intent', intent.text);
   const source = sourceBinding(cfg, intent);
-  requirementRows(body);
+  // G07: the Requirements table is checked when it is there. A spec that maps source criteria to
+  // behaviours has that mapping validated exactly as before; a spec with no upstream criteria to
+  // map has nothing to declare, and demanding the table anyway produced tables invented to
+  // satisfy the checker rather than to record a decision.
+  if (hasRequirements(body)) requirementRows(body);
   return { source_digest: undefined, ...source, intent_digest: hash(intent.text), intent_input_digest: intentInputDigest(intent.text), intent_revision: commitId(cfg, 'HEAD') };
 }
 
@@ -200,8 +233,20 @@ export function create(cfg, slug, templates) {
 // The one approval verb. It replaces `contract accept`, `contract seal --scope spec`,
 // `contract seal --scope plan` and `contract evidence` — four commands and, because each seal
 // demanded a commit before the next, four commits for one decision.
-export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), anyway = null } = {}) {
+// G06, `auto`. The digest of the policy that let a gate through without a human. It covers the
+// gate's configured mode and nothing else, so two policy approvals under different `[gates]`
+// settings are distinguishable in the record and in the PR body — an approval whose only
+// justification is "the configuration said so" has to say what the configuration was.
+export const policyDigest = (cfg, kind) => hash(JSON.stringify({ version: 1, gate: kind, mode: gateMode(cfg, kind) }));
+
+export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), anyway = null, policy = false } = {}) {
   if (!GATED.includes(kind)) throw new Error(`only ${GATED.join(' and ')} are approved; ${kind} is not a gate`);
+  // A policy approval is the `auto` mode's whole mechanism, and it is refused in every other
+  // mode. Under `human` the point of the gate is that a person answered it; under `advisory` the
+  // gate was never blocking, so an approval recorded in its name would be a fabricated decision.
+  if (policy && gateMode(cfg, kind) !== 'auto') {
+    throw new Error(`[gates].${kind} = "${gateMode(cfg, kind)}" — only "auto" records a policy approval. Ask a human to approve this gate, or set [gates].${kind} = "auto" in harness.toml.`);
+  }
   // B4: a flag with no reason is refused — the reason is the point, not the flag.
   if (anyway !== null && anyway !== undefined && (typeof anyway !== 'string' || !anyway.trim())) {
     throw new Error('--anyway needs a reason: --anyway "<why this is fine here>"');
@@ -235,7 +280,11 @@ export function approve(cfg, slug, kind, { by, at = new Date().toISOString(), an
   strictParse(text);
   coordinationDeclarations(kind, text);
   const inputs = bindingInputs(cfg, slug, kind, body); // never waived by --anyway
-  const next = { ...front, ...inputs, status: 'approved', by, at, digest: bodyDigest(text), approval_version: '2', ...(anyway ? { approved_anyway: anyway } : {}) };
+  const next = { ...front, ...inputs, status: 'approved', by, at, digest: bodyDigest(text), approval_version: '2', ...(anyway ? { approved_anyway: anyway } : {}),
+    // G06 `auto`: who let this through, and under what. `approved_by: policy` is deliberately a
+    // separate field from `by` — `by` stays the audit label a reader can chase, and a record
+    // that quietly put "policy" there would look exactly like a person named policy.
+    ...(policy ? { approved_by: 'policy', policy_digest: policyDigest(cfg, kind) } : {}) };
   next.approval_digest = approvalDigest(render(next, body));
   replaceAtomic(target, render(next, body));
   return { file: target, digest: next.approval_digest };
@@ -264,14 +313,21 @@ export function read(cfg, slug, kind) {
           const snapshot = gitRead(cfg, 'show', `${commitId(cfg, front.intent_revision)}:${path.relative(cfg.layout.root, intent.file)}`);
           if (hash(snapshot) !== front.intent_digest || intentInputDigest(snapshot) !== front.intent_input_digest) throw new Error('intent revision does not match approved input');
           const source = sourceBinding(cfg, intent, front.source_revision);
+          // A source that was declared and has since moved is still a stale approval: what was
+          // approved is no longer what the intent points at. G07 relaxes what must be *declared*,
+          // never what happens to a declaration once it exists.
           if (Object.entries(source).some(([k, v]) => front[k] !== v)) throw new Error('source binding changed');
-          requirementRows(body);
-        } else if (!spec || spec.binding !== 'v2' || spec.state !== 'approved' || spec.front.approval_digest !== front.spec_approval_digest) throw new Error('approved spec inputs changed');
-        binding = 'v2';
+          if (hasRequirements(body)) requirementRows(body);
+        } else if (!spec || !BINDS_A_PLAN.has(spec.binding) || spec.state !== 'approved' || spec.front.approval_digest !== front.spec_approval_digest) throw new Error('approved spec inputs changed');
+        // G07: `unbound` is a verified v2 approval whose intent declared no source. It is
+        // distinct from `legacy/unbound`, which was never verified at all. A plan takes its
+        // binding from the spec it was approved against, so the fact travels down the chain
+        // rather than being recomputed from a field the plan does not carry.
+        binding = (kind === 'spec' ? front.source_kind === 'unbound' : spec?.binding === 'unbound') ? 'unbound' : 'v2';
       } else if (hadBinding(cfg, target)) throw new Error('approval binding removed or downgraded; restore it or re-approve');
     } catch (error) { stale = true; binding = 'invalid'; bindingError = error.message; }
   }
-  if (stale && binding === 'v2') binding = 'invalid';
+  if (stale && BINDS_A_PLAN.has(binding)) binding = 'invalid';
   return {
     slug, kind, file: target, front, body, text, binding, bindingError,
     // Three states, and the third is the one that matters. An approved artifact whose body has
@@ -667,12 +723,25 @@ export function currentLine(cfg) {
 // What `status` prints, and what a session resumes from.
 export function state(cfg, slug) {
   const artifacts = Object.fromEntries(KINDS.map((kind) => [kind, read(cfg, slug, kind)]));
+  // G06. The same observations, split by whose decision they are. Under `human` a missing or
+  // stale approval is an error and `harness status` exits 1; under `advisory` it is a row the
+  // merge decision reads and the command exits 0. `ok` is computed from the blocking half only,
+  // because every caller of `ok` is asking "should this stop the loop".
   const issues = [];
+  const advisories = [];
+  const note = (gate, text) => (gateBlocks(cfg, gate) ? issues : advisories).push(text);
   for (const kind of GATED) {
-    if (artifacts[kind]?.state === 'stale-approval') issues.push(`${kind}.md changed after it was approved — re-approve it or restore the approved text`);
+    const state = artifacts[kind]?.state;
+    if (state === 'stale-approval') note(kind, `${kind}.md changed after it was approved — re-approve it or restore the approved text`);
+    // An approval that was never given at all. Under `human` this is already carried by `next`
+    // and by the guard's refusal, so it stays out of `issues` exactly as it always has; under
+    // advisory it is the row the gate asks for, because nothing else will stop to mention it.
+    else if (state !== 'approved' && artifacts.intent && !gateBlocks(cfg, kind)) {
+      advisories.push(`approval: ${artifacts[kind] ? 'missing' : 'absent'} (${kind}.md ${state ?? 'not written'}) — advisory ${kind} gate`);
+    }
   }
   const plan = artifacts.plan;
-  if (plan?.state === 'approved' && !ownedFiles(plan.body).length) issues.push('plan.md declares no files under "## Files"');
+  if (plan?.state === 'approved' && !ownedFiles(plan.body).length) note('plan', 'plan.md declares no files under "## Files"');
 
   // `closed` is what a delivered change looks like afterwards. Without it the twenty-three
   // changes this repository has already shipped sat on the board forever waiting for a spec
@@ -686,7 +755,7 @@ export function state(cfg, slug) {
           : artifacts.review?.front.status === 'approved' ? 'merge'
             : 'implement';
 
-  return { slug, next, closed, issues: closed ? [] : issues, ok: closed || issues.length === 0, artifacts };
+  return { slug, next, closed, issues: closed ? [] : issues, advisories: closed ? [] : advisories, ok: closed || issues.length === 0, artifacts };
 }
 
 // Optional item-4 declarations use the same scalar language and semantic digest as gates.

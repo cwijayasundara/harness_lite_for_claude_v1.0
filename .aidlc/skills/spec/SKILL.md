@@ -1,6 +1,8 @@
 ---
 name: spec
 description: Turns an accepted intent into numbered observable behaviours a human can approve, with explicit out-of-scope boundaries and safeguards. This skill should be used after an intent is written and before any plan or code, and whenever someone asks what a change should do rather than how it will be built.
+model: claude-opus-5
+effort: high
 ---
 
 # Write the spec

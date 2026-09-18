@@ -4,20 +4,25 @@ name = "shortlink"
 [capabilities]
 fmt       = "ruff format --check {files}"
 lint      = "ruff check --output-format=json {files}"
-typecheck = ""
+typecheck = "mypy ."
 test      = "python3 -m pytest -q --json-report --json-report-file={report}"
-coverage  = ""
+coverage  = "python3 -m pytest -q --cov --cov-report=json:{report}"
 arch      = ""
 secrets   = ""
-deps      = ""
+deps      = "python3 -m pip list --outdated --format=json"
+test_changed = "python3 -m pytest -q {files} --json-report --json-report-file={report}"
 
 [formats]
 lint = "ruff"
 test = "pytest"
+typecheck = "mypy"
+coverage  = "coverage.py"
+test_changed = "pytest"
 
 [stages]
 fast   = ["fmt", "lint"]
 stop   = ["fast", "test"]
+stop_hook = ["fast", "test_changed"]
 commit = ["stop", "secrets", "scope-drift", "budget"]
 drift  = ["coverage", "deps"]
 

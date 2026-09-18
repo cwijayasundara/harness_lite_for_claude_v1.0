@@ -1,5 +1,9 @@
 # Lean harness completion plan
 
+> **Sequencing superseded 2026-09-16 by [docs/final_impl.md](final_impl.md).** This document
+> remains the work order of record for G01–G26 and keeps its annotations of what shipped; what to
+> do next, what it costs and which decisions are outstanding live in the final implementation plan.
+
 Prepared 12 September 2026 from [the gap analysis](GAP-ANALYSIS-2026-09-12.md). This is the
 execution handoff. One item is one change slug under `.aidlc/artifacts/<slug>/`, one PR, one
 independently verifiable outcome. Items are ordered so every phase ends with a measurement the next
@@ -49,7 +53,7 @@ redesigns this plan does differently or are dropped with a reason in the appendi
 | G21 | 5 | Golden tasks in the `claude plugin eval` layout | G20 | F16 |
 | G22 | 5 | Spec-compliance LLM grader for campaigns | G21 | — |
 | G23 | 5 | Green baseline and a blocking nightly gate | G21, G22 | — |
-| G24 | 5 | Native comparison on campaign-ledger | G09 to G19, G23 | F05, F17 |
+| G24 | 5 | Native comparison on calculator | G09 to G19, G23 | F05, F17 |
 | G25 | 6 | Playbook metrics from git and the ledger | G24 | — |
 | G26 | 6 | Nightly guidance experiment loop | G25 | — |
 
@@ -250,6 +254,13 @@ drops below 20 s.
 **Phase 2 exit:** one sprint delivered end to end with one human action; cost per accepted change,
 cache-read share, and wall-clock recorded in the ledger and in the sprint's `review.md`.
 
+> **Shipped 2026-09-15 — met.** First real `harness deliver --live`: campaign-ledger sprint 1, seven
+> phases, review approve after one repair, USD 1.14 per accepted change, cache-read share 90%,
+> wall-clock 287 s, in the `deliver-run` ledger row and `## Delivery run` of review.md. The one
+> human action is the PR, which the fixture cannot host (`pr_unopened`, body in `pr.md`). Evidence
+> and eight numbered findings: `evals/evidence/deliver-first-run-2026-09-15/README.md`. Getting
+> there took three live attempts and five machinery fixes (9d3a859, 4298956, 9905abf, ba24099).
+
 ## Phase 3: product-facing sensors and guides
 
 ### G12 — Toolchain detection fills the capability verbs (absorbs F12)
@@ -420,9 +431,17 @@ fixtures.
 **Acceptance:** `expected.json` shows zero `fail` and zero `flaky`; the next nightly run passes
 the gate; a deliberately regressed task fails it.
 
-### G24 — Native comparison on campaign-ledger (absorbs F05, F17)
+### G24 — Native comparison on calculator (absorbs F05, F17)
 
-**Work:** Run the `native` pair on `campaign-ledger`, three paired repetitions, with the driver
+> **Subject changed 2026-09-16, on the operator's instruction.** It read `campaign-ledger`, and
+> the measurement it asked for could not be afforded: five sprints × three repetitions × two arms
+> was USD 28–32 and 3–4 hours, declined on 2026-09-15. `campaign-ledger`, `campaign-service` and
+> `retrieval-app` are deleted. `calculator` — React + TypeScript, three intents in two sprints —
+> replaces all three. Three repetitions of both arms is now ~18 driver runs rather than ~30 on a
+> five-sprint product, and the arms exercise `fmt`, `lint`, `typecheck` and `coverage`, which no
+> previous measurement ever did because no previous product had them.
+
+**Work:** Run the `native` pair on `calculator`, three paired repetitions, with the driver
 from G09 in the harness arm. Record cost per accepted change, acceptance, evaluator-caught defects
 and wall-clock in `evals/evidence/comparison-summary.json`.
 
@@ -432,6 +451,47 @@ shipped. If any fails, the graph decision (freeze or delete) and the gate defaul
 before phase 6.
 
 **Phase 5 exit:** G24's three criteria hold.
+
+> **Pilot 2026-09-15 — not met, and not yet measured at three repetitions.** `--comparison driver`
+> exists (`evals/lib/driver-campaign.mjs`); `--repeats 0` ran each arm once on sprint 1 inside
+> the operator's 30-minute bound. Verdict: `evals/evidence/g24-driver-comparison.json`.
+> Acceptance 1 = 1, yes. Cost 1.14 vs ceiling 0.18, no — 6.3× over, two evaluator reviews are 66%
+> of it. Evaluator-caught defect per campaign: 1, but native shipped none the grader caught in
+> sprint 1, so no. The plan's mandated response is to cut; the pilot is one sprint and one
+> repetition, so the cut list is recommended, not applied. The full three-repetition run is
+> USD 28–32 and 3–4 hours by the pilot's numbers; the operator declined that spend on 2026-09-15.
+>
+> **Cut list applied 2026-09-15 (65a94ec), pilot rerun:** no refactor turn, one review with one
+> unreviewed repair, no shell for the generator. Driver 0.548 per accepted change (was 1.140),
+> 2.0 min (was 4.8), 0 denied commands (was 7); cost criterion still no at 2.8× the ceiling
+> (was 6.3×) — the one evaluator review is 61% of what is left. Six phases now.
+>
+> **Measured on `calculator`, 2026-09-16 — all three criteria NO.** Three pilots, USD 1.77 total,
+> each inside the operator's 30-minute bound. Run 3 is the only one where both arms completed:
+> native 1 accepted change for USD 0.138 in 55 s; the harness arm 0 accepted changes for USD 0.546.
+> Acceptance 0 vs 1, no. Cost undefined against a ceiling of 0.152, no. Evaluator-caught defects
+> that native shipped, zero, no. Evidence and the cut list:
+> `evals/evidence/g24-calculator-pilots-2026-09-16/README.md`. The mandated response is to cut, and
+> the cut list is there — led by "do not repair on a review with no blocking findings", which is
+> what turned run 3's green change into no delivery. Phase 5 does not exit.
+>
+> **The fixture replaced, 2026-09-16.** The pilot numbers above were measured on
+> `campaign-ledger` sprint 1 and are kept as history; they do not transfer. What carried over is
+> the cut list (no refactor turn, one review, no shell) and the shape of the answer: acceptance
+> yes, cost no, evaluator-caught-defect no. Nothing is re-measured until the calculator arms run,
+> and no criterion is marked met before then.
+>
+> Two things the cut lost, both for the operator to weigh rather than for this plan to decide:
+> the `retrieval` comparison pair had a purpose-built fixture (`retrieval-app`, two modules
+> exporting the same name) and now has nothing to run on, so the graph's disputed value is
+> unmeasured; and `spec-compliance.mjs`, the supersedes grader, was written for a rule reversal
+> that the calculator's two sprints do not contain.
+>
+> **Baseline (G23) 2026-09-15:** not re-recorded. No nightly run has ever fired (no schedule on
+> main, no secret, branch unpushed). The last full local run (2026-09-14, 17/1/4) cannot be
+> recorded because `prefix-cache-guard` regressed against the 2026-09-06 record and the ratchet
+> refuses to lower it; rerun alone at HEAD it still fails — the guard is right, the eval model
+> relays the remedy and drops the reason. Gate stays non-blocking. F9 in the evidence README.
 
 ## Phase 6: bounded improvement loop
 

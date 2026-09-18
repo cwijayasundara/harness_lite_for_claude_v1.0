@@ -1,0 +1,143 @@
+{
+  "assertions": [
+    {
+      "name": "ledger-api-level-1",
+      "pass": true,
+      "cases": 14
+    }
+  ],
+  "phases": [
+    {
+      "phase": "deliver",
+      "slug": "ledger-characterize",
+      "args": [
+        "--live",
+        "--actor",
+        "comparison:harness-driver"
+      ],
+      "name": "invocation-started"
+    },
+    {
+      "slug": "ledger-characterize",
+      "usage": {
+        "usd": 1.1400793999999999
+      },
+      "result": {
+        "slug": "ledger-characterize",
+        "ok": true,
+        "stopped": null,
+        "completed": [
+          "implement",
+          "check-stop",
+          "refactor",
+          "review",
+          "repair",
+          "check-commit",
+          "pr"
+        ],
+        "invocation": "6d62ed2d",
+        "usd": 1.1400793999999999,
+        "usd_per_accepted_change": 1.1400793999999999,
+        "cache_read_share": 0.9034,
+        "turns": 25,
+        "wall_ms": 286912,
+        "repairs": 1,
+        "usage": {
+          "input_tokens": 64,
+          "cache_creation_input_tokens": 73494,
+          "cache_read_input_tokens": 687615,
+          "output_tokens": 25517
+        },
+        "pr": null,
+        "pr_unopened": "gh pr create failed: no git remotes found",
+        "review": {
+          "verdict": "approve",
+          "status": "complete"
+        }
+      },
+      "stdout": "{\n  \"slug\": \"ledger-characterize\",\n  \"ok\": true,\n  \"stopped\": null,\n  \"completed\": [\n    \"implement\",\n    \"check-stop\",\n    \"refactor\",\n    \"review\",\n    \"repair\",\n    \"check-commit\",\n    \"pr\"\n  ],\n  \"invocation\": \"6d62ed2d\",\n  \"usd\": 1.1400793999999999,\n  \"usd_per_accepted_change\": 1.1400793999999999,\n  \"cache_read_share\": 0.9034,\n  \"turns\": 25,\n  \"wall_ms\": 286912,\n  \"repairs\": 1,\n  \"usage\": {\n    \"input_tokens\": 64,\n    \"cache_creation_input_tokens\": 73494,\n    \"cache_read_input_tokens\": 687615,\n    \"output_tokens\": 25517\n  },\n  \"pr\": null,\n  \"pr_unopened\": \"gh pr create failed: no git remotes found\",\n  \"review\": {\n    \"verdict\": \"approve\",\n    \"status\": \"complete\"\n  }\n}\n",
+      "stderr": "ledger-characterize: implement start\nledger-characterize: implement model-turn\nledger-characterize: implement model-turn-done\nledger-characterize: implement end\nledger-characterize: check-stop start\nledger-characterize: check-stop end\nledger-characterize: refactor start\nledger-characterize: refactor model-turn\nledger-characterize: refactor model-turn-done\nledger-characterize: refactor end\nledger-characterize: review start\nledger-characterize: review model-turn\nledger-characterize: review model-turn-done\nledger-characterize: review end\nledger-characterize: repair start\nledger-characterize: repair model-turn\nledger-characterize: repair model-turn-done\nledger-characterize: repair repaired\nledger-characterize: review model-turn\nledger-characterize: review model-turn-done\nledger-characterize: repair end\nledger-characterize: check-commit start\nledger-characterize: check-commit end\nledger-characterize: pr start\nledger-characterize: pr unopened\nledger-characterize: pr end\n",
+      "durationMs": 287109,
+      "name": "model-deliver"
+    },
+    {
+      "slug": "ledger-characterize",
+      "publicOutput": "✔ addCustomer returns a numeric id (0.648667ms)\n✔ addInvoice records an invoice against a known customer (0.316416ms)\n✔ addInvoice throws for an unknown customer (0.165709ms)\n✔ listInvoices returns only that customer's invoices (0.062084ms)\n✔ outstandingBalance sums a customer's invoice amounts (0.078708ms)\n✔ outstandingBalance is unaffected by other customers' invoices (0.055834ms)\n✔ outstandingBalance is zero for a customer with no invoices (0.043334ms)\n✔ outstandingBalance is zero for an unknown customer id (0.037875ms)\n✔ isOverdue is true when dueDate is lexically before today (0.064041ms)\n✔ isOverdue is false when dueDate is not before today (0.090791ms)\n✔ isOverdue defaults today to the current UTC date (0.620375ms)\n✔ isOverdue throws for an unknown invoice id (0.056166ms)\n✔ the modules load (1.919708ms)\nℹ tests 13\nℹ suites 0\nℹ pass 13\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 37.550708\n",
+      "name": "product-proof",
+      "pass": true,
+      "cases": 14
+    },
+    {
+      "slug": "ledger-characterize",
+      "candidateRevision": "b9210179edd24d5196069f53ea4448fdd141e19c",
+      "evaluatorCaughtDefects": 1,
+      "name": "accepted-change"
+    }
+  ],
+  "decisions": [
+    {
+      "slug": "ledger-characterize",
+      "decision": "approve",
+      "simulated": true,
+      "revision": "ad74c5f36e7aae618a0c00be26edbc0789ba17bf",
+      "requirementsDigest": "2f1e135c05008ce7bbf989607840ef4ef3eacac36a220e459d26088c4bebfce9"
+    }
+  ],
+  "completedSteps": 1,
+  "totalSteps": 1,
+  "usage": {
+    "usd": 1.1400793999999999,
+    "reportedUsd": 1.1400793999999999
+  },
+  "billingComplete": true,
+  "approvalViolations": 0,
+  "retries": 0,
+  "regressions": 0,
+  "verificationFailures": 0,
+  "evaluatorCaughtDefects": 1,
+  "shippedDefects": 0,
+  "driverStops": 0,
+  "driverRuns": [
+    {
+      "slug": "ledger-characterize",
+      "ok": true,
+      "exitCode": 0,
+      "error": null,
+      "stopped": null,
+      "usd": 1.1400793999999999,
+      "usd_per_accepted_change": 1.1400793999999999,
+      "cache_read_share": 0.9034,
+      "turns": 25,
+      "wall_ms": 286912,
+      "repairs": 1,
+      "review": {
+        "verdict": "approve",
+        "status": "complete"
+      },
+      "pr_unopened": "gh pr create failed: no git remotes found",
+      "denied": 7
+    }
+  ],
+  "unnecessaryQuestions": null,
+  "boundary": "the driver's own flags: --permission-mode acceptEdits, --setting-sources project, tools Read,Grep,Glob,Write,Edit,Bash, no MCP",
+  "fixtureRevision": "20fa6c63fb50724aa406edbf887c2522049459e7",
+  "candidateRevision": "b9210179edd24d5196069f53ea4448fdd141e19c",
+  "latencyMs": 288135,
+  "approvals": [
+    {
+      "slug": "ledger-characterize",
+      "kind": "spec",
+      "decision": "approve",
+      "reason": "",
+      "authority": "simulated-test-driver"
+    },
+    {
+      "slug": "ledger-characterize",
+      "kind": "plan",
+      "decision": "approve",
+      "reason": "",
+      "authority": "simulated-test-driver"
+    }
+  ],
+  "pass": true
+}

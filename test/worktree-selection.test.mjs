@@ -9,7 +9,8 @@ import * as artifacts from '../.aidlc/lib/artifacts.mjs';
 import { writeBlocked, bashContractBlocked } from '../.aidlc/lib/guard.mjs';
 import { run } from '../.aidlc/checks/scope-drift.mjs';
 import { BIN } from './_paths.mjs';
-const cfg = root => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts'), state: path.join(root, '.aidlc/state') }, guard: { require_contract: true } });
+import { HUMAN } from './_gates.mjs';
+const cfg = root => ({ layout: { root, artifacts: path.join(root, '.aidlc/artifacts'), state: path.join(root, '.aidlc/state') }, guard: { require_contract: true }, gates: HUMAN });
 const git = (root, ...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 const commit = root => { git(root, 'add', '-A'); git(root, '-c', 'commit.gpgsign=false', 'commit', '-qm', 'test artifacts'); };
 const cli = (root, ...args) => spawnSync(process.execPath, [BIN, ...args], { cwd: root, encoding: 'utf8' });
@@ -142,15 +143,15 @@ test('absence never infers authority and invalid CLI selection preserves the bin
 
 test('existing product driver selects sequential proposals without approving them', async () => {
   const { prepareProductChange } = await import('../evals/lib/campaign.mjs');
-  const s = stage(FIXTURES, 'campaign-ledger');
+  const s = stage(FIXTURES, 'calculator', { product: true });
   try {
     const c = cfg(s.work);
     for (const slug of ['first-delivery', 'second-delivery']) {
-      prepareProductChange(s, { slug, request: 'Improve invoice listing', behaviours: ['Given invoices, when listed, then preserve totals.'], files: ['src/ledger.mjs'] });
+      prepareProductChange(s, { slug, request: 'Improve the operation form', behaviours: ['Given two operands, when = is pressed, then the service result is shown.'], files: ['src/App.tsx'] });
       assert.equal(artifacts.currentChange(c).slug, slug);
       assert.deepEqual(artifacts.governingPlans(c), []);
       assert.equal(artifacts.read(c, slug, 'spec').front.status, 'draft');
-      assert.match(writeBlocked('src/ledger.mjs', c), new RegExp(slug));
+      assert.match(writeBlocked('src/App.tsx', c), new RegExp(slug));
       traceFixture(s.work);
       commit(s.work);
       for (const kind of ['spec', 'plan']) {
@@ -158,7 +159,7 @@ test('existing product driver selects sequential proposals without approving the
         assert.deepEqual(artifacts.governingPlans(c), [], 'approval must be committed');
         commit(s.work);
       }
-      assert.equal(writeBlocked('src/ledger.mjs', c), null);
+      assert.equal(writeBlocked('src/App.tsx', c), null);
       writeFileSync(path.join(c.layout.artifacts, slug, 'intent.md'), '---\nstatus: closed\n---\nDelivered in simulation.\n');
       commit(s.work);
       assert.equal(artifacts.currentChange(c), null, 'closing does not choose another change');

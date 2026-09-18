@@ -52,7 +52,13 @@ export async function run(cfg, files, results) {
   const findings = [];
 
   for (const r of result.rows.filter((row) => row.regressed)) {
-    findings.push({
+    // G13. A floored metric fell; a ratcheted one rose. Same gate, opposite directions, and a
+    // message that said "+" for a coverage drop would read as its own opposite.
+    findings.push(r.floor ? {
+      file: rel, line: 0, rule: `baseline/${r.metric}`,
+      message: `${r.metric} = ${r.is}%, recorded ${r.was}% (${(r.is - r.was).toFixed(2)} points, tolerance ${result.coverageDropPct} points)`,
+      fix: 'cover what the change added, or re-capture with `harness baseline capture` when the drop is intended and its reason is written down',
+    } : {
       file: rel, line: 0, rule: `baseline/${r.metric}`,
       message: `${r.metric} = ${r.is}, recorded ${r.was} (+${Math.round(r.delta * 100)}%, tolerance ${result.tolerance})`,
       fix: 'reduce what the harness puts in front of the model, or re-capture with `harness baseline capture` when the rise is intended and its reason is written down',

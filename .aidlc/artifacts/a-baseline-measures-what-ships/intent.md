@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 source: docs/IMPROVEMENT-PLAN.md
 source_revision: b5c4c2fc2329b48b31b97cbcb8859bf60d36f9ae
 parent: lean-review-context-baseline

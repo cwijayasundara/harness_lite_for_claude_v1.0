@@ -67,18 +67,26 @@ test('B3: the image, the container suite and the container CI job are gone', () 
   assert.ok(!/docker build/i.test(workflow), 'no CI job may build an image');
 });
 
-test('B4: a live product trial refuses rather than running an agent on the host', async () => {
+test('B4: a live product trial refuses without a boundary, and Docker is not what restored one', async () => {
   const { claudeInvoker } = await import('../evals/lib/invoker.mjs');
-  const invoke = claudeInvoker({ model: 'configured-capable-model' });
-  // A sandbox argument is what a live product trial passes. There is no boundary to put it in
-  // any more, so the only safe answer is refusal: falling through to `claude` would run an agent
-  // with Write, Edit and Bash directly on the operator's machine.
-  // Synchronous on purpose: the refusal must land before any invocation setup, so there is no
-  // await to race and nothing to clean up if a caller ignores the result.
+  const { resolveBoundary, boundaryArgs } = await import('../evals/lib/boundary.mjs');
+
+  // G20 made the refusal conditional rather than unconditional. What B4 protects is unchanged:
+  // a trial with no boundary must not fall through to running a coding agent with Write, Edit and
+  // Bash on the operator's machine, with their files, their credentials and their network.
+  // Synchronous on purpose: the refusal lands before any invocation setup.
   assert.throws(
-    () => invoke({ prompt: 'p', phase: 'implement', sandbox: { work: ROOT }, budgetUsd: 1 }),
+    () => claudeInvoker({ model: 'configured-capable-model' })({ prompt: 'p', phase: 'implement', sandbox: { work: ROOT }, budgetUsd: 1 }),
     /no boundary to run in/,
-    'a product invocation must refuse, naming that it has no boundary');
+    'a product invocation with no boundary must refuse, naming that it has no boundary');
+
+  // And what restored the trials is a boundary, not the dependency this change removed: the CI
+  // runner, or the CLI permission system. Neither names a container, and neither is one.
+  const local = resolveBoundary({ requested: 'local', env: {} });
+  assert.equal(local.ok, true);
+  assert.equal(local.os, false, 'a policy boundary described as isolation is the defect B5 is about');
+  const args = boundaryArgs(local, { workdir: ROOT }).join(' ');
+  for (const pattern of FORBIDDEN) assert.doesNotMatch(args, pattern, 'the restored boundary names the removed runtime');
 
   // The refusal must not be over-broad: the harness's own non-product invocation — the evaluator
   // and the golden suite — has always run the CLI directly and still must. Proven without
@@ -89,7 +97,7 @@ test('B4: a live product trial refuses rather than running an agent on the host'
     delete process.env.CLAUDE_CODE_OAUTH_TOKEN;
     process.env.ANTHROPIC_API_KEY = 'sk-fixture-never-spend';
     assert.throws(
-      () => invoke({ prompt: 'p', phase: 'implement', budgetUsd: 1, cwd: ROOT }),
+      () => claudeInvoker({ model: 'configured-capable-model' })({ prompt: 'p', phase: 'implement', budgetUsd: 1, cwd: ROOT }),
       /API billing is disabled/,
       'a non-product invocation must reach the ordinary path, not the boundary refusal');
   } finally {

@@ -28,43 +28,55 @@ function dir() {
 // it. This is the reproduction the review used: the real repo's harness binary (not the shim
 // written into the staged copy, which is a shell script) against a freshly staged, untouched
 // fixture — sprint 0, before any model runs.
-test('campaign-ledger passes harness check --stage stop as staged, before any sprint runs', () => {
-  const s = stage(FIXTURES, 'campaign-ledger');
+test('calculator passes harness check --stage stop as staged, before any sprint runs', () => {
+  const s = stage(FIXTURES, 'calculator', { product: true });
   try {
     const r = spawnSync('node', [HARNESS, 'check', '--stage', 'stop'], { cwd: s.work, encoding: 'utf8' });
     assert.equal(r.status, 0, r.stdout + r.stderr);
   } finally { s.cleanup(); }
 });
 
-// one-integration-test B1 and B8. One fixture, brownfield: working code, one smoke test, a file
-// with a deliberate defect no sprint asks about, notes, and no artifact chain. And one campaign:
-// `campaign-legacy` is gone, and nothing else has steps.
-test('the ledger remains brownfield and product campaigns are separate from golden tasks', () => {
-  const s = stage(FIXTURES, 'campaign-ledger');
+// The verbs are the reason this fixture exists. Three headless Node products preceded it and
+// between them left `fmt`, `lint`, `typecheck` and `coverage` empty in every measurement the
+// harness ever took — `skipped` is honest (Law 6) and it is also not a measurement.
+test('detection fills the capability verbs a headless Node product could never fill', () => {
+  const s = stage(FIXTURES, 'calculator', { product: true });
   try {
-    for (const f of ['NOTES.md', 'src/ledger.mjs', 'src/fees.mjs', 'tests/smoke.test.mjs', '.aidlc/harness.toml']) {
+    const toml = readFileSync(path.join(s.work, '.aidlc/harness.toml'), 'utf8');
+    for (const verb of ['fmt', 'lint', 'typecheck', 'test', 'coverage']) {
+      const [, command] = new RegExp(`^${verb}\\s*=\\s*"([^"]*)"`, 'm').exec(toml) ?? [];
+      assert.ok(command, `${verb} is not in the installed registry at all`);
+      assert.notEqual(command, '', `${verb} was left empty, so it can only ever report skipped`);
+    }
+  } finally { s.cleanup(); }
+});
+
+// one-integration-test B1 and B8. One fixture: a working application with one passing test, and
+// no artifact chain. It is greenfield where the ledger was brownfield — the service under test
+// does not exist until the first sprint writes it, which is what makes `calc-ui` depend on
+// `calc-core` rather than merely follow it.
+test('the calculator starts green and empty, and product campaigns are separate from golden tasks', () => {
+  const s = stage(FIXTURES, 'calculator', { product: true });
+  try {
+    for (const f of ['NOTES.md', 'package.json', 'tsconfig.json', 'src/App.tsx', 'src/App.test.tsx', '.aidlc/harness.toml']) {
       assert.ok(existsSync(path.join(s.work, f)), `${f} missing from the staged fixture`);
     }
     // `harness init` creates the empty directory when staging; what must be absent is a change.
     const artifacts = path.join(s.work, '.aidlc/artifacts');
     const changes = existsSync(artifacts) ? readdirSync(artifacts).filter((d) => existsSync(path.join(artifacts, d, 'intent.md'))) : [];
-    assert.deepEqual(changes, [], 'a brownfield fixture has no change yet');
-    const ledger = readFileSync(path.join(s.work, 'src/ledger.mjs'), 'utf8');
-    for (const fn of ['addCustomer', 'addInvoice', 'listInvoices']) assert.match(ledger, new RegExp(`export function ${fn}`));
-    for (const fn of ['outstandingBalance', 'isOverdue']) assert.doesNotMatch(ledger, new RegExp(fn), `${fn} is sprint 1's job`);
+    assert.deepEqual(changes, [], 'the fixture has no change yet');
+    assert.equal(existsSync(path.join(s.work, 'src/calc.ts')), false, 'the arithmetic service is sprint 1 step 1\'s job');
+    for (const gone of ['campaign-ledger', 'campaign-service', 'retrieval-app', 'campaign-legacy']) {
+      assert.ok(!existsSync(path.join(FIXTURES, gone)), `${gone} was deleted on 2026-09-16`);
+    }
   } finally { s.cleanup(); }
-  assert.ok(!existsSync(path.join(FIXTURES, 'campaign-legacy')));
   const tasks = JSON.parse(readFileSync(path.join(ROOT, 'evals', 'tasks.json'), 'utf8')).tasks;
   const campaigns = tasks.filter((t) => t.steps);
   assert.deepEqual(campaigns, [], 'retired transcript-driven campaign is not a golden task');
-  const products=JSON.parse(readFileSync(path.join(ROOT,'evals/products.json'),'utf8')).tasks;
-  assert.deepEqual(products.map(t=>t.id),['campaign-ledger','campaign-service','retrieval-app']);
-  assert.equal(products[0].steps.length,5);
-  assert.equal(products[1].steps.length,6);
-  // graph-first-versus-grep-first B2. Built so that finding the code is the work, because all
-  // four earlier arms accepted 33/33 on the two above.
-  assert.equal(products[2].steps.length,2);
-  assert.equal(products[2].product,'reporting');
+  const products = JSON.parse(readFileSync(path.join(ROOT, 'evals/products.json'), 'utf8')).tasks;
+  assert.deepEqual(products.map((t) => t.id), ['calculator'], 'one delivery workload, not three');
+  assert.deepEqual(products[0].steps.map((s) => s.slug), ['calc-core', 'calc-ui', 'calc-ops']);
+  assert.equal(products[0].product, 'calculator');
 });
 
 // B2. A later sprint's requirement must not be reachable before its own step runs. Asserted

@@ -3,6 +3,8 @@ import path from 'node:path';
 import { homedir } from 'node:os';
 import { PREFIX_CACHE_PATHS } from './paths.mjs';
 import { governingPlans, currentLine, currentChange, draftsAwaitingGate, awaitingGateRemedy } from './artifacts.mjs';
+import { gateBlocks } from './config.mjs';
+import * as release from './release.mjs';
 
 // One reader of ownership, shared with `scope-drift`. Two readers is how the guard and the check
 // came to disagree about which file was owned by what. `current` is the change the diff belongs
@@ -16,16 +18,25 @@ function contractScopeState(cfg) {
 
 // The refusal must name the way forward and keep the guard on. evidence.md F2: the old message
 // ended "or set [guard].require_contract = false", and an agent did exactly that.
+//
+// G06: it also names *which* gate is pending, because that is the gate whose mode decides
+// whether this is a denial or a warning. A write held back because the spec is not approved is
+// gate 1's business; a write held back because the approved plan's `## Files` does not name the
+// path is gate 2's. Flattening the two into one mode would mean a project that wants its plan
+// scope advisory also loses the spec gate it never asked to relax.
 function contractRefusal(norm, scope) {
   const { current, declared, drafts = [] } = scope;
   // a-draft-is-a-declaration B1: a written spec is work declared and not yet gated.
   if (drafts.length) {
     const [first, ...rest] = drafts;
-    return `${norm}: no product file may change yet — ${awaitingGateRemedy(first)}${rest.length ? ` Also waiting: ${rest.map((d) => `${d.slug}/${d.kind}.md`).join(', ')}.` : ''}`;
+    return { gate: first.kind === 'plan' ? 'plan' : 'spec',
+      message: `${norm}: no product file may change yet — ${awaitingGateRemedy(first)}${rest.length ? ` Also waiting: ${rest.map((d) => `${d.slug}/${d.kind}.md`).join(', ')}.` : ''}` };
   }
-  if (current?.plan && !declared.length) return `${norm}: the selected change "${current.slug}" has an empty ## Files section. Name the paths and re-approve its plan before product writes.`;
-  if (!current || !declared.length || !current.plan) return `${norm}: no product file may change yet — ${scope.line}`;
-  return `${norm} is outside the current change "${current.slug}" — its approved plan's ## Files does not name this path. Add the path and re-approve the plan, or close "${current.slug}" if that work is done.`;
+  if (current?.plan && !declared.length) return { gate: 'plan', message: `${norm}: the selected change "${current.slug}" has an empty ## Files section. Name the paths and re-approve its plan before product writes.` };
+  // No current change, or no approved plan on it: nothing has reached gate 2 yet, so what is
+  // missing is the spec approval that precedes it.
+  if (!current || !declared.length || !current.plan) return { gate: current?.plan ? 'plan' : 'spec', message: `${norm}: no product file may change yet — ${scope.line}` };
+  return { gate: 'plan', message: `${norm} is outside the current change "${current.slug}" — its approved plan's ## Files does not name this path. Add the path and re-approve the plan, or close "${current.slug}" if that work is done.` };
 }
 
 function matchesDeclared(rel, declared) {
@@ -43,9 +54,21 @@ function artifactOrState(rel) {
 // already reads. Changing the shared return type instead was tried and reverted: it broke
 // assertions in four test files this change does not own, for no gain to anyone but the one
 // caller that wants the name.
-const refuse = (rule, message) => ({ rule, message });
+const refuse = (rule, message) => ({ rule, message, advisory: false });
 
-export const writeBlocked = (rel, cfg) => writeRefusal(rel, cfg)?.message ?? null;
+// G06. The same judgment, reported rather than enforced. `advisory: true` is the whole
+// difference: the hook writes `additionalContext` instead of `deny`, and `writeBlocked` — the
+// question "may this write proceed" that four test files and two callers ask — answers yes.
+const advise = (rule, message) => ({ rule, message, advisory: true });
+
+// `writeBlocked` stays "is this write refused", so an advisory finding is not one. A caller that
+// wants the judgment regardless of mode reads `writeRefusal` and looks at `.advisory` — the hook
+// does exactly that, which is how a relaxed gate still reaches the model as a warning instead of
+// disappearing.
+export const writeBlocked = (rel, cfg) => {
+  const hit = writeRefusal(rel, cfg);
+  return hit && !hit.advisory ? hit.message : null;
+};
 
 export function writeRefusal(rel, cfg) {
   const norm = String(rel ?? '').replace(/^\.\//, '');
@@ -66,12 +89,24 @@ export function writeRefusal(rel, cfg) {
     return matchesDeclared(norm, scope.declared);
   };
 
-  // Deliberate steering changes belong in the approved scope. This is a heuristic workflow
-  // guard, not a sandbox, authentication mechanism, or claim about cache invalidation.
+  // Deliberate steering changes belong in the approved scope. This is a heuristic workflow guard
+  // and not a sandbox or an authentication mechanism.
+  //
+  // MEASURED three times on `prefix-cache-guard`, which asks for a note in CLAUDE.md. 2026-09-14:
+  // the reason went last and the model relayed only the head — "a configuration file that affects
+  // session instructions". Reworded so the reason went first; 2026-09-15 the model relayed only
+  // the tail — "the system requires an approved plan before making changes". Position is not the
+  // variable: across both wordings the model kept the sentence that said what to DO and dropped
+  // the sentences that said why. So there is one sentence now, with the reason as its subject
+  // clause and the remedy after the dash, and no separable sentence to drop. A refusal that
+  // arrives without its reason teaches the shape of a rule and none of its content, and the next
+  // reader has to guess which rule they are obeying.
   for (const p of PREFIX_CACHE_PATHS) {
     if (norm === p) {
       if (owned()) break;
-      return refuse('prefix-cache', `${p} configures agent instructions or permissions. Name it in the approved plan before changing it; reload the session to apply instruction changes. ${scope?.line ?? ""}`);
+      return refuse('prefix-cache', `${p} is already loaded into this session, so editing it `
+        + `changes nothing until the session reloads and invalidates the prompt cache for whoever `
+        + `reads it next — name it in an approved plan first. ${scope?.line ?? ""}`);
     }
   }
 
@@ -86,21 +121,13 @@ export function writeRefusal(rel, cfg) {
       return refuse('protected-path', `${p} is listed in harness.toml [guard].protected_paths. Only a committed approved contract that names this exact path may change it. ${scope?.line ?? ""}`);
     }
   }
-  const lock = path.join(cfg.layout.state, 'test-lock.json');
-  if (existsSync(lock)) {
-    try {
-      const { patterns = [], why = 'a bug fix is in progress' } = JSON.parse(readFileSync(lock, 'utf8'));
-      for (const pat of patterns) {
-        if (pat && norm.includes(pat)) return refuse('test-lock', `${norm} is test-locked because ${why}. Fix the code, not the test. Run: .aidlc/bin/harness lock clear`);
-      }
-    } catch { /* a malformed lock must not block work */ }
-  }
   if (requireContract && !artifactOrState(norm)) {
     try {
       if (!scope) scope = contractScopeState(cfg);
       const { declared, parseError } = scope;
-      if (parseError && !declared.length) return refuse('write-scope', contractRefusal(norm, scope));
-      if (!declared.length || !matchesDeclared(norm, declared)) return refuse('write-scope', contractRefusal(norm, scope));
+      const out = (hit) => (gateBlocks(cfg, hit.gate) ? refuse('write-scope', hit.message) : advise('write-scope', hit.message));
+      if (parseError && !declared.length) return out(contractRefusal(norm, scope));
+      if (!declared.length || !matchesDeclared(norm, declared)) return out(contractRefusal(norm, scope));
     } catch { return null; }
   }
   return null;
@@ -131,11 +158,27 @@ const TARGET_ENV = /\b(production|prod)\b/i;
 // lean-v2 cut 2; what remains are the three tools that really do reach an environment.
 const RELEASE = /(^|[|;&]\s*)(\S*\bdeploy\b|terraform\s+apply|kubectl\s+apply|helm\s+upgrade)/i;
 
-export function productionDenied(cmd, env = process.env) {
+// G18. The authorisation is a record, not an environment variable.
+//
+// `HARNESS_RELEASE_APPROVAL` was any non-empty value of a variable: it said nothing about who
+// approved, what they approved, or when it stopped being true, and one line in a shell profile
+// disabled the control permanently and silently. A record names a candidate commit, a person and
+// an expiry — so an authorisation for one revision cannot be spent on another, which is the
+// failure the variable could not even describe.
+//
+// Returns null when the command is not a release, and otherwise the full decision: whether it is
+// allowed, why, and the route to an authorisation. Both outcomes are recorded by the caller — an
+// allow that leaves no trace is indistinguishable from a control that never ran.
+export function releaseDecision(cmd, cfg, options = {}) {
   const text = commandText(cmd);
   if (!RELEASE.test(text) || !TARGET_ENV.test(text)) return null;
-  if (env?.HARNESS_RELEASE_APPROVAL) return null;
-  return 'A release to a live environment needs an authorization. Set HARNESS_RELEASE_APPROVAL, or ask the human to run it.';
+  return release.state(cfg, options);
+}
+
+export function productionDenied(cmd, cfg, options = {}) {
+  const decision = releaseDecision(cmd, cfg, options);
+  if (!decision || decision.allowed) return null;
+  return `A release to a live environment needs a current release record: ${decision.reason}. ${decision.route}`;
 }
 
 // Write *destinations*, not the presence of a `>` somewhere in the string.
@@ -266,11 +309,19 @@ export function bashContractRefusal(cmd, cfg) {
     .filter((t) => t && !t.startsWith('..'))
     .filter((t) => !artifactOrState(t));
 
+  // G06: a blocking hit wins over an advisory one. One command can write to two places — an
+  // out-of-scope source file and `.claude/settings.json` — and under an advisory plan gate the
+  // first is a warning while the second is still a refusal. Returning whichever came first in
+  // the token order would have made the denial depend on the order the shell happened to write
+  // its redirections in.
+  let advisory = null;
   for (const t of targets) {
     const hit = writeRefusal(t, cfg);
-    if (hit) return hit;
+    if (!hit) continue;
+    if (!hit.advisory) return hit;
+    advisory ??= hit;
   }
-  return null;
+  return advisory;
 }
 
 // `bashContractBlocked` stays the string-returning form: `test/guard.test.mjs` and
@@ -278,21 +329,85 @@ export function bashContractRefusal(cmd, cfg) {
 // `test/worktree-selection.test.mjs` is not a file this change owns. Same split `writeRefusal`
 // and `writeBlocked` already use, for the same reason.
 export function bashContractBlocked(cmd, cfg) {
-  return bashContractRefusal(cmd, cfg)?.message ?? null;
-}
-
-export function lockTests(cfg, { patterns = ['tests'], why = 'bug fix in progress' } = {}) {
-  mkdirSync(cfg.layout.state, { recursive: true });
-  const file = path.join(cfg.layout.state, 'test-lock.json');
-  writeFileSync(file, JSON.stringify({ patterns, why }, null, 2) + '\n');
-  return file;
-}
-
-export function clearLock(cfg) {
-  const file = path.join(cfg.layout.state, 'test-lock.json');
-  if (existsSync(file)) rmSync(file);
-  return file;
+  const hit = bashContractRefusal(cmd, cfg);
+  return hit && !hit.advisory ? hit.message : null;
 }
 
 
 
+
+
+// The read gate. `preSearch` already answers a Grep with what the index knows, advisory because
+// a refused search is one people learn to route around. A whole-file Read is the other half of
+// that behaviour and it is not the same kind of call: it is the largest avoidable input cost in
+// a session, and unlike a search it has an exact escape that costs nothing — the same Read with
+// offset/limit. So this one refuses, and names both ways forward.
+//
+// The number it leans on is this repository's own: evals/bench/pack-bench.mjs scores `harness
+// pack` at 100% recall and a 90.3% token reduction over ten golden queries, 84–97% on files the
+// size of the ones this fires on. Spotify's `shunt` plugin reports the same 90% for the same
+// move, arrived at from the other direction — it ships the file corpus to a cheaper model; the
+// index answers without a second model at all.
+export const READ_LINES = 350;
+
+// Read renders these rather than pasting lines, so a line count measures nothing about what the
+// call costs, and a refusal would break the one way to look at them.
+const RENDERED = /\.(png|jpe?g|gif|webp|bmp|ico|pdf|ipynb)$/i;
+
+const readLimit = (cfg) => {
+  const n = cfg?.guard?.read_lines;
+  return Number.isInteger(n) && n >= 0 ? n : READ_LINES;
+};
+
+// Why the threshold and the two escapes are in the message and the fix is not: evidence.md F2 —
+// a refusal that ends "or turn the gate off" gets the gate turned off.
+const readMessage = (rel, lines, limit) =>
+  `${rel} is ${lines} lines (whole-file reads are gated above ${limit}). `
+  + 'The index answers most questions asked of a source file for a fraction of it: '
+  + 'harness pack <symbol>, or harness graph query callers <symbol>. '
+  + 'If you need the exact text — to edit it, or because the index missed — read this same file '
+  + 'again with offset/limit for the range you need. A targeted read is never refused.';
+
+// `tool_input` is passed through rather than read here so the same judgment is available to a
+// caller that has a path and no tool call (the Bash surface below is exactly that).
+export function readRefusal(rel, cfg, tool_input = {}) {
+  const limit = readLimit(cfg);
+  if (!limit || !rel) return null;
+  // A targeted read is the escape this gate points at. Never block one.
+  if (tool_input.offset != null || tool_input.limit != null) return null;
+  if (RENDERED.test(rel)) return null;
+  const root = cfg?.layout?.root;
+  const norm = root ? path.relative(root, path.resolve(root, rel)) : rel;
+  // A path outside the repository is outside what the index covers; same carve-out the write
+  // guard gives. `artifactOrState` covers the other half: a spec or plan is not a lookup, it is
+  // the terms the write that follows is judged against, and nothing indexes it to pack instead.
+  if (norm.startsWith('..') || artifactOrState(norm)) return null;
+  let lines;
+  try { lines = readFileSync(path.resolve(root ?? '.', norm), 'utf8').split('\n').length; }
+  catch { return null; } // missing, unreadable or binary: let Read report its own error
+  if (lines <= limit) return null;
+  return refuse('whole-file-read', readMessage(norm, lines, limit));
+}
+
+// cat/head/tail is the way round the Read hook. Same judgment, same rule name, so the audit
+// counts one control rather than two halves that each look too quiet to keep.
+const READ_CMD = /(^|[|;&]\s*)(cat|head|tail|less|more)\s+(.+)$/;
+// A line or byte count is a targeted read, whatever the file's total size is.
+const COUNTED = /^(-\d+|-[nc]$|--lines|--bytes)/;
+
+export function bashReadRefusal(cmd, cfg) {
+  if (!readLimit(cfg)) return null;
+  const text = String(cmd ?? '');
+  // A pipe is a targeted read and a redirect never enters the context at all.
+  if (/[|>]/.test(text)) return null;
+  const m = READ_CMD.exec(text.trim());
+  if (!m) return null;
+  const args = m[3].split(/\s+/);
+  if (args.some((a) => COUNTED.test(a))) return null;
+  for (const arg of args) {
+    if (arg.startsWith('-')) continue;
+    const hit = readRefusal(arg.replace(/^["']|["']$/g, ''), cfg);
+    if (hit) return hit;
+  }
+  return null;
+}

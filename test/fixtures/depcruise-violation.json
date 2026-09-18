@@ -1,0 +1,21 @@
+{
+ "summary": {
+  "violations": [
+   {
+    "type": "dependency",
+    "from": "src/slug.ts",
+    "to": "src/http/handler.ts",
+    "unresolvedTo": "./http/handler.js",
+    "dependencyTypes": [
+     "local",
+     "export"
+    ],
+    "rule": {
+     "severity": "error",
+     "name": "core-must-not-import-http"
+    }
+   }
+  ],
+  "error": 1
+ }
+}

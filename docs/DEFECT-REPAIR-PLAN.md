@@ -1,5 +1,10 @@
 # Defect repair plan
 
+> **Closed on 13 September 2026.** All three defects are repaired and each has a permanent test.
+> Kept as the record of what was found on 10 September and how it was established — the evidence
+> is the useful part, and a closed plan that still reads as open is the drift this file was
+> written to complain about.
+
 Three defects, each its own change. Written 2026-09-10 so that a fresh session can pick any one
 of them up without re-deriving the evidence. Nothing here is a redesign: every item is a control
 that does not do what it says, and the repair is to make it do that.

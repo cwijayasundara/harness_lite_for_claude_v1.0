@@ -4,7 +4,11 @@ import { readFileSync, statSync } from 'node:fs';
 import { git, candidateFile, changedStatuses } from '../lib/diff.mjs';
 import path from 'node:path';
 
-const PATTERNS = [
+// Exported so a generator that copies text into a committed file can mark the one line that
+// deliberately carries a fixture secret, rather than blanket-suppressing the scanner over
+// everything it writes. G21's generated eval prompts are verbatim copies of golden-task prompts,
+// and one of those tasks seeds a fake key on purpose.
+export const PATTERNS = [
   [/\bsk-[A-Za-z0-9]{20,}\b/, 'openai-key'],
   [/\bsk-ant-[A-Za-z0-9_-]{20,}\b/, 'anthropic-key'],
   [/\bghp_[A-Za-z0-9]{30,}\b/, 'github-token'],

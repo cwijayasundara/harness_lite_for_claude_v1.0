@@ -1,5 +1,5 @@
 ---
-status: draft
+status: closed
 ---
 # Complete item 4 comparison evidence
 
