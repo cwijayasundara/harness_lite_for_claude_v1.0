@@ -1,0 +1,27 @@
+{
+  "schema": "harness.cohort-rollout/v1",
+  "version": "0.2.0",
+  "cohorts": [
+    { "id": "maintainers", "maximum_projects": 2, "minimum_healthy_days": 7 },
+    { "id": "early-adopters", "maximum_projects": 10, "minimum_healthy_days": 14 },
+    { "id": "general", "maximum_projects": null, "minimum_healthy_days": 30 }
+  ],
+  "admission": [
+    "doctor --production configuration passes",
+    "current candidate evidence passes",
+    "no agent-name collision",
+    "runtime and policy identity are verified",
+    "project rollback command is documented and rehearsed"
+  ],
+  "halt": [
+    "any escaped critical or high-severity defect attributable to the harness",
+    "change-failure rate materially exceeds the registered native baseline",
+    "false scope block repeats in two cohort projects",
+    "runtime identity or uninstall cannot be verified"
+  ],
+  "rollback": "Disable and uninstall the cohort version, restore the prior recorded plugin version, rerun init, doctor --production, and candidate checks.",
+  "monthly_review": {
+    "inputs": ["control fires", "human false-positive flags", "skips and errors", "hook latency", "change failures", "rollback outcomes"],
+    "decision": "retain, revise, or delete each unreliable or redundant control; never infer benefit from firing frequency"
+  }
+}

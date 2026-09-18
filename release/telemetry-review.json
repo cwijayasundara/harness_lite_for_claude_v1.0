@@ -1,0 +1,16 @@
+{
+  "schema": "harness.control-telemetry-review/v1",
+  "reviewed_at": "2026-09-18",
+  "next_review_due": "2026-10-18",
+  "sources": [
+    "test/ledger-evidence.test.mjs",
+    "docs/OPTIONAL-MODULE-EVIDENCE.md",
+    "docs/PRODUCTIVITY-EVENTS.md"
+  ],
+  "decisions": [
+    { "surface": "default deterministic controls", "decision": "retain", "reason": "production admission and seeded reachability remain green; benefit is not inferred from fire count" },
+    { "surface": "graph/map/pack", "decision": "optional", "reason": "equal accepted outcomes and higher observed cost" },
+    { "surface": "autonomous driver", "decision": "optional", "reason": "calibration produced no accepted outcome" },
+    { "surface": "continuous live evals", "decision": "remove-from-default", "reason": "no benefit evidence for standing cost and credential exposure" }
+  ]
+}

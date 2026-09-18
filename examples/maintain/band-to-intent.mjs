@@ -42,15 +42,38 @@ const sigma = ({ observed, mean, stdev, max }) =>
   : Math.floor(Math.abs(observed - mean) / stdev);
 
 const source = process.argv[2] ? readFileSync(process.argv[2], 'utf8') : readFileSync(0, 'utf8');
-const bands = JSON.parse(source).bands ?? [];
+const observation = JSON.parse(source);
+const bands = observation.bands ?? [];
 const breach = bands.map((b) => ({ ...b, tier: sigma(b) })).filter((b) => b.tier >= 2)
   .sort((a, b) => b.tier - a.tier)[0];
 
 if (!breach) { console.log('PASS  all control bands within range'); process.exit(0); }
 
+// A metric/release/tier signature is diagnosed at most once per cooldown. A higher tier is a new
+// signature, so escalation from WATCH to BREACH is never hidden by an earlier observation.
+const observedAt = Number.isFinite(Date.parse(observation.observed_at)) ? Date.parse(observation.observed_at) : Date.now();
+const cooldownMinutes = Number.isFinite(observation.cooldown_minutes) ? observation.cooldown_minutes : 60;
+const signature = [observation.environment ?? 'unknown', observation.release ?? 'unknown', breach.metric, breach.tier].join(':');
+const maintainFile = path.join('.claude/harness', 'state', 'maintain.json');
+let maintain = { diagnoses: {} };
+try { maintain = JSON.parse(readFileSync(maintainFile, 'utf8')); } catch { /* first observation */ }
+const previous = Date.parse(maintain.diagnoses?.[signature]);
+if (Number.isFinite(previous) && observedAt - previous < cooldownMinutes * 60000) {
+  console.log(`COOLDOWN  ${signature} already diagnosed at ${maintain.diagnoses[signature]}`);
+  process.exit(0);
+}
+maintain.diagnoses ??= {};
+maintain.diagnoses[signature] = new Date(observedAt).toISOString();
+mkdirSync(path.dirname(maintainFile), { recursive: true });
+writeFileSync(maintainFile, JSON.stringify(maintain, null, 2) + '\n');
+
+const evidence = Array.isArray(observation.evidence) ? observation.evidence.slice(0, 5)
+  .filter((item) => typeof item === 'string').map((item) => item.slice(0, 500)) : [];
+const diagnosis = evidence.length ? ` Bounded evidence: ${evidence.join(' | ')}` : ' No diagnostic evidence supplied.';
+
 // 1σ logs, 2σ diagnoses read-only, 3σ proposes a change. Only the last writes an intent, because
 // an intent is a request for work and a single noisy sample is not one.
-if (breach.tier === 2) { console.log(`WATCH  ${breach.metric} at 2σ — diagnose read-only, no intent written`); process.exit(0); }
+if (breach.tier === 2) { console.log(`WATCH  ${breach.metric} at 2σ — diagnose read-only, no intent written.${diagnosis}`); process.exit(0); }
 
 const slug = `${breach.metric}-breach`.toLowerCase().replace(/[^a-z0-9-]+/g, '-').slice(0, 63);
 const dir = path.join('.claude/harness', 'artifacts', slug);
@@ -66,6 +89,8 @@ ${bound.source && bound.revision ? `source: ${bound.source}\nsource_revision: ${
 
 - **Date:** ${new Date().toISOString().slice(0, 10)}
 - **Source:** control band breach, ${breach.tier}σ${bound.source && bound.revision ? `, from \`${bound.source}\` at \`${bound.revision.slice(0, 12)}\`` : `, unbound (${bound.why})`}
+- **Release:** ${observation.release ?? 'unknown'} in ${observation.environment ?? 'unknown'}
+- **Read-only diagnosis:** ${diagnosis.trim()}
 
 ## Problem
 

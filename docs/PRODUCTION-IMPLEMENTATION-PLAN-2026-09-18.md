@@ -139,7 +139,9 @@ missing joins remain `unmeasured`.
 
 ## Phase 4 — Thin-core controlled pilot
 
-- [ ] P4.1 Pre-register hypotheses, inclusion rules and primary outcomes.
+- [x] P4.1 Pre-register hypotheses, inclusion rules and primary outcomes. The executable protocol,
+      registration schema and fixed decision rule are in `docs/CONTROLLED-PILOT.md` and
+      `evals/lib/pilot.mjs`.
 - [ ] P4.2 Randomize at least 20 completed changes per arm, stratified by repo/task/risk/experience.
 - [ ] P4.3 Hold model, project tools and CI constant within comparison blocks.
 - [ ] P4.4 Compare native Claude Code + CI with the thin default harness only.
@@ -148,39 +150,68 @@ missing joins remain `unmeasured`.
 - [ ] P4.6 Preserve failed, abandoned, timed-out and budget-exhausted attempts.
 - [ ] P4.7 Publish raw counts, confidence intervals and limitations.
 
+Protocol implementation note (2026-09-18): `node evals/pilot.mjs assign` performs reproducible
+repository/task/risk/experience-stratified assignment, and `node evals/pilot.mjs analyze` joins the
+existing productivity events, preserves every unsuccessful assignment, checks frozen model/CI
+blocks, and publishes raw counts, 95% intervals and limitations. P4.2–P4.7 remain incomplete until
+at least 20 real terminal changes per arm have been collected. Synthetic tests verify the
+calculation and refusal paths; they are not product evidence and cannot prove gains.
+
 Advance only if the harness improves human effort or quality-adjusted throughput without materially
 worsening production quality or cost. Otherwise locate the losing stage and remove/revise it.
 
 ## Phase 5 — Test optional modules independently
 
-- [ ] P5.1 Evaluator review versus deterministic CI + human review.
-- [ ] P5.2 Graph/map/pack versus competent `rg` and bounded reads.
-- [ ] P5.3 Autonomous driver versus interactive Claude Code.
-- [ ] P5.4 Worktree coordination versus project-native isolation.
-- [ ] P5.5 Continuous live evals versus scheduled/manual evals.
+- [x] P5.1 Evaluator review versus deterministic CI + human review — seeded live mechanism passed;
+      incremental benefit remains unmeasured, so evaluator review stays optional.
+- [x] P5.2 Graph/map/pack versus competent `rg` and bounded reads — 33 accepted changes in each
+      completed arm, with higher graph cost; graph remains optional.
+- [x] P5.3 Autonomous driver versus interactive Claude Code — bounded calibration delivered zero
+      accepted changes in both arms and incomplete comparative cost; driver remains optional.
+- [x] P5.4 Worktree coordination versus project-native isolation — real-worktree integration is
+      correct, but has no paired benefit evidence; native Git isolation remains the default.
+- [x] P5.5 Continuous live evals versus scheduled/manual evals — continuous execution has no
+      benefit evidence and adds standing cost/credential surface; retain bounded scheduled/manual evals.
 
 Change one module per experiment. Equivalent outcomes favor the simpler configuration.
 
+The evidence, limitations and decisions are recorded independently in
+`docs/OPTIONAL-MODULE-EVIDENCE.md` and machine-checked against retained sources by
+`test/optional-modules.test.mjs`. Phase 5 is complete as a module-disposition exercise: no bulky
+module earned promotion into the thin default.
+
 ## Phase 6 — Close Deploy and Maintain
 
-- [ ] P6.1 Integrate one existing deploy pipeline; do not create another deploy engine.
-- [ ] P6.2 Record artifact, environment, authorization, health window and rollback outcome.
-- [ ] P6.3 Rehearse rollback, including irreversible-migration boundaries.
-- [ ] P6.4 Pilot one deterministic band with deduplication and cooldown.
-- [ ] P6.5 Run bounded read-only diagnosis and create a triaged intent linked to the release.
-- [ ] P6.6 Route fixes through the ordinary lifecycle; convert incidents into regression evals.
+- [x] P6.1 Integrate one existing deploy pipeline; the read-only evidence adapter consumes its
+      events and performs no build, promotion or rollback action.
+- [x] P6.2 Record artifact, environment, candidate-bound authorization, health window and rollback outcome.
+- [x] P6.3 Rehearse successful reversible rollback and irreversible-migration escalation.
+- [x] P6.4 Pilot one deterministic release/metric/tier band with deduplication and cooldown.
+- [x] P6.5 Run bounded read-only diagnosis and create a triaged intent linked to the release.
+- [x] P6.6 Route fixes through the ordinary approved lifecycle and seed a regression eval from the incident.
 
 Exit: breach-to-intent and recovery are measurable; no alert/model storm; no standing production
 credential or merge authority; rollback/escalation proven.
 
+Phase 6 evidence is documented in `docs/DEPLOY-MAINTAIN-EVIDENCE.md` and exercised by
+`test/deploy-maintain.test.mjs`, `test/maintain-edge.test.mjs`, and `test/release-record.test.mjs`.
+The environment is disposable local staging; no real production deployment is claimed.
+
 ## Phase 7 — Package and roll out
 
-- [ ] P7.1 Publish a semantic plugin version from an immutable commit.
-- [ ] P7.2 Separate runtime package from research history, fixtures and evidence.
-- [ ] P7.3 Verify clean install, upgrade, downgrade and uninstall.
-- [ ] P7.4 Publish supported Claude Code/Node compatibility.
-- [ ] P7.5 Roll out cohort-first with admission and rollback criteria.
-- [ ] P7.6 Review control telemetry monthly; delete unreliable/redundant controls.
+- [ ] P7.1 Publish semantic plugin version 0.2.0 from an immutable source commit. The version and
+      reproducible package are ready; external publication remains pending a clean commit/tag/push.
+- [x] P7.2 Separate the runtime package from research history, fixtures and evidence.
+- [x] P7.3 Verify clean install, upgrade, downgrade and uninstall against immutable package commits.
+- [x] P7.4 Publish supported Claude Code/Node compatibility in `docs/COMPATIBILITY.md`.
+- [ ] P7.5 Start the cohort-first rollout after the immutable `0.2.0` release is published. The cohort, admission, halt, and rollback policy is defined and locally rehearsed in `release/rollout.json`.
+- [x] P7.6 Record the initial control-telemetry review and monthly retain/revise/delete cadence.
+
+Packaging and rollout evidence lives in `release/package.mjs`, `release/rollout.json`,
+`release/telemetry-review.json`, `docs/COMPATIBILITY.md`, and `test/release-package.test.mjs`.
+The runtime package is its own minimal Git repository so exact consumer pins remain verifiable.
+P7.1 cannot honestly close while this multi-phase working tree is uncommitted and unpublished;
+local package generation is not marketplace publication.
 
 ## Scorecard
 

@@ -1,0 +1,57 @@
+{
+  "schema": "harness.optional-module-evidence/v1",
+  "recorded_at": "2026-09-18T00:00:00Z",
+  "principle": "Each module is assessed independently; absent or inconclusive benefit evidence keeps it optional, and equivalent outcomes favor the simpler arm.",
+  "modules": [
+    {
+      "id": "evaluator-review",
+      "control": "deterministic CI plus human review",
+      "treatment": "independent read-only evaluator",
+      "evidence": "evals/evidence/smoke/agent-mechanisms.json",
+      "evidence_kind": "live-seeded-smoke",
+      "observed": "The evaluator found the seeded arithmetic defect without changing the checkout.",
+      "limitation": "No matched human-review-only arm measured incremental findings, effort, or false positives.",
+      "decision": "optional"
+    },
+    {
+      "id": "graph-map-pack",
+      "control": "competent bounded source retrieval without graph context",
+      "treatment": "graph context enabled",
+      "evidence": "evals/evidence/comparison-summary.json",
+      "evidence_kind": "live-paired-comparison",
+      "observed": "Both completed arms delivered 33 accepted changes; graph cost per accepted change was 0.256874 versus 0.240477 without graph.",
+      "limitation": "Small samples and one verification failure in the without-graph arm do not establish universal reliability.",
+      "decision": "optional"
+    },
+    {
+      "id": "autonomous-driver",
+      "control": "interactive native Claude Code",
+      "treatment": "autonomous harness driver",
+      "evidence": "evals/evidence/g24-driver-comparison.json",
+      "evidence_kind": "live-calibration",
+      "observed": "Neither calibration arm delivered an accepted change; the driver stopped once and cost was not comparable because native billing was incomplete.",
+      "limitation": "This failed calibration establishes no productivity benefit.",
+      "decision": "optional"
+    },
+    {
+      "id": "worktree-coordination",
+      "control": "project-native Git worktree isolation",
+      "treatment": "harness selection and coordination metadata on the same worktrees",
+      "evidence": "test/two-engineer-campaign.test.mjs",
+      "evidence_kind": "deterministic-integration",
+      "observed": "Two real worktrees preserved independent scope and caught an integration defect.",
+      "limitation": "Correctness is proven, but no paired team outcome shows benefit over native Git worktrees.",
+      "decision": "optional"
+    },
+    {
+      "id": "continuous-live-evals",
+      "control": "scheduled and manually dispatched bounded evals",
+      "treatment": "continuous live model evaluation",
+      "evidence": ".github/workflows/harness.yml",
+      "evidence_kind": "bounded-operation-policy",
+      "observed": "Live model execution is explicit workflow dispatch; scheduled work is bounded and deterministic by default.",
+      "limitation": "No continuous live service was launched because no evidence justified its cost, credentials, or always-on failure surface.",
+      "decision": "do-not-ship-continuously"
+    }
+  ]
+}
