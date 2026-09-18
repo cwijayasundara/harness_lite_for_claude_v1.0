@@ -6,7 +6,12 @@ const configured = (cfg, verb) => verb === 'secrets' || Boolean(String(cfg.capab
 
 export function assessProduction(cfg) {
   const sensors = cfg.sensors ?? {};
-  const required = sensors.required_profiles ?? [];
+  // A project may add profiles, but it cannot make production admission easier by deleting the
+  // names from required_profiles. Architecture is conditional because some products have no
+  // meaningful architecture command; declaring architecture verbs makes the profile applicable.
+  const mandatory = ['behaviour', 'hardening', 'qa'];
+  if ((sensors.architecture ?? []).length > 0) mandatory.push('architecture');
+  const required = [...new Set([...mandatory, ...(sensors.required_profiles ?? [])])];
   const profiles = required.map((profile) => {
     const verbs = sensors[profile] ?? [];
     const live = verbs.filter((verb) => configured(cfg, verb));

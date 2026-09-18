@@ -57,6 +57,7 @@ States: `DELIVERED`, `RETAIN`, `OPTIONAL`, `REMOVE`, `REOPEN`, `BLOCKED`.
 | D19 | DELIVERED | Production admission fails installed agent-name collisions | Do not allow an advisory collision in production mode |
 | D20 | DELIVERED | Fresh Python and TypeScript installs pass production admission and automatically run edit/Stop QA without SDLC artifacts | Keep this as the consumer seam; do not substitute source-repository tests |
 | D21 | DELIVERED | Hook latency emits machine-readable Python/TypeScript samples; commit-stage regression proves the full suite runs once | Treat the initial two-language sample as a baseline, not a productivity claim |
+| D22 | DELIVERED | Production admission mandates behaviour, hardening and QA; a declared architecture profile is also mandatory | Projects may add profiles but cannot weaken the production floor |
 
 D06–D09 and D16–D19 are committed at `19a4ad7` with verified runtime identity. D20 is covered by
 `test/production-install-smoke.test.mjs`; it creates isolated repositories and isolated homes so
@@ -108,7 +109,7 @@ latency. Phase 1 is complete; performance improvement remains an evidence-led op
 ## Phase 2 — Enforce project admission
 
 - [x] P2.1 Add `doctor --production` that fails missing required profiles and full/targeted tests.
-- [ ] P2.2 Require behaviour, QA, hardening and applicable architecture sensors.
+- [x] P2.2 Require behaviour, QA, hardening and applicable architecture sensors.
 - [ ] P2.3 Support reviewed waivers with reason, owner and expiry.
 - [ ] P2.4 Distinguish missing, errored, skipped and failed commands in admission evidence.
 - [ ] P2.5 Publish onboarding, upgrade and rollback instructions.

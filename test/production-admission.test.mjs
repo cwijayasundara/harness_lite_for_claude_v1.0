@@ -33,3 +33,25 @@ test('a required profile with no declared verbs fails explicitly', () => {
   assert.equal(result.ok, false);
   assert.match(result.findings.find((f) => f.name === 'empty').reason, /declares no capability/);
 });
+
+test('a project cannot opt out of behaviour, hardening or QA by shortening required_profiles', () => {
+  const result = assessProduction(cfg({ test: 't', test_changed: 'tc' }, {
+    behaviour: ['test'], hardening: ['secrets'], qa: ['lint'], required_profiles: ['behaviour'],
+  }));
+  assert.equal(result.ok, false);
+  assert.deepEqual(result.profiles.map((p) => p.profile), ['behaviour', 'hardening', 'qa']);
+  assert.deepEqual(result.findings.map((f) => f.name), ['qa']);
+});
+
+test('architecture is required when declared and optional when the project has no architecture sensor', () => {
+  const capabilities = { test: 't', test_changed: 'tc', lint: 'lint' };
+  const without = assessProduction(cfg(capabilities, {
+    behaviour: ['test'], hardening: ['secrets'], qa: ['lint'], required_profiles: [],
+  }));
+  assert.equal(without.ok, true, JSON.stringify(without.findings));
+  const withArchitecture = assessProduction(cfg(capabilities, {
+    behaviour: ['test'], hardening: ['secrets'], qa: ['lint'], architecture: ['arch'], required_profiles: [],
+  }));
+  assert.equal(withArchitecture.ok, false);
+  assert.equal(withArchitecture.findings.find((f) => f.name === 'architecture').kind, 'profile');
+});
