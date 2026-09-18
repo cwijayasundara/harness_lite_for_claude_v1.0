@@ -26,6 +26,7 @@ import { review, hostReview } from '../lib/review.mjs';
 import * as prReview from '../lib/pr-review.mjs';
 import * as release from '../lib/release.mjs';
 import { metrics, render as renderMetrics } from '../lib/metrics.mjs';
+import * as productivity from '../lib/productivity.mjs';
 import { assessProduction, renderProduction } from '../lib/admission.mjs';
 import { collisions, collisionLines } from '../lib/agent-collisions.mjs';
 import { deliver, deliverInvoker, ghPullRequest, readState, PHASES } from '../lib/deliver.mjs';
@@ -730,6 +731,20 @@ async function main() {
     // prints; it writes nothing and publishes nothing.
     case 'metrics': {
       const cfg = loadConfig(findRepoRoot());
+      const metricsSubcommand = argv[1];
+      if (metricsSubcommand === 'ingest') {
+        const source = flag('file');
+        if (!source) { console.error('usage: harness metrics ingest --file <events.json|events.jsonl>'); return 2; }
+        try { console.log(JSON.stringify(productivity.ingest(cfg, path.resolve(source)), null, 2)); return 0; }
+        catch (error) { console.error(error.message); return 1; }
+      }
+      if (metricsSubcommand === 'export') {
+        try {
+          const format = flag('format', 'json');
+          process.stdout.write(productivity.exportEvents(productivity.readEvents(cfg), format));
+          return 0;
+        } catch (error) { console.error(error.message); return 1; }
+      }
       const m = metrics(cfg, { days: Number(flag('days', 30)) });
       console.log(has('json') ? JSON.stringify(m, null, 2) : renderMetrics(m));
       return 0;
@@ -815,6 +830,8 @@ async function main() {
     --change <slug> | --clear-change  select execution in this worktree (never approves)
   harness ledger [audit] [--days 30]
   harness metrics [--days 30] [--json]
+  harness metrics ingest --file <events.json|events.jsonl>
+  harness metrics export [--format json|csv]
                                    first-pass checks, rework, lead time, escaped defects
   harness evals gate [--update]    grade the newest run against evals/expected.json
   harness baseline capture|check

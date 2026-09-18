@@ -61,6 +61,7 @@ States: `DELIVERED`, `RETAIN`, `OPTIONAL`, `REMOVE`, `REOPEN`, `BLOCKED`.
 | D23 | DELIVERED | Committed, target-specific production waivers require reason, owner and future expiry; invalid, expired and unused records fail | No waiver service or self-approval mechanism |
 | D24 | DELIVERED | Production doctor separates configuration readiness from current-revision evidence and classifies missing/skipped/errored/failed/passed/waived | Never rerun sensors from doctor |
 | D25 | DELIVERED | One onboarding, upgrade and rollback runbook covers plugin lifecycle, pinned identity and collision removal | No second installer or state store |
+| D26 | DELIVERED | One bounded productivity-event interchange joins PR, CI, review, deploy, incident, effort and cost evidence; metrics export JSON/CSV | No telemetry service or dashboard in the core |
 
 D06–D09 and D16–D19 are committed at `19a4ad7` with verified runtime identity. D20 is covered by
 `test/production-install-smoke.test.mjs`; it creates isolated repositories and isolated homes so
@@ -122,16 +123,16 @@ and expire.
 
 ## Phase 3 — Complete productivity instrumentation
 
-- [ ] P3.1 Define one event schema: change, stage/event, time, actor type, candidate/release,
+- [x] P3.1 Define one event schema: change, stage/event, time, actor type, candidate/release,
       result, model/version, cost and environment.
-- [ ] P3.2 Keep Git as the intent/spec/plan clock.
-- [ ] P3.3 Ingest PR/review timestamps, findings and resolver type.
-- [ ] P3.4 Ingest CI duration, first pass, reruns and repair causes, bound to candidate SHA.
-- [ ] P3.5 Ingest deployment artifact/environment/health/rollback/change-failure data.
-- [ ] P3.6 Ingest incident breach/diagnosis/triage/linked intent and recurrence class.
-- [ ] P3.7 Capture human active minutes separately from elapsed time.
-- [ ] P3.8 Report median/p75/p90, sample counts, quality-adjusted throughput and total cost.
-- [ ] P3.9 Export documented JSON/CSV; no dashboard in the core.
+- [x] P3.2 Keep Git as the intent/spec/plan clock.
+- [x] P3.3 Ingest PR/review timestamps, findings and resolver type.
+- [x] P3.4 Ingest CI duration, first pass, reruns and repair causes, bound to candidate SHA.
+- [x] P3.5 Ingest deployment artifact/environment/health/rollback/change-failure data.
+- [x] P3.6 Ingest incident breach/diagnosis/triage/linked intent and recurrence class.
+- [x] P3.7 Capture human active minutes separately from elapsed time.
+- [x] P3.8 Report median/p75/p90, sample counts, quality-adjusted throughput and total cost.
+- [x] P3.9 Export documented JSON/CSV; no dashboard in the core.
 
 Exit: one change traces from accepted intent to healthy deployment or explicit non-deployment;
 missing joins remain `unmeasured`.
@@ -210,6 +211,6 @@ Decision: retain | revise | remove | blocked
 Evidence:
 ```
 
-Update the delivery register when an item closes. Phase 1 is complete. Immediate next action is
-Phase 2 admission enforcement, starting with P2.2 and adding no adapter, telemetry service, skill,
-agent or hook.
+Update the delivery register when an item closes. Phases 1–3 are complete. Immediate next action is
+Phase 4's pre-registered thin-core controlled pilot; instrumentation alone is not evidence of a
+productivity gain.

@@ -14,6 +14,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import * as ledger from './ledger.mjs';
 import { read as readArtifact, slugs } from './artifacts.mjs';
+import { readEvents, summarize } from './productivity.mjs';
 
 // Below this, a proportion is an anecdote with a decimal point.
 export const MIN_SAMPLE = 5;
@@ -159,9 +160,12 @@ export function metrics(cfg, { days = 30 } = {}) {
     const ts = Date.parse(r.ts);
     return Number.isFinite(ts) && ts >= Date.now() - days * 86400000;
   });
+  const events = readEvents(cfg).filter((event) => Date.parse(event.at) >= Date.now() - days * 86400000);
   return {
     days,
     rows: rows.length,
+    productivity_events: events.length,
+    productivity: summarize(events),
     first_pass_checks: firstPassChecks(rows),
     intent_to_spec: artifactTransition(cfg, 'intent', 'spec'),
     spec_to_plan: artifactTransition(cfg, 'spec', 'plan'),
@@ -176,7 +180,7 @@ export function metrics(cfg, { days = 30 } = {}) {
 }
 
 export function render(m) {
-  const lines = [`metrics over ${m.days} days · ${m.rows} ledger rows`, ''];
+  const lines = [`metrics over ${m.days} days · ${m.rows} ledger rows · ${m.productivity_events} productivity events`, ''];
   const show = (label, metric, format = (v) => String(v)) => {
     lines.push(metric.value === null
       ? `  ${label.padEnd(28)} unmeasured — ${metric.why}`
@@ -193,6 +197,13 @@ export function render(m) {
   show('eval contribution', m.eval_contribution, (v) => `${v >= 0 ? '+' : ''}${v}`);
   show('changes delivered', m.delivered_changes);
   show('repeat classes', m.repeat_classes, (v) => v.map((c) => `${c.rule} x${c.fires}`).join(', '));
+  show('elapsed event duration', m.productivity.elapsed_ms, (v) => `${v} ms (p75 ${m.productivity.elapsed_ms.p75}, p90 ${m.productivity.elapsed_ms.p90})`);
+  show('human active time', m.productivity.human_active_minutes, (v) => `${v} min (p75 ${m.productivity.human_active_minutes.p75}, p90 ${m.productivity.human_active_minutes.p90})`);
+  show('first-pass CI', m.productivity.first_pass_ci, pct);
+  show('change failure rate', m.productivity.change_failure_rate, pct);
+  show('quality-adjusted throughput', m.productivity.quality_adjusted_throughput);
+  show('total observed cost', m.productivity.total_cost_usd, (v) => `$${v.toFixed(4)}`);
+  show('cost / accepted change', m.productivity.cost_per_accepted_change, (v) => `$${v.toFixed(4)}`);
   lines.push('', 'A metric reads `unmeasured` when the evidence is too thin to carry it. That is the',
     'honest answer: a rate over three events is an anecdote with a decimal point.');
   return lines.join('\n');
