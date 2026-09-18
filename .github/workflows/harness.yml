@@ -78,6 +78,21 @@ jobs:
       # Phase 3's exit criterion, re-checked on every push. If the graph stops earning its
       # place, that is a finding, not a nuisance.
       - run: node evals/bench/pack-bench.mjs
+      # why: the Stop hook regenerates CODEBASE-MAP.md on drift, and this repository is the one
+      # place that hook never runs — harness.toml disables Claude activation here so the suite
+      # is not rewritten by the hooks it is changing. The map rotted accordingly: MEASURED
+      # 2026-09-18, the committed file described 112 modules against a tree holding 145, having
+      # last been regenerated on 2026-09-13. A map that has quietly stopped describing the tree
+      # is worse than none (dispatch.mjs, B11), so CI runs the generator the hook would have run
+      # and fails on a diff. Self-exemption is why the hook is absent; it is not a reason for the
+      # guarantee to be absent too.
+      - name: The map still describes the tree
+        run: |
+          node .aidlc/bin/harness map
+          git diff --exit-code -- CODEBASE-MAP.md || {
+            echo "::error file=CODEBASE-MAP.md::stale — run '.aidlc/bin/harness map' and commit the result"
+            exit 1
+          }
 
   cost:
     # Law 4's sibling: a token regression fails the build exactly like a failing test.

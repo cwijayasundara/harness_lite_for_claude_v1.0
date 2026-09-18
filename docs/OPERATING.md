@@ -502,6 +502,13 @@ and the in-loop refusals are costing more than they catch. Measure it: `harness 
 separates a caught mistake from a false block by rule, and a `warn` row is what a relaxed gate
 leaves behind.
 
+Run that audit on two triggers, not one. The 50-session count in Law 10 catches a control that
+never fires. A major model release catches the opposite and more expensive case: a control that
+fires constantly and is no longer needed, because it was written to steer around a limitation
+the new model does not have. The ledger reports the firings either way and cannot tell you which
+kind you are looking at — that judgment is the read of the `why:`, and a release is when it is
+most likely to have gone stale.
+
 ## A gate reads content too
 
 Every precondition above is about an artifact's *state* — committed, ordered, digest unchanged.

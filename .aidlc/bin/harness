@@ -34,7 +34,7 @@ import * as evalGate from '../lib/eval-gate.mjs';
 const gitHead = (root) => { try { return execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf8' }).trim(); } catch { return null; } };
 import * as artifacts from '../lib/artifacts.mjs';
 import * as intake from '../lib/intake.mjs';
-import { renderClaudeInstructions, renderModel, composeProjectInstructions, ignoreFileAdditions, GENERATED_PATHS } from '../lib/projection.mjs';
+import { renderClaudeInstructions, renderModel, composeProjectInstructions, ignoreFileAdditions, renderClaudePermissions, GENERATED_PATHS } from '../lib/projection.mjs';
 import { detect, applyDetection, detectionReport } from '../lib/toolchain.mjs';
 
 const HERE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
@@ -64,12 +64,20 @@ function changedFiles(root) {
   return diffFiles({ layout: { root } });
 }
 
-const PERMISSIONS = { allow: [
+const ALLOW = [
   'Edit(.aidlc/artifacts/**)',
   'Bash(.aidlc/bin/harness:*)',
   'Bash(node .aidlc/bin/harness:*)',
   'Write(.aidlc/artifacts/**)',
-] };
+];
+
+// The deny half is generated, never listed here: see renderClaudePermissions in lib/projection.mjs
+// for the defect. `root` supplies the project's ignore file, whose `!` lines are the opt-out.
+function permissions(root) {
+  let ignore = '';
+  try { ignore = readFileSync(path.join(root, '.gitignore'), 'utf8'); } catch { /* no ignore file */ }
+  return renderClaudePermissions(ALLOW, ignore);
+}
 
 // The plugin identity, read from the two manifests rather than hardcoded. A rename that edits
 // one manifest and not the other must fail the suite, not silently emit an id nobody publishes.
@@ -81,16 +89,16 @@ function pluginIdentity() {
 // What a project commits. It declares which harness it uses and wires nothing: the five hook
 // bindings arrive with the plugin, and declaring them here as well is what made each one fire
 // twice for anyone who followed the README to the end.
-function projectSettings(id) {
-  return { enabledPlugins: { [id]: true }, permissions: PERMISSIONS };
+function projectSettings(id, root) {
+  return { enabledPlugins: { [id]: true }, permissions: permissions(root) };
 }
 
 // This repository builds the harness, so activating the harness here creates a recursive control
 // loop: its Stop hook runs the suite that is currently changing the Stop hook. Disable both ways
 // it could activate (the installed plugin and project-local hook wiring). Consumers still enable
 // the plugin through projectSettings().
-function selfSettings(id) {
-  return { enabledPlugins: { [id]: false }, permissions: PERMISSIONS };
+function selfSettings(id, root) {
+  return { enabledPlugins: { [id]: false }, permissions: permissions(root) };
 }
 
 // Claude always loads a repository's CLAUDE.md, independently of plugins and hooks. Projecting
@@ -289,7 +297,7 @@ async function main() {
       // ran every check with no guide loaded and no way to notice.
       const identity = pluginIdentity();
       writeFileSync(path.join(L.claude, 'settings.json'),
-        JSON.stringify(self ? selfSettings(identity.id) : projectSettings(identity.id), null, 2) + '\n');
+        JSON.stringify(self ? selfSettings(identity.id, L.root) : projectSettings(identity.id, L.root), null, 2) + '\n');
 
       if (!self) {
         // An install made by an older harness carries .claude/runtime/ — the copy of the harness

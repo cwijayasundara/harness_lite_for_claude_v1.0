@@ -55,6 +55,44 @@ export function renderModel(text, model, extra = {}) {
   return `---\n${front}\n---\n${text.slice(match[0].length)}`;
 }
 
+// The paths that hold a credential and are never worth reading. Kept here rather than in
+// harness.toml because this is not a project-specific list: `.env` means the same thing in every
+// repository, and a project that has to remember to configure it is a project that will not.
+export const SECRET_PATHS = ['.env', '.env.*'];
+
+// why: MEASURED 2026-09-18. Both existing defences are about the tree — `.gitignore` makes the
+// file untrackable and the commit stage's scanner fails a tracked `sk-ant-` — and neither is
+// about the agent. Nothing stopped a session reading `.env` and putting the key in a transcript
+// this repository then exports as evidence. The scanner cannot see that; the key never entered
+// the tree. `permissions.deny` is the host's own mechanism for a rule of exactly this shape:
+// unconditional, path-shaped, and evaluated before the tool call rather than after it.
+//
+// `protected_paths` deliberately does NOT come through here. It is conditional — guard.mjs
+// admits a committed approved contract naming that exact path — and a deny rule cannot read a
+// contract, so projecting it would silently remove the escape hatch the contract exists to be.
+//
+// `ignore` is the project's own ignore file: a `!` line naming one of these patterns *exactly*
+// removes it, which is how a project that genuinely keeps no secret in `.env` opts out without
+// editing this file.
+//
+// A `!` line does not punch a hole in a wider pattern, and `.env.example` is the case that
+// settles it. Sparing the example means dropping `.env.*`, which is also `.env.production` —
+// trading a real credential for the convenience of reading a template of key names. Claude's
+// deny rules take no negation, so one of the two had to lose, and it is not the credential. The
+// example stays denied; a human who wants to read it can, and pays one question for it.
+export function renderClaudePermissions(allow, ignore = '') {
+  const excepted = new Set(
+    String(ignore ?? '').split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('!'))
+      .map((line) => line.slice(1).trim()),
+  );
+  const deny = SECRET_PATHS
+    .filter((p) => !excepted.has(p))
+    .flatMap((p) => ['Read', 'Edit', 'Write'].map((tool) => `${tool}(${p})`));
+  return { allow, deny };
+}
+
 export function renderClaudeInstructions(source) {
   return `<!-- Generated from .aidlc/instructions.md; edit the canonical file and run harness init. -->\n${source.trim()}\n`;
 }
