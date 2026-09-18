@@ -86,7 +86,9 @@ delivery, coordination, live campaigns and production adapters are optional and 
 - [x] P1.5 Refresh the pinned install/runtime record from that clean commit.
 - [ ] P1.6 Run the complete offline suite from a clean tree: 632/634 pass, one skip, and one
   environment-blocked assertion because this sandbox denies `ps` (`spawnSync ps EPERM`).
-- [ ] P1.7 Run candidate-bound `check --stage commit --all`; retain JSON evidence.
+- [ ] P1.7 Candidate-bound `check --stage commit --all` ran for `19a4ad7..1472488`: runtime,
+  policy and candidate identity verified; secrets, budget, tamper, architecture and baseline passed;
+  the gate remains open only because the same sandbox-denied `ps` assertion fails the test control.
 - [x] P1.8 Fresh-install into Python and TypeScript fixtures; prove hooks fire from an informal prompt.
 
 Exit: verified identity, full deterministic suite green, two-language smoke green, hook p50/p95
@@ -193,6 +195,6 @@ Decision: retain | revise | remove | blocked
 Evidence:
 ```
 
-Update the delivery register when an item closes. Immediate next action is P1.7, followed by a
-P1.6 rerun in an environment that permits the descendant-process `ps` assertion. Add no adapter,
-telemetry service, skill, agent or hook before these release-evidence gates close.
+Update the delivery register when an item closes. Immediate next action is a P1.6/P1.7 rerun in
+an environment that permits the descendant-process `ps` assertion. Add no adapter, telemetry
+service, skill, agent or hook before these release-evidence gates close.
