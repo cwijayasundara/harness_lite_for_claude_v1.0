@@ -16,7 +16,7 @@
 // and run 3 completed. The stdin pipe was never the variable either; `cee53d1` closed it and run 4
 // still hung.
 //
-// This repository has already paid for this once. `.claude/harness/artifacts/complete-native-comparisons/
+// This repository has already paid for this once. `docs/history/complete-native-comparisons/
 // evidence.md:15` records the same contamination, and the fix was an operator remembering to type
 // `caffeinate -i`. An instrument that depends on the operator remembering is not an instrument,
 // so it lives in the runner now.

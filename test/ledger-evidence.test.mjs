@@ -1,7 +1,7 @@
 // ledger-evidence-not-reporting: the ledger records what fired, how often, and how often a human
 // called a fire wrong. It does not measure benefit, and it is not a place to publish from.
 // The investigation this states the limit for is in
-// .claude/harness/artifacts/ledger-evidence-not-reporting/review.md.
+// docs/history/ledger-evidence-not-reporting/review.md.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';

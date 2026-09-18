@@ -221,7 +221,7 @@ supporting heuristic now recognizes that conditional, with negative regression c
 Saved live verdicts and unnecessary repair costs remain unchanged; deterministic regrading
 of the original document is recorded separately from the measured campaign.
 
-Item 6's `.claude/harness/artifacts/team-reuse/post-fix.mjs` uses the existing `stage` product boundary
+Item 6's `docs/history/team-reuse/post-fix.mjs` uses the existing `stage` product boundary
 and simulated contract helper to exercise two isolated installations and reuse a proven product
 assertion procedure on a second slice. It executes actual Python assertions and candidate
 checks; actor and approval labels explicitly say simulation. Local installations are not two

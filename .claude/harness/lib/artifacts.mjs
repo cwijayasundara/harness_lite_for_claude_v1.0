@@ -51,7 +51,7 @@ export function render(front, body) {
 // make every approval change the thing it approves.
 export const bodyDigest = (text) => hash(parse(text).body.replace(/\r\n/g, '\n').trimEnd() + '\n');
 
-// why: requirement-traceability/reproduction.json: an intent correction and a relationship
+// why: docs/history/requirement-traceability/reproduction.json: an intent correction and a relationship
 // edit both left product authority approved. New approvals bind all non-audit inputs.
 const AUDIT_KEYS = new Set(['status', 'by', 'at', 'digest', 'approval_digest']);
 export function strictParse(text) {

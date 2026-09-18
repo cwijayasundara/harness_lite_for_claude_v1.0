@@ -322,7 +322,7 @@ intent, and no deployment code at all.
 | Directory | Purpose |
 |---|---|
 | `.claude/harness/bin`, `lib`, `checks`, `hooks`, `skills`, `roles`, `templates` | Shared harness implementation and scaffold templates |
-| `.claude/harness/artifacts/` | This repository's own change history and approvals; each consumer project has its own |
+| `docs/history/` | This repository's own change records, from when the harness was built through itself. They are history, not runtime: this repository does not run the harness, so `.claude/harness/artifacts/` does not exist here at all. `harness init` creates it, empty, in a consumer project |
 | `.claude/harness/state/` | Ignored runtime state and caches |
 | `test/` | Deterministic tests of the harness |
 | `evals/` | Development evaluation runners, scenarios and fixtures |

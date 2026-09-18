@@ -12,7 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const EXEMPT = [':!.claude/harness/artifacts', ':!docs/superpowers', ':!test/layout.test.mjs'];
+const EXEMPT = [':!docs/history', ':!docs/superpowers', ':!test/layout.test.mjs'];
 
 const grep = (...pathspec) => {
   try {
@@ -34,7 +34,16 @@ test('the harness lives at .claude/harness and .aidlc is gone', () => {
 });
 
 test('historical artifacts keep their .aidlc references', () => {
-  assert.equal(grep('.claude/harness/artifacts').length, 238);
+  assert.equal(grep('docs/history').length, 238);
+});
+
+// This repository builds the harness; it does not run it (.claude/CLAUDE.md). Its own change
+// records are history and live under docs/history/, so `.claude/harness/artifacts/` means here
+// exactly what it means in a consumer project: empty until `harness new` writes the first change.
+test('the harness tree carries no change records of its own', () => {
+  assert.deepEqual(
+    execFileSync('git', ['-C', ROOT, 'ls-files', '--', '.claude/harness/artifacts'], { encoding: 'utf8' })
+      .split('\n').filter(Boolean), []);
 });
 
 test('the user-facing skill and agent directories stay free for the user', () => {

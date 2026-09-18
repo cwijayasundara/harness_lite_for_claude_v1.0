@@ -86,7 +86,7 @@ load is a run with nobody at the keyboard, which is precisely why the machine wa
 No pilot measured load at all. See the correction in `evals/evidence/…/README.md`.
 
 **This repository had already paid for this once.**
-`.claude/harness/artifacts/complete-native-comparisons/evidence.md:15` records the same contamination —
+`docs/history/complete-native-comparisons/evidence.md:15` records the same contamination —
 *"Sleep materially contaminated latency and process completion; this run cannot support a
 comparative latency decision"* — and the remedy was an operator remembering to type `caffeinate
 -i`. It reached no file the runner could read, so it regressed. An instrument that depends on the

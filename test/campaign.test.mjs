@@ -269,7 +269,7 @@ test('behavioursHaveTests reports a runtime-evidence row as unverifiable, and do
 // Regression for the defect team-lead found: run behavioursHaveTests against rows written in
 // this repository's actual house style — a backtick-quoted test file followed by free prose,
 // and evidence rows that name no test file at all — and confirm none of it is misread as a
-// violation. Rows lifted verbatim from .claude/harness/artifacts/evolving-scope/plan.md itself.
+// violation. Rows lifted verbatim from docs/history/evolving-scope/plan.md itself.
 test('behavioursHaveTests does not fire on this repository\'s real Proof-row house style', () => {
   const d = dir();
   try {

@@ -41,7 +41,7 @@ never a certificate that a change may land.
 ## Reusing a proven product procedure
 
 For a second bounded change to a pure formatting function, reuse the procedure demonstrated by
-`.claude/harness/artifacts/product-design-context/post-fix.mjs`: name the source criterion, approve the
+`docs/history/product-design-context/post-fix.mjs`: name the source criterion, approve the
 new slice's own spec/plan, retain applicable behavior assertions, add an assertion that fails
 before the change, implement, and capture exact-candidate executed proof. Apply it when the
 function and expected outputs are deterministic; it does not establish distributed-system,

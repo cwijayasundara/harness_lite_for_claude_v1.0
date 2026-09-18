@@ -198,7 +198,7 @@ playbook's single-source rule is documented in `OPERATING.md`.
 
 ### G09 — `harness deliver <slug>` (absorbs F10)
 
-**Work:** The driver described in `.claude/harness/artifacts/autonomous-delivery-loop/intent.md`. Phases,
+**Work:** The driver described in `docs/history/autonomous-delivery-loop/intent.md`. Phases,
 each recorded in `.claude/harness/state/deliver/<slug>/phases.json` before it starts and after it ends:
 
 1. `implement`: the `implement` skill on the generator in a forked context, scoped to the plan.

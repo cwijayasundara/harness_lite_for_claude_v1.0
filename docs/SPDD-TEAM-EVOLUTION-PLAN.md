@@ -211,7 +211,7 @@ Only this research document was added; production implementation was not changed
 
 
 **Item 1 delivery record — 8 September 2026.** Implemented only A, under
-[worktree-change-selection](../.claude/harness/artifacts/worktree-change-selection/spec.md).
+[worktree-change-selection](history/worktree-change-selection/spec.md).
 The user approved the reviewed spec and plan in this conversation; the existing approval CLI
 recorded that decision, committed at `4673049`. This does not claim a human CLI invocation,
 authenticated host approval, PR merge or deployment. Earlier research statements above describe
@@ -239,7 +239,7 @@ Acceptance evidence:
 - The unchanged `contract-planned` product fixture was copied to a disposable Git repository.
   An owned `src/app/text.py` edit initially passed; adding unrelated `future-report/intent.md`
   changed it to `fail / draft-awaits-gate`. The pre-fix result is preserved in
-  [reproduction.json](../.claude/harness/artifacts/worktree-change-selection/reproduction.json).
+  [reproduction.json](history/worktree-change-selection/reproduction.json).
 - [worktree-selection.test.mjs](../test/worktree-selection.test.mjs) exercises two real Git
   worktrees with different approved scopes from the same backlog. The new worktree inherits
   no selection. Later committed approval, unrelated intent, draft and stale approval leave
@@ -255,7 +255,7 @@ Acceptance evidence:
 - The full stop stage passed (`secrets`, full unit suite), and the commit stage passed
   (`secrets`, `test`, `scope-drift`, `budget`, `tamper`, `arch`, `test_quality`).
   Exact results and self-review are recorded in
-  [evidence.md](../.claude/harness/artifacts/worktree-change-selection/evidence.md).
+  [evidence.md](history/worktree-change-selection/evidence.md).
 
 Remaining limitations: full committed PR-candidate scope validation is still item 2; the scope
 sensor retains its working-diff boundary. Relationship approvals still have the existing global
@@ -267,7 +267,7 @@ the final human PR/merge gate remains separate.
 
 
 **Item 2 delivery record — 8 September 2026.** Implemented only B under
-[pr-candidate-scope](../.claude/harness/artifacts/pr-candidate-scope/spec.md). The user replied
+[pr-candidate-scope](history/pr-candidate-scope/spec.md). The user replied
 “yes approved” to the reviewed spec and plan; the existing CLI recorded that decision
 in commit `1ae7ad5`. This records the conversation decision, not authenticated host
 review or a human CLI invocation. Existing approved artifact bodies remain intact.
@@ -297,9 +297,9 @@ or remote repository were changed.
 
 Acceptance evidence:
 
-- [reproduction.json](../.claude/harness/artifacts/pr-candidate-scope/reproduction.json) records
+- [reproduction.json](history/pr-candidate-scope/reproduction.json) records
   the original disposable product fixture passing incorrectly after commit;
-  [post-fix.json](../.claude/harness/artifacts/pr-candidate-scope/post-fix.json) records the same
+  [post-fix.json](history/pr-candidate-scope/post-fix.json) records the same
   class of clean-checkout violation failing with exact revision identities.
 - [candidate-scope.test.mjs](../test/candidate-scope.test.mjs) covers multi-commit owned
   changes, both rename directions, owned renames/deletions, unusual filenames and shell
@@ -314,9 +314,9 @@ Acceptance evidence:
   remain confined to disposable fixtures.
 - The full commit stage passed both locally and against clean implementation candidate
   `e0a6e3c` from pre-item-2 base `30a03e3`. The exact candidate/control report is archived in
-  [candidate-report.json](../.claude/harness/artifacts/pr-candidate-scope/candidate-report.json);
+  [candidate-report.json](history/pr-candidate-scope/candidate-report.json);
   verification results and self-review are recorded in
-  [evidence.md](../.claude/harness/artifacts/pr-candidate-scope/evidence.md).
+  [evidence.md](history/pr-candidate-scope/evidence.md).
 
 Limitations: this measures net changes between two commits, not every intermediate edit.
 The caller chooses the base; CI explicitly chooses the PR merge base. The candidate must
@@ -332,16 +332,16 @@ committed-candidate scope gap is resolved by this item.
 only, superseding the earlier item-2-only authorization statement for this new work.
 Inspected clean revision `fecbf1466e70a9cc286b5e4cb72fe3e0857e1111` and the current
 artifact, runner, review and CI code. Prepared
-[intent](../.claude/harness/artifacts/requirement-traceability/intent.md),
-[spec](../.claude/harness/artifacts/requirement-traceability/spec.md) and
-[plan](../.claude/harness/artifacts/requirement-traceability/plan.md) for the existing delivery gates.
+[intent](history/requirement-traceability/intent.md),
+[spec](history/requirement-traceability/spec.md) and
+[plan](history/requirement-traceability/plan.md) for the existing delivery gates.
 The spec and plan remain drafts; item 3 is not delivered.
 
-[reproduction.json](../.claude/harness/artifacts/requirement-traceability/reproduction.json)
+[reproduction.json](history/requirement-traceability/reproduction.json)
 records a disposable `contract-planned` product trial: editing `supersedes` to an invalid
 target and correcting the intent both leave the spec `approved`; the committed candidate
 scope check passes without test execution or per-behaviour execution evidence. The
-[reproduction script](../.claude/harness/artifacts/requirement-traceability/reproduce.mjs) changes
+[reproduction script](history/requirement-traceability/reproduce.mjs) changes
 only a disposable product copy. Fixture approvals are simulations; source fixtures and
 historical repository approvals are untouched.
 
@@ -352,7 +352,7 @@ test-file presence or unavailable host policy to verified evidence. Items 4–6 
 unstarted. No production implementation or host configuration has changed in preparation.
 
 **Item 3 delivery record — 8 September 2026.** Implemented only C under
-[requirement-traceability](../.claude/harness/artifacts/requirement-traceability/spec.md).
+[requirement-traceability](history/requirement-traceability/spec.md).
 The user replied “approved, continue” to its concrete spec and plan; the existing CLI
 recorded those decisions in `20a9435`. This is a conversation decision recorded by the
 agent, not a human CLI invocation or authenticated host approval. Historical artifact
@@ -392,9 +392,9 @@ full protected merge controls remain host responsibilities.
 
 Acceptance evidence:
 
-- [Original reproduction](../.claude/harness/artifacts/requirement-traceability/reproduction.json)
+- [Original reproduction](history/requirement-traceability/reproduction.json)
   preserves the pre-fix product defect, with a reusable disposable-copy script.
-- [Post-fix product evidence](../.claude/harness/artifacts/requirement-traceability/post-fix.json)
+- [Post-fix product evidence](history/requirement-traceability/post-fix.json)
   records real pytest failures and passes, stale authority after a requirement correction,
   simulated reapproval, and negative skipped/unexecuted proof trials. Fixture sources
   were not changed and simulated decisions are labelled.
@@ -406,8 +406,8 @@ Acceptance evidence:
   Older approval tests now supply explicit simulated inputs before committing drafts.
 - The standalone stop stage passed. All commit-stage controls passed on clean final
   implementation candidate `022fb7e`, against pre-item-3 base `fecbf146`:
-  [exact candidate report](../.claude/harness/artifacts/requirement-traceability/candidate-report.json).
-  [Evidence and local self-review](../.claude/harness/artifacts/requirement-traceability/evidence.md)
+  [exact candidate report](history/requirement-traceability/candidate-report.json).
+  [Evidence and local self-review](history/requirement-traceability/evidence.md)
   record commands, results and compatibility limits.
 
 Limitations: external source revisions remain asserted; reviewers judge requirement
@@ -423,14 +423,14 @@ separate. Items 4–6 have not started.
 **Item 4 preparation — 8 September 2026.** The user requested item 4 only, superseding
 its earlier unstarted authorization status. Inspected clean revision `4add89e3741e6a652731c488e68140c78900dc0b`
 and the current relationship reader, approval bindings, status command and regression tests.
-Prepared [intent](../.claude/harness/artifacts/decomposition-allocation/intent.md),
-[spec](../.claude/harness/artifacts/decomposition-allocation/spec.md) and
-[plan](../.claude/harness/artifacts/decomposition-allocation/plan.md) for the existing approval gates.
+Prepared [intent](history/decomposition-allocation/intent.md),
+[spec](history/decomposition-allocation/spec.md) and
+[plan](history/decomposition-allocation/plan.md) for the existing approval gates.
 These are drafts; item 4 is not yet delivered.
 
-[Reproduction](../.claude/harness/artifacts/decomposition-allocation/reproduction.json) records an
+[Reproduction](history/decomposition-allocation/reproduction.json) records an
 independent reporting outcome in a disposable `contract-planned` product copy being refused
-because it lacks a continuity link to title casing. The [script](../.claude/harness/artifacts/decomposition-allocation/reproduce.mjs)
+because it lacks a continuity link to title casing. The [script](history/decomposition-allocation/reproduce.mjs)
 asserts that exact refusal. Approval attempts are simulated; fixture sources are unchanged.
 
 Next handoff: review the concrete spec and plan, record the genuine decisions through the
@@ -441,7 +441,7 @@ item 1–3 authority and evidence guarantees. Items 5–6 remain unstarted.
 
 
 **Item 4 delivery record — 8 September 2026.** Implemented only D under
-[decomposition-allocation](../.claude/harness/artifacts/decomposition-allocation/spec.md).
+[decomposition-allocation](history/decomposition-allocation/spec.md).
 The user replied “approved and continue”; the existing CLI recorded that decision in
 `121193e`, after preparation commit `6145407`. This records the conversation decision,
 not authenticated host review or a human CLI invocation. Approved historical bodies
@@ -469,9 +469,9 @@ Templates, existing guidance and README explain the distinctions and integration
 
 Acceptance evidence:
 
-- [Pre-fix product reproduction](../.claude/harness/artifacts/decomposition-allocation/reproduction.json)
+- [Pre-fix product reproduction](history/decomposition-allocation/reproduction.json)
   and a failing migration regression demonstrate the unwanted approval coupling.
-- [Post-fix product evidence](../.claude/harness/artifacts/decomposition-allocation/post-fix.json)
+- [Post-fix product evidence](history/decomposition-allocation/post-fix.json)
   and its reusable disposable-copy script demonstrate three child outcomes, missing
   integration coverage, independent approval, overlaps, cycles, missing prerequisites,
   changed interfaces and unchanged unrelated authority. All fixture approvals are simulated.
@@ -481,7 +481,7 @@ Acceptance evidence:
   strict declarations and transitive metadata staleness. Supersession tests retain legacy,
   explicit-link and reversal coverage while replacing only mandatory global linkage.
 - Standalone stop and local commit stages passed. Commands, outputs and local self-review
-  are in [evidence.md](../.claude/harness/artifacts/decomposition-allocation/evidence.md).
+  are in [evidence.md](history/decomposition-allocation/evidence.md).
 
 Limits: this is local coordination, not automatic allocation or scheduling. Parent
 coverage is declared, not accepted/delivered truth. Interface content/ancestry checks
@@ -492,7 +492,7 @@ introduced. The final human PR/merge gate remains separate. Items 5–6 remain u
 
 Item 4's full commit stage also passed on clean implementation candidate
 `1d718d72395252f6fd776371d81f604deee3a87d` against pre-item-4 base
-`4add89e3741e6a652731c488e68140c78900dc0b`. The [exact candidate report](../.claude/harness/artifacts/decomposition-allocation/candidate-report.json)
+`4add89e3741e6a652731c488e68140c78900dc0b`. The [exact candidate report](history/decomposition-allocation/candidate-report.json)
 records all seven controls passing. Its revision identity precedes the evidence-only archive
 commit; no hosted run or merge is inferred from this local result.
 
@@ -501,12 +501,12 @@ commit; no hosted run or merge is inferred from this local result.
 its earlier unstarted authorization status. Inspected clean revision
 `c10e2b5fe7e1242bc5feb827df664517f236a8e5`, current artifact bindings and supersession,
 host review evidence, graph/cache, pack/map, status and repository constraints. Prepared
-[intent](../.claude/harness/artifacts/product-design-context/intent.md),
-[spec](../.claude/harness/artifacts/product-design-context/spec.md) and
-[plan](../.claude/harness/artifacts/product-design-context/plan.md). These remain drafts.
+[intent](history/product-design-context/intent.md),
+[spec](history/product-design-context/spec.md) and
+[plan](history/product-design-context/plan.md). These remain drafts.
 
-[Reproduction](../.claude/harness/artifacts/product-design-context/reproduction.json) and its
-[script](../.claude/harness/artifacts/product-design-context/reproduce.mjs) demonstrate a proposed
+[Reproduction](history/product-design-context/reproduction.json) and its
+[script](history/product-design-context/reproduce.mjs) demonstrate a proposed
 hyphen-casing reversal in a disposable existing product. Approving only its spec causes
 the current reader to report the original rule superseded, although no product files
 changed and actual execution still returns `Mary-Jane Watson`. Integration and decisions
@@ -527,7 +527,7 @@ in preparation, and no completed delivery, hosted review or merge is claimed.
 
 
 **Item 5 delivery record — 8 September 2026.** Implemented only E under
-[product-design-context](../.claude/harness/artifacts/product-design-context/spec.md).
+[product-design-context](history/product-design-context/spec.md).
 The user replied “approved and continue”; the existing CLI recorded that decision in
 `d8b0635`, following preparation commit `2120ec4`. This records the conversation decision,
 not authenticated host review or a human CLI invocation. Historical approved artifact
@@ -565,10 +565,10 @@ and bugs that must be fixed against the approved requirement.
 
 Acceptance evidence:
 
-- [Pre-fix product reproduction](../.claude/harness/artifacts/product-design-context/reproduction.json)
+- [Pre-fix product reproduction](history/product-design-context/reproduction.json)
   demonstrates premature approval-time supersession with unchanged executing product code.
-- [Post-fix trial and exact product checks](../.claude/harness/artifacts/product-design-context/post-fix.json)
-  and its [reusable script](../.claude/harness/artifacts/product-design-context/post-fix.mjs) exercise an
+- [Post-fix trial and exact product checks](history/product-design-context/post-fix.json)
+  and its [reusable script](history/product-design-context/post-fix.mjs) exercise an
   existing product's original rule, committed requirement correction, approved pending reversal,
   actual local merge topology and refactor. Real pytest observations pass for all three delivered
   slices, existing regressions pass, refactor assertions and historical contract bytes remain
@@ -582,9 +582,9 @@ Acceptance evidence:
 - Standalone stop and local commit stages passed. The full clean candidate commit stage passed
   on implementation `d16f9979072cb47e0bfcdc346292395eaf9da2b6`, against pre-item-5 base
   `c10e2b5fe7e1242bc5feb827df664517f236a8e5`:
-  [exact candidate report](../.claude/harness/artifacts/product-design-context/candidate-report.json).
-  [Evidence](../.claude/harness/artifacts/product-design-context/evidence.md) and
-  [local self-review](../.claude/harness/artifacts/product-design-context/review.md) record commands,
+  [exact candidate report](history/product-design-context/candidate-report.json).
+  [Evidence](history/product-design-context/evidence.md) and
+  [local self-review](history/product-design-context/review.md) record commands,
   findings, results and compatibility limits. The evidence archive follows that code revision.
 
 Limits: this is partial recorded repository integration, not deployment/feature-flag state,
@@ -600,12 +600,12 @@ remains separate. Item 6 remains unstarted.
 its earlier unstarted authorization status. Inspected clean revision
 `34835f0c75b43908af3ffccc551fae40e5edbd4f`, installer/shim, doctor, runner, ledger,
 installation tests and repository approval constraints. Prepared
-[intent](../.claude/harness/artifacts/team-reuse/intent.md),
-[spec](../.claude/harness/artifacts/team-reuse/spec.md) and
-[plan](../.claude/harness/artifacts/team-reuse/plan.md). These remain drafts; item 6 is not delivered.
+[intent](history/team-reuse/intent.md),
+[spec](history/team-reuse/spec.md) and
+[plan](history/team-reuse/plan.md). These remain drafts; item 6 is not delivered.
 
-[Reproduction](../.claude/harness/artifacts/team-reuse/reproduction.json) and its
-[script](../.claude/harness/artifacts/team-reuse/reproduce.mjs) install into a disposable
+[Reproduction](history/team-reuse/reproduction.json) and its
+[script](history/team-reuse/reproduce.mjs) install into a disposable
 `contract-planned` product. HARNESS_HOME selects a different actual Git commit from the
 consumer's installation record; doctor exits zero without an identity diagnostic.
 Only disposable copies changed; no fixture sources, approvals or production implementation
@@ -622,7 +622,7 @@ historical approvals and the control budget. No paid campaign or remote action i
 by this preparation; the final human PR/merge gate remains separate.
 
 **Item 6 delivery record — 8 September 2026.** Implemented only F under
-[team-reuse](../.claude/harness/artifacts/team-reuse/spec.md). The user replied “approved, lets proceed”;
+[team-reuse](history/team-reuse/spec.md). The user replied “approved, lets proceed”;
 the existing CLI recorded the conversation decision in `3912013`, after preparation `981a0c3`.
 This is not a human CLI invocation or authenticated host approval. Historical approved bodies
 remain unchanged. The preparation record above describes the earlier draft state.
@@ -654,10 +654,10 @@ PR workflow archive exports while retaining failed-check status.
 
 Acceptance evidence:
 
-- [Pre-fix reproduction](../.claude/harness/artifacts/team-reuse/reproduction.json) preserves the
+- [Pre-fix reproduction](history/team-reuse/reproduction.json) preserves the
   product install that silently accepted a different runtime commit.
-- [Post-fix trial](../.claude/harness/artifacts/team-reuse/post-fix.json) and its
-  [script](../.claude/harness/artifacts/team-reuse/post-fix.mjs) compare two fresh isolated local installs
+- [Post-fix trial](history/team-reuse/post-fix.json) and its
+  [script](history/team-reuse/post-fix.mjs) compare two fresh isolated local installs
   from the same exact runtime revision and policy content. Wrong commits, altered runtime
   files and changed policies produce the expected distinctions.
 - The same trial reuses item 5's proven assertion procedure on hyphen and apostrophe product
@@ -669,9 +669,9 @@ Acceptance evidence:
   cover content-only caches, no-fallback refusal, modes, symlinks, hidden policy edits,
   in-check mutation, unavailable Git, unknown/malformed actors, legacy evidence and full CLI
   export round trips. Existing scope, trace and product-staging regressions remain intact.
-- [Evidence](../.claude/harness/artifacts/team-reuse/evidence.md) records focused/full-stage results,
+- [Evidence](history/team-reuse/evidence.md) records focused/full-stage results,
   exact-candidate validation and compatibility repairs.
-  [Local self-review](../.claude/harness/artifacts/team-reuse/review.md) records findings and limits.
+  [Local self-review](history/team-reuse/review.md) records findings and limits.
 
 Limits: these are two isolated environments on one host, not two physical machines or hosted
 CI. Pins, actor labels, configured test observations and exports are unsigned. Matching content
@@ -685,8 +685,8 @@ The final human PR/merge gate remains separate. No work beyond item 6 was starte
 Item 6's full clean candidate commit stage passed on
 `6d98cefa86e37201a223f84dc74d83b7ba73a25a` against pre-item-6 base
 `34835f0c75b43908af3ffccc551fae40e5edbd4f`: all seven controls passed.
-The [candidate report](../.claude/harness/artifacts/team-reuse/candidate-report.json) and
-[invocation export](../.claude/harness/artifacts/team-reuse/candidate-export.json) retain that identity.
+The [candidate report](history/team-reuse/candidate-report.json) and
+[invocation export](history/team-reuse/candidate-export.json) retain that identity.
 An initial test subprocess timeout is also archived; a diagnostic suite and the unchanged
 candidate passed on rerun without changing limits or assertions. The evidence-only archive
 follows the validated candidate. No hosted run or merged delivery is inferred.
@@ -701,7 +701,7 @@ impact, an integration defect that slice suites miss, regression-driven repair a
 that preserves assertions. A fixed evaluator outside the worktrees verifies the integrated
 product; source fixtures and legacy ledger files remain unchanged.
 
-[Recorded campaign evidence](../.claude/harness/artifacts/team-reuse/two-engineer-campaign.json) contains
+[Recorded campaign evidence](history/team-reuse/two-engineer-campaign.json) contains
 candidate reports, separate actor/invocation exports, observed concurrent execution, the refused
 scope violation, the failed integration assertion and final behavior states. The superseded fee
 rule remains historical. See [run instructions](../evals/README.md#two-engineer-product-campaign).

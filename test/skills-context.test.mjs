@@ -1,6 +1,6 @@
 // skills-earn-their-context: a skill is shipped because it says something specific to this
 // harness, or because evidence says it earns its context. This file states that ceiling; the
-// per-skill reasoning is in .claude/harness/artifacts/skills-earn-their-context/review.md.
+// per-skill reasoning is in docs/history/skills-earn-their-context/review.md.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';

@@ -220,7 +220,7 @@ repository's implementation commits.
 ### Item 1 acceptance completion
 
 The user's subsequent instruction to complete item 1, merge to main and push authorizes this
-iteration's scope and delivery. `.claude/harness/artifacts/correct-existing-mechanisms/` records that
+iteration's scope and delivery. `docs/history/correct-existing-mechanisms/` records that
 conversation authority through the ordinary committed spec/plan approval path. It supersedes
 the earlier campaign self-approval exception without rewriting historical approvals.
 
@@ -241,7 +241,7 @@ Item 1 acceptance is complete. Hosted unit/graph and verified Python cost jobs p
 The first hosted runs exposed missing CLI/history and a Git-metadata snapshot-copy failure;
 those defects were fixed and rerun without changing test expectations or token thresholds.
 The actual-plugin integration reported $0.1853427 and passed all phases. Detailed outcomes,
-including incomplete attempts, are in `.claude/harness/artifacts/correct-existing-mechanisms/evidence.md`.
+including incomplete attempts, are in `docs/history/correct-existing-mechanisms/evidence.md`.
 The confirmation review of 6a1cd15 cleared the mechanism corrections and requested two
 documentation fixes: cite this newer CI run and distinguish the completed review archive from
 the earlier timeout. Both are now corrected against recorded evidence. No further model
@@ -267,7 +267,7 @@ unfinished item-1 mechanism tests.
 ### Item 2 implementation, 2026-09-06
 
 The user's instruction to complete item 2, test, merge and push authorizes this delivery.
-The ordinary spec/plan approval records are under `.claude/harness/artifacts/simplify-daily-guidance/`.
+The ordinary spec/plan approval records are under `docs/history/simplify-daily-guidance/`.
 Existing skills now encourage relevant system reads, consequential clarification, existing
 patterns, small behavioural slices, reproduction, runtime proof and honest reporting.
 Intent no longer demands an interview or invented questions, or splits an outcome on "and".
@@ -283,7 +283,7 @@ the graph benchmark passed. The live installed-plugin smoke passed, including ap
 review. The paired guidance sample passed all boundary and product checks with zero unnecessary
 questions/stops in both variants: it demonstrates no regression, not fewer workflow-repair turns.
 That empirical reduction criterion remains unproven. Detailed results, original grading, incomplete
-attempt and costs are recorded in `.claude/harness/artifacts/simplify-daily-guidance/evidence.md`.
+attempt and costs are recorded in `docs/history/simplify-daily-guidance/evidence.md`.
 Full product campaigns remain item 3.
 
 ### Item 3 delivered, 2026-09-06
@@ -414,7 +414,7 @@ conclusively proven cause. Both repairs apply equally to the matched arms.
 
 All twelve deterministic Docker checks passed, including isolation, external approvals,
 seeded-defect rejection, HTTP recovery and failure-with-leaked-server reporting. Full local
-stop/commit results are recorded in `.claude/harness/artifacts/prune-session-inventory/evidence.md`.
+stop/commit results are recorded in `docs/history/prune-session-inventory/evidence.md`.
 The user authorized merging all changes and pushing to main on 2026-09-07. Spec and plan
 approvals are committed, and all final commit checks passed; earlier approvals were not rewritten.
 No hosted CI or separate whole-change model review is claimed. The existing CODEBASE-MAP.md
@@ -439,7 +439,7 @@ session are not claimed. Empty optional capabilities were explicitly skipped.
 
 Portable outcomes, identities, costs and retained failed attempts are in
 `evals/evidence/comparison-summary.json`; findings and limitations are recorded in
-`.claude/harness/artifacts/complete-native-comparisons/evidence.md`.
+`docs/history/complete-native-comparisons/evidence.md`.
 
 
 ### Bounded gap follow-up — 2026-09-08
@@ -532,8 +532,8 @@ adequate solution; this review does not authorize a rewrite or promise blanket f
 | Graph, map and context packing | Freeze feature expansion; usage was repaired so the agent queries the index first (graph-first retrieval). Removal still needs a graph-first versus Grep-first product comparison, which does not exist. Building one on 2026-09-09 established why: the existing `graph` pair is not it — `configureComparison` disables the staged plugin's graph for every harness arm, so both its arms ran with no index and differed only by packs pasted into the prompt, which is the advisory packing this row already rejected. The four earlier arms also saturated at 33/33, so those products cannot separate retrieval strategies. A `retrieval` pair and a discriminating product (`evals/fixtures/retrieval-app`, where `format` is exported by two modules) are now built, tested and reachable by name; a default `--compare` run is unchanged. One bounded attempt aborted at calibration for an unrelated defect, spending USD 0.11 and measuring nothing — recorded in `evals/evidence/retrieval-comparison-aborted.json`, and not a tie. The user chose to land the tooling rather than spend again. Consider removal only after someone runs it. |
 | Coordination and revision-specific product context | Limited to demonstrated D/E needs. Tracker links and targeted Git reads preferred. Selected-change status shows that slice, not a backlog dashboard. Product query kept; delivery.json and pack-revision not expanded. No scheduler or new assignment authority. |
 | Host review and runtime identity | Frozen at the honest surface already shipped. Candidate and pin checks preserved, including the conservative downgrades that refuse a verdict while a branch control is invisible. Host merge policy stays authoritative and is not emulated locally; local JSON, pins, digests and `--by` labels stay unsigned observations. No new assessment state, host verdict field or identity root, and no signing or certification verb. `test/host-evidence.test.mjs` fails if the surface grows, so an addition argues against a recorded limit instead of filling a silence. |
-| Skills and roles | Reviewed per skill at `89b5c20`; the assessment and its findings are in `.claude/harness/artifacts/skills-earn-their-context/review.md`. Five are specific to this harness, `map` additionally measured; `diagnose` and `change-safely` carried generic prose no record motivated, and it is gone. The review also caught `README.md` naming `pure-refactor`, deleted at `3332615`. A skill now enters only with a failing eval or a defect recorded while building an application through the harness — a capable agent being able to follow a recipe is not that evidence — and the ceiling is not raised to admit one. No pack, bundle, overlay or per-domain marketplace; that is the v6 path. `change-safely` was deleted on 2026-09-09 by `retire-change-safely` on the user's decision. Mapping it sentence by sentence before removal corrected that review's own finding F2: four harness-specific rules had no second home, not one, and all four moved into `implement`; four generic rules had none either and were dropped as the criterion intends. The ceiling was deliberately left at its value, so the place the deletion freed belongs to a consuming project — reversing a clause of `skills-earn-their-context#B4` and of `lean-v2#B3`, both named in `supersedes:`. `test/skills-context.test.mjs` fails if the skill set, the ceiling, the verb surface, the stated limit or any rescued rule moves. |
-| Ledger and development evidence | Investigated 2026-09-09 from the rows already held — 8,075 rows over 630 runs from 2026-08-24, 729 of them blocks — and recorded in `.claude/harness/artifacts/ledger-evidence-not-reporting/review.md`. Three blocks have ever been called false, all `bash-guard/contract-scope`. An unflagged block is an uninvestigated one, not a true positive: nothing in a row records what the block prevented, and this is local development history, not a product-benefit sample. 54 blocks since rule labelling carried no rule at all, so `harness ledger flag` could not reach them; `a-block-names-its-rule` closed that on 2026-09-09. The tags `scope-drift`, `tamper` and the test control already built now reach the ledger row, and `write-guard` names which of its four refusals fired. Historical rows are not backfilled: a rule invented for a past block would be a guess in evidence. 120 of `bash-guard`'s 128 attributable fires are `init-force`, and every `map-drift` fire is a reminder to run `harness map`. Fire rate measures busyness and a seeded deterrent test proves reachability; neither measures net benefit, and only an `unreliable` control may be deleted on the ledger's own evidence. History is retained and nothing publishes it — no benefit field, threshold, verdict, subcommand or reporting service. `test/ledger-evidence.test.mjs` fails if any of that changes. |
+| Skills and roles | Reviewed per skill at `89b5c20`; the assessment and its findings are in `docs/history/skills-earn-their-context/review.md`. Five are specific to this harness, `map` additionally measured; `diagnose` and `change-safely` carried generic prose no record motivated, and it is gone. The review also caught `README.md` naming `pure-refactor`, deleted at `3332615`. A skill now enters only with a failing eval or a defect recorded while building an application through the harness — a capable agent being able to follow a recipe is not that evidence — and the ceiling is not raised to admit one. No pack, bundle, overlay or per-domain marketplace; that is the v6 path. `change-safely` was deleted on 2026-09-09 by `retire-change-safely` on the user's decision. Mapping it sentence by sentence before removal corrected that review's own finding F2: four harness-specific rules had no second home, not one, and all four moved into `implement`; four generic rules had none either and were dropped as the criterion intends. The ceiling was deliberately left at its value, so the place the deletion freed belongs to a consuming project — reversing a clause of `skills-earn-their-context#B4` and of `lean-v2#B3`, both named in `supersedes:`. `test/skills-context.test.mjs` fails if the skill set, the ceiling, the verb surface, the stated limit or any rescued rule moves. |
+| Ledger and development evidence | Investigated 2026-09-09 from the rows already held — 8,075 rows over 630 runs from 2026-08-24, 729 of them blocks — and recorded in `docs/history/ledger-evidence-not-reporting/review.md`. Three blocks have ever been called false, all `bash-guard/contract-scope`. An unflagged block is an uninvestigated one, not a true positive: nothing in a row records what the block prevented, and this is local development history, not a product-benefit sample. 54 blocks since rule labelling carried no rule at all, so `harness ledger flag` could not reach them; `a-block-names-its-rule` closed that on 2026-09-09. The tags `scope-drift`, `tamper` and the test control already built now reach the ledger row, and `write-guard` names which of its four refusals fired. Historical rows are not backfilled: a rule invented for a past block would be a guess in evidence. 120 of `bash-guard`'s 128 attributable fires are `init-force`, and every `map-drift` fire is a reminder to run `harness map`. Fire rate measures busyness and a seeded deterrent test proves reachability; neither measures net benefit, and only an `unreliable` control may be deleted on the ledger's own evidence. History is retained and nothing publishes it — no benefit field, threshold, verdict, subcommand or reporting service. `test/ledger-evidence.test.mjs` fails if any of that changes. |
 
 The local ledger audit reported 7,493 rows over 593 runs when this review was written on
 2026-09-08, including three `contract-scope` firings flagged false; the ledger row above carries a
@@ -747,7 +747,7 @@ the user on 2026-09-09 rather than delete the `why:` comments needed to reach it
 
 The evaluator reviewed `the-index-tracks-the-source` read-only over the committed snapshot
 (claude-opus-5, USD 1.71) and returned **changes-requested**. Its findings are filed at
-`.claude/harness/artifacts/the-index-tracks-the-source/review.md`; `the-gate-grades-what-it-can-measure`
+`docs/history/the-index-tracks-the-source/review.md`; `the-gate-grades-what-it-can-measure`
 repairs them.
 
 **The review found a regression three deterministic gates had passed.** `check_stop_tokens`
