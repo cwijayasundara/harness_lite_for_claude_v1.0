@@ -46,9 +46,12 @@ claude_md_lines = 120
 `;
 
 function run(root, args, input = undefined, env = {}) {
+  // Measure the production CLI, not Node's parent test-runner IPC lifecycle. Claude Code does
+  // not set these; inheriting them makes each nested Node process wait about four seconds.
+  const { NODE_TEST_CONTEXT, NODE_TEST_WORKER_ID, ...productionEnv } = process.env;
   return spawnSync(process.execPath, [BIN, ...args], {
     cwd: root, encoding: 'utf8', input: input === undefined ? undefined : JSON.stringify(input),
-    env: { ...process.env, ...env },
+    env: { ...productionEnv, ...env },
   });
 }
 
@@ -122,13 +125,18 @@ for (const [language, product] of Object.entries(products)) {
     // it dirty also proves Stop consumes the turn's Git diff rather than only the last hook input.
     writeFileSync(path.join(root, product.test), `${product.testBody}\n`);
     assert.equal(run(root, ['hook', 'session-start'], { cwd: root, hook_event_name: 'SessionStart' }, { HOME: home }).status, 0);
+    const postStarted = performance.now();
     const post = run(root, ['hook', 'post-write'], {
       cwd: root, hook_event_name: 'PostToolUse', tool_name: 'Edit',
       tool_input: { file_path: path.join(root, product.source) },
     }, { HOME: home });
+    const postMs = Math.round(performance.now() - postStarted);
     assert.equal(post.status, 0, post.stderr);
+    const stopStarted = performance.now();
     const stop = run(root, ['hook', 'stop'], { cwd: root, hook_event_name: 'Stop' }, { HOME: home });
+    const stopMs = Math.round(performance.now() - stopStarted);
     assert.equal(stop.status, 0, stop.stderr || stop.stdout);
+    t.diagnostic(JSON.stringify({ schema: 'harness.hook-latency-sample/v1', language, post_write_ms: postMs, stop_ms: stopMs }));
 
     const rows = readFileSync(path.join(root, '.claude/harness/state/ledger.jsonl'), 'utf8')
       .trim().split('\n').map((line) => JSON.parse(line));

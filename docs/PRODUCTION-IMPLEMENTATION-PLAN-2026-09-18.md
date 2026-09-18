@@ -56,6 +56,7 @@ States: `DELIVERED`, `RETAIN`, `OPTIONAL`, `REMOVE`, `REOPEN`, `BLOCKED`.
 | D18 | DELIVERED | `doctor --production` rejects missing required profiles and missing full/targeted tests | Do not add a second readiness command |
 | D19 | DELIVERED | Production admission fails installed agent-name collisions | Do not allow an advisory collision in production mode |
 | D20 | DELIVERED | Fresh Python and TypeScript installs pass production admission and automatically run edit/Stop QA without SDLC artifacts | Keep this as the consumer seam; do not substitute source-repository tests |
+| D21 | DELIVERED | Hook latency emits machine-readable Python/TypeScript samples; commit-stage regression proves the full suite runs once | Treat the initial two-language sample as a baseline, not a productivity claim |
 
 D06–D09 and D16–D19 are committed at `19a4ad7` with verified runtime identity. D20 is covered by
 `test/production-install-smoke.test.mjs`; it creates isolated repositories and isolated homes so
@@ -87,13 +88,22 @@ delivery, coordination, live campaigns and production adapters are optional and 
 - [x] P1.6 Complete offline suite: 636 tests, 634 pass, zero fail, two explicit skips. The
   descendant-process test preflights process-table access before creating its immortal fixture;
   it still runs the complete assertion on hosts that permit `ps` and skips honestly under EPERM.
-- [ ] P1.7 Candidate-bound `check --stage commit --all` ran for `19a4ad7..1472488`: runtime,
-  policy and candidate identity verified; secrets, budget, tamper, architecture and baseline passed;
-  the gate remains open only because the same sandbox-denied `ps` assertion fails the test control.
+- [x] P1.7 Candidate-bound `check --stage commit --all` passed for `3d8efea..b5ae6bb`:
+  `ok: true`, verified runtime/policy/candidate identity, and passing secrets, test, budget, tamper,
+  architecture and baseline controls. Scope emitted the expected advisory because this maintenance
+  commit predates an executable change selection; it was not promoted to delivery evidence.
 - [x] P1.8 Fresh-install into Python and TypeScript fixtures; prove hooks fire from an informal prompt.
 
 Exit: verified identity, full deterministic suite green, two-language smoke green, hook p50/p95
 recorded, and no duplicate full-suite execution.
+
+Phase 1 exit evidence (2026-09-18): PostToolUse samples were 4,038 ms (Python) and 4,058 ms
+(TypeScript), p50 4,048 ms and nearest-rank p95 4,058 ms. Stop samples were 4,037 ms and
+4,050 ms, p50 4,044 ms and nearest-rank p95 4,050 ms. These are conservative nested-consumer
+measurements from `test/production-install-smoke.test.mjs`; the same run emits the raw JSON rows.
+`test/unit.test.mjs` proves a candidate commit stage invokes the full test command exactly once.
+The direct source-checkout fast stage measured 0.24 s, but it is not substituted for consumer
+latency. Phase 1 is complete; performance improvement remains an evidence-led optimization.
 
 ## Phase 2 — Enforce project admission
 
@@ -196,6 +206,6 @@ Decision: retain | revise | remove | blocked
 Evidence:
 ```
 
-Update the delivery register when an item closes. Immediate next action is a P1.6/P1.7 rerun in
-an environment that permits the descendant-process `ps` assertion. Add no adapter, telemetry
-service, skill, agent or hook before these release-evidence gates close.
+Update the delivery register when an item closes. Phase 1 is complete. Immediate next action is
+Phase 2 admission enforcement, starting with P2.2 and adding no adapter, telemetry service, skill,
+agent or hook.
