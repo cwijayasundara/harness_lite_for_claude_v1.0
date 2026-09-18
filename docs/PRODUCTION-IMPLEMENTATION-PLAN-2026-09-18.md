@@ -55,9 +55,11 @@ States: `DELIVERED`, `RETAIN`, `OPTIONAL`, `REMOVE`, `REOPEN`, `BLOCKED`.
 | D17 | DELIVERED | Anthropic audit and production admission contract | Redo only if source/runtime materially changes |
 | D18 | DELIVERED | `doctor --production` rejects missing required profiles and missing full/targeted tests | Do not add a second readiness command |
 | D19 | DELIVERED | Production admission fails installed agent-name collisions | Do not allow an advisory collision in production mode |
+| D20 | DELIVERED | Fresh Python and TypeScript installs pass production admission and automatically run edit/Stop QA without SDLC artifacts | Keep this as the consumer seam; do not substitute source-repository tests |
 
-D06–D09 and D16 are in the current working tree. They become release evidence only after Phase 1
-commits them, refreshes runtime identity and passes the complete suite.
+D06–D09 and D16–D19 are committed at `19a4ad7` with verified runtime identity. D20 is covered by
+`test/production-install-smoke.test.mjs`; it creates isolated repositories and isolated homes so
+an unrelated locally installed Claude plugin cannot contaminate the result.
 
 ## Production boundary
 
@@ -77,14 +79,15 @@ delivery, coordination, live campaigns and production adapters are optional and 
 
 ## Phase 1 — Stabilize the minimal runtime
 
-- [ ] P1.1 Review the current diff against D01–D17; exclude unrelated user changes.
-- [ ] P1.2 Update tests that assert retired ambient graph/read behavior; preserve boundary tests.
-- [ ] P1.3 Regenerate derived hook/settings projections through repository generators.
-- [ ] P1.4 Commit the runtime change so identity checks have a real candidate.
-- [ ] P1.5 Refresh the pinned install/runtime record from that clean commit.
-- [ ] P1.6 Run the complete offline suite from a clean tree: zero failures.
+- [x] P1.1 Review the current diff against D01–D17; exclude unrelated user changes.
+- [x] P1.2 Update tests that assert retired ambient graph/read behavior; preserve boundary tests.
+- [x] P1.3 Regenerate derived hook/settings projections through repository generators.
+- [x] P1.4 Commit the runtime change so identity checks have a real candidate.
+- [x] P1.5 Refresh the pinned install/runtime record from that clean commit.
+- [ ] P1.6 Run the complete offline suite from a clean tree: 632/634 pass, one skip, and one
+  environment-blocked assertion because this sandbox denies `ps` (`spawnSync ps EPERM`).
 - [ ] P1.7 Run candidate-bound `check --stage commit --all`; retain JSON evidence.
-- [ ] P1.8 Fresh-install into Python and TypeScript fixtures; prove hooks fire from an informal prompt.
+- [x] P1.8 Fresh-install into Python and TypeScript fixtures; prove hooks fire from an informal prompt.
 
 Exit: verified identity, full deterministic suite green, two-language smoke green, hook p50/p95
 recorded, and no duplicate full-suite execution.
@@ -190,6 +193,6 @@ Decision: retain | revise | remove | blocked
 Evidence:
 ```
 
-Update the delivery register when an item closes. Immediate next action is Phase 1 only: add no
-adapter, telemetry service, skill, agent or hook while the current runtime change is uncommitted
-and the complete deterministic suite has not passed against refreshed identity.
+Update the delivery register when an item closes. Immediate next action is P1.7, followed by a
+P1.6 rerun in an environment that permits the descendant-process `ps` assertion. Add no adapter,
+telemetry service, skill, agent or hook before these release-evidence gates close.
