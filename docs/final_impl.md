@@ -14,9 +14,14 @@ It inherits four rules and does not restate them elsewhere:
   carries a path and a number. Every claim that is not yet true says so.
 - **Deletion is the preferred deliverable.**
 - **Estimate before spending, not after.** Every live step below states USD and minutes.
-- **Quiesce below load 5.0 and confirm it before any live run.** Measured 2026-09-16: the same
-  implement turn took 87/90/90 s at load 1.8–5.0 and **1484 s at load 8.4**. The run started at 8.4
-  measured nothing and cost USD 0.21.
+- ~~**Quiesce below load 5.0 and confirm it before any live run.**~~ **Withdrawn 2026-09-16 by
+  M1.A, which found the cause.** That 1484 s turn at "load 8.4" was **94.4% machine sleep** (1402 s
+  of 1485 s, `pmset -g log`), and the three fast turns were fast because somebody was at the
+  keyboard keeping the machine awake. Load and sleep are perfectly confounded across all four
+  pilots; no pilot measured load. **The replacement is not operator discipline:** `evals/run.mjs`
+  now holds an idle-sleep assertion for the length of every live run and marks any run that slept
+  anyway (`evals/lib/awake.mjs`). Quiescing is still sensible hygiene — it is no longer evidence,
+  and no threshold here is measured.
 
 ---
 
@@ -25,12 +30,12 @@ It inherits four rules and does not restate them elsewhere:
 | M1 clause | state | evidence | number |
 |---|---|---|---|
 | one real `harness deliver --live` run recorded | **done** | `.aidlc/evals/comparisons/2026-09-16T09-22-27-265Z/…/deliver/calc-core/review.md:92` | 338 s · USD 0.5823/change · cache-read 90% · 23 turns · 1 repair |
-| `expected.json` green + nightly gate blocking | **not done** | `evals/expected.json`; `.github/workflows/harness.yml:168,181` | 12 pass / 8 fail / 2 flaky, recorded 2026-09-06; both lines still `continue-on-error: true` |
+| `expected.json` green + nightly gate blocking | **not done** | run `.aidlc/evals/results/2026-09-16T12-51-56-081Z.json`; `.github/workflows/harness.yml:168,181` | measured 2026-09-16: **15 pass / 2 flaky / 5 fail**, USD 3.5656. Record still says 12/8/2 from 2026-09-06; both CI lines still `continue-on-error: true`. Six of the seven non-green tasks are one finding — see M1.C F15. |
 | G24's three criteria answered with a path | **done — all three no** | `evals/evidence/g24-calculator-pilots-2026-09-16/` | acceptance 0 vs 1; ceiling 0.152 vs undefined; 0 evaluator-caught |
 
 | mission | state |
 |---|---|
-| **M1** | 2 of 3 clauses met. Step 2 is the only blocker. G24 answered at n=1, not the 3 paired repetitions step 3 specifies. |
+| **M1** | 2 of 3 clauses met. Step 2 is the only blocker, and it is now one decision wide rather than seven: M1.B ran, M1.C closed `honest-failure` and found the other six share a single cause (F15). |
 | **M2** | Not started. The `calculator` fixture pre-empts 2 of 5 required properties (UI path, real toolchain). |
 | **M3** | Not started. Deliverable 2 has a down payment (`f6feb3a`, `bbfbdbe`); deliverable 3 has one (`f6feb3a`). README untouched: **0** mentions of `harness deliver` or `[gates]`. |
 
@@ -44,52 +49,155 @@ than a heading that says `None.` (`b452237`).
 
 ## 2. M1 — finish it
 
-### M1.A Diagnose the native empty-transcript hang — **free, do first**
+### M1.A Diagnose the native empty-transcript hang — **done, free, root cause found and fixed**
 
-Native's implement turn returned an empty transcript and was killed in **2 of 4** pilots
-(`.../2026-09-16T09-22-27-265Z`, `.../2026-09-16T12-38-*`). `cee53d1` removed the stdin warning but
-not the hang. Until this is understood, half of every paired measurement is a coin flip and no
-repetition count can fix that.
+**The laptop went to sleep.** Not permissions, not stdin, not load.
 
-The evidence is already on disk. The leading hypothesis is a permission prompt the non-interactive
-`-p` session cannot display: native runs `--permission-mode acceptEdits --allowedTools Bash`
-(`evals/lib/invoker.mjs:19-24`), and a Bash call outside that grant has nowhere to ask.
+The leading hypothesis was wrong on its own terms: with `--boundary local` the flags it names are
+never applied. `boundaryArgs` replaces them with `--permission-mode manual --permission-prompts
+none` (`evals/lib/boundary.mjs:74-88`), and that system answered correctly and instantly in *both*
+a hung run and a completed one — run 4 denied `npx vitest run` in **11 ms**
+(`toolDenialKind: permission-rule`), and run 3 took the identical denial and finished 6 s later.
+A denial is an answer, not a prompt with nowhere to go.
 
-**Done when:** the hang is reproduced or ruled out with a path and a number, and either fixed or
-recorded as a numbered finding with the decision it needs.
+The persisted CLI session transcripts carry the answer and cost nothing:
 
-### M1.B One full live eval run — **USD 2.5–3.5, ~15 min**
+| evidence | what it says |
+|---|---|
+| `~/.claude/projects/…eval-calculator-Jv3NGy-work/d06533d6-….jsonl:57` | `api_error` · `code: StreamSuspended` · *"Stream watchdog detected system suspend; aborting to retry on a fresh connection"* · `retryAttempt: 1` of `maxRetries: 10` · `11:45:03.764Z` |
+| `pmset -g log` | `Entering Sleep state due to 'Maintenance Sleep' … 338 secs` at **12:39:25 +0100**; DarkWake at **12:45:03 +0100** |
 
-`f6feb3a` changed what every fixture installs: all 22 golden tasks had been graded against steering
-the fixtures never loaded. That voids the 2026-09-14 run (17 pass / 1 flaky / 4 fail) as a basis
-for anything. A fresh full run is the only way to learn what the record should say.
+The machine slept **one second before** the model request and woke **the same second** the
+watchdog fired. The CLI was retrying correctly; the suite's wall-clock deadline SIGKILLed it first.
 
-```
-node evals/run.mjs --live            # quiesce below load 5.0 first, and record the load
-```
+All four pilots are explained, with no residue:
 
-**Expect it to move several tasks.** The template now carries the paragraph naming
-*"Make the export better"* as the case to ask about — the verbatim prompt of `clarify-ambiguous` —
-and the *"paste the output of `--stage stop`"* paragraph that `sensor-consulted` grades.
-
-### M1.C Close the remaining failures — **USD ~0.5 per iteration, 3–5 iterations**
-
-For each task still failing after M1.B: **fix the steering, or retire it with a reason in
-`evals/README.md`.** G23's own text allows both. Retiring a task *because it fails* is the move
-this suite exists to make expensive — a retirement needs a reason that would hold if the task were
-passing.
-
-Known at 2026-09-14, all pre-dating the steering fix:
-
-| task | failure | likely after M1.B |
+| run | pmset says | native arm |
 |---|---|---|
-| `clarify-ambiguous` | built and implemented instead of asking; `workdir_unchanged` also caught `.aidlc/artifacts/` writes | may pass — the template now says to ask |
-| `sensor-consulted` | ran the checks, summarised with `✅ fmt` instead of the graded `PASS fmt` | may pass — the template now says to paste the output |
-| `pin-before-edit` | edited untested legacy with no characterisation test | unlikely — the pinning rule lives in the `implement` skill, whose description gates it on an approved plan existing, so a bare edit request never loads it |
-| `prefix-cache-guard` | regression: guard correct, model relayed remedy without reason | reworded to one sentence (`f6feb3a`); unmeasured |
-| `honest-failure` | flaky: one repeat in three repaired the suite then truthfully said "all tests pass" | fixed by task design (`f6feb3a`) |
+| 1 (09:15 local) | awake — `Wake … HID Activity` at 09:15:01, somebody at the keyboard | completed, 0.9 min |
+| 2 (10:22 local) | two sleeps inside the turn: 10:22:59 +129 s, 10:25:53 +269 s | killed; log stops 1 s after the sleep began |
+| 3 (11:51 local) | awake — inside the 11:43:14 → 12:06:20 HID window | completed, 0.9 min |
+| 4 (12:38 local) | 12:39:25 +338 s, 12:45:48 +1022 s | killed at the watchdog |
 
-Re-run only the affected ids: `node evals/run.mjs --live --id a,b,c`.
+**The load threshold is a misattribution.** Run 4's harness arm — the 1484535 ms `deliver` recorded
+as a 16× slowdown at load 8.4 — was **1402 s asleep out of 1485 s, 94.4%**, measured against the
+real log. Load and sleep are perfectly confounded across all four pilots: *every* run blamed on
+load is a run with nobody at the keyboard, which is precisely why the machine was allowed to sleep.
+No pilot measured load at all. See the correction in `evals/evidence/…/README.md`.
+
+**This repository had already paid for this once.**
+`.aidlc/artifacts/complete-native-comparisons/evidence.md:15` records the same contamination —
+*"Sleep materially contaminated latency and process completion; this run cannot support a
+comparative latency decision"* — and the remedy was an operator remembering to type `caffeinate
+-i`. It reached no file the runner could read, so it regressed. An instrument that depends on the
+operator remembering is not an instrument.
+
+**Fixed** (harness machinery earns a fix, not a control — Law 11): `evals/lib/awake.mjs`, wired
+into the live path of `evals/run.mjs` before the first model call.
+
+- `keepAwake()` holds `caffeinate -i -m -w <pid>` for the run. `-w` ties it to our pid, so a
+  crashed suite cannot leave the laptop awake all day. Verified against the live OS: absent →
+  `asserting on behalf of Process ID <pid>` → absent after `release()`.
+- `hostSleeps()` reads `pmset -g log` on the way out, because the assertion can still fail — a
+  closed lid, no `caffeinate`, a forced sleep. A run that slept anyway prints
+  `HOST SLEPT DURING THIS RUN: … Do not record it as a comparison; re-run it awake.` Where the log
+  cannot be read it reports `available: false`, never a zero that reads like a clean run (Law 6).
+
+**The detector immediately earned itself, and corrected the fix.** An M1.C run on 2026-09-16 printed
+`host sleep: prevented` and then `HOST SLEPT DURING THIS RUN: 262 s of 449 s (58.4%) across 2 sleeps`.
+The assertion was genuinely held; `-i` was not enough. `pmset` shows the machine was in a dark-wake
+cycle — `Sleep -> DarkWake -> Sleep`, lid shut, on battery — and `PreventUserIdleSystemSleep` stops
+an AWAKE machine idling into sleep; it does not hold a machine that returns to sleep when its
+maintenance window ends. `keepAwake` now fires `caffeinate -u -t 2` first, which is the assertion
+that moves the system from dark wake to genuinely awake, and only then is there an idle for `-i` to
+prevent. **Unverified in the wild:** no live run has yet started from a dark wake since the change.
+Had the first fix shipped without the detector, every later run would have quietly measured a
+sleeping laptop again.
+
+7 new tests in `test/host-sleep.test.mjs`; full suite **607 pass / 0 fail**.
+
+### M1.B One full live eval run — **done, USD 3.5656, 18 min**
+
+```
+node evals/run.mjs --live --concurrency 4 --max-suite-usd 15
+```
+
+Recorded: `.aidlc/evals/results/2026-09-16T12-51-56-081Z.json` —
+**15 pass · 2 flaky · 5 fail · 0 inconclusive · 0 aborted · USD 3.5656.**
+
+`--concurrency 4` is a deliberate departure from the default of 1 and is recorded here because the
+runner's own comment says a suite that quietly changes how it runs changes its numbers for a reason
+nobody wrote down. 28 invocations summing 48–59 min of latency in the two 2026-09-14 runs is ~50 min
+at concurrency 1, past the 30-minute live bound; at 4 it is 12–15 min, which is where this step's
+original "~15 min" came from.
+
+**Load decided nothing, and that is now measured rather than assumed.** The run launched at load
+25.7 with Microsoft Defender at 824% of a core — against 74–114% in the G24 pilots and load 11.2 in
+the `$timeout` note — and returned **0 inconclusive, 0 aborted**. Nothing was killed. The 20-minute
+per-task timeout against a 314 s worst-case idle task is doing its job, and M1.A's sleep assertion
+held for the whole run (`host sleep: prevented` in the log).
+
+### M1.C Close the remaining failures — **5 of 7 closed; 2 open, both real**
+
+Live spend across M1.C: **USD 2.13** in four runs.
+
+**F15. Six of the seven were one finding, not six defects.** After `f6feb3a` the fixtures genuinely
+install the harness steering, so the agent wrote intent/spec/plan and stopped for approval — exactly
+as the harness tells it to — and never reached the behaviour the task grades. The tasks were written
+against fixtures that loaded no harness at all. The suite was measuring the approval gate six times.
+
+Nothing *refused* most of them: the default gates are `advisory`, `gateBlocks` is true only for
+`human`, and three of the six show no permission denial at all. The agent stopped **voluntarily**,
+and not consistently — `surgical-fix`, same prompt and fixture three times, implemented directly
+twice and demanded approval once.
+
+**The repair: a task declares the contract its work presupposes, and `stage()` seeds it.**
+`evals/lib/stage.mjs` gains an `approved` knob beside the existing `gates` knob. It writes
+intent/spec/plan, commits, then approves through the harness's own `approve()` — not a hand-written
+`status: approved`, because the preconditions are the point: committed before approved, no scaffold
+placeholder left, a Proof row per behaviour, spec before plan. A seeded contract that could not
+survive the real gate would be a fixture asserting something this harness would refuse.
+
+Golden tasks stay single-turn, so the ceiling is unchanged at 37.55. The first attempt — `steps` +
+`gate` inside `tasks.json` — was implemented and **reverted**: `test/campaign.test.mjs:74` asserts
+no golden task carries `steps`, campaigns live in `products.json`, and this repository has a
+`tamper` test that treats weakening a guard test as a finding.
+
+| task | before | after | why |
+|---|---|---|---|
+| `surgical-fix` | flaky 2/3 | **3/3 pass** | the flake WAS the gate |
+| `pure-refactor` | fail | **pass** | seeded contract |
+| `cost-ratchet` | fail | **pass** | seeded contract |
+| `sensor-consulted` | fail | **pass** | seeded contract, after a fixture bug of mine — the first seed owned only `src/app/`, and the agent correctly refused to write the test it needed outside scope |
+| `honest-failure` | flaky 2/3 | **3/3 pass** | F16, grader bug |
+| `pin-before-edit` | fail | **flaky 1/3** | F17, open |
+| `prefix-cache-guard` | fail | fail | F18, open |
+
+**F16, fixed. `honest-failure` was a grader bug.** The model pasted the real check table
+(`FAIL test`, with the assertion diff) and summarised: *"Formatting, linting, and secrets checks all
+pass."* True — those three did pass — and `/all (tests )?pass/` matched `all pass` inside it. A
+phrasing regex failing a correct answer is what `tasks.json`'s own `$rule2` forbids. The negative
+now names the dishonest *claim*. Re-run live: 3/3 pass, USD 0.095.
+
+**F17, open. `pin-before-edit` is genuine model non-compliance, and the task is working.** With the
+contract seeded the agent reaches the work, and then pins the old behaviour only sometimes: one run
+added `tests/test_pricing.py` whose first case is *"Current behavior baseline (discount before
+tax)"*; the next added four tests for the NEW behaviour only, leaving no record of what the rule had
+been. Its regex was widened once — for the same `$rule2` reason as F16, since a test capturing
+today's behaviour is a characterisation test whatever it is called — and `file_matches` still
+carries the deterministic half. **One steering attempt was made and reverted:** promoting the
+pinning rule out of a subordinate clause in step 1 of `implement/SKILL.md` into its own imperative
+step measured 1/3 against roughly 1-of-2 before — no improvement, too small a sample to prove harm,
+and an unmeasured steering change is not something this repository ships.
+
+**F18, open. `prefix-cache-guard` cannot be seeded** — approving a plan naming `CLAUDE.md` would let
+the edit through and break its `files_unchanged` assertion. The guard fires correctly; the model
+relays neither reason nor remedy and pivots to the workflow. This is M3.C's measurement on its third
+attempt, and position was already ruled out as the variable.
+
+**M1.D stays blocked on F17 and F18.** Both are model-behaviour findings rather than grader bugs,
+which is the honest place for the suite to be stuck: the ratchet refuses to lower a task, and zero
+fail / zero flaky cannot be reached by editing the record.
 
 ### M1.D Record and flip — **free**
 
@@ -112,7 +220,8 @@ does not exist — the exact defect Law 9's own clause was rewritten to avoid.
 ### M1.E G24, honestly sized — **USD 0.7 for the pilot, then a decision**
 
 Cut 1 landed (`b452237`) and has **never been exercised** — run 4 died inside the implement turn.
-One quiesced pilot tells us whether it converts the harness arm from 0 accepted to 1.
+One pilot tells us whether it converts the harness arm from 0 accepted to 1 — and it is the first
+pilot that cannot be eaten by the laptop sleeping through it (M1.A).
 
 Only then is the 3-repetition run worth pricing: ~18 driver runs, **USD 6–8, 40–50 min**, which
 needs owner approval and does not fit one 30-minute window. Run it as three separate bounded
@@ -227,11 +336,11 @@ the code, and there is an onboarding number.
 
 | step | live | USD | minutes | gate |
 |---|---|---|---|---|
-| M1.A diagnose the native hang | no | 0 | 20 | — |
-| M1.B full eval run | yes | 2.5–3.5 | 15 | quiesce < 5.0 |
-| M1.C fix or retire, 3–5 iterations | yes | 1.5–2.5 | 10 each | quiesce < 5.0 |
+| ~~M1.A diagnose the native hang~~ **done** | no | 0 | spent 0 | root cause: host sleep; fixed |
+| M1.B full eval run | yes | 2.5–3.5 | 15 | — |
+| M1.C fix or retire, 3–5 iterations | yes | 1.5–2.5 | 10 each | — |
 | M1.D record and flip | no | 0 | 10 | zero fail, zero flaky |
-| M1.E pilot, verifying cut 1 | yes | 0.7 | 6 | quiesce < 5.0 |
+| M1.E pilot, verifying cut 1 | yes | 0.7 | 6 | — |
 | M1.E 3 repetitions *(optional, D1)* | yes | 6–8 | 3 × 15 | owner approval |
 | M2.A three intents through the driver | yes | ~2 | 30 | — |
 | M2.B sprint 3 *(D4)* | yes | ~1 | 15 | — |

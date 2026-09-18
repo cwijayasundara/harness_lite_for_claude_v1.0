@@ -114,7 +114,11 @@ export function loadConfig(root) {
     // repository — an agent edited it in a task about a health endpoint. A plan that names it
     // still may change it, as any protected path. Merged ahead of the project's own list.
     guard: {
-      deny_bash: [], require_contract: true, ...(raw.guard ?? {}),
+      // The read gate's threshold, in lines. 350 is where a whole-file read stops being cheaper
+      // than the index: pack-bench measures 20–38% saved on the toy fixture and 84–97% on files
+      // the size of this repository's own. `0` turns the gate off for a project whose tree the
+      // graph does not index.
+      deny_bash: [], require_contract: true, read_lines: 350, ...(raw.guard ?? {}),
       protected_paths: [...new Set(['.aidlc/harness.toml', ...(raw.guard?.protected_paths ?? [])])],
     },
     // lean-v2 B7. Three model ids: the `implement` skill and the `evaluator` agent are rendered

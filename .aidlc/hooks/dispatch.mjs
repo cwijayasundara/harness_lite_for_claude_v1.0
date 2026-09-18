@@ -14,7 +14,7 @@ import { refresh } from '../lib/refresh.mjs';
 import { changedFiles } from '../lib/diff.mjs';
 import * as graph from '../lib/graph.mjs';
 import * as codemap from '../lib/map.mjs';
-import { writeRefusal, releaseDecision, bashTouchesProtected, bashContractRefusal, commandText } from '../lib/guard.mjs';
+import { writeRefusal, releaseDecision, bashTouchesProtected, bashContractRefusal, commandText, readRefusal, bashReadRefusal } from '../lib/guard.mjs';
 import { invocation, sessionContext } from '../lib/session.mjs';
 
 const readStdin = () => new Promise((res) => {
@@ -135,7 +135,24 @@ function preBash(input, cfg) {
         const p = bashTouchesProtected(cmd, PREFIX_CACHE_PATHS);
         if (p) return fired('prompt-prefix', `this command writes to ${p} through the shell, which bypasses the write guard. Instruction and permission changes require the approved scope.`);
         ledger.append({ stage: 'pre-bash', control: 'bash-guard', verdict: 'pass', ms: 0, findings: 0 }, cfg.layout);
+        // cat/head/tail is the way round the Read hook. Recorded as `read-gate`, not
+        // `bash-guard`: one control across both surfaces, or the audit sees two halves that each
+        // look too quiet to keep. The row above stands — every bash-guard rule did pass.
+        const big = bashReadRefusal(cmd, cfg);
+        ledger.append({ stage: 'pre-bash', control: 'read-gate', rule: big?.rule ?? null,
+          verdict: big ? 'fail' : 'pass', ms: 0, findings: big ? 1 : 0 }, cfg.layout);
+        if (big) return deny(big.message);
   return 0;
+}
+
+// The read gate. The judgment is `readRefusal`'s, in lib/guard.mjs with the other refusals and
+// the tests that plant their defects; this is the row it writes and the denial it returns.
+function preRead(input, cfg) {
+  const file = input.tool_input?.file_path ?? input.tool_input?.path ?? '';
+  const hit = readRefusal(file, cfg, input.tool_input ?? {});
+  ledger.append({ stage: 'pre-read', control: 'read-gate', rule: hit?.rule ?? null,
+    verdict: hit ? 'fail' : 'pass', ms: 0, findings: hit ? 1 : 0 }, cfg.layout);
+  return hit ? deny(hit.message) : 0;
 }
 
 // B11. A bare symbol searched with Grep or Glob is a question the index has already answered at
@@ -185,6 +202,7 @@ export async function dispatch(event) {
       case 'pre-tool': {
         const tool = input.tool_name ?? '';
         if (tool === 'Bash') return preBash(input, cfg);
+        if (tool === 'Read') return preRead(input, cfg);
         if (tool === 'Grep' || tool === 'Glob') return preSearch(input, cfg);
         return preWrite(input, cfg);
       }

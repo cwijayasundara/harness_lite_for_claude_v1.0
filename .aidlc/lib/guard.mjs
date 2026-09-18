@@ -336,3 +336,78 @@ export function bashContractBlocked(cmd, cfg) {
 
 
 
+
+// The read gate. `preSearch` already answers a Grep with what the index knows, advisory because
+// a refused search is one people learn to route around. A whole-file Read is the other half of
+// that behaviour and it is not the same kind of call: it is the largest avoidable input cost in
+// a session, and unlike a search it has an exact escape that costs nothing — the same Read with
+// offset/limit. So this one refuses, and names both ways forward.
+//
+// The number it leans on is this repository's own: evals/bench/pack-bench.mjs scores `harness
+// pack` at 100% recall and a 90.3% token reduction over ten golden queries, 84–97% on files the
+// size of the ones this fires on. Spotify's `shunt` plugin reports the same 90% for the same
+// move, arrived at from the other direction — it ships the file corpus to a cheaper model; the
+// index answers without a second model at all.
+export const READ_LINES = 350;
+
+// Read renders these rather than pasting lines, so a line count measures nothing about what the
+// call costs, and a refusal would break the one way to look at them.
+const RENDERED = /\.(png|jpe?g|gif|webp|bmp|ico|pdf|ipynb)$/i;
+
+const readLimit = (cfg) => {
+  const n = cfg?.guard?.read_lines;
+  return Number.isInteger(n) && n >= 0 ? n : READ_LINES;
+};
+
+// Why the threshold and the two escapes are in the message and the fix is not: evidence.md F2 —
+// a refusal that ends "or turn the gate off" gets the gate turned off.
+const readMessage = (rel, lines, limit) =>
+  `${rel} is ${lines} lines (whole-file reads are gated above ${limit}). `
+  + 'The index answers most questions asked of a source file for a fraction of it: '
+  + 'harness pack <symbol>, or harness graph query callers <symbol>. '
+  + 'If you need the exact text — to edit it, or because the index missed — read this same file '
+  + 'again with offset/limit for the range you need. A targeted read is never refused.';
+
+// `tool_input` is passed through rather than read here so the same judgment is available to a
+// caller that has a path and no tool call (the Bash surface below is exactly that).
+export function readRefusal(rel, cfg, tool_input = {}) {
+  const limit = readLimit(cfg);
+  if (!limit || !rel) return null;
+  // A targeted read is the escape this gate points at. Never block one.
+  if (tool_input.offset != null || tool_input.limit != null) return null;
+  if (RENDERED.test(rel)) return null;
+  const root = cfg?.layout?.root;
+  const norm = root ? path.relative(root, path.resolve(root, rel)) : rel;
+  // A path outside the repository is outside what the index covers; same carve-out the write
+  // guard gives. `artifactOrState` covers the other half: a spec or plan is not a lookup, it is
+  // the terms the write that follows is judged against, and nothing indexes it to pack instead.
+  if (norm.startsWith('..') || artifactOrState(norm)) return null;
+  let lines;
+  try { lines = readFileSync(path.resolve(root ?? '.', norm), 'utf8').split('\n').length; }
+  catch { return null; } // missing, unreadable or binary: let Read report its own error
+  if (lines <= limit) return null;
+  return refuse('whole-file-read', readMessage(norm, lines, limit));
+}
+
+// cat/head/tail is the way round the Read hook. Same judgment, same rule name, so the audit
+// counts one control rather than two halves that each look too quiet to keep.
+const READ_CMD = /(^|[|;&]\s*)(cat|head|tail|less|more)\s+(.+)$/;
+// A line or byte count is a targeted read, whatever the file's total size is.
+const COUNTED = /^(-\d+|-[nc]$|--lines|--bytes)/;
+
+export function bashReadRefusal(cmd, cfg) {
+  if (!readLimit(cfg)) return null;
+  const text = String(cmd ?? '');
+  // A pipe is a targeted read and a redirect never enters the context at all.
+  if (/[|>]/.test(text)) return null;
+  const m = READ_CMD.exec(text.trim());
+  if (!m) return null;
+  const args = m[3].split(/\s+/);
+  if (args.some((a) => COUNTED.test(a))) return null;
+  for (const arg of args) {
+    if (arg.startsWith('-')) continue;
+    const hit = readRefusal(arg.replace(/^["']|["']$/g, ''), cfg);
+    if (hit) return hit;
+  }
+  return null;
+}

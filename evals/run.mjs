@@ -266,7 +266,9 @@ export async function runSuite({ tasks, invoke, fixturesDir, harnessBin, baselin
   const runTask = async (t) => {
     const runs = [];
     for (let i = 0; i < (t.repeats ?? 1); i++) {
-      const s = stage(fixturesDir, t.fixture, {product:!!t.product, gates:t.gates ?? null});
+      // M1.C F15. `approved` seeds the contract a task's work presupposes, so a single-turn task
+      // can reach the behaviour it grades instead of stopping at the gate. See evals/lib/stage.mjs.
+      const s = stage(fixturesDir, t.fixture, {product:!!t.product, gates:t.gates ?? null, approved:t.approved ?? null});
       const trialDir = t.product ? path.join(evidenceRoot, `${new Date().toISOString().replace(/[:.]/g,'-')}-${t.id}-${i+1}`) : null;
       if(t.product) stageProduct(s,PLUGIN_ROOT);
       try {
@@ -421,6 +423,26 @@ async function main() {
     console.error('No model calls made. Live subscription trials require --live; use --dry for offline validation.');
     return 2;
   }
+  // M1.A. A live run measures wall-clock latency and enforces wall-clock deadlines, and a laptop on
+  // battery does not stay awake to be measured. MEASURED 2026-09-16: two of the four G24 calculator
+  // pilots measured nothing because the machine entered Maintenance Sleep mid-turn while the
+  // suite's deadline kept running, and a third of a turn recorded as a 16x load slowdown was 91.6%
+  // asleep. `evals/lib/awake.mjs` carries the evidence and the exact correlation.
+  //
+  // Taken before the first model call: nothing should be spent into a machine that is about to
+  // sleep through the answer. The assertion can still fail — a closed lid, no `caffeinate` — so the
+  // run reads the power log on the way out and marks a contaminated number rather than printing it
+  // as a measurement.
+  const { keepAwake, hostSleeps, sleepBanner, awakeBanner } = await import('./lib/awake.mjs');
+  const awake = keepAwake();
+  const liveStartedAt = Date.now();
+  console.log(awakeBanner(awake));
+  const reportHostSleep = () => {
+    awake.release();
+    const banner = sleepBanner(hostSleeps({ sinceMs: liveStartedAt }));
+    if (banner) console.log(`\n${banner}`);
+  };
+
   const authentication = requireSubscription({ product: products, cwd: PLUGIN_ROOT });
   console.log(`authentication: ${authentication}; API billing disabled; repository .env not loaded`);
 
@@ -457,6 +479,7 @@ async function main() {
       console.log(JSON.stringify({evidenceRoot,verdictFile:file,verdict},null,2));
     }
     console.log(JSON.stringify({evidenceRoot,summary:out.summary,calibrations:out.calibrations},null,2));
+    reportHostSleep();
     return out.attempts.every(a=>a.status==='pass')?0:1;
   }
 
@@ -507,6 +530,7 @@ async function main() {
       for (const a of run.assertions.filter((a) => !a.pass)) console.log(`    ${a.name}: ${a.detail}`);
     }
   }
+  reportHostSleep();
   // Flaky is not green. A suite that rounds 2-of-3 up is a suite that stops detecting drift.
   // Inconclusive is not green either — it is a question the suite failed to ask.
   return out.summary.fail || out.summary.flaky || out.summary.inconclusive ? 1 : 0;

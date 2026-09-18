@@ -5,7 +5,8 @@ import { spawn, spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { selectChange } from '../../.aidlc/lib/artifacts.mjs';
+import { selectChange, approve, render, file as artifactFile } from '../../.aidlc/lib/artifacts.mjs';
+import { loadConfig } from '../../.aidlc/lib/config.mjs';
 
 // The product's own test command. `calculator` is React + TypeScript on vitest, so this is no
 // longer `node --test`: a product with a real toolchain runs the toolchain's runner, and the
@@ -50,7 +51,52 @@ export function linkDependencies(fixtureDir, root) {
   return link;
 }
 
-export function stage(fixturesDir, name, { product = false, native = false, gates = null } = {}) {
+// M1.C F15. MEASURED 2026-09-16, the first full run since `f6feb3a` made fixtures actually install
+// the harness steering: six of the seven non-green tasks failed the same way. The agent wrote
+// intent/spec/plan and stopped for approval — exactly what the harness tells it to do — and never
+// reached the behaviour the task grades. `sensor-consulted` never ran a check, `pure-refactor`
+// never extracted the function, `pin-before-edit` never wrote a characterisation test. The tasks
+// were written against fixtures that loaded no harness at all, so each grades work that only
+// happens AFTER an approval the suite never supplied. The suite was measuring the gate six times.
+//
+// A task that presupposes an approved contract now says so, and gets one. Single-turn stays
+// single-turn: no second model call, no `steps` in a golden task (`test/campaign.test.mjs` keeps
+// campaigns in products.json, and that invariant is not weakened to make this work).
+//
+// Through the harness's own `approve()` rather than a hand-written `status: approved`, because the
+// preconditions are the point — committed before approved, no scaffold placeholder left, a Proof
+// row per behaviour, the spec before the plan. A seeded contract that could not survive the real
+// gate would be a fixture asserting something this harness would refuse.
+function seedApprovedContract(work, contract, git) {
+  const { slug, outcome, behaviour, files, proof } = contract;
+  const cfg = loadConfig(work);
+  const dir = path.join(work, '.aidlc/artifacts', slug);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, 'intent.md'), render({ status: 'draft' },
+    `# Intent: ${slug}\n\n## Problem\n\n${outcome}\n\n## Outcome\n\n${outcome}\n`));
+  writeFileSync(artifactFile(cfg, slug, 'spec'), render({ status: 'draft' },
+    `# Spec: ${slug}\n\n## Outcome\n\n${outcome}\n\n`
+    + `## Requirements\n\n| Source criterion | Behaviour IDs |\n|---|---|\n| local:${slug} | B1 |\n\n`
+    + `## Observable behaviours\n\n### B1\n\n${behaviour}\n\n`
+    + `## Design\n\n${outcome}\n\n`
+    + `## Out of scope\n\nEverything outside ${files.join(', ')}.\n\n`
+    + `## Safeguards\n\nPreserve existing public behaviour and the passing tests.\n`));
+  writeFileSync(artifactFile(cfg, slug, 'plan'), render({ status: 'draft' },
+    `# Plan\n\n## Approach\n\n${outcome}\n\n`
+    + `## Files\n\n${files.map((f) => '- `' + f + '`').join('\n')}\n\n`
+    + `## Order\n\n1. Make the change and run the project's checks.\n\n`
+    + `## Proof\n\n| Behaviour | Test or evidence |\n|---|---|\n| B1 | ${proof} |\n`));
+  // Committed before approved, which `approve()` enforces and which is the honest order anyway.
+  git('add', '-A');
+  git('-c', 'commit.gpgsign=false', 'commit', '-qm', `contract: ${slug}`);
+  for (const kind of ['spec', 'plan']) {
+    approve(cfg, slug, kind, { by: 'seeded-test-fixture' });
+    git('add', '-A');
+    git('-c', 'commit.gpgsign=false', 'commit', '-qm', `approve ${slug}/${kind}`);
+  }
+}
+
+export function stage(fixturesDir, name, { product = false, native = false, gates = null, approved = null } = {}) {
   const base = path.join(fixturesDir, '_base');
   const fx = path.join(fixturesDir, name);
   if (!existsSync(fx)) throw new Error(`no fixture "${name}" in ${fixturesDir}`);
@@ -99,6 +145,7 @@ export function stage(fixturesDir, name, { product = false, native = false, gate
   git('config', 'user.name', 'eval');
   git('add', '-A');
   git('-c', 'commit.gpgsign=false', 'commit', '-qm', 'fixture');
+  if (approved) seedApprovedContract(work, approved, git);
   // This existing fixture represents execution of this named change, not backlog inference.
   if (!native && name === 'contract-planned') selectChange({ layout: { root: work, artifacts: path.join(work, '.aidlc/artifacts') } }, 'hyphen-titlecase');
   // The baseline compares source bytes, not repository internals. Copying .git adds mutable
