@@ -93,6 +93,9 @@ export function loadConfig(root) {
     // This is selection, not another registry: the capability commands remain the only executable
     // source and a profile merely says which of them can satisfy a production responsibility.
     sensors: raw.sensors ?? {},
+    // Production exceptions are committed policy, never ambient state. Admission validates the
+    // target, owner, reason and expiry and rejects stale/unused records.
+    waivers: raw.waivers ?? {},
     check: { fail_fast: true, ...(raw.check ?? {}) },
     graph: { include: ['.', '.claude/harness'], exclude: ['node_modules', '.venv', 'dist', 'target', '.git', '.claude/worktrees'], ...(raw.graph ?? {}) },
     // G03. Only `max_findings` is read — by `buildReport`, to cap what a control shows the model.

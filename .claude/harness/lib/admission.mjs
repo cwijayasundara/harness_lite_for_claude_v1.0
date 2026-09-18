@@ -4,7 +4,33 @@
 
 const configured = (cfg, verb) => verb === 'secrets' || Boolean(String(cfg.capabilities?.[verb] ?? '').trim());
 
-export function assessProduction(cfg) {
+const plain = (value) => typeof value === 'string' && value.trim().length > 0 && value.length <= 500;
+
+function applyWaivers(cfg, findings, knownTargets, now) {
+  const active = [], invalid = [], blocking = [...findings];
+  for (const [target, waiver] of Object.entries(cfg.waivers ?? {})) {
+    let reason = null;
+    if (!knownTargets.has(target)) reason = 'unknown waiver target';
+    else if (!waiver || typeof waiver !== 'object' || Array.isArray(waiver)) reason = 'waiver must be a table';
+    else if (!plain(waiver.reason)) reason = 'reason is required';
+    else if (!plain(waiver.owner)) reason = 'owner is required';
+    else if (!plain(waiver.expires) || !Number.isFinite(Date.parse(waiver.expires))) reason = 'expiry must be an ISO timestamp';
+    else if (Date.parse(waiver.expires) <= now) reason = `expired at ${waiver.expires}`;
+    const index = blocking.findIndex((finding) => finding.name === target);
+    if (!reason && index < 0) reason = 'waiver is unused because the target is healthy';
+    if (reason) {
+      invalid.push({ target, status: 'invalid', reason });
+      blocking.push({ kind: 'waiver', name: `waiver:${target}`, reason });
+      continue;
+    }
+    const [finding] = blocking.splice(index, 1);
+    active.push({ target, status: 'active', owner: waiver.owner.trim(), reason: waiver.reason.trim(),
+      expires: new Date(Date.parse(waiver.expires)).toISOString(), finding });
+  }
+  return { findings: blocking, waivers: [...active, ...invalid] };
+}
+
+export function assessProduction(cfg, { now = Date.now() } = {}) {
   const sensors = cfg.sensors ?? {};
   // A project may add profiles, but it cannot make production admission easier by deleting the
   // names from required_profiles. Architecture is conditional because some products have no
@@ -32,17 +58,21 @@ export function assessProduction(cfg) {
     verb, ok: configured(cfg, verb),
     reason: configured(cfg, verb) ? null : `${verb} is required for full and targeted behaviour feedback`,
   }));
-  const findings = [
+  const rawFindings = [
     ...profiles.filter((p) => !p.ok).map((p) => ({ kind: 'profile', name: p.profile, reason: p.reason })),
     ...commands.filter((c) => !c.ok).map((c) => ({ kind: 'command', name: c.verb, reason: c.reason })),
   ];
-  return { schema: 'harness.production-admission/v1', ok: findings.length === 0, profiles, commands, findings };
+  const applied = applyWaivers(cfg, rawFindings, new Set([...required, ...requiredCommands]), now);
+  return { schema: 'harness.production-admission/v1', ok: applied.findings.length === 0,
+    profiles, commands, waivers: applied.waivers, findings: applied.findings };
 }
 
 export function renderProduction(result) {
   const lines = [`production admission: ${result.ok ? 'PASS' : 'FAIL'}`];
-  for (const p of result.profiles) lines.push(`  ${p.ok ? 'PASS' : 'FAIL'} profile ${p.profile}: ${p.live.join(', ') || p.reason}`);
-  for (const c of result.commands) lines.push(`  ${c.ok ? 'PASS' : 'FAIL'} command ${c.verb}${c.reason ? `: ${c.reason}` : ''}`);
+  const waived = new Set((result.waivers ?? []).filter((w) => w.status === 'active').map((w) => w.target));
+  for (const p of result.profiles) lines.push(`  ${p.ok ? 'PASS' : waived.has(p.profile) ? 'WAIVED' : 'FAIL'} profile ${p.profile}: ${p.live.join(', ') || p.reason}`);
+  for (const c of result.commands) lines.push(`  ${c.ok ? 'PASS' : waived.has(c.verb) ? 'WAIVED' : 'FAIL'} command ${c.verb}${c.reason ? `: ${c.reason}` : ''}`);
+  for (const w of result.waivers ?? []) lines.push(`  ${w.status === 'active' ? 'WAIVED' : 'FAIL'} waiver ${w.target}: ${w.status === 'active' ? `${w.owner}, expires ${w.expires} — ${w.reason}` : w.reason}`);
   for (const f of result.findings.filter((finding) => finding.kind === 'agent-collision')) lines.push(`  FAIL ${f.name}: ${f.reason}`);
   if (result.findings.some((f) => f.kind === 'profile' || f.kind === 'command'))
     lines.push('Configure missing capabilities in .claude/harness/harness.toml; SKIP is not production evidence.');

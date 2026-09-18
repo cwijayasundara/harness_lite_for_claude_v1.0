@@ -29,8 +29,20 @@ sensor profile and the candidate-bound CI workflow passes. At minimum:
 - hardening: secret scanning plus the project's dependency/security check;
 - architecture: an executable boundary check for systems where architectural drift is material.
 
-An empty command is an explicit `SKIP`, never a pass. Teams may waive a sensor only in reviewed
-configuration with a reason and an owner.
+An empty command is an explicit `SKIP`, never a pass. A temporary exception is committed beside
+the sensor configuration and names exactly one failing profile or required command:
+
+```toml
+[waivers.architecture]
+reason = "Legacy boundary migration tracked in ENG-1234"
+owner = "platform-team"
+expires = "2026-10-01T00:00:00Z"
+```
+
+`doctor --production` shows active waivers. Missing reason/owner, unreadable or expired dates,
+unknown targets, and waivers whose target is already healthy all fail admission. Review happens
+through the ordinary code-review protection on this committed policy; the harness does not invent
+a second approval identity or waiver database.
 
 ## Evidence required before broad rollout
 

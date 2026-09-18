@@ -5,7 +5,7 @@ import { assessProduction, renderProduction } from '../.claude/harness/lib/admis
 const cfg = (capabilities = {}, sensors = {
   behaviour: ['test'], architecture: ['arch'], hardening: ['secrets', 'deps'], qa: ['fmt', 'lint', 'typecheck'],
   required_profiles: ['behaviour', 'architecture', 'hardening', 'qa'],
-}) => ({ capabilities, sensors });
+}, waivers = {}) => ({ capabilities, sensors, waivers });
 
 test('production admission rejects an installed harness whose sensors would all skip', () => {
   const result = assessProduction(cfg());
@@ -54,4 +54,32 @@ test('architecture is required when declared and optional when the project has n
   }));
   assert.equal(withArchitecture.ok, false);
   assert.equal(withArchitecture.findings.find((f) => f.name === 'architecture').kind, 'profile');
+});
+
+test('a reviewed unexpired waiver is visible and temporarily removes only its named finding', () => {
+  const now = Date.parse('2026-09-18T12:00:00Z');
+  const result = assessProduction(cfg({ test: 't', test_changed: 'tc', lint: 'lint' }, {
+    behaviour: ['test'], hardening: ['secrets'], qa: ['lint'], architecture: ['arch'], required_profiles: [],
+  }, { architecture: { reason: 'legacy boundary migration', owner: 'platform-team', expires: '2026-10-01T00:00:00Z' } }), { now });
+  assert.equal(result.ok, true, JSON.stringify(result.findings));
+  assert.deepEqual(result.waivers.map((w) => [w.target, w.status]), [['architecture', 'active']]);
+  assert.match(renderProduction(result), /WAIVED waiver architecture: platform-team, expires 2026-10-01T00:00:00.000Z/);
+});
+
+test('expired, malformed, unknown and unused waivers fail production admission', () => {
+  const now = Date.parse('2026-09-18T12:00:00Z');
+  const base = { test: 't', test_changed: 'tc', lint: 'lint' };
+  for (const [target, waiver, message] of [
+    ['qa', { reason: 'x', owner: 'team', expires: '2026-09-18T11:59:59Z' }, /expired/],
+    ['qa', { reason: '', owner: 'team', expires: '2026-10-01T00:00:00Z' }, /reason is required/],
+    ['invented', { reason: 'x', owner: 'team', expires: '2026-10-01T00:00:00Z' }, /unknown waiver target/],
+    ['test', { reason: 'x', owner: 'team', expires: '2026-10-01T00:00:00Z' }, /unused/],
+  ]) {
+    const capabilities = target === 'qa' ? { ...base, lint: '' } : base;
+    const result = assessProduction(cfg(capabilities, {
+      behaviour: ['test'], hardening: ['secrets'], qa: ['lint'], required_profiles: [],
+    }, { [target]: waiver }), { now });
+    assert.equal(result.ok, false, target);
+    assert.match(result.findings.find((f) => f.kind === 'waiver').reason, message);
+  }
 });
