@@ -1,6 +1,6 @@
-# Claude Harness Lean
+# Harness Lite for Claude Code
 
-A lean AIDLC harness for Claude Code. You describe what you want in plain English; Claude walks
+A lean AIDLC harness for Claude Code, currently released as **v0.2.0**. You describe what you want in plain English; Claude walks
 it through `intent → spec → plan → code → review`, stopping at three human approval gates, with
 deterministic checks (tests, lint, secrets, plan scope-drift) enforced by hooks.
 
@@ -11,8 +11,8 @@ Works with any language. Zero dependencies — no `npm install`, ever.
 ## Requirements
 
 - Git
-- Node.js 18+
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview)
+- Node.js 22–25 (CI exercises Node 22; Node 26 is not yet verified)
+- Claude Code 2.1.263 or a compatible 2.x release (Claude Code 3.x is not yet verified)
 
 ---
 
@@ -21,7 +21,7 @@ Works with any language. Zero dependencies — no `npm install`, ever.
 ### 1. Clone this harness somewhere permanent
 
 ```bash
-git clone https://github.com/cwijayasundara/harness_lite_for_claude_v1.0.git ~/lean-harness-cs-v1
+git clone --branch v0.2.0 https://github.com/cwijayasundara/harness_lite_for_claude_v1.0.git ~/lean-harness-cs-v1
 ```
 
 ### 2. Go to your project — it must be a git repo
@@ -134,7 +134,7 @@ installed `.claude/harness/bin/harness` is a shell shim.
 ### 5. Commit the installation
 
 ```bash
-git add .claude/harness .claude && git commit -m "Install company AIDLC harness"
+git add .claude CLAUDE.md && git commit -m "Install Harness Lite"
 ```
 
 Commit `.claude/harness/` and whichever provider projections the pod uses. `.claude/harness/state/` is already
@@ -147,7 +147,7 @@ copy them into your project; it only records that your project wants them.
 
 ```bash
 claude plugin marketplace add cwijayasundara/harness_lite_for_claude_v1.0
-claude plugin install lean-harness-cs-v1@lean-harness-cs-v1
+claude plugin install lean-harness-cs-v1@lean-harness-cs-v1 --scope project
 ```
 
 Every teammate runs these two commands once. After that, any project whose committed
@@ -158,8 +158,8 @@ Two things worth knowing, both measured rather than assumed:
 
 - `enabledPlugins` in a project's settings **enables** an installed plugin; it does not install
   one. That is why the two commands above cannot be skipped.
-- Installing at user scope enables the plugin everywhere on that machine, not only in projects
-  that declare it. Use `claude plugin install --scope project` if you would rather it stayed put.
+- Project scope keeps the plugin associated with the projects that declare it. Omit
+  `--scope project` only when you deliberately want it enabled at user scope on that machine.
 
 To try the harness without installing anything, point Claude at a checkout for one session:
 
@@ -187,6 +187,18 @@ Take docs/search-prd.md through the Lean AIDLC workflow as faster-search.
 Claude will investigate, ask you a few focused questions, and write
 `.claude/harness/artifacts/<slug>/intent.md`. Then it stops and waits for you.
 
+You can also create the artifact set explicitly, or intake a checked-in PRD:
+
+```bash
+.claude/harness/bin/harness new add-orders-pagination
+.claude/harness/bin/harness new faster-search --from docs/search-prd.md
+.claude/harness/bin/harness new search-work --from docs/search-prd.md --split
+```
+
+`--split` creates a child change for each `## Story` or acceptance-criteria group. For an external
+HTTPS source, add `--revision <external-revision>` so its identity cannot silently move underneath
+an approval.
+
 ---
 
 ## The loop you'll repeat
@@ -206,6 +218,7 @@ Approve a gate with one command, after the artifact is committed:
 
 ```bash
 .claude/harness/bin/harness approve <slug> spec --by "your name"
+.claude/harness/bin/harness approve <slug> plan --by "your name"
 ```
 
 Commit the approval, then tell Claude:
@@ -217,6 +230,27 @@ Approved. Continue the workflow.
 The three gates are spec approval, plan approval, and PR merge. Everything else runs without
 waiting. Editing an approved spec or plan afterwards reports `stale-approval` and stops it
 governing anything, so a gate cannot quietly still read as passed while the text under it moved.
+
+Before implementation, select the approved change in the current worktree:
+
+```bash
+.claude/harness/bin/harness status --change <slug>
+```
+
+Selection is local to that worktree and grants no approval. Reselect after switching branches;
+clear it after delivery with `harness status --clear-change`.
+
+For a bounded autonomous implementation after plan approval:
+
+```bash
+.claude/harness/bin/harness deliver <slug> --dry
+.claude/harness/bin/harness deliver <slug> --live
+.claude/harness/bin/harness deliver <slug> --status
+```
+
+`--dry` shows the phases, models and bounds without spending model budget. `--live` implements,
+checks, reviews and repairs within `[deliver].max_minutes` and `[deliver].max_usd`; it never merges.
+An interrupted run is resumable.
 
 ---
 
@@ -250,7 +284,109 @@ Everything below is optional; Claude runs these itself during normal work.
 .claude/harness/bin/harness doctor --production  # fail if required QA would be skipped
 .claude/harness/bin/harness status     # where is each change in the chain?
 .claude/harness/bin/harness check --stage stop    # run the checks yourself
+.claude/harness/bin/harness check --stage commit --all  # full pre-PR controls
+.claude/harness/bin/harness ledger audit          # inspect control reliability
+.claude/harness/bin/harness metrics --days 30     # inspect delivery outcomes
 ```
+
+### Check stages
+
+| Stage | Intended use | Runs |
+|---|---|---|
+| `fast` | During editing | formatting, lint, types and secrets |
+| `stop` | Before Claude finishes a turn | fast checks and tests |
+| `commit` | Before a PR or merge candidate | stop plus scope, budget, tamper, architecture and proof checks |
+| `drift` | Periodic dependency/coverage review | coverage and dependency checks |
+
+Use `--changed` to target changed files, `--all` to continue after failures, and `--json` for
+machine-readable output. Before enrolling a production project, require both commands to pass:
+
+```bash
+.claude/harness/bin/harness doctor --production
+.claude/harness/bin/harness check --stage commit --all
+```
+
+### Pull requests and CI
+
+Generate the starter GitHub Actions workflow during initialization:
+
+```bash
+node ~/lean-harness-cs-v1/.claude/harness/bin/harness init --into . --ci
+```
+
+Review `.github/workflows/harness.yml`, add the project's toolchain setup, and configure branch
+protection to require its check plus a human/code-owner review. For optional independent model
+review, create a Claude subscription token with `claude setup-token` and store it as the repository
+secret `CLAUDE_CODE_OAUTH_TOKEN`. The workflow cannot approve or merge its own PR.
+
+Put exactly one change reference in each PR description:
+
+```text
+Harness-Change: <slug>
+```
+
+To check an exact candidate locally or in another CI system:
+
+```bash
+.claude/harness/bin/harness check --stage commit \
+  --base <base-sha> --candidate <head-sha> --change <slug> --json
+```
+
+The checkout must be clean, at `<head-sha>`, and have full Git history.
+
+### Live releases
+
+Checks do not grant deployment authority. If your delivery process requires a temporary release
+window, authorize the current `HEAD`, inspect it, and revoke it when finished:
+
+```bash
+.claude/harness/bin/harness release approve --by "your name" --minutes 60
+.claude/harness/bin/harness release status
+.claude/harness/bin/harness release revoke
+```
+
+This is local, time-bounded evidence—not a deployment command, signature, or substitute for the
+hosting platform's approvals.
+
+### Upgrade, downgrade, disable and uninstall
+
+Update the shared plugin, restart Claude Code, and regenerate the project projection and immutable
+installation record:
+
+```bash
+claude plugin update lean-harness-cs-v1@lean-harness-cs-v1
+node ~/lean-harness-cs-v1/.claude/harness/bin/harness init --into .
+.claude/harness/bin/harness doctor --production
+.claude/harness/bin/harness check --stage commit --all
+git add .claude CLAUDE.md && git commit -m "Upgrade Harness Lite"
+```
+
+If using a checkout through `HARNESS_HOME`, fetch and check out the desired immutable tag first.
+Downgrading follows the same sequence with the previous tag; never edit `harness-install.json` by
+hand.
+
+```bash
+claude plugin disable lean-harness-cs-v1@lean-harness-cs-v1
+claude plugin uninstall lean-harness-cs-v1@lean-harness-cs-v1
+```
+
+Disabling keeps the installation available. Uninstalling removes the machine-level plugin; it does
+not delete committed project artifacts or configuration.
+
+### Maintainer-cohort manual test
+
+Version 0.2.0 starts with at most two maintainer projects. For each project:
+
+1. Install and initialize from the immutable release.
+2. Pass `doctor --production` and the commit-stage checks.
+3. Confirm runtime and policy identities are verified in `doctor --json`.
+4. Rehearse disable, uninstall and restoration of the previous version.
+5. Use the harness for normal changes for at least seven healthy days.
+6. Review false scope blocks, failures, latency, human effort, review effort and rollbacks.
+
+Stop expansion for an attributable escaped critical/high defect, materially worse change-failure
+rate, repeated false scope blocks in two projects, or unverifiable identity/uninstall. The complete
+cohort policy is in [`release/rollout.json`](release/rollout.json).
 
 ---
 
