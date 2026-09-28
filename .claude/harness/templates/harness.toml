@@ -107,6 +107,14 @@ evals     = "claude-haiku-4-5-20251001"
 # G10. The model that decides rather than types: intent, spec, plan, design, and the evaluator.
 judgment  = "claude-opus-5"
 
+# Paths a person reads before merge. A changed file or a plan-owned path matching one makes the
+# change high risk: the evaluator runs at [effort] review and the pull request says a human review
+# is required. Everything else is low risk: the evaluator runs at low_effort, and the AI review
+# plus the human merge decision is the path. `high_risk = []` is a valid choice.
+[review]
+high_risk  = ["**/migrations/**", "**/*.sql", "**/auth/**", "**/security/**", ".github/workflows/**", "**/schema.*"]
+low_effort = "medium"
+
 # G10. Effort per kind of work, rendered into the same frontmatter as the model and passed to the
 # driver's own turns. Typing under an approved plan is the cheap band; judging is the expensive
 # one; a repair sits between, because it is re-reading a verdict rather than writing one.

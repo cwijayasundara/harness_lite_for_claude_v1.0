@@ -238,3 +238,13 @@ test('the reviewer is handed the review passes, Simplicity included, rather than
     assert.match(prompt, /^- Simplicity: /m);
   } finally { s.cleanup(); }
 });
+
+test('the review effort reaches the CLI', () => {
+  const s = candidateRepo();
+  try {
+    let args = null;
+    review({ root: s.work, base: s.base, candidate: s.candidate, model: 'test-evaluator', output: 'effort.md', effort: 'medium',
+      invoke: (a) => { args = a; return { status: 0, stdout: JSON.stringify({ result: 'approve', total_cost_usd: 0.01 }) }; } });
+    assert.equal(args[args.indexOf('--effort') + 1], 'medium');
+  } finally { s.cleanup(); }
+});

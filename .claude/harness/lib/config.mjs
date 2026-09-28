@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { parseToml } from './toml.mjs';
 import { layout } from './paths.mjs';
+import { DEFAULT_HIGH_RISK } from './risk.mjs';
 
 // G11. `stop_hook` is the stage the Stop hook runs, and it is deliberately not `stop`. The full
 // suite belongs to the delivery driver, which runs it once per iteration; running it again at the
@@ -32,13 +33,14 @@ export const DEFAULT_EFFORT = { implement: 'low', repair: 'medium', review: 'hig
 
 // Which model and which effort a phase runs on. One table, so the driver, the rendered
 // frontmatter and the ledger row cannot disagree about what ran.
-export function stageModel(cfg, phase) {
+export function stageModel(cfg, phase, { tier = 'high' } = {}) {
   const models = cfg?.models ?? {};
   const effort = { ...DEFAULT_EFFORT, ...(cfg?.effort ?? {}) };
   switch (phase) {
     case 'implement': return { model: models.generator, effort: effort.implement };
     case 'repair': return { model: models.generator, effort: effort.repair };
-    case 'review': return { model: models.evaluator, effort: effort.review };
+    case 'review': return { model: models.evaluator,
+      effort: tier === 'low' ? (cfg?.review?.low_effort ?? 'medium') : effort.review };
     default: return { model: null, effort: null };
   }
 }
@@ -103,6 +105,9 @@ export function loadConfig(root) {
     // `review_diff_max_bytes` were defaults nothing ever looked at: numbers that read as policy
     // and governed nothing, which is worse than their absence because a reader believes them.
     budget: { max_findings: 20, max_diff_lines: 400, ...(raw.budget ?? {}) },
+    // Paths a person reads before merge. The tier they produce picks the review effort and what
+    // the pull request asks of its reader; see lib/risk.mjs.
+    review: { high_risk: DEFAULT_HIGH_RISK, low_effort: 'medium', ...(raw.review ?? {}) },
     limits: { skills: 7, hooks: 4, agents: 2, hook_loc: 600, claude_md_lines: 120, ...(raw.limits ?? {}) },
     // require_contract defaults ON. It used to default off while the installed template set it
     // true, so the control ran for anyone who took the template and not for anyone who did not —
@@ -152,6 +157,9 @@ export function loadConfig(root) {
     deliver: { ...DEFAULT_DELIVER, ...(raw.deliver ?? {}) },
     layout: L,
   };
+  if (!EFFORT_LEVELS.includes(cfg.review.low_effort)) {
+    throw new Error(`[review] low_effort must be one of ${EFFORT_LEVELS.join(', ')}, got "${cfg.review.low_effort}"`);
+  }
   return cfg;
 }
 

@@ -100,10 +100,10 @@ export function hostReview({ root, repository, pr, candidate, output, request })
   return report;
 }
 
-export function reviewArgs({ model, prompt, budgetUsd, schema = null }) {
+export function reviewArgs({ model, prompt, budgetUsd, schema = null, effort = null }) {
   // G17. With a schema the CLI validates the shape before the harness ever sees it, so a
   // malformed review is the reviewer's failure rather than a parse error three steps downstream.
-  return ['-p', prompt, '--model', model, ...(schema ? ['--json-schema', schema] : []), '--tools', 'Read,Grep,Glob',
+  return ['-p', prompt, '--model', model, ...(effort ? ['--effort', effort] : []), ...(schema ? ['--json-schema', schema] : []), '--tools', 'Read,Grep,Glob',
     '--safe-mode', '--permission-mode', 'dontAsk', '--setting-sources', '', '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}',
     '--settings', '{"disableAllHooks":true}', '--no-session-persistence',
     '--output-format', 'json', '--max-budget-usd', String(budgetUsd)];
@@ -159,7 +159,7 @@ const timedOut = (out) => out?.error?.code === 'ETIMEDOUT' || (!out?.status && [
 const text = (value) => (typeof value === 'string' ? value : value?.toString('utf8') ?? '');
 
 export function review({ root, base, candidate, model, output, budgetUsd = 2, timeoutMs = null,
-  planFiles = [], contextPaths = [], modules = null, fullTree = false, schema = null,
+  planFiles = [], contextPaths = [], modules = null, fullTree = false, schema = null, effort = null,
   invoke = runSubscriptionClaude }) {
   if (![base, candidate, model, output].every(v => typeof v === 'string' && v.trim())) {
     throw new Error('review requires --base, --candidate, --out and a configured evaluator model');
@@ -202,7 +202,7 @@ export function review({ root, base, candidate, model, output, budgetUsd = 2, ti
         'the same defect on a later pull request must produce the same slug, because that is what lets a ' +
         'repeat class be counted rather than rediscovered.' : '');
     const started = Date.now();
-    const out = invoke(reviewArgs({ model, prompt, budgetUsd, schema }), {
+    const out = invoke(reviewArgs({ model, prompt, budgetUsd, schema, effort }), {
       // MEASURED 2026-09-15: the CLI ignored SIGTERM and the caller waited 2,922 s past a 314 s
       // allowance. The timeout is a bound only if the signal is one the child cannot decline.
       cwd: temp, env: process.env, encoding: 'utf8', timeout: allowance, killSignal: 'SIGKILL', maxBuffer: 16 * 1024 * 1024,

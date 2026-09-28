@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, cpSync, chmodSync, 
 import { execSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadConfig, VERBS } from '../lib/config.mjs';
+import { loadConfig, VERBS, stageModel } from '../lib/config.mjs';
 import { layout, findRepoRoot } from '../lib/paths.mjs';
 import { check, render } from '../lib/runner.mjs';
 import * as ledger from '../lib/ledger.mjs';
@@ -668,7 +668,7 @@ async function main() {
         const pr = flag('pr');
         if (!repo || !pr) { console.error('usage: harness review --comment --repo <owner/name> --pr <number> --base <ref> --candidate <ref>'); return 2; }
         const out = flag('out', '.claude/harness/state/review-findings.json');
-        const result = review({ root: cfg.layout.root, base: flag('base'), candidate: flag('candidate'),
+        const result = review({ root: cfg.layout.root, base: flag('base'), candidate: flag('candidate'), effort: stageModel(cfg, 'review').effort,
           output: out, model: cfg.models?.evaluator, budgetUsd: Number(flag('budget-usd', 2)),
           timeoutMs: has('timeout') ? Number(flag('timeout')) : null,
           schema: prReview.reviewSchema(), fullTree: has('full-tree') });
@@ -697,7 +697,7 @@ async function main() {
       // scope to apply and falls back to the whole tree on its own.
       const current = artifacts.currentChange(cfg);
       const planFiles = has('full-tree') ? [] : current?.plan?.owns ?? [];
-      const result = review({ root: cfg.layout.root, base: flag('base'), candidate: flag('candidate'),
+      const result = review({ root: cfg.layout.root, base: flag('base'), candidate: flag('candidate'), effort: stageModel(cfg, 'review').effort,
         output: flag('out'), model: cfg.models?.evaluator, budgetUsd: Number(flag('budget-usd', 2)),
         timeoutMs: has('timeout') ? Number(flag('timeout')) : null,
         planFiles, contextPaths: planFiles.length ? [path.join(path.relative(cfg.layout.root, cfg.layout.artifacts), current.slug)] : [],

@@ -35,6 +35,7 @@ import * as graph from './graph.mjs';
 import { gateMode, stageModel, DEFAULT_DELIVER } from './config.mjs';
 import { check as runnerCheck } from './runner.mjs';
 import { review as runReview } from './review.mjs';
+import { riskTier } from './risk.mjs';
 import { runSubscriptionClaude } from './claude-auth.mjs';
 
 // Recorded before each phase starts and after it ends, so a killed run is resumable and not
@@ -148,7 +149,7 @@ export function suppressionsOf(report) {
   return (report?.controls ?? []).flatMap((c) => c.suppressions ?? []);
 }
 
-function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, scope, suppressions = [] }) {
+function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, scope, suppressions = [], risk = null }) {
   const row = (kind, artifact) => {
     const front = artifact?.front ?? {};
     const who = front.approved_by === 'policy' ? `policy (${front.policy_digest ?? 'no digest'})` : front.by ?? '—';
@@ -175,6 +176,12 @@ function prBody({ slug, spec, plan, review, invocation, bounds: b, usd, gates, s
         ? ' — nothing blocking, so no repair turn was bought. The findings are in the report below and are yours to weigh before merging.'
         : ''),
     review?.output ? `Report: \`${review.output}\`` : '',
+    '',
+    '## Risk',
+    '',
+    risk?.tier === 'high'
+      ? `**High** — a person reads this diff before merging. It touches ${risk.matched.map((m) => `\`${m.file}\` (\`${m.pattern}\`)`).join(', ')}.`
+      : '**Low** — no changed or planned path matches `[review] high_risk`. The review above and the checks are the evidence; merging is still a person\'s decision.',
     '',
     ...(suppressions.length ? [
       '## Suppressions',
@@ -449,7 +456,7 @@ export async function deliver(cfg, slug, {
     if (phase === 'pr') {
       const head = git(root, 'rev-parse', '--abbrev-ref', 'HEAD');
       const body = prBody({ slug, spec: artifacts.read(cfg, slug, 'spec') ?? spec, plan: artifacts.read(cfg, slug, 'plan'),
-        review: reviewResult, invocation, bounds: b, usd: state.usd, gates, suppressions: state.suppressions ?? [],
+        review: reviewResult, invocation, bounds: b, usd: state.usd, gates, suppressions: state.suppressions ?? [], risk: state.risk,
         scope: reviewResult?.export?.scope === 'plan' ? `scoped to ${reviewResult.export.files} files` : 'full candidate tree' });
       // MEASURED 2026-09-15: a fixture with no GitHub remote threw here, after every dollar of the
       // run was spent, and the result went with it. The body is what the human merges from, so
@@ -491,12 +498,17 @@ export async function deliver(cfg, slug, {
   async function runReviewPhase() {
     const bound = exceeded();
     if (bound) return { stopped: bound };
-    const { model, effort } = stageModel(cfg, 'review');
-    event('review', 'model-turn', { model, effort, stage: 'review' });
+    // The tier is judged on what changed and on what the plan claims, so a directory claim over
+    // src/auth/ is high risk before its first file changes.
+    const changed = git(root, 'diff', '--name-only', state.base, 'HEAD').split('\n').filter(Boolean);
+    state.risk = riskTier(cfg, [...changed, ...owns]);
+    save();
+    const { model, effort } = stageModel(cfg, 'review', { tier: state.risk.tier });
+    event('review', 'model-turn', { model, effort, stage: 'review', risk: state.risk.tier });
     const candidate = git(root, 'rev-parse', 'HEAD');
     const output = path.join(path.relative(root, cfg.layout.artifacts), slug, 'review.md');
     const result = await review({
-      root, base: state.base, candidate, model, output,
+      root, base: state.base, candidate, model, effort, output,
       budgetUsd: Math.max(0.01, b.max_usd - state.usd),
       planFiles: owns, contextPaths: [path.join(path.relative(root, cfg.layout.artifacts), slug)],
       modules: graph.load(cfg)?.modules ?? null,

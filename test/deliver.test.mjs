@@ -190,7 +190,8 @@ test('a changes-requested review buys one repair turn and no second review, and 
     const rows = readLedger(d.cfg.layout).filter((r) => r.kind === 'deliver-phase' && r.event === 'model-turn');
     assert.ok(rows.some((r) => r.stage === 'repair' && r.model === d.cfg.models.generator && r.effort === d.cfg.effort.repair));
     assert.ok(rows.some((r) => r.stage === 'implement' && r.model === d.cfg.models.generator && r.effort === d.cfg.effort.implement));
-    assert.ok(rows.some((r) => r.stage === 'review' && r.model === d.cfg.models.evaluator && r.effort === d.cfg.effort.review));
+    // The fixture's change touches no high-risk path, so its review runs at the low-risk effort.
+    assert.ok(rows.some((r) => r.stage === 'review' && r.model === d.cfg.models.evaluator && r.effort === d.cfg.review.low_effort && r.risk === 'low'));
     // One review. The repair is checked deterministically, not re-reviewed.
     assert.equal(d.calls.reviews.length, 1);
     assert.deepEqual(d.calls.checks, ['stop', 'stop', 'commit']);
@@ -385,4 +386,30 @@ test('a review section that says None holds no findings, and only a blocking fin
     assert.equal(reviewVerdict(`## Blocking\n\n${empty}\n\n\`changes-requested\`\n`).blocking, 0, empty);
   }
   assert.equal(reviewVerdict('## Blocking\n\nNone.\n\n`approve`\n').verdict, 'approve');
+});
+
+test('the review tier follows the paths: low buys the low effort, high names the paths on the PR', async () => {
+  const low = delivery();
+  try {
+    await deliver(low.cfg, SLUG, low.fakes);
+    assert.equal(low.calls.reviews[0].effort, 'medium');
+    assert.match(low.calls.prs[0].body, /## Risk\n\*\*Low\*\*/);
+    assert.equal(readState(low.cfg, SLUG).risk.tier, 'low');
+  } finally { low.s.cleanup(); }
+  const high = delivery({ review: { high_risk: ['src/app/**'], low_effort: 'medium' } });
+  try {
+    await deliver(high.cfg, SLUG, high.fakes);
+    assert.equal(high.calls.reviews[0].effort, 'high');
+    assert.match(high.calls.prs[0].body,
+      /\*\*High\*\* — a person reads this diff before merging\. It touches `src\/app\/text\.py` \(`src\/app\/\*\*`\)/);
+  } finally { high.s.cleanup(); }
+});
+
+test('a misspelled low_effort fails at config load, not mid-run', () => {
+  const d = delivery();
+  try {
+    const file = path.join(d.s.work, '.claude/harness/harness.toml');
+    writeFileSync(file, `${readFileSync(file, 'utf8')}\n[review]\nlow_effort = "meduim"\n`);
+    assert.throws(() => loadConfig(d.s.work), /\[review\] low_effort must be one of low, medium, high/);
+  } finally { d.s.cleanup(); }
 });
