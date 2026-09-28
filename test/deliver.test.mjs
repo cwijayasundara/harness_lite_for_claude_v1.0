@@ -413,3 +413,24 @@ test('a misspelled low_effort fails at config load, not mid-run', () => {
     assert.throws(() => loadConfig(d.s.work), /\[review\] low_effort must be one of low, medium, high/);
   } finally { d.s.cleanup(); }
 });
+
+test('the commit-stage check judges the whole delivered range, not the empty working tree', async () => {
+  const d = delivery();
+  const seen = [];
+  try {
+    const result = await deliver(d.cfg, SLUG, { ...d.fakes, async check(stageName, opts = {}) { seen.push({ stageName, ...opts }); return { stage: stageName, ok: true, controls: [] }; } });
+    assert.equal(result.ok, true, JSON.stringify(result.stopped));
+    const commitCheck = seen.find((c) => c.stageName === 'commit');
+    assert.equal(commitCheck.base, readState(d.cfg, SLUG).base);
+    assert.equal(commitCheck.candidate, git(d.s.work, 'rev-parse', 'HEAD'));
+  } finally { d.s.cleanup(); }
+});
+
+test('a high_risk that is not a list of strings fails at config load', () => {
+  const d = delivery();
+  try {
+    const file = path.join(d.s.work, '.claude/harness/harness.toml');
+    writeFileSync(file, `${readFileSync(file, 'utf8')}\n[review]\nhigh_risk = "src/auth/**"\n`);
+    assert.throws(() => loadConfig(d.s.work), /\[review\] high_risk must be a list of path globs/);
+  } finally { d.s.cleanup(); }
+});

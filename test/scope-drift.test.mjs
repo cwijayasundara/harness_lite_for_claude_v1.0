@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, renameSync, unlinkSync, symlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { run, diffBudget } from '../.claude/harness/checks/scope-drift.mjs';
@@ -236,5 +236,30 @@ test('untracked files count; binary files do not', async () => {
     assert.deepEqual(budgetFindings(await run(tight)), [], 'a binary file is not lines of code');
     writeFileSync(path.join(s.work, 'src/app/new_module.py'), lines(8, 'new'));
     assert.match(budgetFindings(await run(tight))[0].message, /^8 changed non-test lines/);
+  } finally { s.cleanup(); }
+});
+
+test('in candidate mode the budget measures the whole committed change, however many commits it took', async () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    const base = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: s.work, encoding: 'utf8' }).stdout.trim();
+    writeFileSync(path.join(s.work, 'src/app/text.py'), lines(4, 'first'));
+    commit(s.work, 'slice one');
+    writeFileSync(path.join(s.work, 'src/app/text.py'), lines(8, 'second'));
+    commit(s.work, 'slice two');
+    const candidate = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: s.work, encoding: 'utf8' }).stdout.trim();
+    const local = await run({ ...cfg(s.work), budget: { max_diff_lines: 5 } });
+    assert.deepEqual(budgetFindings(local), [], 'nothing uncommitted: the local check has no diff to hold');
+    const whole = await run({ ...cfg(s.work), budget: { max_diff_lines: 5 }, diff: { base, candidate } });
+    assert.equal(budgetFindings(whole).length, 1, 'the candidate range sees both slices');
+  } finally { s.cleanup(); }
+});
+
+test('an untracked symlink to a directory is not read as a file', async () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    symlinkSync(path.join(s.work, 'src'), path.join(s.work, 'src/app/linked'));
+    const result = await run({ ...cfg(s.work), budget: { max_diff_lines: 5 } });
+    assert.deepEqual(budgetFindings(result), []);
   } finally { s.cleanup(); }
 });

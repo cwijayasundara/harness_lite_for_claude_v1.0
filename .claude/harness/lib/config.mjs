@@ -157,6 +157,9 @@ export function loadConfig(root) {
     deliver: { ...DEFAULT_DELIVER, ...(raw.deliver ?? {}) },
     layout: L,
   };
+  if (!Array.isArray(cfg.review.high_risk) || !cfg.review.high_risk.every((p) => typeof p === 'string')) {
+    throw new Error('[review] high_risk must be a list of path globs, e.g. ["**/migrations/**"]');
+  }
   if (!EFFORT_LEVELS.includes(cfg.review.low_effort)) {
     throw new Error(`[review] low_effort must be one of ${EFFORT_LEVELS.join(', ')}, got "${cfg.review.low_effort}"`);
   }

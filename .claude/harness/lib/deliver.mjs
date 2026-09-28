@@ -281,7 +281,7 @@ const UNATTENDED = 'No human is available to answer a question in this turn: mak
 
 export async function deliver(cfg, slug, {
   invoke,
-  check = (stage) => runnerCheck(cfg, { stage }),
+  check = (stage, options = {}) => runnerCheck(cfg, { stage, ...options }),
   review = (options) => runReview(options),
   openPr,
   now = () => Date.now(),
@@ -447,7 +447,9 @@ export async function deliver(cfg, slug, {
     }
 
     if (phase === 'check-commit') {
-      const report = await check('commit');
+      // Everything the run wrote is committed by now, so a local check would see an empty working
+      // tree. The run's own range is the change: judge scope and the diff budget against that.
+      const report = await check('commit', { base: state.base, candidate: git(root, 'rev-parse', 'HEAD') });
       if (!report.ok) return stop('check-commit', `commit-stage checks failing: ${failedControls(report).join(', ')}`);
       state.suppressions = suppressionsOf(report);
       save();

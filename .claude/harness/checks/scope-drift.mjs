@@ -11,7 +11,7 @@
 // written yet. This is that promise checked at the only moment the answer is knowable, so it runs
 // unconditionally, not only when the current diff happens to touch a product file.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import * as artifacts from '../lib/artifacts.mjs';
 import { gateBlocks } from '../lib/config.mjs';
@@ -87,7 +87,7 @@ function countChangedLines(cfg, files) {
   if (cfg.diff) return total;
   for (const file of pending) {
     const full = path.join(cfg.layout.root, file);
-    if (!existsSync(full)) continue;
+    if (!existsSync(full) || !lstatSync(full).isFile()) continue;
     const text = readFileSync(full, 'utf8');
     if (text.includes('\0')) continue;
     total += text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
