@@ -71,6 +71,9 @@ jobs:
       # no model requests or credentials are used by this job.
       - run: sudo apt-get update && sudo apt-get install -y ripgrep
       - run: npm install --global @anthropic-ai/claude-code@2.1.263
+      # The calculator eval fixture is a real React product with its own lockfile; the tests that
+      # stage it refuse to run without its node_modules. The harness itself still installs nothing.
+      - run: npm ci --prefix evals/fixtures/calculator
       # Includes lifecycle-cli.test.mjs, which creates a real git repository and proves
       # committed approvals, failure exit codes, install idempotency, and incident SLA closure.
       # Do not replace it with `harness status` on this root: no artifacts would pass vacuously.

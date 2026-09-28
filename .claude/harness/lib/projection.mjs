@@ -110,14 +110,28 @@ export function renderClaudeInstructions(source) {
 // `## Project conventions`, the section that exists to be replaced. Pure, so the composition is
 // tested without an install.
 export function composeProjectInstructions(template, adopted = null) {
-  const body = String(adopted ?? '').trim();
+  const body = projectPart(String(adopted ?? '')).trim();
   if (!body) return template;
   const heading = /^##[ \t]+Project conventions[ \t]*$/m.exec(template);
   if (!heading) throw new Error('project-instructions template has no "## Project conventions" section to adopt into');
   const titled = /^#[ \t]+(.+)$/m.exec(body);
   const rest = (titled ? body.slice(0, titled.index) + body.slice(titled.index + titled[0].length) : body).trim();
   const head = titled ? template.replace(/^#[ \t]+.*$/m, `# ${titled[1].trim()}`) : template;
+  if (!rest) return head;
   return `${head.slice(0, head.indexOf(heading[0]))}${heading[0]}\n\n${rest}\n`;
+}
+
+// A CLAUDE.md the harness generated is the harness's instructions plus the project's conventions.
+// Adopting it whole nested a second copy of the instructions under `## Project conventions` on
+// every re-install (examples/scratch-py: 558 -> 1,698 tokens). Only its title and the body of its
+// last conventions section are the project's.
+const GENERATED_HEADER = /^<!-- Generated (from|for) /;
+function projectPart(text) {
+  if (!GENERATED_HEADER.test(text.trimStart())) return text;
+  const title = /^#[ \t]+(.+)$/m.exec(text);
+  const sections = text.split(/^##[ \t]+Project conventions[ \t]*$/m);
+  const own = sections.length > 1 ? sections.at(-1).replace(/^<!-- Generated .*-->[ \t]*$/gm, '').trim() : '';
+  return `${title ? `# ${title[1].trim()}\n\n` : ''}${own}`;
 }
 
 // The files the harness writes into a consumer's tree. The project's own formatter has no reason
