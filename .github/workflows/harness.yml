@@ -71,6 +71,9 @@ jobs:
       # no model requests or credentials are used by this job.
       - run: sudo apt-get update && sudo apt-get install -y ripgrep
       - run: npm install --global @anthropic-ai/claude-code@2.1.263
+      # The Python eval fixtures configure ruff for fmt and lint; tests that run their fast stage
+      # (candidate-scope B6) need it on PATH. Same pin as the cost job.
+      - run: pipx install ruff==0.12.12
       # The calculator eval fixture is a real React product with its own lockfile; the tests that
       # stage it refuse to run without its node_modules. The harness itself still installs nothing.
       - run: npm ci --prefix evals/fixtures/calculator

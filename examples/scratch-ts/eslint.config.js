@@ -6,6 +6,11 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    // Tool configs such as .dependency-cruiser.cjs are CommonJS, not modules.
+    files: ["**/*.cjs"],
+    languageOptions: { sourceType: "commonjs", globals: { module: "writable", require: "readonly" } },
+  },
+  {
     // G12. The three complexity rules the harness documents, at the thresholds it documents.
     // Errors, not warnings: `harness check` grades a verb by its exit code, and a rule that only
     // warns is a rule the loop never has to answer for.
