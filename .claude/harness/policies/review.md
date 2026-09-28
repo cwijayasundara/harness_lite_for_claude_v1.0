@@ -4,15 +4,19 @@ Follow this file. Findings do not approve a PR.
 
 ## Passes
 
-Run three passes and tag each finding with its pass:
+Run four passes and tag each finding with its pass:
 
 - Bugs: logic errors, broken edge cases, subtle regressions
 - Security: injection risks, authentication gaps, PII in logs
 - Compliance: the change matches the approved delivery contract, behaviour evidence, and design principles
+- Simplicity: new code where an existing module, function or library already does the job; an abstraction with one caller; code no approved behaviour needs; a diff larger than its behaviours explain. Name the existing thing to reuse, or the lines to delete.
 
 ## What Important means here
 
 Reserve Important for findings that would break behaviour, leak data, or breach a policy. Style and naming are nits.
+
+A Simplicity finding is Important only when the change adds a second implementation of something
+the codebase already has. Otherwise it is a nit.
 
 ## Cap the nits
 

@@ -223,3 +223,18 @@ test('a review that outlives its timeout keeps the findings and the spend and re
     assert.match(readFileSync(path.join(s.work, 'cut.md'), 'utf8'), /Blocking: partial/);
   } finally { s.cleanup(); }
 });
+
+test('the reviewer is handed the review passes, Simplicity included, rather than left to find them', () => {
+  const s = candidateRepo();
+  try {
+    let prompt = null;
+    const invoke = (args) => {
+      prompt = args[args.indexOf('-p') + 1];
+      return { status: 0, stdout: JSON.stringify({ result: 'No findings. approve', total_cost_usd: 0.01 }) };
+    };
+    review({ root: s.work, base: s.base, candidate: s.candidate, model: 'test-evaluator', output: 'passes.md',
+      planFiles: ['src/app/text.py'], invoke });
+    assert.match(prompt, /^## Passes$/m);
+    assert.match(prompt, /^- Simplicity: /m);
+  } finally { s.cleanup(); }
+});
