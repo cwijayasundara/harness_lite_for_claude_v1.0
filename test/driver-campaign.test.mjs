@@ -124,8 +124,8 @@ test('the driver pair is reachable only by name, and its summary carries the thr
   assert.equal(pair.arms[0].native, true);
   assert.equal(pair.arms[1].driver, true);
   const rows = [
-    { pair: 'driver', config: { id: 'native' }, kind: 'paired', status: 'pass', result: { pass: true, completedSteps: 5, billingComplete: true, usage: { reportedUsd: 1 }, shippedDefects: 2, latencyMs: 10 } },
-    { pair: 'driver', config: { id: 'harness-driver' }, kind: 'paired', status: 'pass', result: { pass: true, completedSteps: 5, billingComplete: true, usage: { reportedUsd: 1.05 }, evaluatorCaughtDefects: 3, driverStops: 0, latencyMs: 20 } },
+    { pair: 'driver', config: { id: 'native' }, kind: 'paired', status: 'pass', result: { pass: true, completedSteps: 5, billingComplete: true, usage: { reportedUsd: 1 }, shippedDefects: 2, latencyMs: 10, sourceLines: 100 } },
+    { pair: 'driver', config: { id: 'harness-driver' }, kind: 'paired', status: 'pass', result: { pass: true, completedSteps: 5, billingComplete: true, usage: { reportedUsd: 1.05 }, evaluatorCaughtDefects: 3, driverStops: 0, latencyMs: 20, sourceLines: 105 } },
   ];
   const summary = summarizeComparisons(rows);
   assert.equal(summary['driver/native/paired'].shippedDefects, 2);
@@ -135,6 +135,15 @@ test('the driver pair is reachable only by name, and its summary carries the thr
   assert.equal(verdict.cost.pass, true, JSON.stringify(verdict.cost));
   assert.equal(verdict.cost.ceiling, 0.2 * 1.1);
   assert.equal(verdict.defects.pass, true);
+  assert.equal(verdict.size.pass, true, JSON.stringify(verdict.size));
+  assert.equal(verdict.size.ceiling, 20 * 1.1);
+  // More code for the same accepted behaviour fails, however cheap it was.
+  const wordier = summarizeComparisons([rows[0], { ...rows[1], result: { ...rows[1].result, sourceLines: 140 } }]);
+  assert.equal(g24Verdict(wordier, { repetitions: 1 }).size.pass, false);
+  assert.equal(g24Verdict(wordier, { repetitions: 1 }).pass, false);
+  // No line count is not a pass.
+  const unmeasured = summarizeComparisons([rows[0], { ...rows[1], result: { ...rows[1].result, sourceLines: undefined } }]);
+  assert.equal(g24Verdict(unmeasured, { repetitions: 1 }).size.pass, false);
   assert.equal(verdict.pass, true);
   // 29% dearer at identical acceptance is the number on the board today, and it fails.
   const dearer = summarizeComparisons([rows[0], { ...rows[1], result: { ...rows[1].result, usage: { reportedUsd: 1.29 } } }]);

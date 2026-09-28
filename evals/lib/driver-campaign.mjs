@@ -31,6 +31,7 @@ import { approvalDriver } from './approvals.mjs';
 import { assertProductTree, runProductTests, PRODUCT_TEST_COMMAND, execNode } from './stage.mjs';
 import { prepareProductChange, walk } from './campaign.mjs';
 import { invokerEnv } from './invoker.mjs';
+import { changedLines } from './size.mjs';
 
 // One sprint's allowance. The products file's 1.5 USD per prompt is sized for a single generator
 // turn; a driver run is two generator turns plus an evaluator review and possibly a repair, and
@@ -167,7 +168,11 @@ export async function runDriverCampaign({ task: t, config, invoke, evaluateProdu
       result.evaluatorCaughtDefects += caught;
       const intent = path.join(s.work, '.claude/harness/artifacts', step.slug, 'intent.md');
       writeFileSync(intent, readFileSync(intent, 'utf8').replace('status: draft', 'status: closed'));
-      result.candidateRevision = commit(`Accepted ${step.slug}`); result.completedSteps++;
+      result.candidateRevision = commit(`Accepted ${step.slug}`);
+      { const approvedAt = result.decisions.findLast((d) => d.slug === step.slug && d.decision === 'approve').revision;
+        const size = changedLines(s.work, approvedAt, result.candidateRevision, step.files);
+        result.sourceLines = (result.sourceLines ?? 0) + size.source; result.testLines = (result.testLines ?? 0) + size.test; }
+      result.completedSteps++;
       event('accepted-change', { slug: step.slug, candidateRevision: result.candidateRevision, evaluatorCaughtDefects: caught });
     }
   } catch (error) {

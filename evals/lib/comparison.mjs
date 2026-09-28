@@ -38,14 +38,17 @@ export function summarizeComparisons(attempts) {
   const groups={};
   for(const a of attempts){
     const key=`${a.pair}/${a.config.id}/${a.kind}`;
-    const g=groups[key]??={attempts:0,passed:0,incomplete:0,unmeasured:0,acceptedChanges:0,regressions:0,verificationFailures:0,approvalViolations:0,retries:0,reportedUsd:0,billingComplete:true,latencyMs:0,unnecessaryQuestions:null,evaluatorCaughtDefects:0,shippedDefects:0,driverStops:0};
+    const g=groups[key]??={attempts:0,passed:0,incomplete:0,unmeasured:0,acceptedChanges:0,regressions:0,verificationFailures:0,approvalViolations:0,retries:0,reportedUsd:0,billingComplete:true,latencyMs:0,unnecessaryQuestions:null,evaluatorCaughtDefects:0,shippedDefects:0,driverStops:0,sourceLines:0,testLines:0};
     g.evaluatorCaughtDefects+=a.result?.evaluatorCaughtDefects??0;g.shippedDefects+=a.result?.shippedDefects??a.result?.verificationFailures??0;g.driverStops+=a.result?.driverStops??0;
     g.attempts++;g.passed+=Number(!!a.result?.pass);g.incomplete+=Number(!!a.result?.incomplete||['started','incomplete','abandoned'].includes(a.status));g.unmeasured+=Number(a.status==='unmeasured');
     g.acceptedChanges+=a.result?.completedSteps??0;g.regressions=g.regressions===null||a.result?.regressions===null?null:g.regressions+(a.result?.regressions??0);g.verificationFailures+=a.result?.verificationFailures??0;g.approvalViolations+=a.result?.approvalViolations??0;g.retries+=a.result?.retries??0;
+    g.sourceLines=g.sourceLines===null||a.result?.sourceLines==null?null:g.sourceLines+a.result.sourceLines;
+    g.testLines+=a.result?.testLines??0;
     g.reportedUsd+=a.result?.usage?.reportedUsd??a.result?.usage?.usd??0;
     g.billingComplete&&=!!a.result&&a.result.billingComplete!==false;g.latencyMs+=a.result?.latencyMs??0;
   }
-  for(const g of Object.values(groups)){g.usd=g.billingComplete?g.reportedUsd:null;g.costPerAcceptedChange=g.billingComplete&&g.acceptedChanges?g.reportedUsd/g.acceptedChanges:null;}
+  for(const g of Object.values(groups)){g.usd=g.billingComplete?g.reportedUsd:null;g.costPerAcceptedChange=g.billingComplete&&g.acceptedChanges?g.reportedUsd/g.acceptedChanges:null;
+    g.sourceLinesPerAcceptedChange=g.sourceLines!=null&&g.acceptedChanges?g.sourceLines/g.acceptedChanges:null;}
   return groups;
 }
 
@@ -60,9 +63,12 @@ export function g24Verdict(summary,{repetitions=3,pair='driver',native='native',
   const cost={native:n.costPerAcceptedChange??null,harness:h.costPerAcceptedChange??null,billingComplete:!!(n.billingComplete&&h.billingComplete)};
   cost.ceiling=cost.native!=null?cost.native*1.1:null;
   cost.pass=cost.billingComplete&&cost.native!=null&&cost.harness!=null&&cost.harness<=cost.ceiling;
+  const size={native:n.sourceLinesPerAcceptedChange??null,harness:h.sourceLinesPerAcceptedChange??null};
+  size.ceiling=size.native!=null?size.native*1.1:null;
+  size.pass=size.native!=null&&size.harness!=null&&size.harness<=size.ceiling;
   const defects={evaluatorCaught:h.evaluatorCaughtDefects??0,nativeShipped:n.shippedDefects??0,harnessShipped:h.shippedDefects??0,campaigns:h.attempts??0,required};
   defects.pass=defects.campaigns>=required&&defects.evaluatorCaught>=required&&defects.nativeShipped>=1;
-  return {kind,repetitions,pilot:repetitions===0,acceptance,cost,defects,pass:acceptance.pass&&cost.pass&&defects.pass,
+  return {kind,repetitions,pilot:repetitions===0,acceptance,cost,size,defects,pass:acceptance.pass&&cost.pass&&size.pass&&defects.pass,
     note:'defects.pass requires an evaluator catch per campaign and at least one grader-caught defect the native arm shipped; whether they are the same defect is read from the evidence, not computed'};
 }
 

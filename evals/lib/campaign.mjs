@@ -12,6 +12,7 @@ import { approvalDriver } from './approvals.mjs';
 import { assertProductTree, runProductTests, PRODUCT_TEST_COMMAND, execNode } from './stage.mjs';
 import { behavioursOf, proofRowsOf, testRowIn, promiseSpecs, currentChange, currentLine, selectChange, render, parse, ownedFiles } from '../../.claude/harness/lib/artifacts.mjs';
 import { gradeSpecCompliance } from './spec-compliance.mjs';
+import { changedLines } from './size.mjs';
 
 // Driver updates use atomic replacement so each new run sees the new file identity.
 const writeFileSync=(file,text)=>{const temp=`${file}.driver-tmp-${process.pid}`;writeRaw(temp,text);renameSync(temp,file);};
@@ -431,7 +432,11 @@ export async function runComparisonCampaign({task:t, config, invoke, evaluatePro
         const verdict=await review(accepted,step,true);await call(`Repair independently reviewed regression within approved scope: ${verdict.findings.join('; ')}`,'implement');validateScope();publicCheck();await evaluateProduct(s,step);
       }
       if(cfg){const file=path.join(s.work,'.claude/harness/artifacts',step.slug,'intent.md');writeFileSync(file,readFileSync(file,'utf8').replace('status: draft','status: closed'));}
-      result.candidateRevision=commit(`Accepted ${step.slug}`);result.completedSteps++;event('accepted-change',{slug:step.slug,candidateRevision:result.candidateRevision});
+      result.candidateRevision=commit(`Accepted ${step.slug}`);
+      { const approvedAt = result.decisions.findLast((d) => d.slug === step.slug && d.decision === 'approve').revision;
+        const size = changedLines(s.work, approvedAt, result.candidateRevision, step.files);
+        result.sourceLines = (result.sourceLines ?? 0) + size.source; result.testLines = (result.testLines ?? 0) + size.test; }
+      result.completedSteps++;event('accepted-change',{slug:step.slug,candidateRevision:result.candidateRevision});
     }
   }catch(error){if(error.incomplete)result.incomplete=error.incomplete;else result.assertions.push({name:'comparison-campaign',pass:false,detail:error.message});event('campaign-stopped',{error:error.message});}
   finally {
