@@ -1,8 +1,8 @@
 {
-  "captured_at": "2026-09-08T09:16:24.131Z",
+  "captured_at": "2026-09-28T11:27:26.785Z",
   "tolerance": 1.1,
-  "claude_md_tokens": 558,
-  "session_context_tokens": 49,
+  "claude_md_tokens": 1131,
+  "session_context_tokens": 109,
   "check_stop_tokens": 18,
   "pack_tokens_p50": 113,
   "pack_samples": 4,
