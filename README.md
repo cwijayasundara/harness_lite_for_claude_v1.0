@@ -1,8 +1,10 @@
 # Harness Lite for Claude Code
 
 A lean AIDLC harness for Claude Code, currently released as **v0.2.0**. You describe what you want in plain English; Claude walks
-it through `intent → spec → plan → code → review`, stopping at three human approval gates, with
-deterministic checks (tests, lint, secrets, plan scope-drift) enforced by hooks.
+it through `intent → spec → plan → code → review`. Spec and plan approvals are advisory by default
+(recorded, reported on the pull request, not blocking); merge is always a person's decision.
+Deterministic checks (tests, lint, secrets, plan scope, diff size) run through hooks, and the AI
+review is tiered by the paths a change touches.
 
 Works with any language. Zero dependencies — no `npm install`, ever.
 
@@ -445,9 +447,27 @@ check: A capable agent being able to follow a generic recipe is not that evidenc
 project through the single kernel plugin and nothing else — there is no pack, bundle, overlay or
 per-domain marketplace to install more, because that is how a budget stops being one.
 
-Plan, Design, Build, and Test run locally. Deploy and Maintain are yours: the harness ships one
-worked example, `examples/maintain/band-to-intent.mjs`, which turns a control-band breach into an
-intent, and no deployment code at all.
+### What the harness covers, phase by phase
+
+| Phase | The harness | You |
+|---|---|---|
+| Plan | `intent` and `spec` skills; spec approval (advisory) | the requirement decision |
+| Design | `design` and `plan` skills; plan approval (advisory); `## Files` fixes scope | the architecture decision |
+| Build | `implement` skill; post-write checks; `harness deliver` | — |
+| Test | check stages; scope, diff budget and tamper checks; AI review tiered by risk | reading high-risk diffs; the merge |
+| Deploy | a time-bound human release record; a consumer CI template | the pipeline, rollout and rollback |
+| Maintain | `diagnose` skill; `examples/maintain/band-to-intent.mjs`; productivity-event import for metrics | monitoring, alerting, incident response |
+
+The harness ships no deployment or monitoring code, on purpose: those belong to your platform.
+What it asks of them is evidence — events it can import and measure.
+
+### Status: feature freeze
+
+No new control, skill or check lands until the G24 comparison on the `calculator` workload passes
+on all four criteria — acceptance, cost per accepted change, changed source lines per accepted
+change, and caught defects — against native Claude Code. The last recorded pilots (2026-09-16):
+native accepted 2 of 2 awake runs at about USD 0.13 and 0.9 minutes each; the harness accepted
+1 of 4 at USD 0.21–0.58 and 3–25 minutes.
 
 ---
 
