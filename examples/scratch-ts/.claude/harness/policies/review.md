@@ -37,14 +37,3 @@ archived unsigned host observations and graph edges cannot authenticate approval
 correctness. Unmerged proposals, missing evidence and unresolved replacements must remain
 visible. Merge authority is the host's: a harness report is evidence for your judgement,
 never a certificate that a change may land.
-
-## Reusing a proven product procedure
-
-For a second bounded change to a pure formatting function, reuse the procedure demonstrated by
-`docs/history/product-design-context/post-fix.mjs`: name the source criterion, approve the
-new slice's own spec/plan, retain applicable behavior assertions, add an assertion that fails
-before the change, implement, and capture exact-candidate executed proof. Apply it when the
-function and expected outputs are deterministic; it does not establish distributed-system,
-migration or deployment correctness. A changed requirement needs its own reviewed contract.
-Historical approval is never permission for the next slice. Item 6's team-reuse product trial
-records the second application, policy digest and runtime revision with its exported evidence.

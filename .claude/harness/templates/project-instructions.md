@@ -23,9 +23,6 @@ When verified work is delivered, close its intent with `status: closed`.
 
 ## Commands
 
-G16: each line says what healthy output looks like, because "run the checks" without that is an
-instruction whose result nobody can grade.
-
 ```
 .claude/harness/bin/harness status                        # the current change and its approvals
     healthy: one row per open change; "next" names the step, no ERROR lines
