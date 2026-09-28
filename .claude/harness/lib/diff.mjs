@@ -58,3 +58,7 @@ export function prChange(body) {
   if (!match) throw new Error('PR description must contain exactly one line: Harness-Change: <change-slug>');
   return match[1];
 }
+
+// Test code by directory (tests/, test/, __tests__/, spec/) or by name (x.test.ts, x_test.go,
+// x.spec.ts, test_x.py). One definition, read by the diff budget and by the eval comparison.
+export const TEST_FILE = /(^|\/)(tests?|__tests__|spec)\/|[._-](test|spec)\.[^/]+$|(^|\/)test_[^/]+$/;

@@ -102,7 +102,7 @@ export function loadConfig(root) {
     // `subagent_context_soft`, `subagent_context_hard`, `change_cost_ceiling` and
     // `review_diff_max_bytes` were defaults nothing ever looked at: numbers that read as policy
     // and governed nothing, which is worse than their absence because a reader believes them.
-    budget: { max_findings: 20, ...(raw.budget ?? {}) },
+    budget: { max_findings: 20, max_diff_lines: 400, ...(raw.budget ?? {}) },
     limits: { skills: 7, hooks: 4, agents: 2, hook_loc: 600, claude_md_lines: 120, ...(raw.limits ?? {}) },
     // require_contract defaults ON. It used to default off while the installed template set it
     // true, so the control ran for anyone who took the template and not for anyone who did not —

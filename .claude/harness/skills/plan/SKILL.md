@@ -29,6 +29,9 @@ a path not named here cannot be written, and a changed file not named here fails
 stage. A directory (`src/reminders/`) claims everything under it — use one when the change is
 genuinely a whole module, not to avoid thinking.
 
+A change is held to 400 changed non-test lines (`[budget] max_diff_lines`). If it genuinely needs
+more, write `Diff budget: <N> lines` on its own line here and say why; otherwise split it.
+
 ## Order
 
 Numbered steps, each naming an exact path. Enough that someone else could run it. If the order

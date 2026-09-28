@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdirSync, readFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { run } from '../.claude/harness/checks/scope-drift.mjs';
+import { run, diffBudget } from '../.claude/harness/checks/scope-drift.mjs';
+import { TEST_FILE } from '../.claude/harness/lib/diff.mjs';
 import { parse, render, bodyDigest, selectChange } from '../.claude/harness/lib/artifacts.mjs';
 import { FIXTURES, stage } from '../evals/lib/stage.mjs';
 import { HUMAN } from './_gates.mjs';
@@ -39,13 +40,13 @@ const commit = (root, message) => {
 };
 
 // Simulated approvals followed by an explicit execution selection; timestamps are audit data.
-function approvedPlan(root, slug, files, { commitIt = true, at = '2026-09-02T00:00:00.000Z' } = {}) {
+function approvedPlan(root, slug, files, { commitIt = true, at = '2026-09-02T00:00:00.000Z', extra = '' } = {}) {
   const dir = path.join(root, '.claude/harness/artifacts', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, 'intent.md'), '---\nstatus: draft\n---\n# Intent\n');
   const specDraft = render({ status: 'draft' }, `# Spec: ${slug}\n\n### B1\n\nGiven, when, then.\n`);
   writeFileSync(path.join(dir, 'spec.md'), render({ status: 'approved', by: 'tester', at, digest: bodyDigest(specDraft) }, parse(specDraft).body));
-  const body = `# Plan: ${slug}\n\n## Files\n\n${files.map((f) => `- \`${f}\``).join('\n')}\n`;
+  const body = `# Plan: ${slug}\n\n## Files\n\n${files.map((f) => `- \`${f}\``).join('\n')}\n${extra}`;
   const file = path.join(dir, 'plan.md');
   writeFileSync(file, `---\nstatus: draft\n---\n${body}`);
   const text = readFileSync(file, 'utf8');
@@ -184,5 +185,56 @@ test('an edited approved spec makes every product change a draft-awaits-gate fin
     assert.equal(r.verdict, 'fail');
     assert.equal(r.findings[0].rule, 'draft-awaits-gate');
     assert.match(r.findings[0].message, /hyphen-titlecase.*spec\.md/);
+  } finally { s.cleanup(); }
+});
+
+const lines = (n, tag) => Array.from({ length: n }, (_, i) => `# ${tag} ${i}`).join('\n') + '\n';
+const budgetFindings = (result) => result.findings.filter((f) => f.rule === 'diff-budget');
+
+test('test files are recognised by directory and by name', () => {
+  for (const f of ['tests/test_app.py', 'test/calc.test.mjs', 'src/__tests__/a.ts', 'src/calc.spec.ts', 'pkg/calc_test.go', 'spec/models/user_spec.rb'])
+    assert.ok(TEST_FILE.test(f), f);
+  for (const f of ['src/app/text.py', 'src/contest.py', 'src/latest/index.ts'])
+    assert.ok(!TEST_FILE.test(f), f);
+});
+
+test('non-test lines over the diff budget are a plan-gate finding; test lines are free', async () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    const tight = { ...cfg(s.work), budget: { max_diff_lines: 5 } };
+    writeFileSync(path.join(s.work, 'tests/test_app.py'), lines(50, 'test'));
+    assert.deepEqual(budgetFindings(await run(tight)), [], 'test lines do not count');
+
+    writeFileSync(path.join(s.work, 'src/app/text.py'), lines(10, 'source'));
+    const over = await run(tight);
+    assert.equal(over.verdict, 'fail', 'HUMAN gates: the plan gate blocks');
+    assert.match(budgetFindings(over)[0].message, /exceed the diff budget of 5/);
+    assert.match(budgetFindings(over)[0].fix, /Diff budget: <N> lines/);
+
+    const advisory = await run({ ...tight, gates: undefined });
+    assert.equal(advisory.verdict, 'warn', 'the default advisory gate reports and lets the loop continue');
+  } finally { s.cleanup(); }
+});
+
+test('an approved plan raises its own diff budget with one line', async () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    approvedPlan(s.work, 'bigger', ['src/app/text.py'], { extra: '\nDiff budget: 100 lines\n' });
+    assert.equal(diffBudget({}, 'x\nDiff budget: 100 lines\n'), 100);
+    assert.equal(diffBudget({ budget: { max_diff_lines: 7 } }, 'no line'), 7);
+    assert.equal(diffBudget({}, 'no line'), 400);
+    writeFileSync(path.join(s.work, 'src/app/text.py'), lines(50, 'source'));
+    assert.deepEqual(budgetFindings(await run({ ...cfg(s.work), budget: { max_diff_lines: 5 } })), []);
+  } finally { s.cleanup(); }
+});
+
+test('untracked files count; binary files do not', async () => {
+  const s = stage(FIXTURES, 'contract-planned');
+  try {
+    const tight = { ...cfg(s.work), budget: { max_diff_lines: 5 } };
+    writeFileSync(path.join(s.work, 'src/app/blob.bin'), Buffer.from([0, 1, 2, 0, 10, 0, 10]));
+    assert.deepEqual(budgetFindings(await run(tight)), [], 'a binary file is not lines of code');
+    writeFileSync(path.join(s.work, 'src/app/new_module.py'), lines(8, 'new'));
+    assert.match(budgetFindings(await run(tight))[0].message, /^8 changed non-test lines/);
   } finally { s.cleanup(); }
 });

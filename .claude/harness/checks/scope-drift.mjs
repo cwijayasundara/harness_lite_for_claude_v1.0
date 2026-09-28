@@ -11,11 +11,11 @@
 // written yet. This is that promise checked at the only moment the answer is knowable, so it runs
 // unconditionally, not only when the current diff happens to touch a product file.
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import * as artifacts from '../lib/artifacts.mjs';
 import { gateBlocks } from '../lib/config.mjs';
-import { changedFiles, git, unbornRepository } from '../lib/diff.mjs';
+import { changedFiles, diff, git, unbornRepository, TEST_FILE } from '../lib/diff.mjs';
 
 const under = (file, owned) => file === owned || file.startsWith(owned.replace(/\/$/, '') + '/');
 
@@ -62,6 +62,37 @@ function unkeptProof(cfg, plans) {
     }
   }
   return findings;
+}
+
+// why: agents produce diffs larger than anyone can review, and the size is discovered at review
+// time when it is expensive to split. The approved plan states the budget; the diff is held to it.
+const BUDGET_LINE = /^Diff budget:\s*(\d+)\s*lines?\s*$/mi;
+
+export function diffBudget(cfg, planBody) {
+  const declared = BUDGET_LINE.exec(planBody ?? '');
+  return declared ? Number(declared[1]) : Number(cfg?.budget?.max_diff_lines ?? 400);
+}
+
+// Added plus deleted lines in non-test files. Binary files are not lines of code. Untracked files
+// (local checks only) are absent from numstat and count as all-added.
+function countChangedLines(cfg, files) {
+  const pending = new Set(files.filter((f) => !TEST_FILE.test(f)));
+  let total = 0;
+  for (const row of diff(cfg, ['--numstat', '-z']).split('\0')) {
+    const [added, deleted, file] = row.split('\t');
+    if (!pending.has(file)) continue;
+    pending.delete(file);
+    if (added !== '-') total += Number(added) + Number(deleted);
+  }
+  if (cfg.diff) return total;
+  for (const file of pending) {
+    const full = path.join(cfg.layout.root, file);
+    if (!existsSync(full)) continue;
+    const text = readFileSync(full, 'utf8');
+    if (text.includes('\0')) continue;
+    total += text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
+  }
+  return total;
 }
 
 export async function run(cfg) {
@@ -132,6 +163,15 @@ export async function run(cfg) {
       })),
     ...proofFindings,
   ];
+
+  const planPath = `.claude/harness/artifacts/${plans[0].slug}/plan.md`;
+  const budget = diffBudget(cfg, artifacts.read(cfg, plans[0].slug, 'plan')?.body);
+  const changedLines = countChangedLines(cfg, product);
+  if (changedLines > budget) findings.push({
+    file: planPath, line: 0, gate: 'plan', rule: 'diff-budget',
+    message: `${changedLines} changed non-test lines exceed the diff budget of ${budget}`,
+    fix: `split the change into smaller slices, or declare "Diff budget: <N> lines" in ${plans[0].slug}/plan.md with the reason and re-approve it`,
+  });
 
   return graded(cfg, findings);
 }
