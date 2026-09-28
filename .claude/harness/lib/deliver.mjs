@@ -1,6 +1,6 @@
 // G09. The delivery engine: the six phases between the plan approval and the merge decision.
 //
-// Cut 2026-09-15, after the first live run (evals/evidence/deliver-first-run-2026-09-15): the
+// Cut 2026-09-15, after the first live run (archive/history-2026-09-28:evals/evidence/deliver-first-run-2026-09-15): the
 // refactor turn, the confirming reviews after a repair, and the generator's shell. Two evaluator
 // reviews were 66% of a run that missed the plan's cost criterion 6.3x; the refactor turn was
 // reworked by the review anyway; and every shell command the generator tried was denied while the

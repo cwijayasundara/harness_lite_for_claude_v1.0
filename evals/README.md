@@ -199,7 +199,7 @@ violations, cost per accepted change, latency and transcripts before retaining a
 Failed calibration and incomplete campaigns cannot justify production pruning; missing billing
 and unclassified unnecessary questions remain unknown. One pair supports a bounded decision,
 not a general reliability claim. The retention decision and limitations belong in
-`evals/evidence/pruning-summary.json`.
+`archive/history-2026-09-28:evals/evidence/pruning-summary.json`.
 
 Use `--prune-arm baseline` or `--prune-arm lean` to rerun one side without repeating the
 other side's completed work. A single-arm result is not a complete paired comparison: retain
@@ -207,7 +207,7 @@ and compare matching model, fixture, plugin and scenario identities across the e
 The completed item 5 matched run passed all eleven changes in each arm. Production retains the
 baseline: the lean arm showed higher observed cost and latency, with identical completion and
 recovery results in this single pair. Prior failed, unmeasured and unbilled attempts remain in
-`evals/evidence/pruning-summary.json`. This is a bounded decision, not a general reliability claim.
+`archive/history-2026-09-28:evals/evidence/pruning-summary.json`. This is a bounded decision, not a general reliability claim.
 Documentation phrase checks are supporting heuristics; private API assertions establish overdue
 behavior. Disposable product checks ran `node --test --test-timeout=10000` so a failed generated test that
 leaked a server could still return findings; with the HTTP service product deleted the product
@@ -221,7 +221,7 @@ supporting heuristic now recognizes that conditional, with negative regression c
 Saved live verdicts and unnecessary repair costs remain unchanged; deterministic regrading
 of the original document is recorded separately from the measured campaign.
 
-Item 6's `docs/history/team-reuse/post-fix.mjs` uses the existing `stage` product boundary
+Item 6's `archive/history-2026-09-28:docs/history/team-reuse/post-fix.mjs` uses the existing `stage` product boundary
 and simulated contract helper to exercise two isolated installations and reuse a proven product
 assertion procedure on a second slice. It executes actual Python assertions and candidate
 checks; actor and approval labels explicitly say simulation. Local installations are not two

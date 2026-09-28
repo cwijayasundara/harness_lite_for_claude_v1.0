@@ -6,19 +6,15 @@ the runners still write there, and `harness evals gate` still reads `.claude/har
 
 | Report | Purpose |
 |---|---|
-| `product-summary.json` | Product integration campaign outcomes |
 | `comparison-summary.json` | Native, graph and generation comparisons, including incomplete runs |
-| `pruning-summary.json` | Matched pruning experiment |
 | `smoke/agent-mechanisms.json` | Actual-plugin mechanism smoke |
-| `smoke/guidance-comparison.json` | Original bounded guidance comparison |
-| `smoke/initial-sandbox-attempt.json` | Preserved incomplete smoke attempt |
 
 The reports moved byte-for-byte from `.claude/harness/evals/` during the scaffold cleanup. Historical
 specifications and evidence may still name their original locations; those records were not
 rewritten. Paths inside reports describe the runs as originally executed, not a new invocation.
 
-`examples/scratch-py/` preserves the legacy example's intent/spec/plan documents in their original
-layout and content. They are historical records, not current project instructions or approvals.
+Earlier curated runs, and the legacy `examples/scratch-py/` records, are archived at the tag
+`archive/history-2026-09-28`.
 
 Curate a new report deliberately after inspecting its results. Keep raw prompts, generated app
 copies and full transcripts out of this tracked directory.

@@ -476,13 +476,14 @@ native accepted 2 of 2 awake runs at about USD 0.13 and 0.9 minutes each; the ha
 - [Operating the harness](docs/OPERATING.md) — review, adapter seams, deletion audits
 - [Build plan](docs/BUILD-PLAN.md) — design decisions and evidence
 - [Constitution](docs/CONSTITUTION.md) — the rules the harness enforces on itself
+- Development history — archived at the git tag `archive/history-2026-09-28`
 
 ## Developing the harness itself
 
 | Directory | Purpose |
 |---|---|
 | `.claude/harness/bin`, `lib`, `checks`, `hooks`, `skills`, `roles`, `templates` | Shared harness implementation and scaffold templates |
-| `docs/history/` | This repository's own change records, from when the harness was built through itself. They are history, not runtime: this repository does not run the harness, so `.claude/harness/artifacts/` does not exist here at all. `harness init` creates it, empty, in a consumer project |
+| `archive/history-2026-09-28:docs/history/` | This repository's own change records, from when the harness was built through itself. They are history, not runtime: this repository does not run the harness, so `.claude/harness/artifacts/` does not exist here at all. `harness init` creates it, empty, in a consumer project |
 | `.claude/harness/state/` | Ignored runtime state and caches |
 | `test/` | Deterministic tests of the harness |
 | `evals/` | Development evaluation runners, scenarios and fixtures |

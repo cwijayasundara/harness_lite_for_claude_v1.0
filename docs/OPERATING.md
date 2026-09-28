@@ -723,5 +723,5 @@ changes return to a human; artifact edits still invalidate approval digests.
 using the configured capable generator with old and current guidance. The parent grades decisions
 and executes two returned function expressions against undisclosed cases. It records questions,
 proposed unnecessary stops/splits, boundary violations, product results, model metadata and cost
-in `evals/evidence/smoke/guidance-comparison.json`. This is one paired decision sample, not an actual
+in `archive/history-2026-09-28:evals/evidence/smoke/guidance-comparison.json`. This is one paired decision sample, not an actual
 product campaign or a measurement of workflow-repair turns. No model calls occur in unit tests.

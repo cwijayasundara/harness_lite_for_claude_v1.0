@@ -3,7 +3,7 @@
 // the removal safe rather than merely complete, and B5/B6 assert that nothing still describes or
 // offers a boundary that no longer exists.
 //
-// Historical records are deliberately out of scope: docs/DEFECT-REPAIR-PLAN.md, the research
+// Historical records are deliberately out of scope: archive/history-2026-09-28:docs/DEFECT-REPAIR-PLAN.md, the research
 // proposal, the backlog and evals/evidence/*.json describe what was built and measured at the
 // time. An eval summary reporting a container run is evidence of a container run; editing the
 // word out would falsify the record rather than remove a dependency.

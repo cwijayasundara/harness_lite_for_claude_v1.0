@@ -2,7 +2,7 @@
 // silently lose: a stray `.aidlc` reference that still resolves on a developer's disk because
 // their untracked state directory survived, and fails for everyone else.
 //
-// Three paths keep their references and are exempt, for the same reason: they record what was
+// Two paths keep their references and are exempt, for the same reason: they record what was
 // true when they were written, not where the harness lives now.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,7 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const EXEMPT = [':!docs/history', ':!docs/superpowers', ':!test/layout.test.mjs'];
+const EXEMPT = [':!docs/superpowers', ':!test/layout.test.mjs'];
 
 const grep = (...pathspec) => {
   try {
@@ -33,12 +33,8 @@ test('the harness lives at .claude/harness and .aidlc is gone', () => {
   assert.ok(!existsSync(path.join(ROOT, '.aidlc')));
 });
 
-test('historical artifacts keep their .aidlc references', () => {
-  assert.equal(grep('docs/history').length, 238);
-});
-
 // This repository builds the harness; it does not run it (.claude/CLAUDE.md). Its own change
-// records are history and live under docs/history/, so `.claude/harness/artifacts/` means here
+// records are history and are archived at the tag archive/history-2026-09-28, so `.claude/harness/artifacts/` means here
 // exactly what it means in a consumer project: empty until `harness new` writes the first change.
 test('the harness tree carries no change records of its own', () => {
   assert.deepEqual(
