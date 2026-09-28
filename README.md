@@ -465,9 +465,11 @@ What it asks of them is evidence — events it can import and measure.
 
 No new control, skill or check lands until the G24 comparison on the `calculator` workload passes
 on all four criteria — acceptance, cost per accepted change, changed source lines per accepted
-change, and caught defects — against native Claude Code. The last recorded pilots (2026-09-16):
-native accepted 2 of 2 awake runs at about USD 0.13 and 0.9 minutes each; the harness accepted
-1 of 4 at USD 0.21–0.58 and 3–25 minutes.
+change, and caught defects — against native Claude Code. The latest pilot (2026-09-28, one run
+per arm, `--repeats 0`): both arms accepted the change with the same 17 changed source lines; native
+cost USD 0.23 in 1.0 minute, the harness USD 0.30 in 2.5 minutes (29% over the 10% cost ceiling,
+with the low-tier review 58% of it); no defect was shipped or caught, so the defects criterion is
+unanswered. One pilot is not a verdict; the paired run at three repetitions is.
 
 ---
 
