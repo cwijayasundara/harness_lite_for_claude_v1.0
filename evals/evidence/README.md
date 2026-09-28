@@ -6,6 +6,7 @@ the runners still write there, and `harness evals gate` still reads `.claude/har
 
 | Report | Purpose |
 |---|---|
+| `g24-calculator-pilot-2026-09-28.json` | Calculator pilot after the intent audit, one run per arm |
 | `comparison-summary.json` | Native, graph and generation comparisons, including incomplete runs |
 | `smoke/agent-mechanisms.json` | Actual-plugin mechanism smoke |
 
